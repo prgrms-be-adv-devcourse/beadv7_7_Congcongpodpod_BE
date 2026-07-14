@@ -1,0 +1,47 @@
+name: Bug
+description: 버그 수정을 위한 이슈
+title: "[Bug] "
+body:
+  - type: textarea
+    attributes:
+      label: 💡 버그 요약
+      description: 어떤 문제가 발생했는지 설명해 주세요.
+      placeholder: ex) 00페이지 혹 API에서 404 오류 발생, 00페이지 혹 API에서 00관련 오류 등
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: ✅ TODO
+      description: 세분화 작성이 필요할 때 작성합니다. 
+      placeholder: |
+        - [ ] 기능 1 구현
+        - [ ] 기능 2 구현
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 🧪 재현 방식
+      description: 버그를 재현하는 방법을 단계별로 설명해 주세요.
+      placeholder: |
+        1. 로그인
+        2. body 없어 API 호출
+        3. 500 오류
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 📸 스크린샷 / 로그
+      description: 참고할 수 있는 이미지나 오류 로그가 있다면 첨부해 주세요.
+
+  - type: textarea
+    attributes:
+      label: 🙋🏻 참고 자료 및 비고
+      description: 문서, 링크 등 공유할 참고자료가 있다면 첨부해주세요. 또한 특이사항이 있다면 기재해주세요.
+
+  - type: input
+    attributes:
+      label: 🌿 브랜치명
+      placeholder: feat/99-something-task
