@@ -4,3 +4,12 @@ spring:
   cloud:
     config:
       enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,refresh
+  endpoint:
+    gateway:
+      access: unrestricted
