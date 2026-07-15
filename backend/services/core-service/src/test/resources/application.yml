@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: core-service
+  cloud:
+    config:
+      enabled: false
