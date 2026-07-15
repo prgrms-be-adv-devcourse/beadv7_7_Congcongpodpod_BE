@@ -22,6 +22,6 @@ class CoreProbeControllerTests {
         mockMvc.perform(get("/api/core/hello"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.service").value("core-service"))
-                .andExpect(jsonPath("$.message").value("Hello from core-service"));
+                .andExpect(jsonPath("$.message").value("Hello from test config"));
     }
 }
