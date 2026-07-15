@@ -1,0 +1,6 @@
+spring:
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${CONFIG_NATIVE_SEARCH_LOCATIONS:file:./infra/local/config}

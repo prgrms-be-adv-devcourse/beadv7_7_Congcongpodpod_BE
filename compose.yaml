@@ -1,0 +1,60 @@
+name: lastdish-local
+
+services:
+  config-server:
+    build:
+      context: ./backend
+      dockerfile: services/config-server/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      CONFIG_NATIVE_SEARCH_LOCATIONS: file:/config
+    volumes:
+      - ./infra/local/config:/config:ro
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8888/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  member-service:
+    build:
+      context: ./backend
+      dockerfile: services/member-service/Dockerfile
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+    depends_on:
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+
+  core-service:
+    build:
+      context: ./backend
+      dockerfile: services/core-service/Dockerfile
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+    depends_on:
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+
+  gateway-service:
+    build:
+      context: ./backend
+      dockerfile: services/gateway-service/Dockerfile
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+    depends_on:
+      config-server:
+        condition: service_healthy
+      member-service:
+        condition: service_started
+      core-service:
+        condition: service_started
+    ports:
+      - "8080:8080"
