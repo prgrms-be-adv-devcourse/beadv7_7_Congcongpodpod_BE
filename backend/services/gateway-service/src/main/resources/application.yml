@@ -11,8 +11,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,refresh
   endpoint:
+    gateway:
+      access: unrestricted
     health:
       probes:
         enabled: true

@@ -7,3 +7,9 @@ spring:
 
 member:
   message: Hello from test config
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
