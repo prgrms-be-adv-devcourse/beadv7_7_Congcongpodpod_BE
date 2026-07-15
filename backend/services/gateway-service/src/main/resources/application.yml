@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: gateway-service
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
