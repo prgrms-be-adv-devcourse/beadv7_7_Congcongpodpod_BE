@@ -1,0 +1,25 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI}
+          username: ${CONFIG_GIT_USERNAME}
+          password: ${CONFIG_GIT_TOKEN}
+          default-label: ${CONFIG_GIT_DEFAULT_LABEL:main}
+          clone-on-start: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
