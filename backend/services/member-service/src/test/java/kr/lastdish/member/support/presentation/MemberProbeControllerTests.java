@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -23,5 +24,11 @@ class MemberProbeControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.service").value("member-service"))
                 .andExpect(jsonPath("$.message").value("Hello from test config"));
+    }
+
+    @Test
+    void exposesRefreshEndpoint() throws Exception {
+        mockMvc.perform(post("/actuator/refresh"))
+                .andExpect(status().isOk());
     }
 }
