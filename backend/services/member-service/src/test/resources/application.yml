@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: member-service
+  cloud:
+    config:
+      enabled: false
+
+member:
+  message: Hello from test config
