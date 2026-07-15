@@ -8,6 +8,7 @@ COPY settings.gradle build.gradle gradle.properties ./
 COPY services/config-server/build.gradle services/config-server/build.gradle
 COPY services/gateway-service/build.gradle services/gateway-service/build.gradle
 COPY services/core-service/build.gradle services/core-service/build.gradle
+COPY services/member-service/build.gradle services/member-service/build.gradle
 
 RUN chmod +x gradlew \
     && ./gradlew :services:core-service:dependencies --no-daemon
