@@ -1,2 +1,3 @@
 rootProject.name = 'lastdish-backend'
 
+include 'services:config-server'
