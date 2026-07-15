@@ -4,3 +4,6 @@ spring:
   cloud:
     config:
       enabled: false
+
+core:
+  message: Hello from test config
