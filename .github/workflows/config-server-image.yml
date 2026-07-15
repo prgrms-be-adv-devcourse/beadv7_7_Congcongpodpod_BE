@@ -3,13 +3,25 @@ name: Config Server Image
 on:
   pull_request:
     paths:
-      - 'backend/**'
+      - 'backend/services/config-server/**'
+      - 'backend/build.gradle'
+      - 'backend/settings.gradle'
+      - 'backend/gradle.properties'
+      - 'backend/gradlew'
+      - 'backend/gradlew.bat'
+      - 'backend/gradle/**'
       - '.github/workflows/config-server-image.yml'
   push:
     branches:
       - main
     paths:
-      - 'backend/**'
+      - 'backend/services/config-server/**'
+      - 'backend/build.gradle'
+      - 'backend/settings.gradle'
+      - 'backend/gradle.properties'
+      - 'backend/gradlew'
+      - 'backend/gradlew.bat'
+      - 'backend/gradle/**'
       - '.github/workflows/config-server-image.yml'
   workflow_dispatch:
 
