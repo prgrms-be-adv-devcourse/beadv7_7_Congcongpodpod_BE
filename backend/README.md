@@ -2,6 +2,27 @@
 
 Java 21, Spring Boot 4.1.0, Spring Cloud 2025.1.2 기반 Gradle 멀티 프로젝트입니다.
 
+## 로컬 전체 환경 실행
+
+저장소 루트에서 Config Server, Gateway, Member, Core를 한 번에 실행합니다.
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+```bash
+curl -fsS http://localhost:8080/api/members/hello
+curl -fsS http://localhost:8080/api/core/hello
+```
+
+포트는 Gateway `8080`, Member `8081`, Core `8082`, Config Server `8888`입니다. 로컬 Config는 `infra/local/config`을 사용하며 운영 Config 저장소와 인증정보가 필요하지 않습니다.
+
+```bash
+docker compose logs -f
+docker compose down
+```
+
 ## 로컬에서 서비스 단위로 빌드하기
 
 아래 명령은 모두 `backend` 디렉터리에서 실행합니다.
