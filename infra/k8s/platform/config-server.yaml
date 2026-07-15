@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  labels:
+    app: config-server
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: config-server
+          image: ghcr.io/prgrms-be-adv-devcourse/lastdish-config-server:dev
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8888
+          env:
+            - name: CONFIG_GIT_URI
+              value: https://github.com/oxxultus/devcos-team03-spring-config.git
+            - name: CONFIG_GIT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config-git-credentials
+                  key: username
+            - name: CONFIG_GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: config-git-credentials
+                  key: token
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server
+  namespace: platform
+spec:
+  type: ClusterIP
+  selector:
+    app: config-server
+  ports:
+    - name: http
+      port: 8888
+      targetPort: http

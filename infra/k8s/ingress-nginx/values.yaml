@@ -1,0 +1,25 @@
+controller:
+  kind: DaemonSet
+
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+
+  hostPort:
+    enabled: false
+
+  service:
+    enabled: true
+    type: ClusterIP
+
+  reportNodeInternalIp: true
+
+  config:
+    use-forwarded-headers: "true"
+    compute-full-forwarded-for: "true"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi

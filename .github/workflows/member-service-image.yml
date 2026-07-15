@@ -12,6 +12,7 @@ on:
       - 'backend/gradlew.bat'
       - 'backend/gradle/**'
       - '.github/workflows/member-service-image.yml'
+      - '.github/workflows/deploy-service.yml'
   push:
     branches:
       - main
@@ -25,6 +26,7 @@ on:
       - 'backend/gradlew.bat'
       - 'backend/gradle/**'
       - '.github/workflows/member-service-image.yml'
+      - '.github/workflows/deploy-service.yml'
   workflow_dispatch:
 
 concurrency:
@@ -89,3 +91,15 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=member-service
           cache-to: type=gha,mode=max,scope=member-service
+
+  deploy:
+    needs: test-and-publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: member-service
+      namespace: app
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}
