@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'backend/services/member-service/**'
+      - 'backend/modules/**'
       - 'backend/build.gradle'
       - 'backend/settings.gradle'
       - 'backend/gradle.properties'
@@ -16,6 +17,7 @@ on:
       - main
     paths:
       - 'backend/services/member-service/**'
+      - 'backend/modules/**'
       - 'backend/build.gradle'
       - 'backend/settings.gradle'
       - 'backend/gradle.properties'
