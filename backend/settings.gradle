@@ -2,3 +2,4 @@ rootProject.name = 'lastdish-backend'
 
 include 'services:config-server'
 include 'services:gateway-service'
+include 'services:core-service'
