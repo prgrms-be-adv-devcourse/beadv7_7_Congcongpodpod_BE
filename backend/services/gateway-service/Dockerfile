@@ -10,7 +10,8 @@ COPY services/gateway-service/build.gradle services/gateway-service/build.gradle
 COPY services/core-service/build.gradle services/core-service/build.gradle
 COPY services/member-service/build.gradle services/member-service/build.gradle
 
-RUN chmod +x gradlew \
+RUN sed -i 's/\r$//' gradlew \
+    && chmod +x gradlew \
     && ./gradlew :services:gateway-service:dependencies --no-daemon
 
 COPY services/gateway-service/src services/gateway-service/src
