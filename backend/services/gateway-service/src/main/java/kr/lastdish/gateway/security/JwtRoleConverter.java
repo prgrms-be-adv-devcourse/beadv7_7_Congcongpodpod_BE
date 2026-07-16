@@ -10,6 +10,11 @@ import org.springframework.security.oauth2.server.resource.authentication.Reacti
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+/**
+ * Member Service의 role claim을 Spring Security 권한 형식으로 변환한다.
+ *
+ * <p>MEMBER는 ROLE_MEMBER, SELLER는 ROLE_SELLER로 변환된다.
+ */
 @NullMarked
 @Component
 public class JwtRoleConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
