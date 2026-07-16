@@ -19,15 +19,25 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @Configuration
 public class GatewaySecurityConfig {
 
+  /**
+   * Spring이 애플리케이션 시작 시 호출해 보안 WebFilter 목록을 Bean으로 등록한다.
+   *
+   * <p>개발 코드가 이 메서드를 직접 호출하지 않는다. 이후 HTTP 요청이 들어오면 Spring WebFlux가 완성된 {@link
+   * SecurityWebFilterChain}을 Gateway 라우팅보다 먼저 실행한다.
+   */
   @Bean
   SecurityWebFilterChain gatewaySecurityFilterChain(
       ServerHttpSecurity http,
       JwtRoleConverter jwtRoleConverter,
       GatewaySecurityErrorHandler securityErrorHandler) {
-    // JWT 기반 API는 서버 세션이나 브라우저 로그인 화면을 사용하지 않는다.
-    return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+    return http
+        // csrf: 쿠키 기반 세션 인증을 보호하는 CSRF 토큰 검사를 비활성화한다. 이 API는 Bearer Token을 사용한다.
+        .csrf(ServerHttpSecurity.CsrfSpec::disable)
+        // httpBasic: Authorization: Basic 인증과 브라우저의 Basic 인증 팝업을 사용하지 않는다.
         .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+        // formLogin: 로그인 HTML과 서버 세션 기반 로그인을 사용하지 않는다. 로그인은 Member API가 담당한다.
         .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+        // authorizeExchange: HTTP 메서드와 경로별로 필요한 인증/역할을 선언한다.
         .authorizeExchange(
             exchange ->
                 exchange
@@ -48,19 +58,25 @@ public class GatewaySecurityConfig {
                     // 실수로 새 API가 무인증 공개되는 것을 막는 기본 거부 정책이다.
                     .anyExchange()
                     .denyAll())
-        // 인가 규칙 단계에서 발생한 인증/권한 오류의 응답 형식을 통일한다.
+        // exceptionHandling: authorizeExchange 등 전체 보안 체인에서 발생한 실패 처리기를 등록한다.
         .exceptionHandling(
             exceptions ->
                 exceptions
+                    // 인증 정보가 없거나 인증이 성립하지 않으면 commence()를 호출해 401을 작성한다.
                     .authenticationEntryPoint(securityErrorHandler)
+                    // 인증은 됐지만 위의 hasRole 규칙을 만족하지 않으면 handle()을 호출해 403을 작성한다.
                     .accessDeniedHandler(securityErrorHandler))
-        // Authorization: Bearer 값을 JWT로 해석하고 Decoder와 역할 Converter를 연결한다.
+        // oauth2ResourceServer: Authorization: Bearer 값을 읽어 이 Gateway를 JWT Resource Server로 동작시킨다.
         .oauth2ResourceServer(
             oauth2 ->
                 oauth2
+                    // Bearer Token 누락/형식 오류/서명·만료 검증 실패처럼 Resource Server 내부의 인증 실패를 처리한다.
                     .authenticationEntryPoint(securityErrorHandler)
+                    // Resource Server 내부에서 인증 후 권한이 거부되는 경우를 처리한다.
                     .accessDeniedHandler(securityErrorHandler)
+                    // jwt: ReactiveJwtDecoder로 검증한 Jwt를 Spring Authentication으로 변환한다.
                     .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtRoleConverter)))
+        // 위 설정을 실제 요청에 적용할 불변 SecurityWebFilterChain으로 완성한다.
         .build();
   }
 }
