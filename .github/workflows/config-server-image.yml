@@ -2,6 +2,9 @@ name: Config Server Image
 
 on:
   pull_request:
+    branches:
+      - develop
+      - main
     paths:
       - 'backend/services/config-server/**'
       - 'backend/modules/**'
