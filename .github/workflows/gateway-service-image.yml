@@ -2,6 +2,9 @@ name: Gateway Service Image
 
 on:
   pull_request:
+    branches:
+      - develop
+      - main
     paths:
       - 'backend/services/gateway-service/**'
       - 'backend/modules/**'
