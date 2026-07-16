@@ -19,7 +19,7 @@ management:
 
 springdoc:
   swagger-ui:
-    enabled: false
+    enabled: true
 
   api-docs:
     enabled: true

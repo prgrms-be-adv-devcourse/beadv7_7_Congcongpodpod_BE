@@ -19,7 +19,7 @@ public class SwaggerConfig {
                         .title("Core API")
                         .version("v1"))
                 .servers(List.of(
-                        new Server().url("/core")
+                        new Server().url("/api/core")
                 ));
 //              jwt 도입 시 수정 (Authorize 설정)
 //                .addSecurityItem(
