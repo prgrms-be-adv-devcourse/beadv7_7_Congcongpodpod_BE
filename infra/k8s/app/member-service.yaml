@@ -27,6 +27,18 @@ spec:
           env:
             - name: CONFIG_SERVER_URL
               value: http://config-server.platform.svc.cluster.local:8888
+            - name: MEMBER_DB_URL
+              value: jdbc:postgresql://member-db.data.svc.cluster.local:5432/member_db
+            - name: MEMBER_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: member-db-credentials
+                  key: username
+            - name: MEMBER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: member-db-credentials
+                  key: password
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

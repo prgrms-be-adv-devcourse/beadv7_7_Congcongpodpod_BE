@@ -1,2 +1,13 @@
 core:
   message: Hello from local Config Server
+
+spring:
+  datasource:
+    url: ${CORE_DB_URL:jdbc:postgresql://localhost:54322/core_db}
+    username: ${CORE_DB_USERNAME:core}
+    password: ${CORE_DB_PASSWORD:core_local_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
