@@ -12,6 +12,11 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
+/**
+ * Member Service가 개인키로 서명한 JWT를 공개키로 검증한다.
+ *
+ * <p>Gateway는 토큰 발급에 관여하지 않으며, issuer 검증으로 다른 서비스가 발급한 토큰을 차단한다.
+ */
 @Configuration
 public class GatewayJwtConfig {
 
@@ -22,6 +27,7 @@ public class GatewayJwtConfig {
       throws IOException {
     RSAPublicKey publicKey;
 
+    // Gateway에는 토큰 발급이 불가능한 공개키만 주입한다.
     try (InputStream inputStream = publicKeyResource.getInputStream()) {
       publicKey = (RSAPublicKey) RsaKeyConverters.x509().convert(inputStream);
     }

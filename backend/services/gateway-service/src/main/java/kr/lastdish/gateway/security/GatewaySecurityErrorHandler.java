@@ -14,6 +14,11 @@ import reactor.core.publisher.Mono;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * 인증·인가 실패를 Gateway 공통 JSON 응답으로 변환한다.
+ *
+ * <p>토큰 만료나 서명 오류 등 상세 검증 원인은 외부에 노출하지 않고 동일한 401 응답으로 처리한다.
+ */
 @NullMarked
 @Component
 public class GatewaySecurityErrorHandler
@@ -25,6 +30,7 @@ public class GatewaySecurityErrorHandler
     this.objectMapper = objectMapper;
   }
 
+  // 토큰 검증 실패의 구체적인 보안 원인은 클라이언트에 노출하지 않는다.
   @Override
   public Mono<Void> commence(
       ServerWebExchange exchange, AuthenticationException authenticationException) {
