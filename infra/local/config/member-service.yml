@@ -1,2 +1,13 @@
 member:
   message: 222Hello from local Config Server
+
+spring:
+  datasource:
+    url: ${MEMBER_DB_URL:jdbc:postgresql://localhost:54321/member_db}
+    username: ${MEMBER_DB_USERNAME:member}
+    password: ${MEMBER_DB_PASSWORD:member_local_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false

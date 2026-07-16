@@ -27,6 +27,18 @@ spec:
           env:
             - name: CONFIG_SERVER_URL
               value: http://config-server.platform.svc.cluster.local:8888
+            - name: CORE_DB_URL
+              value: jdbc:postgresql://core-db.data.svc.cluster.local:5432/core_db
+            - name: CORE_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: core-db-credentials
+                  key: username
+            - name: CORE_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: core-db-credentials
+                  key: password
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
