@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -41,7 +42,19 @@ class GatewaySecurityConfigTests {
 
   @Test
   void protectedRouteRejectsRequestsWithoutAuthentication() {
-    webTestClient.get().uri("/api/core/test").exchange().expectStatus().isUnauthorized();
+    webTestClient
+        .get()
+        .uri("/api/core/test")
+        .exchange()
+        .expectStatus()
+        .isUnauthorized()
+        .expectHeader()
+        .contentType(MediaType.APPLICATION_JSON)
+        .expectBody()
+        .jsonPath("$.code")
+        .isEqualTo("INVALID_ACCESS_TOKEN")
+        .jsonPath("$.message")
+        .isEqualTo("인증이 필요합니다.");
   }
 
   @Test
@@ -69,7 +82,14 @@ class GatewaySecurityConfigTests {
         .uri("/api/seller/test")
         .exchange()
         .expectStatus()
-        .isForbidden();
+        .isForbidden()
+        .expectHeader()
+        .contentType(MediaType.APPLICATION_JSON)
+        .expectBody()
+        .jsonPath("$.code")
+        .isEqualTo("ACCESS_DENIED")
+        .jsonPath("$.message")
+        .isEqualTo("접근 권한이 없습니다.");
   }
 
   @Test
