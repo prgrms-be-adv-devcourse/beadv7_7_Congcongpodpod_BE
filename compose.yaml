@@ -1,6 +1,38 @@
 name: lastdish-local
 
 services:
+  member-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: member_db
+      POSTGRES_USER: member
+      POSTGRES_PASSWORD: member_local_password
+    ports:
+      - "54321:5432"
+    volumes:
+      - member-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U member -d member_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  core-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: core_db
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: core_local_password
+    ports:
+      - "54322:5432"
+    volumes:
+      - core-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U core -d core_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   config-server:
     build:
       context: ./backend
@@ -25,8 +57,13 @@ services:
       dockerfile: services/member-service/Dockerfile
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
+      MEMBER_DB_URL: jdbc:postgresql://member-db:5432/member_db
+      MEMBER_DB_USERNAME: member
+      MEMBER_DB_PASSWORD: member_local_password
     depends_on:
       config-server:
+        condition: service_healthy
+      member-db:
         condition: service_healthy
     ports:
       - "8081:8080"
@@ -37,8 +74,13 @@ services:
       dockerfile: services/core-service/Dockerfile
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
+      CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
+      CORE_DB_USERNAME: core
+      CORE_DB_PASSWORD: core_local_password
     depends_on:
       config-server:
+        condition: service_healthy
+      core-db:
         condition: service_healthy
     ports:
       - "8082:8080"
@@ -58,3 +100,7 @@ services:
         condition: service_started
     ports:
       - "8080:8080"
+
+volumes:
+  member-db-data:
+  core-db-data:
