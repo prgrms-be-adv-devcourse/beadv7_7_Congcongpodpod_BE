@@ -7,16 +7,16 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 @RefreshScope
 public class MemberProperties {
 
-    private String message;
+  private String message;
 
-    public String message() {
-        return message;
-    }
+  public String message() {
+    return message;
+  }
 
-    public void setMessage(String message) {
-        if (message == null || message.isBlank()) {
-            throw new IllegalArgumentException("member.message must not be blank");
-        }
-        this.message = message;
+  public void setMessage(String message) {
+    if (message == null || message.isBlank()) {
+      throw new IllegalArgumentException("member.message must not be blank");
     }
+    this.message = message;
+  }
 }

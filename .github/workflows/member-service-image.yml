@@ -2,6 +2,9 @@ name: Member Service Image
 
 on:
   pull_request:
+    branches:
+      - develop
+      - main
     paths:
       - 'backend/services/member-service/**'
       - 'backend/modules/**'
