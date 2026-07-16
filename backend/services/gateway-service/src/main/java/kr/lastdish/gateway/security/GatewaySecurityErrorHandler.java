@@ -17,7 +17,11 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * 인증·인가 실패를 Gateway 공통 JSON 응답으로 변환한다.
  *
- * <p>토큰 만료나 서명 오류 등 상세 검증 원인은 외부에 노출하지 않고 동일한 401 응답으로 처리한다.
+ * <p>{@link ServerAuthenticationEntryPoint}는 인증 자체가 성립하지 않은 401 상황을 처리하고, {@link
+ * ServerAccessDeniedHandler}는 인증된 사용자의 권한이 부족한 403 상황을 처리한다.
+ *
+ * <p>토큰 만료, 서명 오류, issuer 불일치처럼 공격자가 이용할 수 있는 상세 검증 원인은 외부에 구분해서 노출하지 않는다. 클라이언트는 401이면 Access
+ * Token 갱신을 시도하고, 403이면 현재 사용자의 권한 부족으로 처리할 수 있다.
  */
 @NullMarked
 @Component
@@ -49,6 +53,7 @@ public class GatewaySecurityErrorHandler
     response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
     try {
+      // ErrorResponse를 직접 직렬화해 하위 서비스까지 요청을 보내지 않고 Gateway 응답을 종료한다.
       byte[] body = objectMapper.writeValueAsBytes(new ErrorResponse(code, message));
       return response.writeWith(Mono.just(response.bufferFactory().wrap(body)));
     } catch (JacksonException exception) {
