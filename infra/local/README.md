@@ -25,12 +25,32 @@ docker compose ps
 ./infra/local/generate-jwt-keys.sh --force
 ```
 
+Windows PowerShell에서는 다음 명령을 사용한다. `openssl`이 PATH에 등록되어 있어야 한다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1
+```
+
+Windows에서 기존 키를 교체하는 경우:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1 -Force
+```
+
 Gateway는 Access Token 검증에 `access-public-key.pem`만 사용한다. IDE에서 Gateway를 직접 실행할 때는 저장소 루트 기준 공개키 경로를 전달한다.
 
 ```bash
 cd backend
 JWT_PUBLIC_KEY_LOCATION=file:../infra/local/keys/access-public-key.pem \
   ./gradlew :services:gateway-service:bootRun
+```
+
+Windows PowerShell에서 직접 실행하는 경우:
+
+```powershell
+cd backend
+$env:JWT_PUBLIC_KEY_LOCATION = "file:../infra/local/keys/access-public-key.pem"
+.\gradlew.bat :services:gateway-service:bootRun
 ```
 
 데이터베이스만 먼저 실행하고 IDE에서 서비스를 직접 실행하려면:
