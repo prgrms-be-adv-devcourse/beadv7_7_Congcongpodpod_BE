@@ -7,7 +7,7 @@ spring:
             - id: core-service
               uri: http://core-service:8080
               predicates:
-                - Path=/api/core/**
+                - Path=/api/core/**,/api/seller/**
             - id: member-service
               uri: http://member-service:8080
               predicates:

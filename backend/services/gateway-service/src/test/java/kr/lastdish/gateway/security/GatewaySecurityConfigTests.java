@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -46,9 +47,40 @@ class GatewaySecurityConfigTests {
   @Test
   void protectedRouteAllowsRequestsWithJwtAuthentication() {
     webTestClient
-        .mutateWith(mockJwt().jwt(jwt -> jwt.subject("1").claim("role", "MEMBER")))
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
         .get()
         .uri("/api/core/test")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
+  void memberCannotAccessSellerRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .get()
+        .uri("/api/seller/test")
+        .exchange()
+        .expectStatus()
+        .isForbidden();
+  }
+
+  @Test
+  void sellerCanAccessSellerRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("2"))
+                .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
+        .get()
+        .uri("/api/seller/test")
         .exchange()
         .expectStatus()
         .isOk();
@@ -60,7 +92,8 @@ class GatewaySecurityConfigTests {
     @Bean
     RouterFunction<ServerResponse> securityTestRoutes() {
       return route(POST("/api/auth/login"), request -> ok().build())
-          .andRoute(GET("/api/core/test"), request -> ok().build());
+          .andRoute(GET("/api/core/test"), request -> ok().build())
+          .andRoute(GET("/api/seller/test"), request -> ok().build());
     }
   }
 }
