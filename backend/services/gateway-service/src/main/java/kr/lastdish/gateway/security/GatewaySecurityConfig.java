@@ -7,6 +7,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
+/**
+ * Gateway 라우팅 전에 인증과 역할 기반 접근 제어를 수행한다.
+ *
+ * <p>일반 API 요청마다 Member Service를 호출하지 않고 JWT를 Gateway에서 자체 검증한다.
+ */
 @Configuration
 public class GatewaySecurityConfig {
 
@@ -21,8 +26,10 @@ public class GatewaySecurityConfig {
         .authorizeExchange(
             exchange ->
                 exchange
+                    // Access Token이 없는 회원가입 요청을 Member Service로 전달한다.
                     .pathMatchers(POST, "/api/members/signup")
                     .permitAll()
+                    // 만료된 Access Token으로도 재발급과 Refresh Token 폐기를 요청할 수 있다.
                     .pathMatchers(POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
                     .permitAll()
                     .pathMatchers("/actuator/health/**")
