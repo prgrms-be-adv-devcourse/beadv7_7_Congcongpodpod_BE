@@ -34,13 +34,24 @@ public class GatewaySecurityErrorHandler
     this.objectMapper = objectMapper;
   }
 
-  // 토큰 검증 실패의 구체적인 보안 원인은 클라이언트에 노출하지 않는다.
+  /**
+   * 인증 실패 시 Spring Security가 호출하는 401 진입점이다.
+   *
+   * <p>Entry Point는 인증을 시작하는 컨트롤러라는 뜻이 아니라, 보호 자원에 접근할 인증이 성립하지 않았을 때 응답을 시작하는 지점이다. 토큰 누락·만료·서명
+   * 오류의 상세 원인은 클라이언트에 노출하지 않는다.
+   */
   @Override
   public Mono<Void> commence(
       ServerWebExchange exchange, AuthenticationException authenticationException) {
     return writeResponse(exchange, HttpStatus.UNAUTHORIZED, "INVALID_ACCESS_TOKEN", "인증이 필요합니다.");
   }
 
+  /**
+   * 인증된 사용자의 인가 실패 시 Spring Security가 호출하는 403 처리기다.
+   *
+   * <p>예를 들어 ROLE_MEMBER 사용자가 SELLER 전용 경로에 접근하면 토큰 자체는 유효하므로 재로그인 대상인 401이 아니라 권한 부족을 나타내는 403을
+   * 반환한다.
+   */
   @Override
   public Mono<Void> handle(ServerWebExchange exchange, AccessDeniedException exception) {
     return writeResponse(exchange, HttpStatus.FORBIDDEN, "ACCESS_DENIED", "접근 권한이 없습니다.");
