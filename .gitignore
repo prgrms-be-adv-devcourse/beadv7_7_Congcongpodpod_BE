@@ -1,8 +1,8 @@
 .DS_Store
 .idea/
 *.iml
+/AGENTS.md
 
 **/.gradle/
 **/build/
 **/out/
-
