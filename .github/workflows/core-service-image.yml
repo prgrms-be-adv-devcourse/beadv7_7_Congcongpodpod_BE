@@ -2,6 +2,9 @@ name: Core Service Image
 
 on:
   pull_request:
+    branches:
+      - develop
+      - main
     paths:
       - 'backend/services/core-service/**'
       - 'backend/modules/**'
