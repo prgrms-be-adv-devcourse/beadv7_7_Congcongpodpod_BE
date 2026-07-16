@@ -12,3 +12,9 @@ spring:
               uri: http://member-service:8080
               predicates:
                 - Path=/api/members/**,/api/auth/**
+
+gateway:
+  security:
+    jwt:
+      issuer: lastdish-member-service
+      public-key-location: ${JWT_PUBLIC_KEY_LOCATION}
