@@ -14,8 +14,23 @@ Config Server, Gateway, Member, Core와 서비스별 PostgreSQL을 Docker Compos
 저장소 루트에서:
 
 ```bash
+./infra/local/generate-jwt-keys.sh
 docker compose up --build -d
 docker compose ps
+```
+
+키 생성 스크립트는 로컬 전용 Access/Refresh RSA 키 쌍을 `infra/local/keys`에 생성한다. 생성된 PEM 파일은 Git에 포함되지 않는다. 기존 키를 의도적으로 교체할 때만 `--force`를 사용한다.
+
+```bash
+./infra/local/generate-jwt-keys.sh --force
+```
+
+Gateway는 Access Token 검증에 `access-public-key.pem`만 사용한다. IDE에서 Gateway를 직접 실행할 때는 저장소 루트 기준 공개키 경로를 전달한다.
+
+```bash
+cd backend
+JWT_PUBLIC_KEY_LOCATION=file:../infra/local/keys/access-public-key.pem \
+  ./gradlew :services:gateway-service:bootRun
 ```
 
 데이터베이스만 먼저 실행하고 IDE에서 서비스를 직접 실행하려면:
@@ -69,4 +84,4 @@ docker compose down --rmi local
 docker compose down -v
 ```
 
-현재 DB 비밀번호는 로컬 개발 전용 공개 값이다. 운영 비밀번호, 토큰, Private key는 저장소에 추가하지 않는다.
+현재 DB 비밀번호는 로컬 개발 전용 공개 값이다. 운영 비밀번호, 토큰, Private key는 저장소에 추가하지 않는다. `infra/local/keys`의 키는 로컬 환경에서만 사용한다.
