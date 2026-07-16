@@ -12,7 +12,9 @@ public class GatewaySecurityConfig {
 
   @Bean
   SecurityWebFilterChain gatewaySecurityFilterChain(
-      ServerHttpSecurity http, JwtRoleConverter jwtRoleConverter) {
+      ServerHttpSecurity http,
+      JwtRoleConverter jwtRoleConverter,
+      GatewaySecurityErrorHandler securityErrorHandler) {
     return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
         .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
         .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
@@ -31,8 +33,17 @@ public class GatewaySecurityConfig {
                     .hasAnyRole("MEMBER", "SELLER")
                     .anyExchange()
                     .denyAll())
+        .exceptionHandling(
+            exceptions ->
+                exceptions
+                    .authenticationEntryPoint(securityErrorHandler)
+                    .accessDeniedHandler(securityErrorHandler))
         .oauth2ResourceServer(
-            oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtRoleConverter)))
+            oauth2 ->
+                oauth2
+                    .authenticationEntryPoint(securityErrorHandler)
+                    .accessDeniedHandler(securityErrorHandler)
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtRoleConverter)))
         .build();
   }
 }
