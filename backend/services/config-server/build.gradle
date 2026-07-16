@@ -16,17 +16,6 @@ dependencyManagement {
     }
 }
 
-// detekt + Spring Cloud BOM 충돌 방지
-// 이 모듈만 spring-cloud-dependencies BOM을 로컬에서 다시 불러오면서
-// 최상위 build.gradle의 detekt 예외처리가 여기서 한 번 더 덮어써짐 → 재등록 필요
-configurations.matching { it.name == 'detekt' }.all {
-    resolutionStrategy.eachDependency {
-        if (requested.group == 'org.jetbrains.kotlin') {
-            useVersion('2.0.10')
-        }
-    }
-}
-
 dependencies {
     implementation 'org.springframework.cloud:spring-cloud-config-server'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
