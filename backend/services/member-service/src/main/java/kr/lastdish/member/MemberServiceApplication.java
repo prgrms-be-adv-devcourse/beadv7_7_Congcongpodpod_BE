@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @ConfigurationPropertiesScan
 public class MemberServiceApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(MemberServiceApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(MemberServiceApplication.class, args);
+  }
 }
