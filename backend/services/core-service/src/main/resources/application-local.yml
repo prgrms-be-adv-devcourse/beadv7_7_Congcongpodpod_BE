@@ -1,0 +1,12 @@
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_CORE_DIRECT_URL:http://localhost:8082}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
