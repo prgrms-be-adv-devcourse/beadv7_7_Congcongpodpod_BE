@@ -78,6 +78,27 @@ curl -fsS http://localhost:8081/api/members/hello
 curl -fsS http://localhost:8082/api/core/hello
 ```
 
+## Swagger
+
+통합 Swagger UI는 Gateway에서 제공한다.
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+화면 상단에서 `member-service` 또는 `core-service` 문서를 선택한다. 각 문서의 Servers
+목록에서 Gateway 통합 호출과 서비스 직접 호출을 전환할 수 있다.
+
+| 문서 | Gateway | Direct |
+|---|---|---|
+| Member | `http://localhost:8080` | `http://localhost:8081` |
+| Core | `http://localhost:8080` | `http://localhost:8082` |
+
+보호 API는 Swagger UI의 `Authorize`에 Access Token을 입력한 뒤 호출한다. 서비스별 UI도
+각각 `http://localhost:8081/swagger-ui/index.html`,
+`http://localhost:8082/swagger-ui/index.html`에서 사용할 수 있다. Swagger와 Direct 호출용
+CORS는 `local` 프로필에서만 활성화된다.
+
 데이터베이스 확인:
 
 ```bash
