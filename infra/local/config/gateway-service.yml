@@ -7,8 +7,14 @@ spring:
             - id: core-service
               uri: http://core-service:8080
               predicates:
-                - Path=/api/core/**
+                - Path=/api/core/**,/api/seller/**
             - id: member-service
               uri: http://member-service:8080
               predicates:
-                - Path=/api/members/**
+                - Path=/api/members/**,/api/auth/**
+
+gateway:
+  security:
+    jwt:
+      issuer: lastdish-member-service
+      public-key-location: ${JWT_PUBLIC_KEY_LOCATION}
