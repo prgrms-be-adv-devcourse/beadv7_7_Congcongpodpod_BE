@@ -18,8 +18,7 @@ management:
         enabled: true
 
 springdoc:
-  swagger-ui:
-    enabled: true
-
   api-docs:
-    enabled: true
+    enabled: false
+  swagger-ui:
+    enabled: false
