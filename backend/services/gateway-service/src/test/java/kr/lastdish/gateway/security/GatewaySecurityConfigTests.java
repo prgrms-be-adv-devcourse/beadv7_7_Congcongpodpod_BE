@@ -41,6 +41,11 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void openApiRouteAllowsRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/openapi/member-service").exchange().expectStatus().isOk();
+  }
+
+  @Test
   void protectedRouteRejectsRequestsWithoutAuthentication() {
     webTestClient
         .get()
@@ -112,6 +117,7 @@ class GatewaySecurityConfigTests {
     @Bean
     RouterFunction<ServerResponse> securityTestRoutes() {
       return route(POST("/api/auth/login"), request -> ok().build())
+          .andRoute(GET("/openapi/member-service"), request -> ok().build())
           .andRoute(GET("/api/core/test"), request -> ok().build())
           .andRoute(GET("/api/seller/test"), request -> ok().build());
     }
