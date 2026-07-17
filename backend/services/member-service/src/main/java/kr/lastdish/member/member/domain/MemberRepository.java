@@ -12,5 +12,4 @@ public interface MemberRepository {
   boolean existsByUserName(String userName);
 
   boolean existsByEmail(String email);
-
 }
