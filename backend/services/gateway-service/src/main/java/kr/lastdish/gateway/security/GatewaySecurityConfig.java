@@ -1,11 +1,11 @@
 package kr.lastdish.gateway.security;
 
+import static org.springframework.http.HttpMethod.POST;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-
-import static org.springframework.http.HttpMethod.POST;
 
 /**
  * Gateway 라우팅 전에 실행되는 WebFlux Security 필터 체인을 구성한다.
