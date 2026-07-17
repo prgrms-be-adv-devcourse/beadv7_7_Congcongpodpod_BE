@@ -12,6 +12,18 @@ spring:
               uri: http://member-service:8080
               predicates:
                 - Path=/api/members/**,/api/auth/**
+            - id: member-openapi
+              uri: http://member-service:8080
+              predicates:
+                - Path=/openapi/member-service
+              filters:
+                - SetPath=/v3/api-docs
+            - id: core-openapi
+              uri: http://core-service:8080
+              predicates:
+                - Path=/openapi/core-service
+              filters:
+                - SetPath=/v3/api-docs
 
 gateway:
   security:
