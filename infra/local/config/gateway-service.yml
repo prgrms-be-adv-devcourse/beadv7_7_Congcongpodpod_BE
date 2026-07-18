@@ -7,11 +7,11 @@ spring:
             - id: core-service
               uri: http://core-service:8080
               predicates:
-                - Path=/api/core/**,/api/seller/**
+                - Path=/api/v1/carts/**,/api/v1/orders/**,/api/v1/stores/**,/api/v1/dishes/**,/api/v1/payments/**,/api/v1/settlements/**,/api/v1/deposits/**
             - id: member-service
               uri: http://member-service:8080
               predicates:
-                - Path=/api/members/**,/api/auth/**
+                - Path=/api/v1/auth/**,/api/v1/members/**
             - id: member-openapi
               uri: http://member-service:8080
               predicates:

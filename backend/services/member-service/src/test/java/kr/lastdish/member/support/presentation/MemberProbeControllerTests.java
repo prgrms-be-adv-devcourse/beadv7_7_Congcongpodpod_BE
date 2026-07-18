@@ -20,7 +20,7 @@ class MemberProbeControllerTests {
   @Test
   void returnsMemberServiceIdentity() throws Exception {
     mockMvc
-        .perform(get("/api/members/hello"))
+        .perform(get("/internal/probe"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.service").value("member-service"))
         .andExpect(jsonPath("$.message").value("Hello from test config"));
