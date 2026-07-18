@@ -37,7 +37,7 @@ class GatewaySecurityConfigTests {
 
   @Test
   void loginRouteAllowsRequestsWithoutAuthentication() {
-    webTestClient.post().uri("/api/auth/login").exchange().expectStatus().isOk();
+    webTestClient.post().uri("/api/v1/auth/login").exchange().expectStatus().isOk();
   }
 
   @Test
@@ -46,10 +46,15 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void publicDishRouteAllowsGetRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/dishes/1").exchange().expectStatus().isOk();
+  }
+
+  @Test
   void protectedRouteRejectsRequestsWithoutAuthentication() {
     webTestClient
         .get()
-        .uri("/api/core/test")
+        .uri("/api/v1/orders/test")
         .exchange()
         .expectStatus()
         .isUnauthorized()
@@ -70,7 +75,7 @@ class GatewaySecurityConfigTests {
                 .jwt(jwt -> jwt.subject("1"))
                 .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
         .get()
-        .uri("/api/core/test")
+        .uri("/api/v1/orders/test")
         .exchange()
         .expectStatus()
         .isOk();
@@ -83,8 +88,8 @@ class GatewaySecurityConfigTests {
             mockJwt()
                 .jwt(jwt -> jwt.subject("1"))
                 .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
-        .get()
-        .uri("/api/seller/test")
+        .post()
+        .uri("/api/v1/stores/1/dishes")
         .exchange()
         .expectStatus()
         .isForbidden()
@@ -104,8 +109,8 @@ class GatewaySecurityConfigTests {
             mockJwt()
                 .jwt(jwt -> jwt.subject("2"))
                 .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
-        .get()
-        .uri("/api/seller/test")
+        .post()
+        .uri("/api/v1/stores/1/dishes")
         .exchange()
         .expectStatus()
         .isOk();
@@ -116,10 +121,11 @@ class GatewaySecurityConfigTests {
 
     @Bean
     RouterFunction<ServerResponse> securityTestRoutes() {
-      return route(POST("/api/auth/login"), request -> ok().build())
+      return route(POST("/api/v1/auth/login"), request -> ok().build())
           .andRoute(GET("/openapi/member-service"), request -> ok().build())
-          .andRoute(GET("/api/core/test"), request -> ok().build())
-          .andRoute(GET("/api/seller/test"), request -> ok().build());
+          .andRoute(GET("/api/v1/dishes/1"), request -> ok().build())
+          .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
+          .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build());
     }
   }
 }
