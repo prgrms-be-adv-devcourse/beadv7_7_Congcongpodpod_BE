@@ -10,19 +10,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/deposits")
+@RequestMapping("/api/v1/deposits")
 @RequiredArgsConstructor
 public class DepositController {
 
-    private final DepositService depositService;
+  private final DepositService depositService;
 
-    @GetMapping("/balance")
-    public ResponseEntity<DepositBalanceResponse> getDepositBalance(
-            @RequestHeader("X-Authenticated-Member-Id") Long memberId
-    ) {
+  @GetMapping("/balance")
+  public ResponseEntity<DepositBalanceResponse> getDepositBalance(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
 
-        DepositBalanceResponse response = depositService.getDepositBalance(memberId);
+    DepositBalanceResponse response = depositService.getDepositBalance(memberId);
 
-        return ResponseEntity.ok(response);
-
+    return ResponseEntity.ok(response);
+  }
 }
