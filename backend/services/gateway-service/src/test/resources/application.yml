@@ -13,3 +13,9 @@ management:
   endpoint:
     gateway:
       access: unrestricted
+
+gateway:
+  security:
+    jwt:
+      issuer: lastdish-member-service
+      public-key-location: classpath:keys/test-public-key.pem

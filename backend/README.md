@@ -12,8 +12,7 @@ docker compose ps
 ```
 
 ```bash
-curl -fsS http://localhost:8080/api/members/hello
-curl -fsS http://localhost:8080/api/core/hello
+curl -fsS http://localhost:8080/actuator/health
 ```
 
 포트는 Gateway `8080`, Member `8081`, Core `8082`, Config Server `8888`입니다. 로컬 Config는 `infra/local/config`을 사용하며 운영 Config 저장소와 인증정보가 필요하지 않습니다.
