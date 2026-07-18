@@ -8,10 +8,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class DishRepositoryImpl implements DishRepository {
-    private final DishJpaRepository dishJpaRepository;
+  private final DishJpaRepository dishJpaRepository;
 
-    @Override
-    public Dish save(Dish dish) {
-        return dishJpaRepository.save(dish);
-    }
+  @Override
+  public Dish save(Dish dish) {
+    return dishJpaRepository.save(dish);
+  }
 }
