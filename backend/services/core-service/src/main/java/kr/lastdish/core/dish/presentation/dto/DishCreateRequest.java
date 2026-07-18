@@ -1,20 +1,24 @@
 package kr.lastdish.core.dish.presentation.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import kr.lastdish.core.dish.domain.Category;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record DishCreateRequest(
-        Long storeId,
-        String dishName,
-        LocalDateTime registeredAt,
+        @NotNull Long storeId,
+        @NotBlank String dishName,
+        @NotNull LocalDateTime registeredAt,
         String description,
-        Category category,
+        @NotNull Category category,
         String thumbnailUrl,
-        Long stockQuantity,
-        BigDecimal dishPrice,
-        BigDecimal discountPrice
+        @NotNull @Positive Long stockQuantity,
+        @NotNull @Positive BigDecimal dishPrice,
+        @NotNull @PositiveOrZero BigDecimal discountPrice
 ) {
 
 }
