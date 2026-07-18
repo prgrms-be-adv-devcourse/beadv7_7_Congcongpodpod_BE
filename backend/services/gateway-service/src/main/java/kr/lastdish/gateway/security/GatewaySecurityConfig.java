@@ -50,6 +50,10 @@ public class GatewaySecurityConfig {
                     // Kubernetes readiness/liveness probe는 인증 없이 접근해야 한다.
                     .pathMatchers("/actuator/health/**")
                     .permitAll()
+                    // 로컬 API 문서와 UI는 인증 전에 조회되어야 한다. 운영에서는 springdoc 자체가 비활성화된다.
+                    .pathMatchers(
+                        "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/openapi/**")
+                    .permitAll()
                     // hasRole("SELLER")는 내부적으로 ROLE_SELLER 권한을 확인한다.
                     .pathMatchers("/api/seller/**")
                     .hasRole("SELLER")
