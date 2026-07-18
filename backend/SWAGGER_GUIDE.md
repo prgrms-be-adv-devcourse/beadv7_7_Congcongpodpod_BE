@@ -113,7 +113,23 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
 Gateway 경유 요청에서는 Gateway의 JWT 검증과 권한 정책이 적용된다. Direct 요청은
 Gateway를 우회하므로 Gateway의 인증, 인가, 사용자 헤더 주입을 검증하지 않는다.
 
-## 7. Gateway 통합 UI
+## 7. API URI 규격
+
+외부 API는 `/api/v1/{resource}` 형식을 사용한다. Gateway는 경로를 변경하지 않고 각
+서비스에 그대로 전달한다.
+
+```text
+/api/v1/auth/**, /api/v1/members/** -> member-service
+/api/v1/carts/**, /api/v1/orders/**, /api/v1/stores/**,
+/api/v1/dishes/**, /api/v1/payments/**, /api/v1/settlements/**,
+/api/v1/deposits/**                -> core-service
+```
+
+권한은 URI에 `seller`같은 역할명을 넣지 않고 Gateway에서 HTTP Method와 리소스 경로를
+기준으로 검사한다. 서비스 점검용 `/internal/probe`는 Gateway에서 공개하지 않고
+Swagger 문서에서도 제외한다.
+
+## 8. Gateway 통합 UI
 
 `http://localhost:8080/swagger-ui/index.html`에 접속하고 화면 상단의
 `Select a definition`에서 문서를 선택한다.
@@ -131,7 +147,7 @@ Gateway는 다음 경로를 각 서비스의 `/v3/api-docs`로 프록시한다.
 문서를 선택한 뒤 `Servers`에서 Gateway 또는 Direct 주소를 선택해 동일한 API를 통합·개별
 방식으로 각각 확인할 수 있다.
 
-## 8. 종료
+## 9. 종료
 
 ```bash
 docker compose down
