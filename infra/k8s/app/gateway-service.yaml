@@ -27,6 +27,12 @@ spec:
           env:
             - name: CONFIG_SERVER_URL
               value: http://config-server.platform.svc.cluster.local:8888
+            - name: JWT_PUBLIC_KEY_LOCATION
+              value: file:/etc/lastdish/jwt/access-public-key.pem
+          volumeMounts:
+            - name: access-public-key
+              mountPath: /etc/lastdish/jwt
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -54,6 +60,10 @@ spec:
             capabilities:
               drop:
                 - ALL
+      volumes:
+        - name: access-public-key
+          configMap:
+            name: gateway-jwt-public-key
 ---
 apiVersion: v1
 kind: Service
