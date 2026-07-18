@@ -20,7 +20,7 @@ class CoreProbeControllerTests {
   @Test
   void returnsCoreServiceIdentity() throws Exception {
     mockMvc
-        .perform(get("/api/core/hello"))
+        .perform(get("/internal/probe"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.service").value("core-service"))
         .andExpect(jsonPath("$.message").value("Hello from test config"));
