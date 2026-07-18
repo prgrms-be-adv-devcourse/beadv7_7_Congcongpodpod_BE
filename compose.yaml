@@ -92,6 +92,7 @@ services:
       context: ./backend
       dockerfile: services/gateway-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
     secrets:
