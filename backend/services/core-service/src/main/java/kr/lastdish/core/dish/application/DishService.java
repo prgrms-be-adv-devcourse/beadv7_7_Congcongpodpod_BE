@@ -11,24 +11,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class DishService {
-    private final DishRepository dishRepository;
+  private final DishRepository dishRepository;
 
-    @Transactional
-    public DishCreateResponse createDish(DishCreateRequest request) {
-        Dish dish = Dish.create(
-                request.storeId(),
-                request.dishName(),
-                request.registeredAt(),
-                request.description(),
-                request.category(),
-                request.thumbnailUrl(),
-                request.stockQuantity(),
-                request.dishPrice(),
-                request.discountPrice()
-        );
+  @Transactional
+  public DishCreateResponse createDish(DishCreateRequest request) {
+    Dish dish =
+        Dish.create(
+            request.storeId(),
+            request.dishName(),
+            request.registeredAt(),
+            request.description(),
+            request.category(),
+            request.thumbnailUrl(),
+            request.stockQuantity(),
+            request.dishPrice(),
+            request.discountPrice());
 
-        Dish savedDish = dishRepository.save(dish);
+    Dish savedDish = dishRepository.save(dish);
 
-        return DishCreateResponse.from(savedDish);
-    }
+    return DishCreateResponse.from(savedDish);
+  }
 }
