@@ -95,15 +95,14 @@ $env:SERVER_PORT = "8082"
 
 ```bash
 curl -fsS http://localhost:8888/member-service/default
-curl -fsS http://localhost:8080/api/members/hello
-curl -fsS http://localhost:8080/api/core/hello
+curl -fsS http://localhost:8080/actuator/health
 ```
 
 직접 호출:
 
 ```bash
-curl -fsS http://localhost:8081/api/members/hello
-curl -fsS http://localhost:8082/api/core/hello
+curl -fsS http://localhost:8081/actuator/health
+curl -fsS http://localhost:8082/actuator/health
 ```
 
 ## Swagger
