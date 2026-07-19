@@ -1,5 +1,6 @@
 package kr.lastdish.gateway.security;
 
+import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
 import org.springframework.context.annotation.Bean;
@@ -41,19 +42,34 @@ public class GatewaySecurityConfig {
         .authorizeExchange(
             exchange ->
                 exchange
-                    // Access Token이 없는 회원가입 요청을 Member Service로 전달한다.
-                    .pathMatchers(POST, "/api/members/signup")
-                    .permitAll()
-                    // 만료된 Access Token으로도 재발급과 Refresh Token 폐기를 요청할 수 있다.
-                    .pathMatchers(POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
+                    // 회원가입, 로그인, Refresh Token 재발급은 Access Token 없이 요청한다.
+                    .pathMatchers(
+                        POST, "/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh")
                     .permitAll()
                     // Kubernetes readiness/liveness probe는 인증 없이 접근해야 한다.
                     .pathMatchers("/actuator/health/**")
                     .permitAll()
-                    // hasRole("SELLER")는 내부적으로 ROLE_SELLER 권한을 확인한다.
-                    .pathMatchers("/api/seller/**")
+                    // 로컬 API 문서와 UI는 인증 전에 조회되어야 한다. 운영에서는 springdoc 자체가 비활성화된다.
+                    .pathMatchers(
+                        "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/openapi/**")
+                    .permitAll()
+                    // 가게와 상품의 공개 조회는 인증 없이 허용한다.
+                    .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
+                    .permitAll()
+                    // 가게·상품 변경과 정산·입금 기능은 판매자만 이용한다.
+                    .pathMatchers(
+                        "/api/v1/stores/**",
+                        "/api/v1/dishes/**",
+                        "/api/v1/settlements/**",
+                        "/api/v1/deposits/**")
                     .hasRole("SELLER")
-                    .pathMatchers("/api/members/**", "/api/core/**")
+                    // 로그아웃과 회원·장바구니·주문·결제 기능은 로그인한 회원이 이용한다.
+                    .pathMatchers(
+                        "/api/v1/auth/logout",
+                        "/api/v1/members/**",
+                        "/api/v1/carts/**",
+                        "/api/v1/orders/**",
+                        "/api/v1/payments/**")
                     .hasAnyRole("MEMBER", "SELLER")
                     // 실수로 새 API가 무인증 공개되는 것을 막는 기본 거부 정책이다.
                     .anyExchange()

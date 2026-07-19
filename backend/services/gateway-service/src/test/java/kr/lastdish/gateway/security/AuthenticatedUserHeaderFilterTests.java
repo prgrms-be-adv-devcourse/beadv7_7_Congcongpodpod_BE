@@ -24,7 +24,7 @@ class AuthenticatedUserHeaderFilterTests {
   @Test
   void replacesUntrustedHeadersWithAuthenticatedJwtValues() {
     MockServerHttpRequest request =
-        MockServerHttpRequest.get("/api/core/test")
+        MockServerHttpRequest.get("/api/v1/orders/test")
             .header(AuthenticatedUserHeaderFilter.MEMBER_ID_HEADER, "forged-member")
             .header(AuthenticatedUserHeaderFilter.ROLE_HEADER, "SELLER")
             .build();
@@ -44,7 +44,7 @@ class AuthenticatedUserHeaderFilterTests {
   @Test
   void removesUntrustedHeadersFromUnauthenticatedRequests() {
     MockServerHttpRequest request =
-        MockServerHttpRequest.post("/api/auth/login")
+        MockServerHttpRequest.post("/api/v1/auth/login")
             .header(AuthenticatedUserHeaderFilter.MEMBER_ID_HEADER, "forged-member")
             .header(AuthenticatedUserHeaderFilter.ROLE_HEADER, "SELLER")
             .build();

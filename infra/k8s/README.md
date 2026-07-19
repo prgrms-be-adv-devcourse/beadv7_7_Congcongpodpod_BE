@@ -129,8 +129,7 @@ kubectl exec -n data statefulset/member-db -- \
 kubectl exec -n data statefulset/core-db -- \
   sh -ec 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select current_database(), current_user;"'
 
-curl -fsS https://api.lastdish.kr/api/members/hello
-curl -fsS https://api.lastdish.kr/api/core/hello
+curl -fsS https://api.lastdish.kr/actuator/health
 ```
 
 `PersistentVolume`의 reclaim policy는 `Retain`이다. StatefulSet이나 PVC를 삭제해도 EC2 디스크 데이터는 자동 삭제되지 않는다. DB 디렉터리를 직접 삭제하기 전에는 반드시 백업한다.
