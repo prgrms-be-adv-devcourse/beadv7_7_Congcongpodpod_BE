@@ -123,4 +123,8 @@ public class Store {
     public boolean isOwnedBy(Long memberId) {
         return this.memberId.equals(memberId);
     }
+
+    public void changeStatus(StoreStatus status) {
+        this.status = status;
+    }
 }
