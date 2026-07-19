@@ -12,11 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DepositHistoryService {
 
-    private final DepositHistoryRepository depositHistoryRepository;
+  private final DepositHistoryRepository depositHistoryRepository;
 
-    @Transactional(readOnly = true)
-    public Page<DepositHistoryResponse> getHistory(Long memberId, Pageable pageable) {
-        return depositHistoryRepository.findByMemberId(memberId, pageable)
-                .map(DepositHistoryResponse::from);
-    }
+  @Transactional(readOnly = true)
+  public Page<DepositHistoryResponse> getHistory(Long memberId, Pageable pageable) {
+    return depositHistoryRepository
+        .findByMemberId(memberId, pageable)
+        .map(DepositHistoryResponse::from);
+  }
 }
