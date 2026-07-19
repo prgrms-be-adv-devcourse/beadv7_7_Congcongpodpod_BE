@@ -2,34 +2,11 @@ plugins {
     id 'org.springframework.boot' version '4.1.0' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'com.diffplug.spotless' version '8.8.0'
-    id 'io.gitlab.arturbosch.detekt' version '1.23.7' apply false
 }
 
 allprojects {
     group = 'kr.lastdish'
     version = '0.0.1-SNAPSHOT'
-
-    apply plugin: 'io.gitlab.arturbosch.detekt'
-
-    detekt {
-        toolVersion = '1.23.7'
-        config.setFrom("$rootDir/config/detekt/detekt.yml")
-        buildUponDefaultConfig = true
-        autoCorrect = false
-        parallel = true
-    }
-
-    // detekt + Spring Dependency Management 충돌 방지
-    // detekt 1.23.7이 요구하는 Kotlin 버전(2.0.10)으로 detekt 전용 configuration만 고정
-    // ⚠️ detekt toolVersion을 올릴 경우, 아래 '2.0.10'도 해당 버전이 요구하는 Kotlin 버전으로 같이 확인 후 수정할 것
-    //      (버전별 요구 Kotlin 버전은 https://detekt.dev/docs/introduction/compatibility 에서 확인)
-    configurations.matching { it.name == 'detekt' }.all {
-        resolutionStrategy.eachDependency {
-            if (requested.group == 'org.jetbrains.kotlin') {
-                useVersion('2.0.10')
-            }
-        }
-    }
 
     repositories {
         mavenCentral()
@@ -50,7 +27,7 @@ subprojects {
     spotless {
         java {
             target 'src/**/*.java'
-            googleJavaFormat('1.28.0')
+            googleJavaFormat('1.35.0')
             removeUnusedImports()
             trimTrailingWhitespace()
             endWithNewline()
