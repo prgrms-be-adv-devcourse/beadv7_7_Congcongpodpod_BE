@@ -1,7 +1,7 @@
 package kr.lastdish.core.payment.presentation;
 
-import kr.lastdish.core.payment.application.DepositService;
 import kr.lastdish.core.payment.application.DepositHistoryService;
+import kr.lastdish.core.payment.application.DepositService;
 import kr.lastdish.core.payment.application.dto.DepositBalanceResponse;
 import kr.lastdish.core.payment.application.dto.DepositHistoryResponse;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +33,9 @@ public class DepositController {
 
   @GetMapping("/history")
   public ResponseEntity<Page<DepositHistoryResponse>> getHistory(
-          @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-          @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable) {
     Page<DepositHistoryResponse> response = depositHistoryService.getHistory(memberId, pageable);
     return ResponseEntity.ok(response);
   }
