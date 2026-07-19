@@ -3,6 +3,7 @@ package kr.lastdish.core.store.presentation;
 import jakarta.validation.Valid;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.StoreResult;
+import kr.lastdish.core.store.presentation.dto.ChangeStoreStatusRequest;
 import kr.lastdish.core.store.presentation.dto.StoreCreateRequest;
 import kr.lastdish.core.store.presentation.dto.StoreResponse;
 import kr.lastdish.core.store.presentation.dto.UpdateStoreRequest;
@@ -34,5 +35,18 @@ public class StoreController {
         StoreResult result = storeService.update(storeId, memberId, request.toCommand());
 
         return ResponseEntity.ok(StoreResponse.from(result));
+    }
+
+    @PatchMapping("/{storeId}/status")
+    public ResponseEntity<StoreResponse> changeStatus(
+            @PathVariable Long storeId,
+            @RequestHeader("X-Member-Id") Long memberId,
+            @Valid @RequestBody ChangeStoreStatusRequest request
+    ) {
+        StoreResult result = storeService.changeStatus(storeId, memberId, request.status());
+
+        return ResponseEntity.ok(
+                StoreResponse.from(result)
+        );
     }
 }
