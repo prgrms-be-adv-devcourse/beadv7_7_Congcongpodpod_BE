@@ -56,6 +56,7 @@ services:
       context: ./backend
       dockerfile: services/member-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       MEMBER_DB_URL: jdbc:postgresql://member-db:5432/member_db
       MEMBER_DB_USERNAME: member
@@ -73,6 +74,7 @@ services:
       context: ./backend
       dockerfile: services/core-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
       CORE_DB_USERNAME: core
@@ -90,7 +92,12 @@ services:
       context: ./backend
       dockerfile: services/gateway-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
+      JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
+    secrets:
+      - source: access-public-key
+        target: access-public-key.pem
     depends_on:
       config-server:
         condition: service_healthy
@@ -100,6 +107,10 @@ services:
         condition: service_started
     ports:
       - "8080:8080"
+
+secrets:
+  access-public-key:
+    file: ./infra/local/keys/access-public-key.pem
 
 volumes:
   member-db-data:
