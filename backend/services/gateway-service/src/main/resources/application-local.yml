@@ -1,0 +1,11 @@
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    disable-swagger-default-url: true
+    urls:
+      - name: member-service
+        url: /openapi/member-service
+      - name: core-service
+        url: /openapi/core-service
