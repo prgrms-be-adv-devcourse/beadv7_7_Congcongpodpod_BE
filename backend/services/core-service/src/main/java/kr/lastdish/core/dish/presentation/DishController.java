@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/dishes")
+@RequestMapping("/api/v1/dishes")
 public class DishController {
   private final DishService dishService;
 
