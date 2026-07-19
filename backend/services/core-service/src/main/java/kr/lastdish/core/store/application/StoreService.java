@@ -2,6 +2,7 @@ package kr.lastdish.core.store.application;
 
 import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StoreResult;
+import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreRepository;
 import lombok.RequiredArgsConstructor;
@@ -56,5 +57,35 @@ public class StoreService {
         Store savedStore = storeRepository.save(store);
 
         return StoreResult.from(savedStore);
+    }
+
+    @Transactional
+    public StoreResult update(Long storeId, Long memberId, UpdateStoreCommand command) {
+        Store store = getOwnedStore(storeId, memberId);
+
+        store.update(
+                command.storeName(),
+                command.storeAddress(),
+                command.storePhone(),
+                command.openTime(),
+                command.closeTime(),
+                command.latitude(),
+                command.longitude()
+        );
+
+        store.replaceHolidays(command.holidays());
+
+        return StoreResult.from(store);
+    }
+
+    private Store getOwnedStore(Long storeId, Long memberId) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
+
+        if (!store.isOwnedBy(memberId)) {
+            throw new IllegalStateException("해당 매장을 수정할 권한이 없습니다.");
+        }
+
+        return store;
     }
 }

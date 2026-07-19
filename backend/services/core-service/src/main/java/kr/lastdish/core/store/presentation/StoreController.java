@@ -5,6 +5,7 @@ import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.presentation.dto.StoreCreateRequest;
 import kr.lastdish.core.store.presentation.dto.StoreResponse;
+import kr.lastdish.core.store.presentation.dto.UpdateStoreRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,14 +21,18 @@ public class StoreController {
     @PostMapping
     public ResponseEntity<StoreResponse> registerStore(
             @RequestHeader("X-Member-Id") Long memberId,
-            @Valid @RequestBody StoreCreateRequest request
-    ) {
-        StoreResult result = storeService.register(
-                request.toCommand(memberId)
-        );
+            @Valid @RequestBody StoreCreateRequest request) {
+        StoreResult result = storeService.register(request.toCommand(memberId));
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(StoreResponse.from(result));
+    }
+
+    @PutMapping("/{storeId}")
+    public ResponseEntity<StoreResponse> updateStore(@PathVariable Long storeId, @RequestHeader("X-Member-Id") Long memberId,
+            @Valid @RequestBody UpdateStoreRequest request) {
+        StoreResult result = storeService.update(storeId, memberId, request.toCommand());
+
+        return ResponseEntity.ok(StoreResponse.from(result));
     }
 }
