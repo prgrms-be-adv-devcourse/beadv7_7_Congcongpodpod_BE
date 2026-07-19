@@ -5,6 +5,7 @@ import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreRepository;
+import kr.lastdish.core.store.domain.StoreStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,6 +75,15 @@ public class StoreService {
         );
 
         store.replaceHolidays(command.holidays());
+
+        return StoreResult.from(store);
+    }
+
+    @Transactional
+    public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
+        Store store = getOwnedStore(storeId, memberId);
+
+        store.changeStatus(status);
 
         return StoreResult.from(store);
     }
