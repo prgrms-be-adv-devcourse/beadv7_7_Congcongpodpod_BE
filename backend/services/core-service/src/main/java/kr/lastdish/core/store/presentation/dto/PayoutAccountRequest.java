@@ -1,4 +1,11 @@
 package kr.lastdish.core.store.presentation.dto;
 
-public record PayoutAccountRequest() {
+import jakarta.validation.constraints.NotBlank;
+
+public record PayoutAccountRequest(
+        @NotBlank
+        String accountNumber,
+        @NotBlank
+        String accountHolder
+) {
 }
