@@ -1,12 +1,12 @@
 package kr.lastdish.gateway.security;
 
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 /**
  * Gateway 라우팅 전에 실행되는 WebFlux Security 필터 체인을 구성한다.
@@ -56,20 +56,18 @@ public class GatewaySecurityConfig {
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()
-                    // 가게·상품 변경과 정산·입금 기능은 판매자만 이용한다.
+                    // 가게·상품 변경과 정산 기능은 판매자만 이용한다.
                     .pathMatchers(
-                        "/api/v1/stores/**",
-                        "/api/v1/dishes/**",
-                        "/api/v1/settlements/**",
-                        "/api/v1/deposits/**")
+                        "/api/v1/stores/**", "/api/v1/dishes/**", "/api/v1/settlements/**")
                     .hasRole("SELLER")
-                    // 로그아웃과 회원·장바구니·주문·결제 기능은 로그인한 회원이 이용한다.
+                    // 로그아웃과 회원·장바구니·주문·결제·입금(예치금) 기능은 회원과 판매자 모두 이용한다.
                     .pathMatchers(
                         "/api/v1/auth/logout",
                         "/api/v1/members/**",
                         "/api/v1/carts/**",
                         "/api/v1/orders/**",
-                        "/api/v1/payments/**")
+                        "/api/v1/payments/**",
+                        "/api/v1/deposits/**")
                     .hasAnyRole("MEMBER", "SELLER")
                     // 실수로 새 API가 무인증 공개되는 것을 막는 기본 거부 정책이다.
                     .anyExchange()
