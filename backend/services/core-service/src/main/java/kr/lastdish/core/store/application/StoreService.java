@@ -88,6 +88,15 @@ public class StoreService {
         return StoreResult.from(store);
     }
 
+    // 삭제 시 매장 조회, 수정, 상태 변경 제외, 매장 재등록은 재가입 필요
+    // 매장 soft delete 시 휴무일 hard delete
+    @Transactional
+    public void deleteStore(Long storeId, Long memberId) {
+        Store store = getOwnedStore(storeId, memberId);
+
+        store.delete();
+    }
+
     private Store getOwnedStore(Long storeId, Long memberId) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
