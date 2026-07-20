@@ -34,6 +34,16 @@ public class Deposit {
   }
 
   public static Deposit createDefault(Long memberId) {
+
     return new Deposit(memberId, BigDecimal.ZERO);
+  }
+
+
+  public void use(BigDecimal amount) {
+    if (this.balance.compareTo(amount) < 0) {
+      throw new InsufficientBalanceException(this.memberId, this.balance, amount);
+    }
+    this.balance = this.balance.subtract(amount);
+    this.updatedAt = LocalDateTime.now();
   }
 }
