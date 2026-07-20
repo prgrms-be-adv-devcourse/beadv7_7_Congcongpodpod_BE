@@ -59,6 +59,6 @@ public class DishService {
   }
 
   private Dish getDish(Long dishId) {
-    return dishRepository.findById(dishId);
+    return dishRepository.findByIdAndIsDeletedFalse(dishId);
   }
 }
