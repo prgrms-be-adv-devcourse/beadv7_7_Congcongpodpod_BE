@@ -2,7 +2,8 @@ package kr.lastdish.core.dish.application;
 
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
-import kr.lastdish.core.dish.presentation.dto.DIshUpdateRequest;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
+import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class DishService {
   }
 
   @Transactional
-  public DishResponse updateDish(Long dishId, DIshUpdateRequest request) {
+  public DishResponse updateDish(Long dishId, DishUpdateRequest request) {
     // 할인율 검증
     validateDiscountRate(request.dishPrice(), request.discountPrice());
 
@@ -54,6 +55,13 @@ public class DishService {
         request.stockQuantity(),
         request.dishPrice(),
         request.discountPrice());
+    return DishResponse.from(dish);
+  }
+
+  @Transactional
+  public DishResponse updateDishStatus(Long dishId, DishStatusRequest request) {
+    Dish dish = getDish(dishId);
+    dish.updateStatus(request.dishStatus());
     return DishResponse.from(dish);
   }
 

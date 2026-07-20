@@ -96,6 +96,10 @@ public class Dish {
     this.discountPrice = discountPrice;
   }
 
+  public void updateStatus(DishStatus dishStatus) {
+    this.dishStatus = dishStatus;
+  }
+
   public void delete() {
     this.isDeleted = true;
   }
