@@ -10,13 +10,9 @@ import java.util.UUID;
  */
 public interface OutboxEventRepository {
 
-  /**
-   * Outbox 이벤트를 저장합니다.
-   */
+  /** Outbox 이벤트를 저장합니다. */
   OutboxEvent save(OutboxEvent event);
 
-  /**
-   * eventId로 Outbox 이벤트를 조회합니다.
-   */
+  /** eventId로 Outbox 이벤트를 조회합니다. */
   Optional<OutboxEvent> findById(UUID eventId);
 }

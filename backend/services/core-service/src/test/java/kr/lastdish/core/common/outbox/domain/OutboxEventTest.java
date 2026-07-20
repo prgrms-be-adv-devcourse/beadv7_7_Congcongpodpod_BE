@@ -18,29 +18,25 @@ class OutboxEventTest {
 
     DishAvailabilityChangedEvent event =
         new DishAvailabilityChangedEvent(
-            eventId,
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
-            1L,
-            false,
-            occurredAt
-        );
+            eventId, DishAvailabilityChangedEvent.SCHEMA_VERSION, 1L, false, occurredAt);
 
-    String payload = """
+    String payload =
+        """
         {
           "eventId": "%s",
           "schemaVersion": 1,
           "dishId": 1,
           "available": false
         }
-        """.formatted(eventId);
+        """
+            .formatted(eventId);
 
     // when
     OutboxEvent outbox = OutboxEvent.create(event, payload);
 
     // then
     assertThat(outbox.getEventId()).isEqualTo(eventId);
-    assertThat(outbox.getEventType())
-        .isEqualTo(DishAvailabilityChangedEvent.EVENT_TYPE);
+    assertThat(outbox.getEventType()).isEqualTo(DishAvailabilityChangedEvent.EVENT_TYPE);
     assertThat(outbox.getAggregateType()).isEqualTo("DISH");
     assertThat(outbox.getAggregateId()).isEqualTo(1L);
     assertThat(outbox.getPayload()).isEqualTo(payload);
@@ -61,8 +57,7 @@ class OutboxEventTest {
     outbox.markProcessing(lockedAt);
 
     // then
-    assertThat(outbox.getStatus())
-        .isEqualTo(OutboxStatus.PROCESSING);
+    assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSING);
     assertThat(outbox.getLockedAt()).isEqualTo(lockedAt);
   }
 
@@ -78,8 +73,7 @@ class OutboxEventTest {
     outbox.markPublished(publishedAt);
 
     // then
-    assertThat(outbox.getStatus())
-        .isEqualTo(OutboxStatus.PUBLISHED);
+    assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PUBLISHED);
     assertThat(outbox.getPublishedAt()).isEqualTo(publishedAt);
     assertThat(outbox.getLockedAt()).isNull();
     assertThat(outbox.getLastError()).isNull();
@@ -95,11 +89,9 @@ class OutboxEventTest {
     outbox.recordFailure("일시적인 발행 오류", 5);
 
     // then
-    assertThat(outbox.getStatus())
-        .isEqualTo(OutboxStatus.PENDING);
+    assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(outbox.getRetryCount()).isEqualTo(1);
-    assertThat(outbox.getLastError())
-        .isEqualTo("일시적인 발행 오류");
+    assertThat(outbox.getLastError()).isEqualTo("일시적인 발행 오류");
     assertThat(outbox.getLockedAt()).isNull();
   }
 
@@ -113,16 +105,12 @@ class OutboxEventTest {
     outbox.recordFailure("두 번째 실패", 2);
 
     // then
-    assertThat(outbox.getStatus())
-        .isEqualTo(OutboxStatus.FAILED);
+    assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
     assertThat(outbox.getRetryCount()).isEqualTo(2);
-    assertThat(outbox.getLastError())
-        .isEqualTo("두 번째 실패");
+    assertThat(outbox.getLastError()).isEqualTo("두 번째 실패");
   }
 
-  /**
-   * 각 테스트에서 반복되는 기본 Outbox 생성을 담당합니다.
-   */
+  /** 각 테스트에서 반복되는 기본 Outbox 생성을 담당합니다. */
   private OutboxEvent createOutbox() {
     DishAvailabilityChangedEvent event =
         new DishAvailabilityChangedEvent(
@@ -130,8 +118,7 @@ class OutboxEventTest {
             DishAvailabilityChangedEvent.SCHEMA_VERSION,
             1L,
             false,
-            Instant.now()
-        );
+            Instant.now());
 
     return OutboxEvent.create(event, "{}");
   }
