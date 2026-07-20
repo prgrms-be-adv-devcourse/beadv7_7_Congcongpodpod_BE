@@ -8,25 +8,20 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class StoreRespositoryAdaptor implements StoreRepository {
-    private final StoreJpaRepository storeJpaRepository;
+  private final StoreJpaRepository storeJpaRepository;
 
-    @Override
-    public Store save(Store store) {
-        return storeJpaRepository.save(store);
-    }
+  @Override
+  public Store save(Store store) {
+    return storeJpaRepository.save(store);
+  }
 
-    @Override
-    public boolean existsByMemberId(Long memberId) {
-        return storeJpaRepository.existsByMemberId(
-                memberId
-        );
-    }
+  @Override
+  public boolean existsByMemberId(Long memberId) {
+    return storeJpaRepository.existsByMemberId(memberId);
+  }
 
-    @Override
-    public boolean existsByBusinessNumber(
-            String businessNumber
-    ) {
-        return storeJpaRepository
-                .existsByBusinessNumber(businessNumber);
-    }
+  @Override
+  public boolean existsByBusinessNumber(String businessNumber) {
+    return storeJpaRepository.existsByBusinessNumber(businessNumber);
+  }
 }

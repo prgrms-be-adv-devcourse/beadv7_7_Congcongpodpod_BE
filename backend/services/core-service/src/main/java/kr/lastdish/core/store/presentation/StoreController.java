@@ -15,19 +15,13 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StoreController {
 
-    private final StoreService storeService;
+  private final StoreService storeService;
 
-    @PostMapping
-    public ResponseEntity<StoreResponse> registerStore(
-            @RequestHeader("X-Member-Id") Long memberId,
-            @Valid @RequestBody StoreCreateRequest request
-    ) {
-        StoreResult result = storeService.register(
-                request.toCommand(memberId)
-        );
+  @PostMapping
+  public ResponseEntity<StoreResponse> registerStore(
+      @RequestHeader("X-Member-Id") Long memberId, @Valid @RequestBody StoreCreateRequest request) {
+    StoreResult result = storeService.register(request.toCommand(memberId));
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(StoreResponse.from(result));
-    }
+    return ResponseEntity.status(HttpStatus.CREATED).body(StoreResponse.from(result));
+  }
 }
