@@ -38,45 +38,27 @@ public class StoreRespositoryAdaptor implements StoreRepository {
 
   @Override
   public List<Store> findOpenStoresByLocationRange(
-          BigDecimal minLatitude,
-          BigDecimal maxLatitude,
-          BigDecimal minLongitude,
-          BigDecimal maxLongitude,
-          int page,
-          int size
-  ) {
-    PageRequest pageable = PageRequest.of(
-            page,
-            size,
-            Sort.by(Sort.Direction.ASC, "id")
-    );
+      BigDecimal minLatitude,
+      BigDecimal maxLatitude,
+      BigDecimal minLongitude,
+      BigDecimal maxLongitude,
+      int page,
+      int size) {
+    PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
 
     return storeJpaRepository
-            .findAllByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
-                    minLatitude,
-                    maxLatitude,
-                    minLongitude,
-                    maxLongitude,
-                    StoreStatus.OPEN,
-                    pageable
-            )
-            .getContent();
+        .findAllByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
+            minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN, pageable)
+        .getContent();
   }
 
   @Override
   public long countByLocationRange(
-          BigDecimal minLatitude,
-          BigDecimal maxLatitude,
-          BigDecimal minLongitude,
-          BigDecimal maxLongitude
-  ) {
-    return storeJpaRepository
-            .countByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
-                    minLatitude,
-                    maxLatitude,
-                    minLongitude,
-                    maxLongitude,
-                    StoreStatus.OPEN
-            );
+      BigDecimal minLatitude,
+      BigDecimal maxLatitude,
+      BigDecimal minLongitude,
+      BigDecimal maxLongitude) {
+    return storeJpaRepository.countByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
+        minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN);
   }
 }
