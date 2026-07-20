@@ -14,4 +14,10 @@ public class DishRepositoryImpl implements DishRepository {
   public Dish save(Dish dish) {
     return dishJpaRepository.save(dish);
   }
+
+  @Override
+  public Dish findById(Long dishId) {
+    return dishJpaRepository.findById(dishId)
+            .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
+  }
 }
