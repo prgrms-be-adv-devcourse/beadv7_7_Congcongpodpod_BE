@@ -31,7 +31,6 @@ public class DishRepositoryImpl implements DishRepository {
 
   @Override
   public Dish findWithLockByIdAndIsDeletedFalse(Long dishId) {
-    return dishJpaRepository.findWithLockByIdAndIsDeletedFalse(dishId)
-            .orElseThrow();
+    return dishJpaRepository.findWithLockByIdAndIsDeletedFalse(dishId).orElseThrow();
   }
 }

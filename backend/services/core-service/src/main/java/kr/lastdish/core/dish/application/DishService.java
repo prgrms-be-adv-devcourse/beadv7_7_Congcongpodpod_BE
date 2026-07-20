@@ -1,17 +1,16 @@
 package kr.lastdish.core.dish.application;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
-import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
-import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
+import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -66,20 +65,18 @@ public class DishService {
   }
 
   private void validateDiscountRate(BigDecimal dishPrice, BigDecimal discountPrice) {
-    BigDecimal discountRate = dishPrice
-            .subtract(discountPrice)
-            .divide(dishPrice, 4, RoundingMode.HALF_UP);
+    BigDecimal discountRate =
+        dishPrice.subtract(discountPrice).divide(dishPrice, 4, RoundingMode.HALF_UP);
 
     if (discountRate.compareTo(BigDecimal.valueOf(0.3)) < 0) {
       throw new IllegalArgumentException("할인율은 30% 이상이어야 합니다.");
     }
   }
 
-
   @Transactional
   public void decreaseStock(Long dishId, Long quantity) {
-      Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
-      dish.decreaseStock(quantity);
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+    dish.decreaseStock(quantity);
   }
 
   @Transactional

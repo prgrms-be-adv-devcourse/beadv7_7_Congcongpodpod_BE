@@ -1,8 +1,7 @@
 package kr.lastdish.core.dish.infrastructure;
 
-import java.util.Optional;
-
 import jakarta.persistence.LockModeType;
+import java.util.Optional;
 import kr.lastdish.core.dish.domain.Dish;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
