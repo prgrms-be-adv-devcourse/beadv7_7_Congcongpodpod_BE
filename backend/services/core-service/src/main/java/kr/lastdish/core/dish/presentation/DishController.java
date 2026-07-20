@@ -3,10 +3,10 @@ package kr.lastdish.core.dish.presentation;
 import jakarta.validation.Valid;
 import kr.lastdish.core.common.response.ApiResponse;
 import kr.lastdish.core.dish.application.DishService;
-import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
-import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
+import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +40,7 @@ public class DishController {
 
   @PatchMapping("/{dishId}/status")
   public ApiResponse<DishResponse> updateDishStatus(
-          @PathVariable Long dishId, @Valid @RequestBody DishStatusRequest request) {
+      @PathVariable Long dishId, @Valid @RequestBody DishStatusRequest request) {
     return ApiResponse.ok(dishService.updateDishStatus(dishId, request));
   }
 }
