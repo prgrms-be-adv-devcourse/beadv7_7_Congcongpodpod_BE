@@ -11,3 +11,11 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
+
+outbox:
+  scheduler:
+    enabled: false
+  polling-delay-ms: 1000
+  batch-size: 100
+  max-retries: 5
+  lock-timeout-seconds: 60
