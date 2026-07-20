@@ -1,16 +1,15 @@
 package kr.lastdish.core.common.outbox.infrastructure;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.Instant;
+import java.util.UUID;
 import kr.lastdish.core.common.event.DomainEvent;
 import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OutboxEventSerializerTest {
 
@@ -36,26 +35,17 @@ class OutboxEventSerializerTest {
             DishAvailabilityChangedEvent.SCHEMA_VERSION,
             1L,
             false,
-            Instant.now()
-        );
+            Instant.now());
 
     // when
     String payload = serializer.serialize(source);
 
-    DomainEvent restored =
-        serializer.deserialize(
-            source.eventType(),
-            payload
-        );
+    DomainEvent restored = serializer.deserialize(source.eventType(), payload);
 
     // then
-    assertThat(payload)
-        .contains("\"dishId\":1")
-        .contains("\"available\":false");
+    assertThat(payload).contains("\"dishId\":1").contains("\"available\":false");
 
-    assertThat(restored)
-        .isInstanceOf(DishAvailabilityChangedEvent.class)
-        .isEqualTo(source);
+    assertThat(restored).isInstanceOf(DishAvailabilityChangedEvent.class).isEqualTo(source);
   }
 
   @Test
@@ -64,16 +54,9 @@ class OutboxEventSerializerTest {
     String unsupportedEventType = "UNKNOWN_EVENT";
 
     // when & then
-    assertThatThrownBy(
-        () -> serializer.deserialize(
-            unsupportedEventType,
-            "{}"
-        )
-    )
+    assertThatThrownBy(() -> serializer.deserialize(unsupportedEventType, "{}"))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "지원하지 않는 이벤트 타입입니다: UNKNOWN_EVENT"
-        );
+        .hasMessage("지원하지 않는 이벤트 타입입니다: UNKNOWN_EVENT");
   }
 
   @Test
@@ -83,14 +66,8 @@ class OutboxEventSerializerTest {
 
     // when & then
     assertThatThrownBy(
-        () -> serializer.deserialize(
-            DishAvailabilityChangedEvent.EVENT_TYPE,
-            invalidPayload
-        )
-    )
+            () -> serializer.deserialize(DishAvailabilityChangedEvent.EVENT_TYPE, invalidPayload))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessage(
-            "Outbox 이벤트 역직렬화에 실패했습니다."
-        );
+        .hasMessage("Outbox 이벤트 역직렬화에 실패했습니다.");
   }
 }
