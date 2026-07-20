@@ -19,7 +19,7 @@ public class StoreRespositoryAdaptor implements StoreRepository {
 
     @Override
     public Optional<Store> findById(Long storeId) {
-        return storeJpaRepository.findById(storeId).filter(store -> !store.isDeleted());
+        return storeJpaRepository.findByIdAndDeletedFalse(storeId);
     }
 
     @Override

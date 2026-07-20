@@ -49,4 +49,14 @@ public class StoreController {
                 StoreResponse.from(result)
         );
     }
+
+    @PatchMapping("/{storeId}/delete")
+    public ResponseEntity<Void> deleteStore(
+            @PathVariable Long storeId,
+            @RequestHeader("X-Member-Id") Long memberId
+    ){
+        storeService.deleteStore(storeId, memberId);
+
+        return ResponseEntity.noContent().build();
+    }
 }
