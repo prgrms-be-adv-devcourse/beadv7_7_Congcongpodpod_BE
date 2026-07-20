@@ -1,5 +1,6 @@
 package kr.lastdish.core.dish.infrastructure;
 
+import java.util.Optional;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class DishRepositoryImpl implements DishRepository {
   @Override
   public Dish findById(Long dishId) {
     return dishJpaRepository
-        .findById(dishId)
+        .findByIdAndIsDeletedFalse(dishId)
         .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
   }
 
@@ -32,5 +33,10 @@ public class DishRepositoryImpl implements DishRepository {
   @Override
   public Dish findWithLockByIdAndIsDeletedFalse(Long dishId) {
     return dishJpaRepository.findWithLockByIdAndIsDeletedFalse(dishId).orElseThrow();
+  }
+
+  @Override
+  public Optional<Dish> findAvailableById(Long dishId) {
+    return dishJpaRepository.findByIdAndIsDeletedFalse(dishId);
   }
 }

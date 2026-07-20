@@ -1,5 +1,7 @@
 package kr.lastdish.core.dish.domain;
 
+import java.util.Optional;
+
 public interface DishRepository {
   Dish save(Dish dish);
 
@@ -8,4 +10,6 @@ public interface DishRepository {
   Dish findByIdAndIsDeletedFalse(Long dishId);
 
   Dish findWithLockByIdAndIsDeletedFalse(Long dishId);
+
+  Optional<Dish> findAvailableById(Long dishId);
 }
