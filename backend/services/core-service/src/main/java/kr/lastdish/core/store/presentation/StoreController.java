@@ -2,15 +2,12 @@ package kr.lastdish.core.store.presentation;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-
 import kr.lastdish.core.common.response.ApiResponse;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
