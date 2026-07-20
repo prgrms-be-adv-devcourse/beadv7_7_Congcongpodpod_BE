@@ -75,23 +75,28 @@ public class StoreController {
     return ApiResponse.ok(StoreSearchResponse.from(result));
   }
 
-  //매장 정산 계좌
+  // 매장 정산 계좌
   @PostMapping("/{storeId}/payoutAccount")
-  public ApiResponse<PayoutAccountResponse>
-  registerPayoutAccount(
-          @PathVariable Long storeId,
-          @RequestHeader("X-Member-Id") Long memberId,
-          @Valid
-          @RequestBody
-          PayoutAccountRequest request
-  ) {
-    PayoutAccountResult result = storeService.registerPayoutAccount(
-                    storeId,
-                    memberId,
-                    request.accountNumber(),
-                    request.accountHolder()
-    );
+  public ApiResponse<StoreAccountResponse> registerPayoutAccount(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Member-Id") Long memberId,
+      @Valid @RequestBody StoreAccountRequest request) {
+    PayoutAccountResult result =
+        storeService.registerPayoutAccount(
+            storeId, memberId, request.accountNumber(), request.accountHolder());
 
-    return ApiResponse.ok(PayoutAccountResponse.from(result));
+    return ApiResponse.ok(StoreAccountResponse.from(result));
+  }
+
+  @PutMapping("/{storeId}/payoutAccount")
+  public ApiResponse<StoreAccountResponse> updatePayoutAccount(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Member-Id") Long memberId,
+      @Valid @RequestBody StoreAccountRequest request) {
+    PayoutAccountResult result =
+        storeService.updatePayoutAccount(
+            storeId, memberId, request.accountNumber(), request.accountHolder());
+
+    return ApiResponse.ok(StoreAccountResponse.from(result));
   }
 }
