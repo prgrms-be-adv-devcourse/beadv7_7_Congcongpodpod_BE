@@ -1,9 +1,8 @@
 package kr.lastdish.core.common.event.dish;
 
-import kr.lastdish.core.common.event.DomainEvent;
-
 import java.time.Instant;
 import java.util.UUID;
+import kr.lastdish.core.common.event.DomainEvent;
 
 /**
  * Dish의 판매 가능 여부가 변경되었음을 알리는 이벤트입니다.

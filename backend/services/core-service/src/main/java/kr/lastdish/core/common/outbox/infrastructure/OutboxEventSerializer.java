@@ -17,33 +17,19 @@ public class OutboxEventSerializer {
     try {
       return objectMapper.writeValueAsString(event);
     } catch (JacksonException exception) {
-      throw new IllegalStateException(
-          "Outbox 이벤트 직렬화에 실패했습니다.",
-          exception
-      );
+      throw new IllegalStateException("Outbox 이벤트 직렬화에 실패했습니다.", exception);
     }
   }
 
-  public DomainEvent deserialize(
-      String eventType,
-      String payload
-  ) {
+  public DomainEvent deserialize(String eventType, String payload) {
     try {
       if (DishAvailabilityChangedEvent.EVENT_TYPE.equals(eventType)) {
-        return objectMapper.readValue(
-            payload,
-            DishAvailabilityChangedEvent.class
-        );
+        return objectMapper.readValue(payload, DishAvailabilityChangedEvent.class);
       }
 
-      throw new IllegalArgumentException(
-          "지원하지 않는 이벤트 타입입니다: " + eventType
-      );
+      throw new IllegalArgumentException("지원하지 않는 이벤트 타입입니다: " + eventType);
     } catch (JacksonException exception) {
-      throw new IllegalStateException(
-          "Outbox 이벤트 역직렬화에 실패했습니다.",
-          exception
-      );
+      throw new IllegalStateException("Outbox 이벤트 역직렬화에 실패했습니다.", exception);
     }
   }
 }
