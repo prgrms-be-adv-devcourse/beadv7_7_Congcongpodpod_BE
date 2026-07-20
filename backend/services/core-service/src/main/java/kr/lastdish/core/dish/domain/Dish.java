@@ -76,4 +76,27 @@ public class Dish {
     dish.isDeleted = false;
     return dish;
   }
+
+  public void update(
+      String dishName,
+      LocalDateTime registeredAt,
+      String description,
+      Category category,
+      String thumbnailUrl,
+      Long stockQuantity,
+      BigDecimal dishPrice,
+      BigDecimal discountPrice) {
+    this.dishName = dishName;
+    this.registeredAt = registeredAt;
+    this.description = description;
+    this.category = category;
+    this.thumbnailUrl = thumbnailUrl;
+    this.stockQuantity = stockQuantity;
+    this.dishPrice = dishPrice;
+    this.discountPrice = discountPrice;
+  }
+
+  public void delete() {
+    this.isDeleted = true;
+  }
 }
