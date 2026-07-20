@@ -1,5 +1,6 @@
 package kr.lastdish.core.store.infrastructure;
 
+import java.util.Optional;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,11 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   @Override
   public Store save(Store store) {
     return storeJpaRepository.save(store);
+  }
+
+  @Override
+  public Optional<Store> findById(Long storeId) {
+    return storeJpaRepository.findByIdAndDeletedFalse(storeId);
   }
 
   @Override
