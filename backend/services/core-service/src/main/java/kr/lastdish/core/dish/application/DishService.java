@@ -2,6 +2,9 @@ package kr.lastdish.core.dish.application;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
@@ -69,7 +72,7 @@ public class DishService {
         dishPrice.subtract(discountPrice).divide(dishPrice, 4, RoundingMode.HALF_UP);
 
     if (discountRate.compareTo(BigDecimal.valueOf(0.3)) < 0) {
-      throw new IllegalArgumentException("할인율은 30% 이상이어야 합니다.");
+      throw new BusinessException(ErrorCode.DISH_INVALID_DISCOUNT_RATE);
     }
   }
 
