@@ -19,7 +19,7 @@ public class DepositHistory {
   @Column(name = "deposit_history_id")
   private Long id;
 
-  @Column(name = "member_id", nullable = false)
+  @Column(name = "member_id", nullable = false, updatable = false)
   private Long memberId;
 
   @Column(name = "order_id")
