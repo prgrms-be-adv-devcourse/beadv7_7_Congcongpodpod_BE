@@ -1,20 +1,16 @@
 package kr.lastdish.core.common.outbox.infrastructure;
 
+import java.util.Optional;
+import java.util.UUID;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-import java.util.UUID;
-
-/**
- * OutboxEventRepository 계약을 Spring Data JPA로 구현하는 Adapter입니다.
- */
+/** OutboxEventRepository 계약을 Spring Data JPA로 구현하는 Adapter입니다. */
 @Repository
 @RequiredArgsConstructor
-public class OutboxRepositoryAdapter
-    implements OutboxEventRepository {
+public class OutboxRepositoryAdapter implements OutboxEventRepository {
 
   private final OutboxJpaRepository jpaRepository;
 
