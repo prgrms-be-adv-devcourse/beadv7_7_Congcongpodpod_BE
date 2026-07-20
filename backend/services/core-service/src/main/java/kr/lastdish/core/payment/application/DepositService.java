@@ -54,15 +54,15 @@ public class DepositService {
   @Transactional
   public DepositTransactionResult refund(Long memberId, Long orderId, BigDecimal amount) {
     Deposit deposit =
-            depositRepository
-                    .findWithLockByMemberId(memberId)
-                    .orElseThrow(() -> new DepositNotFoundException(memberId));
+        depositRepository
+            .findWithLockByMemberId(memberId)
+            .orElseThrow(() -> new DepositNotFoundException(memberId));
 
     deposit.refund(amount);
 
     DepositHistory history =
-            depositHistoryRepository.save(
-                    DepositHistory.recordRefund(memberId, orderId, amount, deposit.getBalance()));
+        depositHistoryRepository.save(
+            DepositHistory.recordRefund(memberId, orderId, amount, deposit.getBalance()));
 
     return DepositTransactionResult.from(history);
   }
