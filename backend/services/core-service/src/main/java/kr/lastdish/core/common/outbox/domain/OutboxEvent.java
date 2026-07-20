@@ -1,13 +1,12 @@
 package kr.lastdish.core.common.outbox.domain;
 
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
 import kr.lastdish.core.common.event.DomainEvent;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.Instant;
-import java.util.UUID;
 
 /**
  * 발행할 도메인 이벤트를 DB에 저장하는 Outbox 엔티티입니다.
