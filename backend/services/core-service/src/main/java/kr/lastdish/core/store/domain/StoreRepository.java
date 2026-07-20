@@ -15,18 +15,16 @@ public interface StoreRepository {
   boolean existsByBusinessNumber(String businessNumber);
 
   List<Store> findOpenStoresByLocationRange(
-          BigDecimal minLatitude,
-          BigDecimal maxLatitude,
-          BigDecimal minLongitude,
-          BigDecimal maxLongitude,
-          int page,
-          int size
-  );
+      BigDecimal minLatitude,
+      BigDecimal maxLatitude,
+      BigDecimal minLongitude,
+      BigDecimal maxLongitude,
+      int page,
+      int size);
 
   long countByLocationRange(
-          BigDecimal minLatitude,
-          BigDecimal maxLatitude,
-          BigDecimal minLongitude,
-          BigDecimal maxLongitude
-  );
+      BigDecimal minLatitude,
+      BigDecimal maxLatitude,
+      BigDecimal minLongitude,
+      BigDecimal maxLongitude);
 }

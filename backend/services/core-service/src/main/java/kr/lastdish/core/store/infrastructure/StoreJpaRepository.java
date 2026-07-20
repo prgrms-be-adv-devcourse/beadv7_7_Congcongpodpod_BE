@@ -16,19 +16,17 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
   boolean existsByBusinessNumber(String businessNumber);
 
   Page<Store> findAllByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
-          BigDecimal minLatitude,
-          BigDecimal maxLatitude,
-          BigDecimal minLongitude,
-          BigDecimal maxLongitude,
-          StoreStatus status,
-          Pageable pageable
-  );
+      BigDecimal minLatitude,
+      BigDecimal maxLatitude,
+      BigDecimal minLongitude,
+      BigDecimal maxLongitude,
+      StoreStatus status,
+      Pageable pageable);
 
   long countByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
-          BigDecimal minLatitude,
-          BigDecimal maxLatitude,
-          BigDecimal minLongitude,
-          BigDecimal maxLongitude,
-          StoreStatus status
-  );
+      BigDecimal minLatitude,
+      BigDecimal maxLatitude,
+      BigDecimal minLongitude,
+      BigDecimal maxLongitude,
+      StoreStatus status);
 }

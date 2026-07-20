@@ -1,5 +1,7 @@
 package kr.lastdish.core.store.application;
 
+import java.math.BigDecimal;
+import java.util.List;
 import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
@@ -10,9 +12,6 @@ import kr.lastdish.core.store.domain.StoreStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -99,22 +98,19 @@ public class StoreService {
     return store;
   }
 
-  //매장 상세 조회
+  // 매장 상세 조회
   public StoreResult getStore(Long storeId) {
-    Store store = storeRepository.findById(storeId)
+    Store store =
+        storeRepository
+            .findById(storeId)
             .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
 
     return StoreResult.from(store);
   }
 
-  //위치 기반 조회(기본 구현)
+  // 위치 기반 조회(기본 구현)
   public StorePageResult getNearbyStores(
-          BigDecimal latitude,
-          BigDecimal longitude,
-          double radiusKm,
-          int page,
-          int size
-  ) {
+      BigDecimal latitude, BigDecimal longitude, double radiusKm, int page, int size) {
     if (radiusKm <= 0) {
       throw new IllegalArgumentException("검색 반경은 0보다 커야 합니다.");
     }
@@ -139,39 +135,20 @@ public class StoreService {
 
     double longitudeDelta = radiusKm / longitudeDivisor;
 
-    BigDecimal minLatitude = latitude.subtract(
-            BigDecimal.valueOf(latitudeDelta)
-    );
+    BigDecimal minLatitude = latitude.subtract(BigDecimal.valueOf(latitudeDelta));
 
-    BigDecimal maxLatitude = latitude.add(
-            BigDecimal.valueOf(latitudeDelta)
-    );
+    BigDecimal maxLatitude = latitude.add(BigDecimal.valueOf(latitudeDelta));
 
-    BigDecimal minLongitude = longitude.subtract(
-            BigDecimal.valueOf(longitudeDelta)
-    );
+    BigDecimal minLongitude = longitude.subtract(BigDecimal.valueOf(longitudeDelta));
 
-    BigDecimal maxLongitude = longitude.add(
-            BigDecimal.valueOf(longitudeDelta)
-    );
+    BigDecimal maxLongitude = longitude.add(BigDecimal.valueOf(longitudeDelta));
 
     List<Store> stores =
-            storeRepository.findOpenStoresByLocationRange(
-                    minLatitude,
-                    maxLatitude,
-                    minLongitude,
-                    maxLongitude,
-                    page,
-                    size
-            );
+        storeRepository.findOpenStoresByLocationRange(
+            minLatitude, maxLatitude, minLongitude, maxLongitude, page, size);
 
     long totalElements =
-            storeRepository.countByLocationRange(
-                    minLatitude,
-                    maxLatitude,
-                    minLongitude,
-                    maxLongitude
-            );
+        storeRepository.countByLocationRange(minLatitude, maxLatitude, minLongitude, maxLongitude);
 
     return StorePageResult.of(stores, page, size, totalElements);
   }
