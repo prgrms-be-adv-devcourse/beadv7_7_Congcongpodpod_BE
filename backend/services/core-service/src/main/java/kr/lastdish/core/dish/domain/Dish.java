@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +32,7 @@ public class Dish {
   @Column(nullable = false)
   private String description;
 
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Category category;
 
@@ -37,6 +41,7 @@ public class Dish {
   @Column(nullable = false)
   private Long stockQuantity;
 
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private DishStatus dishStatus;
 
@@ -94,10 +99,41 @@ public class Dish {
     this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
     this.discountPrice = discountPrice;
+
+    if (stockQuantity == 0L) {
+      this.dishStatus = DishStatus.SOLD_OUT;
+    }
   }
 
   public void updateStatus(DishStatus dishStatus) {
+    if (dishStatus == DishStatus.ON_SALE && this.stockQuantity <= 0) {
+      throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+    }
     this.dishStatus = dishStatus;
+  }
+
+  public void decreaseStock(Long quantity) {
+    validateOnSale();
+
+    if (quantity == null || quantity <= 0) {
+      throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
+    }
+
+    if (this.stockQuantity < quantity) {
+      throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+    }
+
+    this.stockQuantity -= quantity;
+
+    if (this.stockQuantity == 0L) {
+      this.dishStatus = DishStatus.SOLD_OUT;
+    }
+  }
+
+  private void validateOnSale() {
+    if (this.dishStatus != DishStatus.ON_SALE) {
+      throw new BusinessException(ErrorCode.DISH_NOT_ON_SALE);
+    }
   }
 
   public void delete() {

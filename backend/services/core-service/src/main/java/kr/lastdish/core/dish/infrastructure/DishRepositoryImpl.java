@@ -28,4 +28,10 @@ public class DishRepositoryImpl implements DishRepository {
         .findByIdAndIsDeletedFalse(dishId)
         .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
   }
+
+  @Override
+  public Dish findWithLockByIdAndIsDeletedFalse(Long dishId) {
+    return dishJpaRepository.findWithLockByIdAndIsDeletedFalse(dishId)
+            .orElseThrow();
+  }
 }
