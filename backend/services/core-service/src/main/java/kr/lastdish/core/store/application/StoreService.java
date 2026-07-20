@@ -151,14 +151,10 @@ public class StoreService {
     return StorePageResult.of(stores, page, size, totalElements);
   }
 
-  //매장 정산 계좌
+  // 매장 정산 계좌
   @Transactional
   public PayoutAccountResult registerPayoutAccount(
-          Long storeId,
-          Long memberId,
-          String accountNumber,
-          String accountHolder
-  ) {
+      Long storeId, Long memberId, String accountNumber, String accountHolder) {
     getOwnedStore(storeId, memberId);
 
     if (payoutAccountRepository.existsByStoreId(storeId)) {
@@ -166,10 +162,26 @@ public class StoreService {
     }
 
     StorePayoutAccount payoutAccount =
-            new StorePayoutAccount(storeId, accountNumber, accountHolder);
+        new StorePayoutAccount(storeId, accountNumber, accountHolder);
 
     StorePayoutAccount savedAccount = payoutAccountRepository.save(payoutAccount);
 
     return PayoutAccountResult.from(savedAccount);
+  }
+
+  @Transactional
+  public PayoutAccountResult updatePayoutAccount(
+      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+    getOwnedStore(storeId, memberId);
+
+    StorePayoutAccount payoutAccount =
+        payoutAccountRepository
+            .findByStoreId(storeId)
+            .orElseThrow(
+                () -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
+
+    payoutAccount.update(accountNumber, accountHolder);
+
+    return PayoutAccountResult.from(payoutAccount);
   }
 }
