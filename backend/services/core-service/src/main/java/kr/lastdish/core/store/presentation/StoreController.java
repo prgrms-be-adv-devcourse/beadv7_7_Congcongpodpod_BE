@@ -2,15 +2,15 @@ package kr.lastdish.core.store.presentation;
 
 import jakarta.validation.Valid;
 import kr.lastdish.core.store.application.StoreService;
+import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
-import kr.lastdish.core.store.presentation.dto.ChangeStoreStatusRequest;
-import kr.lastdish.core.store.presentation.dto.StoreCreateRequest;
-import kr.lastdish.core.store.presentation.dto.StoreResponse;
-import kr.lastdish.core.store.presentation.dto.UpdateStoreRequest;
+import kr.lastdish.core.store.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/stores")
@@ -53,5 +53,36 @@ public class StoreController {
     storeService.deleteStore(storeId, memberId);
 
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/{storeId}")
+  public ResponseEntity<StoreResponse> getStore(@PathVariable Long storeId) {
+    StoreResult result = storeService.getStore(storeId);
+
+    return ResponseEntity.ok(StoreResponse.from(result));
+  }
+
+  @GetMapping("/nearby")
+  public ResponseEntity<StoreSearchResponse> getNearbyStores(
+          @RequestParam BigDecimal latitude,
+          @RequestParam BigDecimal longitude,
+          @RequestParam(defaultValue = "3")
+          double radiusKm,
+          @RequestParam(defaultValue = "0")
+          int page,
+          @RequestParam(defaultValue = "10")
+          int size
+  ) {
+
+    StorePageResult result =
+            storeService.getNearbyStores(
+                    latitude,
+                    longitude,
+                    radiusKm,
+                    page,
+                    size
+            );
+
+    return ResponseEntity.ok(StoreSearchResponse.from(result));
   }
 }
