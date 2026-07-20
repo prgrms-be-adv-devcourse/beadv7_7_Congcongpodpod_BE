@@ -220,4 +220,55 @@ class CartControllerTest {
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.error.code").value("C004"));
   }
+
+  @Test
+  void 수량_변경도_재고를_초과하면_409를_반환한다() throws Exception {
+    Dish dish =
+        dishRepository.save(
+            Dish.create(
+                1L,
+                "치킨마요 마감할인 세트",
+                LocalDateTime.now(),
+                "마감 임박 할인 상품",
+                Category.KOREAN,
+                null,
+                2L, // 재고 2개
+                BigDecimal.valueOf(8000),
+                BigDecimal.valueOf(5000)));
+    Long memberId = 400L;
+
+    String getOrCreateResponse =
+        mockMvc
+            .perform(get("/api/v1/carts/members/{memberId}", memberId))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    Long cartId = objectMapper.readTree(getOrCreateResponse).path("data").path("cartId").asLong();
+
+    String addItemResponse =
+        mockMvc
+            .perform(
+                post("/api/v1/carts/{cartId}/items", cartId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 1L))))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    Long itemId = objectMapper.readTree(addItemResponse).path("data").path("cartItemId").asLong();
+
+    mockMvc
+        .perform(
+            patch("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(5L))))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("C004"));
+
+    // 실패했으니 수량은 그대로 1이어야 한다
+    mockMvc
+        .perform(get("/api/v1/carts/members/{memberId}", memberId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items[0].quantity").value(1));
+  }
 }

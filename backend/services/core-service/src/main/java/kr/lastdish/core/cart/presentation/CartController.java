@@ -54,7 +54,7 @@ public class CartController {
     return ResponseEntity.noContent().build();
   }
 
-  // 추후의 장바구니 전체 비우기
+  // 추후에 사용할 장바구니 비우기 (Cart 자체는 삭제하지 않고 담긴 상품만 비움)
   @DeleteMapping("/{cartId}")
   public ResponseEntity<Void> clearCart(@PathVariable Long cartId) {
     cartService.clearCart(cartId);
