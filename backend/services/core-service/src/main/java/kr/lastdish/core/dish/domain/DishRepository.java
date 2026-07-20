@@ -9,5 +9,7 @@ public interface DishRepository {
 
   Dish findByIdAndIsDeletedFalse(Long dishId);
 
+  Dish findWithLockByIdAndIsDeletedFalse(Long dishId);
+
   Optional<Dish> findAvailableById(Long dishId);
 }
