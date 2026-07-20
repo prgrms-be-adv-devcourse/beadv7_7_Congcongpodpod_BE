@@ -127,4 +127,10 @@ public class Store {
     public void changeStatus(StoreStatus status) {
         this.status = status;
     }
+
+    public void delete() {
+        this.status = StoreStatus.STOPPED;
+        this.holidays.clear();
+        this.deleted = true;
+    }
 }
