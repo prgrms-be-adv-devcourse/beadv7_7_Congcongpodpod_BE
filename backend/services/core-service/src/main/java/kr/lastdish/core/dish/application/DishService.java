@@ -36,22 +36,21 @@ public class DishService {
   public DishResponse updateDish(Long dishId, DIshUpdateRequest request) {
     Dish dish = getDish(dishId);
     dish.update(
-            request.dishName(),
-            request.registeredAt(),
-            request.description(),
-            request.category(),
-            request.thumbnailUrl(),
-            request.stockQuantity(),
-            request.dishPrice(),
-            request.discountPrice()
-    );
+        request.dishName(),
+        request.registeredAt(),
+        request.description(),
+        request.category(),
+        request.thumbnailUrl(),
+        request.stockQuantity(),
+        request.dishPrice(),
+        request.discountPrice());
     return DishResponse.from(dish);
   }
 
   @Transactional
   public void deleteDish(Long dishId) {
-      Dish dish = getDish(dishId);
-      dish.delete();
+    Dish dish = getDish(dishId);
+    dish.delete();
   }
 
   public DishResponse getEachDish(Long dishId) {

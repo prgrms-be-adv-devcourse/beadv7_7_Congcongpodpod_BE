@@ -22,8 +22,7 @@ public class DishController {
 
   @PutMapping("/{dishId}")
   public ApiResponse<DishResponse> updateDish(
-          @PathVariable Long dishId,
-          @Valid @RequestBody DIshUpdateRequest request) {
+      @PathVariable Long dishId, @Valid @RequestBody DIshUpdateRequest request) {
     return ApiResponse.ok(dishService.updateDish(dishId, request));
   }
 

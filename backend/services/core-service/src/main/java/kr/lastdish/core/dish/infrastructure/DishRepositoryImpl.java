@@ -17,7 +17,8 @@ public class DishRepositoryImpl implements DishRepository {
 
   @Override
   public Dish findById(Long dishId) {
-    return dishJpaRepository.findById(dishId)
-            .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
+    return dishJpaRepository
+        .findById(dishId)
+        .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
   }
 }
