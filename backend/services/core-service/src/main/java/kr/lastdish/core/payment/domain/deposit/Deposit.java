@@ -34,6 +34,31 @@ public class Deposit {
   }
 
   public static Deposit createDefault(Long memberId) {
+
     return new Deposit(memberId, BigDecimal.ZERO);
+  }
+
+  public void use(BigDecimal amount) {
+    validatePositiveAmount(amount);
+
+    if (this.balance.compareTo(amount) < 0) {
+      throw new InsufficientBalanceException(this.memberId, this.balance, amount);
+    }
+
+    this.balance = this.balance.subtract(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public void refund(BigDecimal amount) {
+    validatePositiveAmount(amount);
+
+    this.balance = this.balance.add(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  private void validatePositiveAmount(BigDecimal amount) {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new IllegalArgumentException("금액은 0보다 커야 합니다. amount=" + amount);
+    }
   }
 }
