@@ -6,4 +6,6 @@ public interface DishRepository {
   Dish findById(Long dishId);
 
   Dish findByIdAndIsDeletedFalse(Long dishId);
+
+  Dish findWithLockByIdAndIsDeletedFalse(Long dishId);
 }
