@@ -15,96 +15,83 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class StoreService {
 
-    private final StoreRepository storeRepository;
+  private final StoreRepository storeRepository;
 
-    @Transactional
-    public StoreResult register(
-            RegisterStoreCommand command
-    ) {
-        if (
-                storeRepository.existsByMemberId(
-                        command.memberId()
-                )
-        ) {
-            throw new IllegalStateException(
-                    "회원은 하나의 매장만 등록할 수 있습니다."
-            );
-        }
-
-        if (
-                storeRepository.existsByBusinessNumber(
-                        command.businessNumber()
-                )
-        ) {
-            throw new IllegalStateException(
-                    "이미 등록된 사업자등록번호입니다."
-            );
-        }
-
-        Store store = new Store(
-                command.memberId(),
-                command.storeName(),
-                command.businessNumber(),
-                command.storeAddress(),
-                command.storePhone(),
-                command.openTime(),
-                command.closeTime(),
-                command.latitude(),
-                command.longitude()
-        );
-
-        command.holidays().forEach(store::addHoliday);
-
-        Store savedStore = storeRepository.save(store);
-
-        return StoreResult.from(savedStore);
+  @Transactional
+  public StoreResult register(RegisterStoreCommand command) {
+    if (storeRepository.existsByMemberId(command.memberId())) {
+      throw new IllegalStateException("회원은 하나의 매장만 등록할 수 있습니다.");
     }
 
-    @Transactional
-    public StoreResult update(Long storeId, Long memberId, UpdateStoreCommand command) {
-        Store store = getOwnedStore(storeId, memberId);
-
-        store.update(
-                command.storeName(),
-                command.storeAddress(),
-                command.storePhone(),
-                command.openTime(),
-                command.closeTime(),
-                command.latitude(),
-                command.longitude()
-        );
-
-        store.replaceHolidays(command.holidays());
-
-        return StoreResult.from(store);
+    if (storeRepository.existsByBusinessNumber(command.businessNumber())) {
+      throw new IllegalStateException("이미 등록된 사업자등록번호입니다.");
     }
 
-    @Transactional
-    public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
-        Store store = getOwnedStore(storeId, memberId);
+    Store store =
+        new Store(
+            command.memberId(),
+            command.storeName(),
+            command.businessNumber(),
+            command.storeAddress(),
+            command.storePhone(),
+            command.openTime(),
+            command.closeTime(),
+            command.latitude(),
+            command.longitude());
 
-        store.changeStatus(status);
+    command.holidays().forEach(store::addHoliday);
 
-        return StoreResult.from(store);
+    Store savedStore = storeRepository.save(store);
+
+    return StoreResult.from(savedStore);
+  }
+
+  @Transactional
+  public StoreResult update(Long storeId, Long memberId, UpdateStoreCommand command) {
+    Store store = getOwnedStore(storeId, memberId);
+
+    store.update(
+        command.storeName(),
+        command.storeAddress(),
+        command.storePhone(),
+        command.openTime(),
+        command.closeTime(),
+        command.latitude(),
+        command.longitude());
+
+    store.replaceHolidays(command.holidays());
+
+    return StoreResult.from(store);
+  }
+
+  @Transactional
+  public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
+    Store store = getOwnedStore(storeId, memberId);
+
+    store.changeStatus(status);
+
+    return StoreResult.from(store);
+  }
+
+  // 삭제 시 매장 조회, 수정, 상태 변경 제외, 매장 재등록은 재가입 필요
+  // 매장 soft delete 시 휴무일 hard delete
+  @Transactional
+  public void deleteStore(Long storeId, Long memberId) {
+    Store store = getOwnedStore(storeId, memberId);
+
+    store.delete();
+  }
+
+  private Store getOwnedStore(Long storeId, Long memberId) {
+    Store store =
+        storeRepository
+            .findById(storeId)
+            .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
+
+    if (!store.isOwnedBy(memberId)) {
+      throw new IllegalStateException("해당 매장을 수정할 권한이 없습니다.");
     }
 
-    // 삭제 시 매장 조회, 수정, 상태 변경 제외, 매장 재등록은 재가입 필요
-    // 매장 soft delete 시 휴무일 hard delete
-    @Transactional
-    public void deleteStore(Long storeId, Long memberId) {
-        Store store = getOwnedStore(storeId, memberId);
-
-        store.delete();
-    }
-
-    private Store getOwnedStore(Long storeId, Long memberId) {
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
-
-        if (!store.isOwnedBy(memberId)) {
-            throw new IllegalStateException("해당 매장을 수정할 권한이 없습니다.");
-        }
-
-        return store;
-    }
+    return store;
+  }
 }

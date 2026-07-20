@@ -6,15 +6,13 @@ import java.time.LocalTime;
 import java.util.List;
 
 public record RegisterStoreCommand(
-        Long memberId,
-        String storeName,
-        String businessNumber,
-        String storeAddress,
-        String storePhone,
-        LocalTime openTime,
-        LocalTime closeTime,
-        BigDecimal latitude,
-        BigDecimal longitude,
-        List<DayOfWeek> holidays
-) {
-}
+    Long memberId,
+    String storeName,
+    String businessNumber,
+    String storeAddress,
+    String storePhone,
+    LocalTime openTime,
+    LocalTime closeTime,
+    BigDecimal latitude,
+    BigDecimal longitude,
+    List<DayOfWeek> holidays) {}

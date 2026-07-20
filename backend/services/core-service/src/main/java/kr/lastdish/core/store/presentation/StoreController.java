@@ -17,46 +17,41 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StoreController {
 
-    private final StoreService storeService;
+  private final StoreService storeService;
 
-    @PostMapping
-    public ResponseEntity<StoreResponse> registerStore(
-            @RequestHeader("X-Member-Id") Long memberId,
-            @Valid @RequestBody StoreCreateRequest request) {
-        StoreResult result = storeService.register(request.toCommand(memberId));
+  @PostMapping
+  public ResponseEntity<StoreResponse> registerStore(
+      @RequestHeader("X-Member-Id") Long memberId, @Valid @RequestBody StoreCreateRequest request) {
+    StoreResult result = storeService.register(request.toCommand(memberId));
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(StoreResponse.from(result));
-    }
+    return ResponseEntity.status(HttpStatus.CREATED).body(StoreResponse.from(result));
+  }
 
-    @PutMapping("/{storeId}")
-    public ResponseEntity<StoreResponse> updateStore(@PathVariable Long storeId, @RequestHeader("X-Member-Id") Long memberId,
-            @Valid @RequestBody UpdateStoreRequest request) {
-        StoreResult result = storeService.update(storeId, memberId, request.toCommand());
+  @PutMapping("/{storeId}")
+  public ResponseEntity<StoreResponse> updateStore(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Member-Id") Long memberId,
+      @Valid @RequestBody UpdateStoreRequest request) {
+    StoreResult result = storeService.update(storeId, memberId, request.toCommand());
 
-        return ResponseEntity.ok(StoreResponse.from(result));
-    }
+    return ResponseEntity.ok(StoreResponse.from(result));
+  }
 
-    @PatchMapping("/{storeId}/status")
-    public ResponseEntity<StoreResponse> changeStatus(
-            @PathVariable Long storeId,
-            @RequestHeader("X-Member-Id") Long memberId,
-            @Valid @RequestBody ChangeStoreStatusRequest request
-    ) {
-        StoreResult result = storeService.changeStatus(storeId, memberId, request.status());
+  @PatchMapping("/{storeId}/status")
+  public ResponseEntity<StoreResponse> changeStatus(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Member-Id") Long memberId,
+      @Valid @RequestBody ChangeStoreStatusRequest request) {
+    StoreResult result = storeService.changeStatus(storeId, memberId, request.status());
 
-        return ResponseEntity.ok(
-                StoreResponse.from(result)
-        );
-    }
+    return ResponseEntity.ok(StoreResponse.from(result));
+  }
 
-    @PatchMapping("/{storeId}/delete")
-    public ResponseEntity<Void> deleteStore(
-            @PathVariable Long storeId,
-            @RequestHeader("X-Member-Id") Long memberId
-    ){
-        storeService.deleteStore(storeId, memberId);
+  @PatchMapping("/{storeId}/delete")
+  public ResponseEntity<Void> deleteStore(
+      @PathVariable Long storeId, @RequestHeader("X-Member-Id") Long memberId) {
+    storeService.deleteStore(storeId, memberId);
 
-        return ResponseEntity.noContent().build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

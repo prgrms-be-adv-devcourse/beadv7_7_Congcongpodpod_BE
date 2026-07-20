@@ -4,13 +4,11 @@ import java.util.Optional;
 
 public interface StoreRepository {
 
-    Store save(Store store);
+  Store save(Store store);
 
-    Optional<Store> findById(Long storeId);
+  Optional<Store> findById(Long storeId);
 
-    boolean existsByMemberId(Long memberId);
+  boolean existsByMemberId(Long memberId);
 
-    boolean existsByBusinessNumber(
-            String businessNumber
-    );
+  boolean existsByBusinessNumber(String businessNumber);
 }
