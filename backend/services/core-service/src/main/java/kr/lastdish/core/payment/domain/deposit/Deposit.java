@@ -38,12 +38,16 @@ public class Deposit {
     return new Deposit(memberId, BigDecimal.ZERO);
   }
 
-
   public void use(BigDecimal amount) {
     if (this.balance.compareTo(amount) < 0) {
       throw new InsufficientBalanceException(this.memberId, this.balance, amount);
     }
     this.balance = this.balance.subtract(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public void refund(BigDecimal amount) {
+    this.balance = this.balance.add(amount);
     this.updatedAt = LocalDateTime.now();
   }
 }

@@ -76,24 +76,24 @@ public class DepositHistory {
   }
 
   public static DepositHistory recordUse(
-          Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+      Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
     return DepositHistory.builder()
-            .memberId(memberId)
-            .orderId(orderId)
-            .type(DepositType.USE)
-            .amount(amount)
-            .balanceAfter(balanceAfter)
-            .build();
+        .memberId(memberId)
+        .orderId(orderId)
+        .type(DepositType.USE)
+        .amount(amount)
+        .balanceAfter(balanceAfter)
+        .build();
   }
 
   public static DepositHistory recordRefund(
-          Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+      Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
     return DepositHistory.builder()
-            .memberId(memberId)
-            .orderId(orderId)
-            .type(DepositType.REFUND)
-            .amount(amount)
-            .balanceAfter(balanceAfter)
-            .build();
+        .memberId(memberId)
+        .orderId(orderId)
+        .type(DepositType.REFUND)
+        .amount(amount)
+        .balanceAfter(balanceAfter)
+        .build();
   }
 }
