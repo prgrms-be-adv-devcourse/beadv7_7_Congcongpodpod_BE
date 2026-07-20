@@ -116,6 +116,39 @@ class GatewaySecurityConfigTests {
         .isOk();
   }
 
+  @Test
+  void depositRouteRejectsRequestsWithoutAuthentication() {
+    webTestClient.post().uri("/api/v1/deposits/test").exchange().expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void memberCanAccessDepositRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .post()
+        .uri("/api/v1/deposits/test")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
+  void sellerCanAccessDepositRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("2"))
+                .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
+        .post()
+        .uri("/api/v1/deposits/test")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
   @TestConfiguration(proxyBeanMethods = false)
   static class TestRoutes {
 
@@ -125,7 +158,8 @@ class GatewaySecurityConfigTests {
           .andRoute(GET("/openapi/member-service"), request -> ok().build())
           .andRoute(GET("/api/v1/dishes/1"), request -> ok().build())
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
-          .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build());
+          .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
+          .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }
   }
 }
