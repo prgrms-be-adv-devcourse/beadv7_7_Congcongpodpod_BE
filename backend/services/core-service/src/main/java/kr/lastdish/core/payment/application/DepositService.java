@@ -2,16 +2,23 @@ package kr.lastdish.core.payment.application;
 
 import jakarta.transaction.Transactional;
 import kr.lastdish.core.payment.application.dto.DepositBalanceResponse;
+import kr.lastdish.core.payment.application.dto.DepositUseResult;
 import kr.lastdish.core.payment.domain.deposit.Deposit;
+import kr.lastdish.core.payment.domain.deposit.DepositHistory;
+import kr.lastdish.core.payment.domain.deposit.DepositNotFoundException;
+import kr.lastdish.core.payment.infrastructure.DepositHistoryRepository;
 import kr.lastdish.core.payment.infrastructure.DepositRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
 public class DepositService {
 
   private final DepositRepository depositRepository;
+  private final DepositHistoryRepository depositHistoryRepository;
 
   // 회원의 현재 예치금 잔액 조회 로직
   @Transactional
@@ -19,11 +26,30 @@ public class DepositService {
     return DepositBalanceResponse.from(getOrCreateDeposit(memberId));
   }
 
-  /** 회원의 예치금 지갑을 조회 아직 예치금 지갑이 생성되지 않은 회원인 경우, NPE를 방지하기 위해 잔액이 0원인 지갑을 신규 생성하여 반환 */
+  /**
+   * 회원의 예치금 지갑을 조회.
+   * 아직 예치금 지갑이 생성되지 않은 회원인 경우,
+   * NPE를 방지하기 위해 잔액이 0원인 지갑을 신규 생성하여 반환.
+   */
   @Transactional
   public Deposit getOrCreateDeposit(Long memberId) {
     return depositRepository
         .findByMemberId(memberId)
         .orElseGet(() -> depositRepository.save(Deposit.createDefault(memberId)));
   }
+
+  // 회원 예치금 사용 시 차감 후 기록
+  @Transactional
+  public DepositUseResult use(Long memberId, Long orderId, BigDecimal amount) {
+    Deposit deposit = depositRepository.findWithLockByMemberId(memberId)
+            .orElseThrow(() -> new DepositNotFoundException(memberId));
+
+    deposit.use(amount);
+
+    DepositHistory history = depositHistoryRepository.save(
+            DepositHistory.recordUse(memberId, orderId, amount, deposit.getBalance()));
+
+    return DepositUseResult.from(history);
+  }
+
 }

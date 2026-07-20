@@ -9,7 +9,8 @@ public enum ErrorCode {
   INVALID_STATE(HttpStatus.CONFLICT, "C002", "처리할 수 없는 상태입니다."),
   ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "대상을 찾을 수 없습니다."),
   SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "C503", "일시적으로 서비스를 이용할 수 없습니다."),
-  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C500", "서버 오류가 발생했습니다.");
+  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C500", "서버 오류가 발생했습니다."),
+  INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다.");
 
   private final HttpStatus status;
   private final String code;
