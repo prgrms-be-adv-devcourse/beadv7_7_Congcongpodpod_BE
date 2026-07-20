@@ -12,20 +12,13 @@ import java.util.UUID;
 /**
  * 발행할 도메인 이벤트를 DB에 저장하는 Outbox 엔티티입니다.
  *
- * <p>도메인 변경과 OutboxEvent 저장을 같은 DB 트랜잭션에서 처리하여
- * 도메인 변경은 커밋됐지만 이벤트 기록은 유실되는 상황을 방지합니다.
+ * <p>도메인 변경과 OutboxEvent 저장을 같은 DB 트랜잭션에서 처리하여 도메인 변경은 커밋됐지만 이벤트 기록은 유실되는 상황을 방지합니다.
  */
 @Getter
 @Entity
 @Table(
     name = "outbox_events",
-    indexes = {
-        @Index(
-            name = "idx_outbox_status_occurred_at",
-            columnList = "status, occurred_at"
-        )
-    }
-)
+    indexes = {@Index(name = "idx_outbox_status_occurred_at", columnList = "status, occurred_at")})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OutboxEvent {
 
@@ -38,9 +31,7 @@ public class OutboxEvent {
   @Column(name = "event_id", nullable = false)
   private UUID eventId;
 
-  /**
-   * 저장된 payload를 어떤 이벤트 타입으로 역직렬화할지 결정합니다.
-   */
+  /** 저장된 payload를 어떤 이벤트 타입으로 역직렬화할지 결정합니다. */
   @Column(name = "event_type", nullable = false, length = 100)
   private String eventType;
 
@@ -52,28 +43,20 @@ public class OutboxEvent {
   @Column(name = "aggregate_type", nullable = false, length = 50)
   private String aggregateType;
 
-  /**
-   * 이벤트가 발생한 Aggregate 식별자입니다.
-   */
+  /** 이벤트가 발생한 Aggregate 식별자입니다. */
   @Column(name = "aggregate_id", nullable = false)
   private Long aggregateId;
 
-  /**
-   * DomainEvent를 JSON으로 직렬화한 값입니다.
-   */
+  /** DomainEvent를 JSON으로 직렬화한 값입니다. */
   @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
   private String payload;
 
-  /**
-   * 현재 Outbox 이벤트 처리 상태입니다.
-   */
+  /** 현재 Outbox 이벤트 처리 상태입니다. */
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 20)
   private OutboxStatus status;
 
-  /**
-   * 이벤트 발행에 실패한 횟수입니다.
-   */
+  /** 이벤트 발행에 실패한 횟수입니다. */
   @Column(name = "retry_count", nullable = false)
   private int retryCount;
 
@@ -85,9 +68,7 @@ public class OutboxEvent {
   @Column(name = "last_error", length = 1000)
   private String lastError;
 
-  /**
-   * 비즈니스 이벤트가 실제로 발생한 시각입니다.
-   */
+  /** 비즈니스 이벤트가 실제로 발생한 시각입니다. */
   @Column(name = "occurred_at", nullable = false)
   private Instant occurredAt;
 
@@ -99,9 +80,7 @@ public class OutboxEvent {
   @Column(name = "locked_at")
   private Instant lockedAt;
 
-  /**
-   * 이벤트 발행이 성공한 시각입니다.
-   */
+  /** 이벤트 발행이 성공한 시각입니다. */
   @Column(name = "published_at")
   private Instant publishedAt;
 
@@ -110,10 +89,7 @@ public class OutboxEvent {
    *
    * <p>새 이벤트는 아직 발행되지 않았으므로 PENDING 상태로 생성합니다.
    */
-  public static OutboxEvent create(
-      DomainEvent event,
-      String payload
-  ) {
+  public static OutboxEvent create(DomainEvent event, String payload) {
     OutboxEvent outbox = new OutboxEvent();
     outbox.eventId = event.eventId();
     outbox.eventType = event.eventType();
@@ -127,17 +103,13 @@ public class OutboxEvent {
     return outbox;
   }
 
-  /**
-   * 이벤트를 발행 대상으로 선점합니다.
-   */
+  /** 이벤트를 발행 대상으로 선점합니다. */
   public void markProcessing(Instant lockedAt) {
     this.status = OutboxStatus.PROCESSING;
     this.lockedAt = lockedAt;
   }
 
-  /**
-   * 이벤트 발행 성공을 기록합니다.
-   */
+  /** 이벤트 발행 성공을 기록합니다. */
   public void markPublished(Instant publishedAt) {
     this.status = OutboxStatus.PUBLISHED;
     this.publishedAt = publishedAt;
@@ -150,29 +122,18 @@ public class OutboxEvent {
   /**
    * 이벤트 발행 실패를 기록합니다.
    *
-   * <p>최대 재시도 횟수에 도달하지 않았으면 PENDING으로 되돌리고,
-   * 최대 횟수에 도달했으면 FAILED로 변경합니다.
+   * <p>최대 재시도 횟수에 도달하지 않았으면 PENDING으로 되돌리고, 최대 횟수에 도달했으면 FAILED로 변경합니다.
    */
-  public void recordFailure(
-      String errorMessage,
-      int maxRetries
-  ) {
+  public void recordFailure(String errorMessage, int maxRetries) {
     this.retryCount++;
     this.lastError = truncate(errorMessage, 1000);
     this.lockedAt = null;
 
-    this.status = retryCount >= maxRetries
-        ? OutboxStatus.FAILED
-        : OutboxStatus.PENDING;
+    this.status = retryCount >= maxRetries ? OutboxStatus.FAILED : OutboxStatus.PENDING;
   }
 
-  /**
-   * DB 컬럼 최대 길이에 맞게 오류 메시지를 자릅니다.
-   */
-  private String truncate(
-      String value,
-      int maxLength
-  ) {
+  /** DB 컬럼 최대 길이에 맞게 오류 메시지를 자릅니다. */
+  private String truncate(String value, int maxLength) {
     if (value == null || value.length() <= maxLength) {
       return value;
     }
