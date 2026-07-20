@@ -84,4 +84,42 @@ public class Store {
   public void addHoliday(DayOfWeek dayOfWeek) {
     holidays.add(new StoreHoliday(this, dayOfWeek));
   }
+
+  public void update(
+      String storeName,
+      String storeAddress,
+      String storePhone,
+      LocalTime openTime,
+      LocalTime closeTime,
+      BigDecimal latitude,
+      BigDecimal longitude) {
+    this.storeName = storeName;
+    this.storeAddress = storeAddress;
+    this.storePhone = storePhone;
+    this.openTime = openTime;
+    this.closeTime = closeTime;
+    this.latitude = latitude;
+    this.longitude = longitude;
+  }
+
+  // 기존 휴무일 제거 후 새로운 휴무일로 교체
+  public void replaceHolidays(List<DayOfWeek> daysOfWeek) {
+    holidays.clear();
+
+    daysOfWeek.forEach(this::addHoliday);
+  }
+
+  public boolean isOwnedBy(Long memberId) {
+    return this.memberId.equals(memberId);
+  }
+
+  public void changeStatus(StoreStatus status) {
+    this.status = status;
+  }
+
+  public void delete() {
+    this.status = StoreStatus.STOPPED;
+    this.holidays.clear();
+    this.deleted = true;
+  }
 }
