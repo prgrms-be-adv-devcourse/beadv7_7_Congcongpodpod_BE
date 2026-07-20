@@ -14,12 +14,19 @@ public class DishFacade {
 
   private final DishRepository dishRepository;
 
-  // 장바구니 추가를 위해 Dish의 정보를 조회. 삭제됐거나 판매중이 아닌 Dish는 담을 수 없어야 하므로 걸러낸다.
   public Optional<DishSnapshot> findDishSnapshot(Long dishId) {
-    return dishRepository
-        .findById(dishId)
-        .filter(dish -> !dish.getIsDeleted() && dish.getDishStatus() == DishStatus.ON_SALE)
-        .map(DishFacade::toSnapshot);
+    Dish dish;
+    try {
+      dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
+
+    // 여기부터는 dish가 존재함이 보장되므로, 판매중이 아니면 그냥 없음으로 취급한다.
+    if (dish.getDishStatus() != DishStatus.ON_SALE) {
+      return Optional.empty();
+    }
+    return Optional.of(toSnapshot(dish));
   }
 
   // 마감할인 서비스 특성상 스냅샷 단가는 discountPrice로 잡는다.
