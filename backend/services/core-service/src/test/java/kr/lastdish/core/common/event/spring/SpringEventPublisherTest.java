@@ -1,5 +1,10 @@
 package kr.lastdish.core.common.event.spring;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
+import java.time.Instant;
+import java.util.UUID;
 import kr.lastdish.core.common.event.DomainEvent;
 import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
@@ -9,12 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SpringEventPublisherTest {
