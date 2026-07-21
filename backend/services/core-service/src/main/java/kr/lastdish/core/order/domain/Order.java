@@ -1,6 +1,8 @@
 package kr.lastdish.core.order.domain;
 
 import jakarta.persistence.*;
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "orders")
@@ -47,7 +50,6 @@ public class Order {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
     private String memberName;
 
     @Column(nullable = false)
@@ -87,7 +89,6 @@ public class Order {
             String dishName,
             Long quantity,
             BigDecimal unitPrice,
-            BigDecimal totalPrice,
             LocalTime pickupStartAt,
             LocalTime pickupEndAt
     ) {
@@ -102,7 +103,7 @@ public class Order {
         order.dishName = dishName;
         order.quantity = quantity;
         order.unitPrice = unitPrice;
-        order.totalPrice = totalPrice;
+        order.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
         order.pickupStartAt = pickupStartAt;
         order.pickupEndAt = pickupEndAt;
         order.isDeleted = false;
@@ -114,17 +115,30 @@ public class Order {
         this.paymentStatus = PaymentStatus.COMPLETED;
     }
 
-    // 결제 실패
-    public void paymentFailed() {
-        this.paymentStatus = PaymentStatus.FAILED;
-    }
-
     public void delete() {
         this.isDeleted = true;
     }
 
     // 주문 취소
-    public void cancel(String cancelReason) {
+    public void cancel(Long memberId, String cancelReason) {
+        validateOwner(memberId);
+        validateCancelable();
+
         this.cancelReason = cancelReason;
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    private void validateCancelable() {
+        if (this.status == OrderStatus.CANCELLED
+            || this.paymentStatus != PaymentStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.INVALID_STATE);
+        }
+    }
+
+    private void validateOwner(Long memberId) {
+        if (!Objects.equals(this.memberId, memberId)) {
+            throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
+        }
+
     }
 }

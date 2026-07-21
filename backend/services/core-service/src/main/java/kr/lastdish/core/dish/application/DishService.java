@@ -82,6 +82,12 @@ public class DishService {
   }
 
   @Transactional
+  public void increaseStock(Long dishId, Long quantity) {
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+    dish.increaseStock(quantity);
+  }
+
+  @Transactional
   public void deleteDish(Long dishId) {
     Dish dish = getDish(dishId);
     dish.delete();

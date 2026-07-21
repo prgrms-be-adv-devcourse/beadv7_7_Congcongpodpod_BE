@@ -19,8 +19,8 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public Order findById(Long orderId) {
-        return orderJpaRepository.findById(orderId)
+    public Order findByIdAndIsDeletedFalse(Long orderId) {
+        return orderJpaRepository.findByIdAndIsDeletedFalse(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
     }
 
