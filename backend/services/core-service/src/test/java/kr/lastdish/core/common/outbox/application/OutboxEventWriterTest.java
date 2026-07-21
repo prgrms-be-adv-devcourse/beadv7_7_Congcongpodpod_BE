@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
@@ -38,9 +38,9 @@ class OutboxEventWriterTest {
     UUID eventId = UUID.randomUUID();
     Instant occurredAt = Instant.now();
 
-    DishAvailabilityChangedEvent event =
-        new DishAvailabilityChangedEvent(
-            eventId, DishAvailabilityChangedEvent.SCHEMA_VERSION, 1L, false, occurredAt);
+    DishStateChangedEvent event =
+        new DishStateChangedEvent(
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, occurredAt);
 
     String payload =
         """
@@ -70,7 +70,7 @@ class OutboxEventWriterTest {
     OutboxEvent savedOutbox = outboxCaptor.getValue();
 
     assertThat(savedOutbox.getEventId()).isEqualTo(eventId);
-    assertThat(savedOutbox.getEventType()).isEqualTo(DishAvailabilityChangedEvent.EVENT_TYPE);
+    assertThat(savedOutbox.getEventType()).isEqualTo(DishStateChangedEvent.EVENT_TYPE);
     assertThat(savedOutbox.getAggregateType()).isEqualTo("DISH");
     assertThat(savedOutbox.getAggregateId()).isEqualTo(1L);
     assertThat(savedOutbox.getPayload()).isEqualTo(payload);

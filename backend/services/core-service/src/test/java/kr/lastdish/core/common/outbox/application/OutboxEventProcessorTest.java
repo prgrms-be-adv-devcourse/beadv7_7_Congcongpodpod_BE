@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lastdish.core.common.event.EventPublisher;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
@@ -38,7 +38,7 @@ class OutboxEventProcessorTest {
   @Test
   void publishes_processing_event_and_marks_it_as_published() {
     // given
-    DishAvailabilityChangedEvent event = createDomainEvent();
+    DishStateChangedEvent event = createDomainEvent();
     String payload = "{\"dishId\":1}";
 
     OutboxEvent outbox = OutboxEvent.create(event, payload);
@@ -62,7 +62,7 @@ class OutboxEventProcessorTest {
   @Test
   void does_not_mark_event_as_published_when_publish_fails() {
     // given
-    DishAvailabilityChangedEvent event = createDomainEvent();
+    DishStateChangedEvent event = createDomainEvent();
 
     OutboxEvent outbox = OutboxEvent.create(event, "{}");
     outbox.markProcessing(Instant.now());
@@ -89,7 +89,7 @@ class OutboxEventProcessorTest {
   @Test
   void rejects_event_that_is_not_processing() {
     // given
-    DishAvailabilityChangedEvent event = createDomainEvent();
+    DishStateChangedEvent event = createDomainEvent();
 
     OutboxEvent outbox = OutboxEvent.create(event, "{}");
 
@@ -105,8 +105,8 @@ class OutboxEventProcessorTest {
     verify(eventPublisher, never()).publish(org.mockito.ArgumentMatchers.any());
   }
 
-  private DishAvailabilityChangedEvent createDomainEvent() {
-    return new DishAvailabilityChangedEvent(
-        UUID.randomUUID(), DishAvailabilityChangedEvent.SCHEMA_VERSION, 1L, false, Instant.now());
+  private DishStateChangedEvent createDomainEvent() {
+    return new DishStateChangedEvent(
+        UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
   }
 }

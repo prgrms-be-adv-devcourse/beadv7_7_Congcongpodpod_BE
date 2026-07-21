@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +30,8 @@ class SpringEventPublisherTest {
   void publishes_domain_event_with_spring_event() {
     // given
     DomainEvent event =
-        new DishAvailabilityChangedEvent(
-            UUID.randomUUID(),
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
-            1L,
-            false,
-            Instant.now());
+        new DishStateChangedEvent(
+            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 0L, Instant.now());
 
     // when
     eventPublisher.publish(event);
@@ -52,12 +48,8 @@ class SpringEventPublisherTest {
   void propagates_exception_when_spring_event_fails() {
     // given
     DomainEvent event =
-        new DishAvailabilityChangedEvent(
-            UUID.randomUUID(),
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
-            1L,
-            false,
-            Instant.now());
+        new DishStateChangedEvent(
+            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
 
     RuntimeException publishException = new RuntimeException("Spring Event 발행 실패");
 

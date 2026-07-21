@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import org.junit.jupiter.api.Test;
 
 class OutboxEventTest {
@@ -15,9 +15,9 @@ class OutboxEventTest {
     UUID eventId = UUID.randomUUID();
     Instant occurredAt = Instant.now();
 
-    DishAvailabilityChangedEvent event =
-        new DishAvailabilityChangedEvent(
-            eventId, DishAvailabilityChangedEvent.SCHEMA_VERSION, 1L, false, occurredAt);
+    DishStateChangedEvent event =
+        new DishStateChangedEvent(
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, occurredAt);
 
     String payload =
         """
@@ -35,7 +35,7 @@ class OutboxEventTest {
 
     // then
     assertThat(outbox.getEventId()).isEqualTo(eventId);
-    assertThat(outbox.getEventType()).isEqualTo(DishAvailabilityChangedEvent.EVENT_TYPE);
+    assertThat(outbox.getEventType()).isEqualTo(DishStateChangedEvent.EVENT_TYPE);
     assertThat(outbox.getAggregateType()).isEqualTo("DISH");
     assertThat(outbox.getAggregateId()).isEqualTo(1L);
     assertThat(outbox.getPayload()).isEqualTo(payload);
@@ -111,13 +111,9 @@ class OutboxEventTest {
 
   /** 각 테스트에서 반복되는 기본 Outbox 생성을 담당합니다. */
   private OutboxEvent createOutbox() {
-    DishAvailabilityChangedEvent event =
-        new DishAvailabilityChangedEvent(
-            UUID.randomUUID(),
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
-            1L,
-            false,
-            Instant.now());
+    DishStateChangedEvent event =
+        new DishStateChangedEvent(
+            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
 
     return OutboxEvent.create(event, "{}");
   }
