@@ -17,12 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentService paymentService;
+  private final PaymentService paymentService;
 
-    @PostMapping
-    public ResponseEntity<PaymentReadyResponse> ready(
-            @Valid @RequestBody PaymentReadyRequest request,
-            @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
-        return ResponseEntity.ok(paymentService.readyPayment(memberId, request));
-    }
+  @PostMapping
+  public ResponseEntity<PaymentReadyResponse> ready(
+      @Valid @RequestBody PaymentReadyRequest request,
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    return ResponseEntity.ok(paymentService.readyPayment(memberId, request));
+  }
 }
