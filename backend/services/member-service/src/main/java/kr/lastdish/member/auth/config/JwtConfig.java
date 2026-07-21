@@ -1,4 +1,4 @@
-package kr.lastdish.member.auth.config; // 프로젝트 패키지 구조에 맞춰주세요
+package kr.lastdish.member.auth.config;
 
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -10,8 +10,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class JwtConfig {
 
-  // 환경 변수 JWT_SECRET을 자동으로 읽어옵니다.
-  @Value("${JWT_SECRET}")
+  // application.yml의 jwt.secret 값을 읽어오도록 수정 (환경 변수 우선 적용도 원하신다면 ${JWT_SECRET:${jwt.secret}} 형태로 사용
+  // 가능)
+  @Value("${jwt.secret}")
   private String secret;
 
   @Bean
