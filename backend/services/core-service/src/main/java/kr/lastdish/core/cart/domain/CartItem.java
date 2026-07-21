@@ -1,12 +1,11 @@
 package kr.lastdish.core.cart.domain;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cart_items", uniqueConstraints = @UniqueConstraint(columnNames = "cart_id"))
@@ -82,7 +81,6 @@ public class CartItem {
   public BigDecimal getSubtotalPrice() {
     return unitPrice.multiply(BigDecimal.valueOf(quantity));
   }
-
 
   /**
    * 최신 Dish 상태와 재고를 기준으로 장바구니 상품 상태를 갱신합니다.

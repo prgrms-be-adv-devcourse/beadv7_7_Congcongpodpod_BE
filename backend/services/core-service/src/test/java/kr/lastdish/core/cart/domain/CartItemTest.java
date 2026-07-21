@@ -1,11 +1,10 @@
 package kr.lastdish.core.cart.domain;
 
-import org.junit.jupiter.api.Test;
-
-import java.math.BigDecimal;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.math.BigDecimal;
+import org.junit.jupiter.api.Test;
 
 class CartItemTest {
 
@@ -46,24 +45,16 @@ class CartItemTest {
     assertThat(cartItem.getQuantity()).isEqualTo(2L);
   }
 
-
   @Test
   void Dish가_판매불가이면_장바구니_상품도_판매불가로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            2L);
+    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 2L);
 
     // when
     cartItem.synchronizeDishState(false, 10L);
 
     // then
-    assertThat(cartItem.getStatus())
-        .isEqualTo(CartItemStatus.DISH_UNAVAILABLE);
+    assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.DISH_UNAVAILABLE);
     assertThat(cartItem.isOrderable()).isFalse();
   }
 
@@ -72,53 +63,33 @@ class CartItemTest {
   @Test
   void Dish_재고가_없으면_품절로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            2L);
+    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 2L);
 
     // when
     cartItem.synchronizeDishState(true, 0L);
 
     // then
-    assertThat(cartItem.getStatus())
-        .isEqualTo(CartItemStatus.OUT_OF_STOCK);
+    assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.OUT_OF_STOCK);
     assertThat(cartItem.isOrderable()).isFalse();
   }
 
   @Test
   void 장바구니_수량보다_Dish_재고가_적으면_재고부족으로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            7L);
+    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 7L);
 
     // when
     cartItem.synchronizeDishState(true, 5L);
 
     // then
-    assertThat(cartItem.getStatus())
-        .isEqualTo(CartItemStatus.INSUFFICIENT_STOCK);
+    assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.INSUFFICIENT_STOCK);
     assertThat(cartItem.isOrderable()).isFalse();
   }
 
   @Test
   void Dish_재고가_장바구니_수량_이상이면_주문가능으로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            2L);
+    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 2L);
 
     cartItem.synchronizeDishState(true, 0L);
 
@@ -126,8 +97,7 @@ class CartItemTest {
     cartItem.synchronizeDishState(true, 5L);
 
     // then
-    assertThat(cartItem.getStatus())
-        .isEqualTo(CartItemStatus.AVAILABLE);
+    assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.AVAILABLE);
     assertThat(cartItem.isOrderable()).isTrue();
   }
 }
