@@ -1,7 +1,7 @@
 package kr.lastdish.core.order.domain;
 
 public enum PaymentStatus {
-    PENDING,
-    COMPLETED,
-    FAILED
+  PENDING,
+  COMPLETED,
+  FAILED
 }

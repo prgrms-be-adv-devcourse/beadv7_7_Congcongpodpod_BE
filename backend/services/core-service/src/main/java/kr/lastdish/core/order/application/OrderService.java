@@ -11,34 +11,34 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-    private final OrderRepository orderRepository;
+  private final OrderRepository orderRepository;
 
-    public Order createOrder(Long memberId, OrderCreateRequest request) {
-        Order order = Order.create(
-                memberId,
-                request.storeId(),
-                request.dishId(),
-                //request.memberName(),
-                request.phone(),
-                request.dishName(),
-                request.quantity(),
-                request.unitPrice(),
-                request.pickupStartAt(),
-                request.pickupEndAt()
-        );
+  public Order createOrder(Long memberId, OrderCreateRequest request) {
+    Order order =
+        Order.create(
+            memberId,
+            request.storeId(),
+            request.dishId(),
+            // request.memberName(),
+            request.phone(),
+            request.dishName(),
+            request.quantity(),
+            request.unitPrice(),
+            request.pickupStartAt(),
+            request.pickupEndAt());
 
-        return orderRepository.save(order);
-    }
+    return orderRepository.save(order);
+  }
 
-    public OrderResponse completePayment(Long orderId) {
-        Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-        order.paymentSuccess();
-        return OrderResponse.from(order);
-    }
+  public OrderResponse completePayment(Long orderId) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.paymentSuccess();
+    return OrderResponse.from(order);
+  }
 
-    public Order cancelOrder(Long memberId, Long orderId, OrderCancelRequest request) {
-        Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-        order.cancel(memberId, request.cancelReason());
-        return order;
-    }
+  public Order cancelOrder(Long memberId, Long orderId, OrderCancelRequest request) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.cancel(memberId, request.cancelReason());
+    return order;
+  }
 }
