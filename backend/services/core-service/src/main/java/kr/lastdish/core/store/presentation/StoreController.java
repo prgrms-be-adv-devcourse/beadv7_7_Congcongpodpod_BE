@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import kr.lastdish.core.common.response.ApiResponse;
 import kr.lastdish.core.store.application.StoreService;
+import kr.lastdish.core.store.application.dto.PayoutAccountResult;
 import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.presentation.dto.*;
@@ -72,5 +73,30 @@ public class StoreController {
         storeService.getNearbyStores(latitude, longitude, radiusKm, page, size);
 
     return ApiResponse.ok(StoreSearchResponse.from(result));
+  }
+
+  // 매장 정산 계좌
+  @PostMapping("/{storeId}/payoutAccount")
+  public ApiResponse<StoreAccountResponse> registerPayoutAccount(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Member-Id") Long memberId,
+      @Valid @RequestBody StoreAccountRequest request) {
+    PayoutAccountResult result =
+        storeService.registerPayoutAccount(
+            storeId, memberId, request.accountNumber(), request.accountHolder());
+
+    return ApiResponse.ok(StoreAccountResponse.from(result));
+  }
+
+  @PutMapping("/{storeId}/payoutAccount")
+  public ApiResponse<StoreAccountResponse> updatePayoutAccount(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Member-Id") Long memberId,
+      @Valid @RequestBody StoreAccountRequest request) {
+    PayoutAccountResult result =
+        storeService.updatePayoutAccount(
+            storeId, memberId, request.accountNumber(), request.accountHolder());
+
+    return ApiResponse.ok(StoreAccountResponse.from(result));
   }
 }

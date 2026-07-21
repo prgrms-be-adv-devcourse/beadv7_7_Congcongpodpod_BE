@@ -4,13 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import kr.lastdish.core.common.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
-import kr.lastdish.core.store.application.dto.StorePageResult;
-import kr.lastdish.core.store.application.dto.StoreResult;
-import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
-import kr.lastdish.core.store.domain.Store;
-import kr.lastdish.core.store.domain.StoreRepository;
-import kr.lastdish.core.store.domain.StoreStatus;
+import kr.lastdish.core.store.application.dto.*;
+import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class StoreService {
 
   private final StoreRepository storeRepository;
+  private final StorePayoutAccountRepository payoutAccountRepository;
 
   @Transactional
   public StoreResult register(RegisterStoreCommand command) {
@@ -153,5 +149,39 @@ public class StoreService {
         storeRepository.countByLocationRange(minLatitude, maxLatitude, minLongitude, maxLongitude);
 
     return StorePageResult.of(stores, page, size, totalElements);
+  }
+
+  // 매장 정산 계좌
+  @Transactional
+  public PayoutAccountResult registerPayoutAccount(
+      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+    getOwnedStore(storeId, memberId);
+
+    if (payoutAccountRepository.existsByStoreId(storeId)) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 등록된 정산 계좌가 있습니다.");
+    }
+
+    StorePayoutAccount payoutAccount =
+        new StorePayoutAccount(storeId, accountNumber, accountHolder);
+
+    StorePayoutAccount savedAccount = payoutAccountRepository.save(payoutAccount);
+
+    return PayoutAccountResult.from(savedAccount);
+  }
+
+  @Transactional
+  public PayoutAccountResult updatePayoutAccount(
+      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+    getOwnedStore(storeId, memberId);
+
+    StorePayoutAccount payoutAccount =
+        payoutAccountRepository
+            .findByStoreId(storeId)
+            .orElseThrow(
+                () -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
+
+    payoutAccount.update(accountNumber, accountHolder);
+
+    return PayoutAccountResult.from(payoutAccount);
   }
 }
