@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import kr.lastdish.core.dish.domain.Category;
 
-public record DIshUpdateRequest(
+public record DishUpdateRequest(
     @NotNull Long dishId,
     @NotBlank String dishName,
     @NotNull LocalDateTime registeredAt,
