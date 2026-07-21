@@ -2,25 +2,27 @@ package kr.lastdish.member.auth.infrastructure;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import java.security.Key;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Date;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
 
-  private final Key key;
+  private final PrivateKey privateKey; // RSA 개인 키
+  private final PublicKey publicKey; // RSA 공개 키 (게이트웨이 전달용 또는 검증용)
   private final long accessTokenValidityInMilliseconds;
   private final long refreshTokenValidityInMilliseconds;
 
+  // 생성자를 통해 주입받도록 구성 (JwtConfig 등 활용)
   public JwtTokenProvider(
-      @Value("${jwt.secret}") String secretKey,
-      @Value("${jwt.access-token-validity-in-seconds}") long accessTokenValidityInSeconds,
-      @Value("${jwt.refresh-token-validity-in-seconds}") long refreshTokenValidityInSeconds) {
-    this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
+      PrivateKey privateKey,
+      PublicKey publicKey,
+      long accessTokenValidityInSeconds,
+      long refreshTokenValidityInSeconds) {
+    this.privateKey = privateKey;
+    this.publicKey = publicKey;
     this.accessTokenValidityInMilliseconds = accessTokenValidityInSeconds * 1000;
     this.refreshTokenValidityInMilliseconds = refreshTokenValidityInSeconds * 1000;
   }
@@ -33,7 +35,7 @@ public class JwtTokenProvider {
         .setSubject(email)
         .setIssuedAt(now)
         .setExpiration(validity)
-        .signWith(key, SignatureAlgorithm.HS256)
+        .signWith(privateKey) // RSA 개인 키로 서명
         .compact();
   }
 
@@ -45,13 +47,13 @@ public class JwtTokenProvider {
         .setSubject(email)
         .setIssuedAt(now)
         .setExpiration(validity)
-        .signWith(key, SignatureAlgorithm.HS256)
+        .signWith(privateKey) // RSA 개인 키로 서명
         .compact();
   }
 
   public boolean validateToken(String token) {
     try {
-      Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+      Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token);
       return true;
     } catch (Exception e) {
       return false;
@@ -59,7 +61,8 @@ public class JwtTokenProvider {
   }
 
   public String getEmail(String token) {
-    Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+    Claims claims =
+        Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token).getBody();
     return claims.getSubject();
   }
 }
