@@ -63,10 +63,17 @@ public class CartItem {
   }
 
   public void replace(Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
+
     this.dishId = dishId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+
+    /*
+     * CartService에서 교체할 Dish의 판매 여부와 재고를 검증한 뒤 호출하므로
+     * 이전 Dish에서 파생된 주문 불가 상태를 유지하지 않습니다.
+     */
+    this.status = CartItemStatus.AVAILABLE;
     this.updatedAt = LocalDateTime.now();
   }
 
@@ -74,7 +81,14 @@ public class CartItem {
     if (quantity == null || quantity < 1) {
       throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
     }
+
     this.quantity = quantity;
+
+    /*
+     * CartService에서 변경할 수량이 현재 Dish 재고 이내인지 검증한 뒤 호출하므로
+     * 이전 수량에서 계산된 재고 부족 상태를 초기화합니다.
+     */
+    this.status = CartItemStatus.AVAILABLE;
     this.updatedAt = LocalDateTime.now();
   }
 
