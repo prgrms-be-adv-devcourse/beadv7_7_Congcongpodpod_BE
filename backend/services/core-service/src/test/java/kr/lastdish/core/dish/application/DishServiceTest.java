@@ -11,7 +11,7 @@ import kr.lastdish.core.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Category;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
-import kr.lastdish.core.dish.presentation.dto.DIshUpdateRequest;
+import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +48,7 @@ class DishServiceTest {
 
     when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
-    DIshUpdateRequest request = createUpdateRequest(0L);
+    DishUpdateRequest request = createUpdateRequest(0L);
 
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
@@ -80,7 +80,7 @@ class DishServiceTest {
     /*
      * 재고는 10개에서 5개로 바뀌지만 변경 전후 모두 판매 가능합니다.
      */
-    DIshUpdateRequest request = createUpdateRequest(5L);
+    DishUpdateRequest request = createUpdateRequest(5L);
 
     // when
     dishService.updateDish(10L, request);
@@ -124,8 +124,8 @@ class DishServiceTest {
         BigDecimal.ZERO);
   }
 
-  private DIshUpdateRequest createUpdateRequest(Long stockQuantity) {
-    return new DIshUpdateRequest(
+  private DishUpdateRequest createUpdateRequest(Long stockQuantity) {
+    return new DishUpdateRequest(
         10L,
         "김치찌개",
         LocalDateTime.now(),
