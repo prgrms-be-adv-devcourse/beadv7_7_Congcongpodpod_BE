@@ -2,7 +2,10 @@ package kr.lastdish.member.member.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "members")

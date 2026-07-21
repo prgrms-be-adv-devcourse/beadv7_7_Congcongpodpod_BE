@@ -1,0 +1,98 @@
+package kr.lastdish.core.dish.application;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.dish.domain.Dish;
+import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
+import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class DishService {
+  private final DishRepository dishRepository;
+
+  @Transactional
+  public DishResponse createDish(DishCreateRequest request) {
+
+    // 할인율 검증
+    validateDiscountRate(request.dishPrice(), request.discountPrice());
+
+    Dish dish =
+        Dish.create(
+            request.storeId(),
+            request.dishName(),
+            request.registeredAt(),
+            request.description(),
+            request.category(),
+            request.thumbnailUrl(),
+            request.stockQuantity(),
+            request.dishPrice(),
+            request.discountPrice());
+
+    Dish savedDish = dishRepository.save(dish);
+    return DishResponse.from(savedDish);
+  }
+
+  @Transactional
+  public DishResponse updateDish(Long dishId, DishUpdateRequest request) {
+    // 할인율 검증
+    validateDiscountRate(request.dishPrice(), request.discountPrice());
+
+    Dish dish = getDish(dishId);
+    dish.update(
+        request.dishName(),
+        request.registeredAt(),
+        request.description(),
+        request.category(),
+        request.thumbnailUrl(),
+        request.stockQuantity(),
+        request.dishPrice(),
+        request.discountPrice());
+    return DishResponse.from(dish);
+  }
+
+  @Transactional
+  public DishResponse updateDishStatus(Long dishId, DishStatusRequest request) {
+    Dish dish = getDish(dishId);
+    dish.updateStatus(request.dishStatus());
+    return DishResponse.from(dish);
+  }
+
+  private void validateDiscountRate(BigDecimal dishPrice, BigDecimal discountPrice) {
+    BigDecimal discountRate =
+        dishPrice.subtract(discountPrice).divide(dishPrice, 4, RoundingMode.HALF_UP);
+
+    if (discountRate.compareTo(BigDecimal.valueOf(0.3)) < 0) {
+      throw new BusinessException(ErrorCode.DISH_INVALID_DISCOUNT_RATE);
+    }
+  }
+
+  @Transactional
+  public void decreaseStock(Long dishId, Long quantity) {
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+    dish.decreaseStock(quantity);
+  }
+
+  @Transactional
+  public void deleteDish(Long dishId) {
+    Dish dish = getDish(dishId);
+    dish.delete();
+  }
+
+  public DishResponse getEachDish(Long dishId) {
+    Dish dish = getDish(dishId);
+    return DishResponse.from(dish);
+  }
+
+  private Dish getDish(Long dishId) {
+    return dishRepository.findByIdAndIsDeletedFalse(dishId);
+  }
+}
