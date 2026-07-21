@@ -1,9 +1,9 @@
 package kr.lastdish.core.dish.infrastructure.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class DishStateChangedSpringEventTypeResolverTest {
 
