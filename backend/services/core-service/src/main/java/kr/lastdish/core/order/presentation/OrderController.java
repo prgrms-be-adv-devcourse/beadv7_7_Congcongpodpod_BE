@@ -5,10 +5,7 @@ import kr.lastdish.core.order.application.OrderFacade;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,8 +15,9 @@ public class OrderController {
 
     @PostMapping
     public ApiResponse<OrderResponse> createOrder(
+            @RequestHeader("X-Authenticated-Member-Id") Long memberId,
             @RequestBody OrderCreateRequest request
     ) {
-        return ApiResponse.ok(orderFacade.payAndCreateOrder(request));
+        return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, request));
     }
 }
