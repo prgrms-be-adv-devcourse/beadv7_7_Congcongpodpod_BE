@@ -1,7 +1,7 @@
 package kr.lastdish.core.order.domain;
 
 public interface OrderRepository {
-    Order save(Order order);
+  Order save(Order order);
 
-    Order findByIdAndIsDeletedFalse(Long orderId);
+  Order findByIdAndIsDeletedFalse(Long orderId);
 }
