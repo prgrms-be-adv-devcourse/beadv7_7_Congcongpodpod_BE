@@ -1,12 +1,7 @@
 package kr.lastdish.core.dish.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import kr.lastdish.core.common.event.DomainEvent;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import kr.lastdish.core.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Category;
 import kr.lastdish.core.dish.domain.Dish;
@@ -19,6 +14,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DishServiceTest {
@@ -60,33 +64,38 @@ class DishServiceTest {
 
     DomainEvent capturedEvent = eventCaptor.getValue();
 
-    assertThat(capturedEvent).isInstanceOf(DishAvailabilityChangedEvent.class);
+    assertThat(capturedEvent).isInstanceOf(DishStateChangedEvent.class);
 
-    DishAvailabilityChangedEvent event = (DishAvailabilityChangedEvent) capturedEvent;
+    DishStateChangedEvent event = (DishStateChangedEvent) capturedEvent;
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.available()).isFalse();
-    assertThat(event.schemaVersion()).isEqualTo(DishAvailabilityChangedEvent.SCHEMA_VERSION);
+    assertThat(event.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
   }
 
   @Test
-  void does_not_record_event_when_availability_is_unchanged() {
+  void records_event_when_stock_quantity_changes() {
     // given
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 
     when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
-    /*
-     * 재고는 10개에서 5개로 바뀌지만 변경 전후 모두 판매 가능합니다.
-     */
     DishUpdateRequest request = createUpdateRequest(5L);
+
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
     // when
     dishService.updateDish(10L, request);
 
     // then
-    verify(outboxEventWriter, never()).append(org.mockito.ArgumentMatchers.any());
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+
+    assertThat(event.dishId()).isEqualTo(10L);
+    assertThat(event.available()).isTrue();
+    assertThat(event.stockQuantity()).isEqualTo(5L);
   }
 
   @Test
@@ -105,7 +114,7 @@ class DishServiceTest {
     // then
     verify(outboxEventWriter).append(eventCaptor.capture());
 
-    DishAvailabilityChangedEvent event = (DishAvailabilityChangedEvent) eventCaptor.getValue();
+    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.available()).isFalse();
@@ -135,5 +144,26 @@ class DishServiceTest {
         stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO);
+  }
+
+  @Test
+  void 재고가_감소하면_Dish_상태_이벤트를_기록한다() {
+    // given
+    Dish dish = createDish(10L);
+
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+
+    // when
+    dishService.decreaseStock(1L, 5L);
+
+    // then
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    then(outboxEventWriter).should().append(eventCaptor.capture());
+
+    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+
+    assertThat(event.available()).isTrue();
+    assertThat(event.stockQuantity()).isEqualTo(5L);
   }
 }

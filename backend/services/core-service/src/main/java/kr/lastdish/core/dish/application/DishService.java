@@ -3,10 +3,11 @@ package kr.lastdish.core.dish.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import kr.lastdish.core.common.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
 import kr.lastdish.core.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
@@ -53,11 +54,8 @@ public class DishService {
 
     Dish dish = getDish(dishId);
 
-    /*
-     * 엔티티를 변경하기 전에 기존 판매 가능 여부를 저장합니다.
-     * Dish를 변경한 뒤에는 이전 상태를 알 수 없기 때문입니다.
-     */
     boolean availableBefore = dish.isAvailable();
+    Long stockQuantityBefore = dish.getStockQuantity();
 
     dish.update(
         request.dishName(),
@@ -69,19 +67,23 @@ public class DishService {
         request.dishPrice(),
         request.discountPrice());
 
-    /*
-     * 변경 전후의 판매 가능 여부가 달라졌을 때만
-     * Cart 등 다른 도메인에 전달할 이벤트를 기록합니다.
-     */
-    appendAvailabilityEventIfChanged(dish, availableBefore);
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
 
     return DishResponse.from(dish);
   }
 
   @Transactional
   public DishResponse updateDishStatus(Long dishId, DishStatusRequest request) {
+
     Dish dish = getDish(dishId);
+
+    boolean availableBefore = dish.isAvailable();
+    Long stockQuantityBefore = dish.getStockQuantity();
+
     dish.updateStatus(request.dishStatus());
+
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+
     return DishResponse.from(dish);
   }
 
@@ -97,22 +99,25 @@ public class DishService {
   @Transactional
   public void decreaseStock(Long dishId, Long quantity) {
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+
+    boolean availableBefore = dish.isAvailable();
+    Long stockQuantityBefore = dish.getStockQuantity();
+
     dish.decreaseStock(quantity);
+
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
   }
 
   @Transactional
   public void deleteDish(Long dishId) {
     Dish dish = getDish(dishId);
 
-    /*
-     * 판매 중인 Dish가 삭제되면 판매 불가능 상태로 변경되므로
-     * 삭제 전 상태를 저장합니다.
-     */
     boolean availableBefore = dish.isAvailable();
+    Long stockQuantityBefore = dish.getStockQuantity();
 
     dish.delete();
 
-    appendAvailabilityEventIfChanged(dish, availableBefore);
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
   }
 
   public DishResponse getEachDish(Long dishId) {
@@ -125,38 +130,38 @@ public class DishService {
   }
 
   /**
-   * Dish의 판매 가능 여부가 실제로 변경된 경우에만 Outbox 이벤트를 기록합니다.
+   * Cart 주문 가능 여부에 영향을 주는 Dish 상태가 바뀌었을 때 Outbox 이벤트를 기록합니다.
    *
-   * <p>재고가 10개에서 5개로 바뀌면 여전히 판매 가능하므로 이벤트를 만들지 않습니다. 재고가 1개에서 0개가 되거나, 품절 상품의 재고가 다시 생기는 경우에만 판매 가능
-   * 여부 변경 이벤트를 생성합니다.
+   * <p>판매 가능 여부 또는 재고 중 하나라도 변경되면 이벤트를 생성합니다. 재고가 10개에서 5개로 감소해도 수량 7개가 담긴 CartItem은 주문 불가가 되므로
+   * 이벤트가 필요합니다.
    *
    * @param dish 변경이 완료된 Dish
    * @param availableBefore 변경 전 판매 가능 여부
+   * @param stockQuantityBefore 변경 전 재고
    */
-  private void appendAvailabilityEventIfChanged(Dish dish, boolean availableBefore) {
-    boolean availableAfter = dish.isAvailable();
+  private void appendStateEventIfChanged(
+      Dish dish, boolean availableBefore, Long stockQuantityBefore) {
 
-    /*
-     * 판매 가능 여부가 동일하면 CartItem 상태를 변경할 필요가 없습니다.
-     */
-    if (availableBefore == availableAfter) {
+    boolean availableAfter = dish.isAvailable();
+    Long stockQuantityAfter = dish.getStockQuantity();
+
+    boolean availabilityChanged = availableBefore != availableAfter;
+
+    boolean stockQuantityChanged = !Objects.equals(stockQuantityBefore, stockQuantityAfter);
+
+    if (!availabilityChanged && !stockQuantityChanged) {
       return;
     }
 
-    DishAvailabilityChangedEvent event =
-        new DishAvailabilityChangedEvent(
+    DishStateChangedEvent event =
+        new DishStateChangedEvent(
             UUID.randomUUID(),
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
+            DishStateChangedEvent.SCHEMA_VERSION,
             dish.getId(),
             availableAfter,
+            stockQuantityAfter,
             Instant.now());
 
-    /*
-     * OutboxEventWriter는 별도 트랜잭션을 열지 않습니다.
-     * 따라서 현재 DishService 트랜잭션에 참여합니다.
-     *
-     * Outbox 저장이 실패하면 Dish 변경도 함께 롤백됩니다.
-     */
     outboxEventWriter.append(event);
   }
 }
