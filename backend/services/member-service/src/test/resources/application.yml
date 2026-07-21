@@ -18,9 +18,11 @@ spring:
     import: optional:configserver:http://localhost:8888
 
 jwt:
-  secret: testsecretkey1234567890testsecretkey1234567890testsecretkey1234567890
-  access-token-expiration: 3600000
-  refresh-token-expiration: 604800000
+  secret: your-very-long-and-secure-jwt-secret-key-that-meets-the-length-requirement-for-hs256
+  access-token-validity-in-seconds: 3600
+  access-token-validity-in-milliseconds: 3600000
+  refresh-token-validity-in-seconds: 1209600
+  refresh-token-validity-in-milliseconds: 1209600000
 
 member:
   message: "Hello from test config"
