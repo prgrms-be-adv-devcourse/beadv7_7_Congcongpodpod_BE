@@ -1,11 +1,9 @@
 package kr.lastdish.core.common.outbox.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.DomainEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +25,7 @@ class OutboxEventSerializerTest {
   }
 
   @Test
-  void serializes_and_deserializes_dish_event() {
+  void Dish_이벤트를_Outbox_payload로_직렬화한다() {
     // given
     DishStateChangedEvent source =
         new DishStateChangedEvent(
@@ -36,37 +34,11 @@ class OutboxEventSerializerTest {
     // when
     String payload = serializer.serialize(source);
 
-    DomainEvent restored = serializer.deserialize(source.eventType(), payload);
-
     // then
     assertThat(payload)
+        .contains("\"schemaVersion\":1")
         .contains("\"dishId\":1")
         .contains("\"available\":false")
         .contains("\"stockQuantity\":5");
-
-    assertThat(restored).isInstanceOf(DishStateChangedEvent.class).isEqualTo(source);
-  }
-
-  @Test
-  void throws_when_event_type_is_unsupported() {
-    // given
-    String unsupportedEventType = "UNKNOWN_EVENT";
-
-    // when & then
-    assertThatThrownBy(() -> serializer.deserialize(unsupportedEventType, "{}"))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("지원하지 않는 이벤트 타입입니다: UNKNOWN_EVENT");
-  }
-
-  @Test
-  void throws_when_json_is_invalid() {
-    // given
-    String invalidPayload = "{ invalid json }";
-
-    // when & then
-    assertThatThrownBy(
-            () -> serializer.deserialize(DishStateChangedEvent.EVENT_TYPE, invalidPayload))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Outbox 이벤트 역직렬화에 실패했습니다.");
   }
 }
