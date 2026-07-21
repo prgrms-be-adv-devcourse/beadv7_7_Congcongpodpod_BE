@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
@@ -73,13 +73,9 @@ class OutboxFailureRecorderTest {
   }
 
   private OutboxEvent createProcessingOutbox() {
-    DishAvailabilityChangedEvent event =
-        new DishAvailabilityChangedEvent(
-            UUID.randomUUID(),
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
-            1L,
-            false,
-            Instant.now());
+    DishStateChangedEvent event =
+        new DishStateChangedEvent(
+            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
 
     OutboxEvent outbox = OutboxEvent.create(event, "{}");
 

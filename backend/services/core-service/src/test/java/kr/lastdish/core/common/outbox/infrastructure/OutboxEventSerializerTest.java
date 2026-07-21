@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.core.common.event.DomainEvent;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -29,13 +29,9 @@ class OutboxEventSerializerTest {
   @Test
   void serializes_and_deserializes_dish_event() {
     // given
-    DishAvailabilityChangedEvent source =
-        new DishAvailabilityChangedEvent(
-            UUID.randomUUID(),
-            DishAvailabilityChangedEvent.SCHEMA_VERSION,
-            1L,
-            false,
-            Instant.now());
+    DishStateChangedEvent source =
+        new DishStateChangedEvent(
+            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
 
     // when
     String payload = serializer.serialize(source);
@@ -43,9 +39,12 @@ class OutboxEventSerializerTest {
     DomainEvent restored = serializer.deserialize(source.eventType(), payload);
 
     // then
-    assertThat(payload).contains("\"dishId\":1").contains("\"available\":false");
+    assertThat(payload)
+        .contains("\"dishId\":1")
+        .contains("\"available\":false")
+        .contains("\"stockQuantity\":5");
 
-    assertThat(restored).isInstanceOf(DishAvailabilityChangedEvent.class).isEqualTo(source);
+    assertThat(restored).isInstanceOf(DishStateChangedEvent.class).isEqualTo(source);
   }
 
   @Test
@@ -66,7 +65,7 @@ class OutboxEventSerializerTest {
 
     // when & then
     assertThatThrownBy(
-            () -> serializer.deserialize(DishAvailabilityChangedEvent.EVENT_TYPE, invalidPayload))
+            () -> serializer.deserialize(DishStateChangedEvent.EVENT_TYPE, invalidPayload))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Outbox 이벤트 역직렬화에 실패했습니다.");
   }

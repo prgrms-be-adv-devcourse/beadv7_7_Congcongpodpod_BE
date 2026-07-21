@@ -1,7 +1,7 @@
 package kr.lastdish.core.common.outbox.infrastructure;
 
 import kr.lastdish.core.common.event.DomainEvent;
-import kr.lastdish.core.common.event.dish.DishAvailabilityChangedEvent;
+import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
@@ -23,8 +23,8 @@ public class OutboxEventSerializer {
 
   public DomainEvent deserialize(String eventType, String payload) {
     try {
-      if (DishAvailabilityChangedEvent.EVENT_TYPE.equals(eventType)) {
-        return objectMapper.readValue(payload, DishAvailabilityChangedEvent.class);
+      if (DishStateChangedEvent.EVENT_TYPE.equals(eventType)) {
+        return objectMapper.readValue(payload, DishStateChangedEvent.class);
       }
 
       throw new IllegalArgumentException("지원하지 않는 이벤트 타입입니다: " + eventType);
