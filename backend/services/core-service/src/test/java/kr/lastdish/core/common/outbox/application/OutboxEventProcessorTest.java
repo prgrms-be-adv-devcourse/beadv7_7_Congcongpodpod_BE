@@ -1,5 +1,12 @@
 package kr.lastdish.core.common.outbox.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.common.event.EventPublisher;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
@@ -11,14 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OutboxEventProcessorTest {

@@ -1,13 +1,7 @@
-package kr.lastdish.core.common.event;
+package kr.lastdish.core.common.event.spring;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.Instant;
-import java.util.UUID;
-import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
+import kr.lastdish.core.common.event.DomainEvent;
+import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,18 +10,24 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class SpringEventPublisherTest {
 
   @Mock private ApplicationEventPublisher applicationEventPublisher;
 
-  @Mock private OutboxEventSerializer serializer;
+  @Mock private SpringEventDeserializer eventDeserializer;
 
   private SpringEventPublisher eventPublisher;
 
   @BeforeEach
   void setUp() {
-    eventPublisher = new SpringEventPublisher(applicationEventPublisher, serializer);
+    eventPublisher = new SpringEventPublisher(applicationEventPublisher, eventDeserializer);
   }
 
   @Test
@@ -38,13 +38,13 @@ class SpringEventPublisherTest {
             UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 0L, Instant.now());
     EventMessage message = createMessage(event, "{\"dishId\":1}");
 
-    when(serializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
+    when(eventDeserializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
 
     // when
     eventPublisher.publish(message);
 
     // then
-    verify(serializer).deserialize(message.eventType(), message.payload());
+    verify(eventDeserializer).deserialize(message.eventType(), message.payload());
     verify(applicationEventPublisher).publishEvent(event);
   }
 
@@ -56,7 +56,7 @@ class SpringEventPublisherTest {
             UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
     EventMessage message = createMessage(event, "{\"dishId\":1}");
 
-    when(serializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
+    when(eventDeserializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
 
     RuntimeException publishException = new RuntimeException("Spring Event 발행 실패");
 
