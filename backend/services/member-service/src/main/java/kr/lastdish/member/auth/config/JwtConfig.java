@@ -1,47 +1,53 @@
-// package kr.lastdish.member.auth.config;
-//
-// import io.jsonwebtoken.security.Keys;
-// import java.nio.charset.StandardCharsets;
-// import java.security.Key;
-// import org.springframework.beans.factory.annotation.Value;
-// import org.springframework.context.annotation.Bean;
-// import org.springframework.context.annotation.Configuration;
-//
-// @Configuration
-// public class JwtConfig {
-//
-//  // application.yml의 jwt.secret 값을 읽어오도록 수정 (환경 변수 우선 적용도 원하신다면 ${JWT_SECRET:${jwt.secret}} 형태로
-// 사용
-//  // 가능)
-//  @Value("${jwt.secret}")
-//  private String secret;
-//
-//  @Bean
-//  public Key jwtSecretKey() {
-//    byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-//    return Keys.hmacShaKeyFor(keyBytes);
-//  }
-// }
 package kr.lastdish.member.auth.config;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class JwtConfig {
 
+  @Value("${jwt.rsa.private-key:#{null}}")
+  private String privateKeyPem;
+
+  @Value("${jwt.rsa.public-key:#{null}}")
+  private String publicKeyPem;
+
   @Bean
   public KeyPair jwtKeyPair() {
     try {
-      KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-      keyPairGenerator.initialize(2048);
-      return keyPairGenerator.generateKeyPair();
+      // 설정 파일에 고정 키가 주입되지 않은 경우 (테스트 환경 등),
+      // 런타임 에러를 방지하기 위해 자동으로 키페어를 동적 생성합니다.
+      if (privateKeyPem == null
+          || publicKeyPem == null
+          || privateKeyPem.isBlank()
+          || publicKeyPem.isBlank()) {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        return keyPairGenerator.generateKeyPair();
+      }
+
+      // 고정 키가 존재하는 경우 파싱하여 사용
+      byte[] privBytes = Base64.getDecoder().decode(privateKeyPem);
+      PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(privBytes);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PrivateKey privKey = kf.generatePrivate(privSpec);
+
+      byte[] pubBytes = Base64.getDecoder().decode(publicKeyPem);
+      X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(pubBytes);
+      PublicKey pubKey = kf.generatePublic(pubSpec);
+
+      return new KeyPair(pubKey, privKey);
     } catch (Exception e) {
-      throw new RuntimeException("JWT RSA 키페어 생성 실패", e);
+      throw new RuntimeException("RSA 키페어 초기화 실패", e);
     }
   }
 
@@ -57,11 +63,11 @@ public class JwtConfig {
 
   @Bean
   public long accessTokenValidityInSeconds() {
-    return 1800L; // AccessToken 유효시간: 30분 (1800초)
+    return 1800L;
   }
 
   @Bean
   public long refreshTokenValidityInSeconds() {
-    return 1209600L; // RefreshToken 유효시간: 2주 (1209600초)
+    return 1209600L;
   }
 }
