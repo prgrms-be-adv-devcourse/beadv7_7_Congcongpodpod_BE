@@ -82,7 +82,7 @@ public class Order {
             Long memberId,
             Long storeId,
             Long dishId,
-            String memberName,
+            // String memberName,
             String phone,
             String dishName,
             Long quantity,
@@ -97,7 +97,7 @@ public class Order {
         order.dishId = dishId;
         order.status = OrderStatus.RESERVED;
         order.paymentStatus = PaymentStatus.PENDING;
-        order.memberName = memberName;
+        // order.memberName = memberName;
         order.phone = phone;
         order.dishName = dishName;
         order.quantity = quantity;

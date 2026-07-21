@@ -17,13 +17,13 @@ public class OrderFacade {
 
   // 주문 생성 후 결제 로직 - 하나의 트랜잭션 안에서 수행
   @Transactional
-  public OrderResponse payAndCreateOrder(OrderCreateRequest request) {
+  public OrderResponse payAndCreateOrder(Long memberId, OrderCreateRequest request) {
       // 주문 생성
-      Order order = orderService.createOrder(request);
+      Order order = orderService.createOrder(memberId, request);
 
       // 예치금 사용
       depositService.use(
-        request.memberId(),
+        memberId,
         order.getId(),
         request.totalPrice());
 

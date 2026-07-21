@@ -12,12 +12,12 @@ import org.springframework.stereotype.Service;
 public class OrderService {
     private final OrderRepository orderRepository;
 
-    public Order createOrder(OrderCreateRequest request) {
+    public Order createOrder(Long memberId, OrderCreateRequest request) {
         return Order.create(
-                request.memberId(),
+                memberId,
                 request.storeId(),
                 request.dishId(),
-                request.memberName(),
+                //request.memberName(),
                 request.phone(),
                 request.dishName(),
                 request.quantity(),
