@@ -13,22 +13,20 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/orders")
 public class OrderController {
-    private final OrderFacade orderFacade;
+  private final OrderFacade orderFacade;
 
-    @PostMapping
-    public ApiResponse<OrderResponse> createOrder(
-            @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-            @RequestBody OrderCreateRequest request
-    ) {
-        return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, request));
-    }
+  @PostMapping
+  public ApiResponse<OrderResponse> createOrder(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @RequestBody OrderCreateRequest request) {
+    return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, request));
+  }
 
-    @PatchMapping("/{orderId}/cancel")
-    public ApiResponse<OrderResponse> cancelOrder(
-            @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-            @PathVariable Long orderId,
-            @RequestBody @Valid OrderCancelRequest request
-    ) {
-        return ApiResponse.ok(orderFacade.cancelOrder(memberId, orderId, request));
-    }
+  @PatchMapping("/{orderId}/cancel")
+  public ApiResponse<OrderResponse> cancelOrder(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PathVariable Long orderId,
+      @RequestBody @Valid OrderCancelRequest request) {
+    return ApiResponse.ok(orderFacade.cancelOrder(memberId, orderId, request));
+  }
 }
