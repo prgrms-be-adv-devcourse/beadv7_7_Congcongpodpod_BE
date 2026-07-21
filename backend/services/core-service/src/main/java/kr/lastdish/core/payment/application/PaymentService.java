@@ -16,7 +16,7 @@ public class PaymentService {
 
   private final PaymentRepository paymentRepository;
 
-  @Value("${toss.client-key}")
+  @Value("${toss.client-key:test_ck_placeholder}")
   private String tossClientKey;
 
   @Transactional
