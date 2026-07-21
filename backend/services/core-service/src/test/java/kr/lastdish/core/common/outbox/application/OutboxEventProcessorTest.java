@@ -1,17 +1,10 @@
 package kr.lastdish.core.common.outbox.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
-
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
+import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.common.event.EventPublisher;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
-import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,12 +12,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class OutboxEventProcessorTest {
 
   @Mock private OutboxEventRepository repository;
-
-  @Mock private OutboxEventSerializer serializer;
 
   @Mock private EventPublisher eventPublisher;
 
@@ -32,7 +31,7 @@ class OutboxEventProcessorTest {
 
   @BeforeEach
   void setUp() {
-    processor = new OutboxEventProcessor(repository, serializer, eventPublisher);
+    processor = new OutboxEventProcessor(repository, eventPublisher);
   }
 
   @Test
@@ -46,13 +45,20 @@ class OutboxEventProcessorTest {
 
     when(repository.findById(event.eventId())).thenReturn(Optional.of(outbox));
 
-    when(serializer.deserialize(event.eventType(), payload)).thenReturn(event);
-
     // when
     processor.process(event.eventId());
 
     // then
-    verify(eventPublisher).publish(event);
+    var messageCaptor = org.mockito.ArgumentCaptor.forClass(EventMessage.class);
+    verify(eventPublisher).publish(messageCaptor.capture());
+
+    EventMessage message = messageCaptor.getValue();
+    assertThat(message.eventId()).isEqualTo(outbox.getEventId());
+    assertThat(message.eventType()).isEqualTo(outbox.getEventType());
+    assertThat(message.aggregateType()).isEqualTo(outbox.getAggregateType());
+    assertThat(message.aggregateId()).isEqualTo(outbox.getAggregateId());
+    assertThat(message.payload()).isEqualTo(outbox.getPayload());
+    assertThat(message.occurredAt()).isEqualTo(outbox.getOccurredAt());
 
     assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PUBLISHED);
     assertThat(outbox.getPublishedAt()).isNotNull();
@@ -69,11 +75,9 @@ class OutboxEventProcessorTest {
 
     when(repository.findById(event.eventId())).thenReturn(Optional.of(outbox));
 
-    when(serializer.deserialize(event.eventType(), outbox.getPayload())).thenReturn(event);
-
     RuntimeException publishException = new RuntimeException("이벤트 발행 실패");
 
-    doThrow(publishException).when(eventPublisher).publish(event);
+    doThrow(publishException).when(eventPublisher).publish(any(EventMessage.class));
 
     // when & then
     assertThatThrownBy(() -> processor.process(event.eventId())).isSameAs(publishException);
@@ -100,9 +104,7 @@ class OutboxEventProcessorTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("PROCESSING 상태의 이벤트만 발행할 수 있습니다");
 
-    verify(serializer, never()).deserialize(outbox.getEventType(), outbox.getPayload());
-
-    verify(eventPublisher, never()).publish(org.mockito.ArgumentMatchers.any());
+    verify(eventPublisher, never()).publish(any(EventMessage.class));
   }
 
   private DishStateChangedEvent createDomainEvent() {

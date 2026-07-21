@@ -2,12 +2,11 @@ package kr.lastdish.core.common.outbox.application;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.DomainEvent;
+import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.common.event.EventPublisher;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
-import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -23,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class OutboxEventProcessor {
 
   private final OutboxEventRepository repository;
-  private final OutboxEventSerializer serializer;
   private final EventPublisher eventPublisher;
 
   /**
@@ -46,10 +44,14 @@ public class OutboxEventProcessor {
      */
     validateProcessingStatus(outbox);
 
-    /*
-     * DB에 JSON 문자열로 저장된 payload를 원래 DomainEvent 객체로 복원합니다.
-     */
-    DomainEvent event = serializer.deserialize(outbox.getEventType(), outbox.getPayload());
+    EventMessage message =
+        new EventMessage(
+            outbox.getEventId(),
+            outbox.getEventType(),
+            outbox.getAggregateType(),
+            outbox.getAggregateId(),
+            outbox.getPayload(),
+            outbox.getOccurredAt());
 
     /*
      * 현재는 Spring Event로 발행합니다.
@@ -57,7 +59,7 @@ public class OutboxEventProcessor {
      * Spring Listener에서 예외가 발생하면 이 메서드까지 예외가 전파되며
      * 아래 markPublished()는 실행되지 않습니다.
      */
-    eventPublisher.publish(event);
+    eventPublisher.publish(message);
 
     /*
      * EventPublisher 호출이 정상적으로 끝난 경우에만 발행 완료를 기록합니다.

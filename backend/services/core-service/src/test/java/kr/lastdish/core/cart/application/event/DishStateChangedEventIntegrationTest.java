@@ -9,7 +9,9 @@ import java.util.UUID;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
 import kr.lastdish.core.cart.domain.CartItemStatus;
+import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.common.event.EventPublisher;
+import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 class DishStateChangedEventIntegrationTest {
 
   @Autowired private EventPublisher eventPublisher;
+
+  @Autowired private OutboxEventSerializer serializer;
 
   @Autowired private CartItemRepository cartItemRepository;
 
@@ -35,9 +39,17 @@ class DishStateChangedEventIntegrationTest {
     DishStateChangedEvent event =
         new DishStateChangedEvent(
             UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 10L, true, 5L, Instant.now());
+    EventMessage message =
+        new EventMessage(
+            event.eventId(),
+            event.eventType(),
+            event.aggregateType(),
+            event.aggregateId(),
+            serializer.serialize(event),
+            event.occurredAt());
 
     // when
-    eventPublisher.publish(event);
+    eventPublisher.publish(message);
 
     /*
      * 영속성 컨텍스트에 있는 객체가 아니라 실제 DB 반영 결과를 확인하기 위해
