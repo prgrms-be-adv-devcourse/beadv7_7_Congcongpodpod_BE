@@ -68,14 +68,17 @@ public class AuthService {
       throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
     }
 
-    // 3. 토큰 생성
-    String accessToken = jwtTokenProvider.createAccessToken(member.getEmail());
-    String refreshTokenValue = jwtTokenProvider.createRefreshToken(member.getEmail());
+    // 3. 토큰 생성 시 memberId와 role 전달
+    Long memberId = member.getId();
+    String roleName = member.getRole().name();
+
+    String accessToken = jwtTokenProvider.createAccessToken(memberId, roleName);
+    String refreshTokenValue = jwtTokenProvider.createRefreshToken(memberId, roleName);
 
     // 4. [보안 조치] DB 저장 시 Refresh Token 암호화
     String encodedRefreshToken = passwordEncoder.encode(refreshTokenValue);
 
-    // 5. Refresh Token 저장 또는 갱신
+    // 5. Refresh Token 저장 또는 갱신 (이메일 기준 저장 유지)
     LocalDateTime expiryDate = LocalDateTime.now().plusDays(14); // 14일 뒤 만료
     RefreshToken refreshToken =
         refreshTokenRepository
@@ -101,21 +104,28 @@ public class AuthService {
       throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
     }
 
-    // 2. DB에 저장된 Refresh Token인지 확인 (암호화되어 있으므로 매치 확인 혹은 별도 조회 로직 적용)
-    // ※ 주의: 만약 DB에 암호화되어 저장되어 있다면, 전달받은 plain 토큰과 비교하기 위해
-    // 리포지토리에서 이메일 등으로 조회한 뒤 passwordEncoder.matches()를 통해 검증하거나 구조에 맞게 처리해야 합니다.
+    // 2. 토큰에서 memberId 추출 후 회원 조회 (또는 이메일 조회 구조에 맞춤)
+    String memberIdStr = jwtTokenProvider.getMemberId(requestRefreshToken);
+
+    // 만약 RefreshToken 엔티티가 email 대신 memberId를 기준으로 관리된다면 변경할 수 있으나,
+    // 기존 findByEmail 구조를 유지한다면 memberRepository로 회원을 찾아 이메일을 가져옵니다.
+    Member member =
+        memberRepository
+            .findById(Long.valueOf(memberIdStr))
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
     RefreshToken refreshToken =
         refreshTokenRepository
-            .findByEmail(jwtTokenProvider.getEmail(requestRefreshToken))
+            .findByEmail(member.getEmail())
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 Refresh Token입니다."));
 
     if (!passwordEncoder.matches(requestRefreshToken, refreshToken.getToken())) {
       throw new IllegalArgumentException("Refresh Token 정보가 일치하지 않습니다.");
     }
 
-    // 3. 새로운 Access Token 발급
-    String email = refreshToken.getEmail();
-    String newAccessToken = jwtTokenProvider.createAccessToken(email);
+    // 3. 새로운 Access Token 발급 (memberId와 role 전달)
+    String newAccessToken =
+        jwtTokenProvider.createAccessToken(member.getId(), member.getRole().name());
 
     return new TokenResponse(newAccessToken, requestRefreshToken);
   }

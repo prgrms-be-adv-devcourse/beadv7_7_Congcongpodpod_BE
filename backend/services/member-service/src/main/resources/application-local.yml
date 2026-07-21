@@ -10,3 +10,10 @@ swagger:
     direct-url: ${SWAGGER_MEMBER_DIRECT_URL:http://localhost:8081}
   cors:
     allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
+
+jwt:
+  rsa:
+    private-key: ${JWT_PRIVATE_KEY:MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQD...} # 테스트용 고정 개인키 문자열
+    public-key: ${JWT_PUBLIC_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...}   # 테스트용 고정 공개키 문자열
+  access-token-validity-in-seconds: 3600
+  refresh-token-validity-in-seconds: 1209600
