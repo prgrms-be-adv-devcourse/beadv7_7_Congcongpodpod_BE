@@ -10,7 +10,7 @@ import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
 import kr.lastdish.core.cart.domain.CartItemStatus;
 import kr.lastdish.core.common.event.EventPublisher;
-import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
