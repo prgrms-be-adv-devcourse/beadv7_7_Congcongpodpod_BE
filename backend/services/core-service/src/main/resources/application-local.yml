@@ -10,3 +10,7 @@ swagger:
     direct-url: ${SWAGGER_CORE_DIRECT_URL:http://localhost:8082}
   cors:
     allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
+
+toss:
+  client-key: "test_ck_placeholder"
+  secret-key: "test_sk_placeholder"
