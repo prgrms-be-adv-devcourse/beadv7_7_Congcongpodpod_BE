@@ -1,14 +1,15 @@
 package kr.lastdish.member.member.domain;
 
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
-  Optional<Member> findByEmail(String email);
+public interface MemberRepository {
+  Member save(Member member);
+
+  Optional<Member> findById(Long id);
+
+  Optional<Member> findByUserName(String userName);
 
   boolean existsByUserName(String userName);
 
   boolean existsByEmail(String email);
-
-  Optional<Member> findByUserName(String testuser123);
 }
