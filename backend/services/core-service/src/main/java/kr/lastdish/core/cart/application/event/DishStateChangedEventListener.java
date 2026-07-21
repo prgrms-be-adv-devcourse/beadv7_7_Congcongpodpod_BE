@@ -3,7 +3,7 @@ package kr.lastdish.core.cart.application.event;
 import java.util.List;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
-import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
