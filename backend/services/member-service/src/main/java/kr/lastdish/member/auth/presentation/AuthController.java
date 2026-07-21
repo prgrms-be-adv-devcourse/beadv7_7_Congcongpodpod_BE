@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/members")
+@RequestMapping("/api/v1/auth") // 변경됨
 @RequiredArgsConstructor
 public class AuthController {
 
