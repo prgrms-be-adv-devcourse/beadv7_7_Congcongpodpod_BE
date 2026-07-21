@@ -1,15 +1,35 @@
 spring:
   application:
     name: member-service
-  cloud:
-    config:
-      enabled: false
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    show-sql: true
+  config:
+    import: optional:configserver:http://localhost:8888
+
+jwt:
+  secret: testsecretkey1234567890testsecretkey1234567890testsecretkey1234567890
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000
 
 member:
-  message: Hello from test config
+  message: "Hello from test config"
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,refresh
+        include: refresh, health, info
+  endpoint:
+    refresh:
+      enabled: true
