@@ -33,8 +33,8 @@ public class AuthController {
     return ResponseEntity.ok(response);
   }
 
-  @PostMapping("/reissue")
-  public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody ReissueRequest request) {
+  @PostMapping("/refresh")
+  public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody ReissueRequest request) {
     TokenResponse response = authService.reissue(request.getRefreshToken());
     return ResponseEntity.ok(response);
   }
