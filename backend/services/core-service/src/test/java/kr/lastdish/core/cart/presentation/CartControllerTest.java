@@ -1,15 +1,6 @@
 package kr.lastdish.core.cart.presentation;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import kr.lastdish.core.cart.presentation.dto.CartItemAddRequest;
 import kr.lastdish.core.cart.presentation.dto.CartItemUpdateRequest;
 import kr.lastdish.core.dish.domain.Category;
@@ -22,6 +13,13 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Cart의 생성~조회~상품 추가/수정/삭제~장바구니 삭제까지 이어지는 happy path 통합 테스트. */
 @SpringBootTest
@@ -86,6 +84,8 @@ class CartControllerTest {
         .perform(get("/api/v1/carts/members/{memberId}", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].cartItemId").value(itemId))
+        .andExpect(jsonPath("$.data.items[0].status").value("AVAILABLE"))
+        .andExpect(jsonPath("$.data.items[0].orderable").value(true))
         .andExpect(jsonPath("$.data.totalPrice").value(5000));
 
     // 4) 수량 변경
