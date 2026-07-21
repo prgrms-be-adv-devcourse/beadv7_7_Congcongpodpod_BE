@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.Test;
 
 class OutboxEventTest {

@@ -1,7 +1,7 @@
 package kr.lastdish.core.common.outbox.infrastructure;
 
 import kr.lastdish.core.common.event.DomainEvent;
-import kr.lastdish.core.common.event.dish.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;

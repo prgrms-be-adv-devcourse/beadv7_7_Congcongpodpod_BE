@@ -1,4 +1,4 @@
-package kr.lastdish.core.common.event.dish;
+package kr.lastdish.core.dish.domain.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
