@@ -6,7 +6,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,28 +30,18 @@ public class JwtConfig {
   @Bean
   public KeyPair jwtKeyPair() {
 
+    try (InputStream privateIs = privateKeyResource.getInputStream();
+        InputStream publicIs = publicKeyResource.getInputStream()) {
 
-    System.out.println("PWD = " + new java.io.File(".").getAbsolutePath());
-    System.out.println("Private = " + privateKeyResource);
-    System.out.println("Public  = " + publicKeyResource);
+      RSAPrivateKey privateKey = (RSAPrivateKey) RsaKeyConverters.pkcs8().convert(privateIs);
 
-
-    try (
-            InputStream privateIs = privateKeyResource.getInputStream();
-            InputStream publicIs = publicKeyResource.getInputStream()) {
-
-      RSAPrivateKey privateKey =
-              (RSAPrivateKey) RsaKeyConverters.pkcs8().convert(privateIs);
-
-      RSAPublicKey publicKey =
-              (RSAPublicKey) RsaKeyConverters.x509().convert(publicIs);
+      RSAPublicKey publicKey = (RSAPublicKey) RsaKeyConverters.x509().convert(publicIs);
 
       return new KeyPair(publicKey, privateKey);
 
     } catch (Exception e) {
       throw new RuntimeException("RSA 키페어 초기화 실패", e);
     }
-
   }
 
   @Bean
