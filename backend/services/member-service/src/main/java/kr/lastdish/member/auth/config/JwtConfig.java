@@ -30,24 +30,10 @@ public class JwtConfig {
 
   @Bean
   public KeyPair jwtKeyPair() {
-<<<<<<< HEAD
-
     try (InputStream privateIs = privateKeyResource.getInputStream();
         InputStream publicIs = publicKeyResource.getInputStream()) {
 
       RSAPrivateKey privateKey = (RSAPrivateKey) RsaKeyConverters.pkcs8().convert(privateIs);
-
-=======
-    System.out.println("PWD = " + new java.io.File(".").getAbsolutePath());
-    System.out.println("Private = " + privateKeyResource);
-    System.out.println("Public  = " + publicKeyResource);
-
-    try (InputStream privateIs = privateKeyResource.getInputStream();
-        InputStream publicIs = publicKeyResource.getInputStream()) {
-
-      RSAPrivateKey privateKey = (RSAPrivateKey) RsaKeyConverters.pkcs8().convert(privateIs);
-
->>>>>>> ad19449 (feat: MemberId 도입 및 BusinessException 커스텀 예외 패턴 적용)
       RSAPublicKey publicKey = (RSAPublicKey) RsaKeyConverters.x509().convert(publicIs);
 
       return new KeyPair(publicKey, privateKey);
@@ -76,12 +62,9 @@ public class JwtConfig {
   public long refreshTokenValidityInSeconds() {
     return refreshTokenValidityInSeconds;
   }
-<<<<<<< HEAD
-=======
 
   @Bean
   public ObjectMapper objectMapper() {
     return new ObjectMapper();
   }
->>>>>>> ad19449 (feat: MemberId 도입 및 BusinessException 커스텀 예외 패턴 적용)
 }
