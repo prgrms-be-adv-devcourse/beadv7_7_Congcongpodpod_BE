@@ -23,4 +23,9 @@ springdoc:
   swagger-ui:
     enabled: false
 
-
+jwt:
+  rsa:
+    access-private-key-location: classpath:keys/test-private-key.pem
+    access-public-key-location: classpath:keys/test-public-key.pem
+  access-token-validity-in-seconds: 3600
+  refresh-token-validity-in-seconds: 1209600
