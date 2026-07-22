@@ -61,6 +61,13 @@ services:
       MEMBER_DB_URL: jdbc:postgresql://member-db:5432/member_db
       MEMBER_DB_USERNAME: member
       MEMBER_DB_PASSWORD: member_local_password
+      JWT_ACCESS_PRIVATE_KEY_LOCATION: file:/run/secrets/access-private-key.pem
+      JWT_ACCESS_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
+    secrets:
+      - source: access-private-key
+        target: access-private-key.pem
+      - source: access-public-key
+        target: access-public-key.pem
     depends_on:
       config-server:
         condition: service_healthy
@@ -109,6 +116,8 @@ services:
       - "8080:8080"
 
 secrets:
+  access-private-key:
+    file: ./infra/local/keys/access-private-key.pem
   access-public-key:
     file: ./infra/local/keys/access-public-key.pem
 
