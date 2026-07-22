@@ -40,9 +40,9 @@ public class OrderFacade {
 
   // 주문 취소 - 결제 환불 - 재고 복구
   @Transactional
-  public OrderResponse cancelOrder(Long memberId, Long orderId, OrderCancelRequest request) {
+  public OrderResponse cancelOrder(Long memberId, Long orderId) {
     // 주문 취소
-    Order order = orderService.cancelOrder(memberId, orderId, request);
+    Order order = orderService.cancelOrder(memberId, orderId);
 
     // 결제 환불
     depositFacade.refund(memberId, orderId, order.getTotalPrice());

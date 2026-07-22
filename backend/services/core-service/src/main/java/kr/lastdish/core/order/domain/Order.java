@@ -138,11 +138,10 @@ public class Order {
   }
 
   // 주문 취소
-  public void cancel(Long memberId, String cancelReason) {
+  public void cancel(Long memberId) {
     validateOwner(memberId);
     validateCancelable();
 
-    this.cancelReason = cancelReason;
     this.status = OrderStatus.CANCELLED;
   }
 
