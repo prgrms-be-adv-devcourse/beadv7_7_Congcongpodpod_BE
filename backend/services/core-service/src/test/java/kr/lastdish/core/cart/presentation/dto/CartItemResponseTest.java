@@ -14,7 +14,7 @@ class CartItemResponseTest {
     // given
     CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 7L);
 
-    cartItem.synchronizeDishState(true, 5L);
+    cartItem.synchronizeDishState(true, 5L, 1L);
 
     // when
     CartItemResponse response = CartItemResponse.from(cartItem);
