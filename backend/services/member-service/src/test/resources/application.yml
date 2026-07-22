@@ -1,6 +1,9 @@
 spring:
   application:
     name: member-service
+  cloud:
+    config:
+      enabled: false
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
@@ -14,15 +17,13 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
     show-sql: true
-  config:
-    import: optional:configserver:http://localhost:8888
 
 jwt:
-  secret: your-very-long-and-secure-jwt-secret-key-that-meets-the-length-requirement-for-hs256
+  rsa:
+    access-private-key-location: classpath:keys/test-private-key.pem
+    access-public-key-location: classpath:keys/test-public-key.pem
   access-token-validity-in-seconds: 3600
-  access-token-validity-in-milliseconds: 3600000
   refresh-token-validity-in-seconds: 1209600
-  refresh-token-validity-in-milliseconds: 1209600000
 
 member:
   message: "Hello from test config"
