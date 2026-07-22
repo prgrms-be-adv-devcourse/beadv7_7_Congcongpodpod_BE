@@ -13,3 +13,14 @@ management:
     web:
       exposure:
         include: health,info,refresh
+
+event:
+  publisher: spring
+
+outbox:
+  scheduler:
+    enabled: false
+  polling-delay-ms: 1000
+  batch-size: 100
+  max-retries: 5
+  lock-timeout-seconds: 60

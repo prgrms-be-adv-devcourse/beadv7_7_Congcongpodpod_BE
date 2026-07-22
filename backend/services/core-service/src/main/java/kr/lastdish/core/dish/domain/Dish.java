@@ -150,4 +150,24 @@ public class Dish {
   public void delete() {
     this.isDeleted = true;
   }
+
+  /**
+   * 현재 Dish가 사용자에게 판매 가능한 상태인지 판단합니다.
+   *
+   * <p>다음 조건을 모두 만족해야 판매 가능한 상품입니다.
+   *
+   * <ul>
+   *   <li>Soft Delete되지 않음
+   *   <li>판매 상태가 ON_SALE
+   *   <li>재고 수량이 1개 이상
+   * </ul>
+   *
+   * <p>판매 가능 여부 판단 규칙을 Dish 엔티티에 모아 Application 계층에서 동일한 규칙을 반복해서 구현하지 않게 합니다.
+   */
+  public boolean isAvailable() {
+    return Boolean.FALSE.equals(isDeleted)
+        && dishStatus == DishStatus.ON_SALE
+        && stockQuantity != null
+        && stockQuantity > 0;
+  }
 }
