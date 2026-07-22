@@ -11,8 +11,6 @@ import kr.lastdish.core.cart.domain.CartItemRepository;
 import kr.lastdish.core.cart.domain.CartItemStatus;
 import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.common.event.EventPublisher;
-import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
-import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,8 +22,6 @@ class DishStateChangedEventIntegrationTest {
 
   @Autowired private EventPublisher eventPublisher;
 
-  @Autowired private OutboxEventSerializer serializer;
-
   @Autowired private CartItemRepository cartItemRepository;
 
   @Autowired private EntityManager entityManager;
@@ -36,24 +32,15 @@ class DishStateChangedEventIntegrationTest {
     CartItem cartItem =
         cartItemRepository.save(CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 7L));
 
-    DishStateChangedEvent event =
-        new DishStateChangedEvent(
-            UUID.randomUUID(),
-            DishStateChangedEvent.SCHEMA_VERSION,
-            10L,
-            1L,
-            true,
-            5L,
-            Instant.now());
     EventMessage message =
         new EventMessage(
-            event.eventId(),
-            event.eventType(),
-            event.aggregateType(),
-            event.aggregateId(),
-            event.aggregateVersion(),
-            serializer.serialize(event),
-            event.occurredAt());
+            UUID.randomUUID(),
+            DishStateChangedEventListener.EVENT_TYPE,
+            "DISH",
+            10L,
+            1L,
+            "{\"dishId\":10,\"available\":true,\"stockQuantity\":5}",
+            Instant.now());
 
     // when
     eventPublisher.publish(message);
