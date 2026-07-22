@@ -10,6 +10,7 @@ import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
+import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,6 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceTest {
 
   @Mock private OrderRepository orderRepository;
+
+  @Mock private PickupCodeGenerator pickupCodeGenerator;
 
   @InjectMocks private OrderService orderService;
 
@@ -83,5 +86,56 @@ class OrderServiceTest {
     assertThat(result).isSameAs(order);
     verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId, request.cancelReason());
+  }
+
+  @Test
+  void acceptOrder_success() {
+    Long orderId = 1L;
+    Long storeId = 2L;
+    String pickupCode = "123456";
+    Order order = mock(Order.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(pickupCodeGenerator.generate()).thenReturn(pickupCode);
+    when(orderRepository.validateActivePickUpCode(storeId, pickupCode)).thenReturn(false);
+    when(order.getId()).thenReturn(orderId);
+    when(order.getPickupCode()).thenReturn(pickupCode);
+
+    OrderReceptionResponse response = orderService.acceptOrder(orderId);
+
+    assertThat(response.orderId()).isEqualTo(orderId);
+    assertThat(response.pickUpCode()).isEqualTo(pickupCode);
+    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(pickupCodeGenerator, times(1)).generate();
+    verify(orderRepository, times(1)).validateActivePickUpCode(storeId, pickupCode);
+    verify(order, times(1)).issuePickupCode(pickupCode);
+  }
+
+  @Test
+  void acceptOrder_regeneratesPickupCodeWhenDuplicated() {
+    Long orderId = 1L;
+    Long storeId = 2L;
+    String duplicatedCode = "123456";
+    String availableCode = "654321";
+    Order order = mock(Order.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(pickupCodeGenerator.generate()).thenReturn(duplicatedCode, availableCode);
+    when(orderRepository.validateActivePickUpCode(storeId, duplicatedCode)).thenReturn(true);
+    when(orderRepository.validateActivePickUpCode(storeId, availableCode)).thenReturn(false);
+    when(order.getId()).thenReturn(orderId);
+    when(order.getPickupCode()).thenReturn(availableCode);
+
+    OrderReceptionResponse response = orderService.acceptOrder(orderId);
+
+    assertThat(response.orderId()).isEqualTo(orderId);
+    assertThat(response.pickUpCode()).isEqualTo(availableCode);
+    verify(pickupCodeGenerator, times(2)).generate();
+    verify(orderRepository, times(1)).validateActivePickUpCode(storeId, duplicatedCode);
+    verify(orderRepository, times(1)).validateActivePickUpCode(storeId, availableCode);
+    verify(order, never()).issuePickupCode(duplicatedCode);
+    verify(order, times(1)).issuePickupCode(availableCode);
   }
 }
