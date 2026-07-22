@@ -25,6 +25,10 @@ public class DishService {
     // 할인율 검증
     validateDiscountRate(request.dishPrice(), request.discountPrice());
 
+    if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
+      throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
+    }
+
     Dish dish =
         Dish.create(
             request.storeId(),
