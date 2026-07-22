@@ -46,6 +46,14 @@ public class OutboxEvent {
   @Column(name = "aggregate_id", nullable = false)
   private Long aggregateId;
 
+  /**
+   * 동일 Aggregate에서 발생한 이벤트의 순서입니다.
+   *
+   * <p>기존 데이터에는 0을 적용하고 신규 이벤트는 Producer가 증가시킨 값을 저장합니다.
+   */
+  @Column(name = "aggregate_version", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+  private long aggregateVersion;
+
   /** DomainEvent를 JSON으로 직렬화한 값입니다. */
   @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
   private String payload;
@@ -89,11 +97,14 @@ public class OutboxEvent {
    * <p>새 이벤트는 아직 발행되지 않았으므로 PENDING 상태로 생성합니다.
    */
   public static OutboxEvent create(DomainEvent event, String payload) {
+
     OutboxEvent outbox = new OutboxEvent();
+
     outbox.eventId = event.eventId();
     outbox.eventType = event.eventType();
     outbox.aggregateType = event.aggregateType();
     outbox.aggregateId = event.aggregateId();
+    outbox.aggregateVersion = event.aggregateVersion();
     outbox.payload = payload;
     outbox.status = OutboxStatus.PENDING;
     outbox.retryCount = 0;
