@@ -112,6 +112,27 @@ public class Order {
     this.paymentStatus = PaymentStatus.COMPLETED;
   }
 
+  // 픽업 코드 발급 - 픽업 대기 상태 변경
+  public void issuePickupCode(String pickupCode) {
+    if (this.paymentStatus != PaymentStatus.COMPLETED) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+
+    if (this.pickupCode != null) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+    this.pickupCode = pickupCode;
+    this.status = OrderStatus.PICKUP_READY;
+  }
+
+  // 매장 주문 반려
+  public void rejectOrder() {
+    if (this.status != OrderStatus.RESERVED) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+    this.status = OrderStatus.REJECTED;
+  }
+
   public void delete() {
     this.isDeleted = true;
   }
