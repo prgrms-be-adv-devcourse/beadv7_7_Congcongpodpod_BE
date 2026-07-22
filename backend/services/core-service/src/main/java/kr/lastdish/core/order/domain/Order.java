@@ -126,7 +126,7 @@ public class Order {
   }
 
   private void validateCancelable() {
-    if (this.status == OrderStatus.CANCELLED || this.paymentStatus != PaymentStatus.COMPLETED) {
+    if (this.status != OrderStatus.RESERVED ) {
       throw new BusinessException(ErrorCode.INVALID_STATE);
     }
   }
