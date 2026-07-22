@@ -1,10 +1,5 @@
 package kr.lastdish.core.common.event.spring;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
-
-import java.time.Instant;
-import java.util.UUID;
 import kr.lastdish.core.common.event.DomainEvent;
 import kr.lastdish.core.common.event.EventMessage;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
@@ -14,6 +9,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SpringEventPublisherTest {
@@ -26,31 +27,24 @@ class SpringEventPublisherTest {
 
   @BeforeEach
   void setUp() {
-    eventPublisher = new SpringEventPublisher(applicationEventPublisher, eventDeserializer);
+    eventPublisher = new SpringEventPublisher(applicationEventPublisher);
   }
 
   @Test
-  void EventMessage를_역직렬화하여_Spring_Event로_발행한다() {
-    // given
-    DomainEvent event =
-        new DishStateChangedEvent(
+  void EventMessage를_Spring_Event로_그대로_발행한다() {
+    EventMessage message =
+        new EventMessage(
             UUID.randomUUID(),
-            DishStateChangedEvent.SCHEMA_VERSION,
+            "DISH_STATE_CHANGED",
+            "DISH",
+            10L,
             1L,
-            1L,
-            false,
-            0L,
+            "{\"dishId\":10}",
             Instant.now());
-    EventMessage message = createMessage(event, "{\"dishId\":1}");
 
-    when(eventDeserializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
-
-    // when
     eventPublisher.publish(message);
 
-    // then
-    verify(eventDeserializer).deserialize(message.eventType(), message.payload());
-    verify(applicationEventPublisher).publishEvent(event);
+    verify(applicationEventPublisher).publishEvent(message);
   }
 
   @Test
