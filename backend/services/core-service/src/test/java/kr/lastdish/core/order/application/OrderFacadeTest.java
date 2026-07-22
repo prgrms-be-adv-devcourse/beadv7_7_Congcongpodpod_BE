@@ -10,7 +10,7 @@ import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
-import kr.lastdish.core.payment.application.DepositService;
+import kr.lastdish.core.payment.application.DepositFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +26,7 @@ class OrderFacadeTest {
 
   @Mock private DishFacade dishFacade;
 
-  @Mock private DepositService depositService;
+  @Mock private DepositFacade depositFacade;
 
   @InjectMocks private OrderFacade orderFacade;
 
@@ -57,13 +57,13 @@ class OrderFacadeTest {
     // then
     assertThat(response).isSameAs(expectedResponse);
 
-    InOrder inOrder = inOrder(orderService, dishFacade, depositService);
+    InOrder inOrder = inOrder(orderService, dishFacade, depositFacade);
 
     inOrder.verify(orderService).createOrder(memberId, request);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
 
-    inOrder.verify(depositService).use(memberId, 10L, BigDecimal.valueOf(10_000));
+    inOrder.verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
 
     inOrder.verify(orderService).completePayment(10L);
   }
@@ -97,7 +97,7 @@ class OrderFacadeTest {
     when(orderService.createOrder(memberId, request)).thenReturn(order);
 
     doThrow(new RuntimeException("예치금 잔액이 부족합니다."))
-        .when(depositService)
+        .when(depositFacade)
         .use(memberId, 10L, BigDecimal.valueOf(10_000));
 
     // when & then
@@ -107,6 +107,6 @@ class OrderFacadeTest {
 
     verify(dishFacade).decreaseStock(100L, 2L);
 
-    verify(depositService).use(memberId, 10L, BigDecimal.valueOf(10_000));
+    verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
   }
 }
