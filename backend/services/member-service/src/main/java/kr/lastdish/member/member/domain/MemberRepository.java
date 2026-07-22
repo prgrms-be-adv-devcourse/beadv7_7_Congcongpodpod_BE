@@ -9,6 +9,8 @@ public interface MemberRepository {
 
   Optional<Member> findByUserName(String userName);
 
+  Optional<Member> findByEmail(String email);
+
   boolean existsByUserName(String userName);
 
   boolean existsByEmail(String email);
