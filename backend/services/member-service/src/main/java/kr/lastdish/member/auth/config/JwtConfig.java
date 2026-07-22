@@ -1,54 +1,58 @@
 package kr.lastdish.member.auth.config;
 
-import java.security.KeyFactory;
+import java.io.InputStream;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
+import org.springframework.security.converter.RsaKeyConverters;
 
 @Configuration
 public class JwtConfig {
 
-  @Value("${jwt.rsa.private-key:#{null}}")
-  private String privateKeyPem;
+  @Value("${jwt.rsa.access-private-key-location}")
+  private Resource privateKeyResource;
 
-  @Value("${jwt.rsa.public-key:#{null}}")
-  private String publicKeyPem;
+  @Value("${jwt.rsa.access-public-key-location}")
+  private Resource publicKeyResource;
+
+  @Value("${jwt.access-token-validity-in-seconds:1800}")
+  private long accessTokenValidityInSeconds;
+
+  @Value("${jwt.refresh-token-validity-in-seconds:1209600}")
+  private long refreshTokenValidityInSeconds;
 
   @Bean
   public KeyPair jwtKeyPair() {
-    try {
-      // 설정 파일에 고정 키가 주입되지 않은 경우 (테스트 환경 등),
-      // 런타임 에러를 방지하기 위해 자동으로 키페어를 동적 생성합니다.
-      if (privateKeyPem == null
-          || publicKeyPem == null
-          || privateKeyPem.isBlank()
-          || publicKeyPem.isBlank()) {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        return keyPairGenerator.generateKeyPair();
-      }
 
-      // 고정 키가 존재하는 경우 파싱하여 사용
-      byte[] privBytes = Base64.getDecoder().decode(privateKeyPem);
-      PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(privBytes);
-      KeyFactory kf = KeyFactory.getInstance("RSA");
-      PrivateKey privKey = kf.generatePrivate(privSpec);
 
-      byte[] pubBytes = Base64.getDecoder().decode(publicKeyPem);
-      X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(pubBytes);
-      PublicKey pubKey = kf.generatePublic(pubSpec);
+    System.out.println("PWD = " + new java.io.File(".").getAbsolutePath());
+    System.out.println("Private = " + privateKeyResource);
+    System.out.println("Public  = " + publicKeyResource);
 
-      return new KeyPair(pubKey, privKey);
+
+    try (
+            InputStream privateIs = privateKeyResource.getInputStream();
+            InputStream publicIs = publicKeyResource.getInputStream()) {
+
+      RSAPrivateKey privateKey =
+              (RSAPrivateKey) RsaKeyConverters.pkcs8().convert(privateIs);
+
+      RSAPublicKey publicKey =
+              (RSAPublicKey) RsaKeyConverters.x509().convert(publicIs);
+
+      return new KeyPair(publicKey, privateKey);
+
     } catch (Exception e) {
       throw new RuntimeException("RSA 키페어 초기화 실패", e);
     }
+
   }
 
   @Bean
@@ -63,11 +67,11 @@ public class JwtConfig {
 
   @Bean
   public long accessTokenValidityInSeconds() {
-    return 1800L;
+    return accessTokenValidityInSeconds;
   }
 
   @Bean
   public long refreshTokenValidityInSeconds() {
-    return 1209600L;
+    return refreshTokenValidityInSeconds;
   }
 }
