@@ -22,10 +22,8 @@ public class OrderController {
 
   @PatchMapping("/{orderId}/cancel")
   public ApiResponse<OrderResponse> cancelOrder(
-      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-      @PathVariable Long orderId,
-      @RequestBody @Valid OrderCancelRequest request) {
-    return ApiResponse.ok(orderFacade.cancelOrder(memberId, orderId, request));
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long orderId) {
+    return ApiResponse.ok(orderFacade.cancelOrder(memberId, orderId));
   }
 
   // 매장 주문 접수

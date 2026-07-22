@@ -36,9 +36,9 @@ public class OrderService {
     return OrderResponse.from(order);
   }
 
-  public Order cancelOrder(Long memberId, Long orderId, OrderCancelRequest request) {
+  public Order cancelOrder(Long memberId, Long orderId) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.cancel(memberId, request.cancelReason());
+    order.cancel(memberId);
     return order;
   }
 

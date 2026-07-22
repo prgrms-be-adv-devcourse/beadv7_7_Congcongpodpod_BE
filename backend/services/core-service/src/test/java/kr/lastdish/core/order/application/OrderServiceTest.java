@@ -81,11 +81,11 @@ class OrderServiceTest {
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
 
-    Order result = orderService.cancelOrder(memberId, orderId, request);
+    Order result = orderService.cancelOrder(memberId, orderId);
 
     assertThat(result).isSameAs(order);
     verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
-    verify(order, times(1)).cancel(memberId, request.cancelReason());
+    verify(order, times(1)).cancel(memberId);
   }
 
   @Test
