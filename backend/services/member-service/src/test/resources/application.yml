@@ -1,9 +1,4 @@
 spring:
-  application:
-    name: member-service
-  cloud:
-    config:
-      enabled: false
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
@@ -14,9 +9,11 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
     show-sql: true
+  cloud:
+    config:
+      enabled: false # 테스트 중 Config Server 연결 차단
 
 jwt:
   rsa:
@@ -32,7 +29,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: refresh, health, info
-  endpoint:
-    refresh:
-      enabled: true
+        include: "health,info,refresh"

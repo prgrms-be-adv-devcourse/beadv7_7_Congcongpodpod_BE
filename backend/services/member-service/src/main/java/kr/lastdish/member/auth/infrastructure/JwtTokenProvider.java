@@ -5,6 +5,8 @@ import io.jsonwebtoken.Jwts;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Date;
+import kr.lastdish.member.member.domain.MemberId;
+import kr.lastdish.member.member.domain.Role;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,13 +28,13 @@ public class JwtTokenProvider {
     this.refreshTokenValidityInMilliseconds = refreshTokenValidityInSeconds * 1000;
   }
 
-  public String createAccessToken(Long memberId, String role) {
+  public String createAccessToken(MemberId memberId, Role role) {
     Date now = new Date();
     Date validity = new Date(now.getTime() + accessTokenValidityInMilliseconds);
 
     return Jwts.builder()
-        .setSubject(String.valueOf(memberId))
-        .claim("role", role)
+        .setSubject(String.valueOf(memberId.getValue()))
+        .claim("role", role.name())
         .setIssuer("lastdish-member-service")
         .setIssuedAt(now)
         .setExpiration(validity)
@@ -40,13 +42,13 @@ public class JwtTokenProvider {
         .compact();
   }
 
-  public String createRefreshToken(Long memberId, String role) {
+  public String createRefreshToken(MemberId memberId, Role role) {
     Date now = new Date();
     Date validity = new Date(now.getTime() + refreshTokenValidityInMilliseconds);
 
     return Jwts.builder()
-        .setSubject(String.valueOf(memberId))
-        .claim("role", role)
+        .setSubject(String.valueOf(memberId.getValue()))
+        .claim("role", role.name())
         .setIssuer("lastdish-member-service")
         .setIssuedAt(now)
         .setExpiration(validity)
@@ -63,9 +65,16 @@ public class JwtTokenProvider {
     }
   }
 
-  public String getMemberId(String token) {
+  public MemberId getMemberId(String token) {
     Claims claims =
         Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token).getBody();
-    return claims.getSubject();
+    return new MemberId(claims.getSubject());
+  }
+
+  public Role getRole(String token) {
+    Claims claims =
+        Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token).getBody();
+    String roleStr = claims.get("role", String.class);
+    return Role.from(roleStr);
   }
 }

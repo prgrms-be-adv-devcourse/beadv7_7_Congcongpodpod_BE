@@ -11,9 +11,16 @@ swagger:
   cors:
     allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
 
+#jwt:
+#  rsa:
+#    access-private-key-location: ${JWT_ACCESS_PRIVATE_KEY_LOCATION:file:../infra/local/keys/access-private-key.pem}
+#    access-public-key-location: ${JWT_ACCESS_PUBLIC_KEY_LOCATION:file:../infra/local/keys/access-public-key.pem}
+#  access-token-validity-in-seconds: 3600
+#  refresh-token-validity-in-seconds: 120960
+
 jwt:
   rsa:
-    access-private-key-location: ${JWT_ACCESS_PRIVATE_KEY_LOCATION:file:../../../infra/local/keys/access-private-key.pem}
-    access-public-key-location: ${JWT_ACCESS_PUBLIC_KEY_LOCATION:file:../../../infra/local/keys/access-public-key.pem}
+    access-private-key-location: ${JWT_ACCESS_PRIVATE_KEY_LOCATION:file:/run/secrets/access-private-key.pem}
+    access-public-key-location: ${JWT_ACCESS_PUBLIC_KEY_LOCATION:file:/run/secrets/access-public-key.pem}
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 1209600
