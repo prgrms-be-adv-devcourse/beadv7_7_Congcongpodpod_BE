@@ -38,7 +38,12 @@ public class CartService {
             .findByCartId(cart.getId())
             .map(
                 existing -> {
-                  existing.replace(dish.dishId(), dish.dishName(), dish.unitPrice(), quantity);
+                  existing.replace(
+                      dish.dishId(),
+                      dish.dishName(),
+                      dish.unitPrice(),
+                      quantity,
+                      dish.eventVersion());
                   return existing;
                 })
             .orElseGet(
@@ -49,7 +54,8 @@ public class CartService {
                             dish.dishId(),
                             dish.dishName(),
                             dish.unitPrice(),
-                            quantity)));
+                            quantity,
+                            dish.eventVersion())));
 
     return CartItemResponse.from(cartItem);
   }
@@ -71,9 +77,9 @@ public class CartService {
       Long cartId, Long itemId, CartItemUpdateRequest request) {
     getCartOrThrow(cartId);
     CartItem cartItem = getCartItemOrThrow(cartId, itemId);
-    getAvailableDishOrThrow(cartItem.getDishId(), request.quantity());
+    DishSnapshot dish = getAvailableDishOrThrow(cartItem.getDishId(), request.quantity());
 
-    cartItem.changeQuantity(request.quantity());
+    cartItem.changeQuantity(request.quantity(), dish.eventVersion());
 
     return CartItemResponse.from(cartItem);
   }
