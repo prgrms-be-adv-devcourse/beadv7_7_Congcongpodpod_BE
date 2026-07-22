@@ -36,7 +36,7 @@ public class DishFacade {
     return new DishSnapshot(
         dish.getId(), dish.getDishName(), dish.getDiscountPrice(), dish.getStockQuantity());
   }
-  
+
   public void decreaseStock(Long dishId, Long quantity) {
     dishService.decreaseStock(dishId, quantity);
   }
