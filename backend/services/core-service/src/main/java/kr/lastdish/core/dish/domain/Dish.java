@@ -129,6 +129,18 @@ public class Dish {
     }
   }
 
+  public void increaseStock(Long quantity) {
+    if (quantity == null || quantity <= 0) {
+      throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
+    }
+
+    this.stockQuantity += quantity;
+
+    if (this.stockQuantity > 0 && this.dishStatus == DishStatus.SOLD_OUT) {
+      this.dishStatus = DishStatus.ON_SALE;
+    }
+  }
+
   private void validateOnSale() {
     if (this.dishStatus != DishStatus.ON_SALE) {
       throw new BusinessException(ErrorCode.DISH_NOT_ON_SALE);
