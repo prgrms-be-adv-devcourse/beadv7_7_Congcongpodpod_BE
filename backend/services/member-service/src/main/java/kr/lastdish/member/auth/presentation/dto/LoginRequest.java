@@ -2,11 +2,13 @@ package kr.lastdish.member.auth.presentation.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor // 이 부분을 추가해주세요
 public class LoginRequest {
 
   @NotBlank(message = "이메일은 필수 입력 값입니다.")
