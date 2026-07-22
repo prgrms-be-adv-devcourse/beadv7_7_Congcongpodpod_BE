@@ -8,12 +8,19 @@ import java.math.BigDecimal;
 import java.time.LocalTime;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
+import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
+import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
+import kr.lastdish.core.order.presentation.dto.OrderRejectReason;
+import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.payment.application.DepositFacade;
+import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -27,6 +34,10 @@ class OrderFacadeTest {
   @Mock private DishFacade dishFacade;
 
   @Mock private DepositFacade depositFacade;
+
+  @Mock private OrderRepository orderRepository;
+
+  @Mock private StoreFacade storeFacade;
 
   @InjectMocks private OrderFacade orderFacade;
 
@@ -108,5 +119,98 @@ class OrderFacadeTest {
     verify(dishFacade).decreaseStock(100L, 2L);
 
     verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
+  }
+
+  @Test
+  @DisplayName("판매자가 주문을 접수하면 매장 소유자를 검증하고 픽업 코드를 발급한다")
+  void acceptOrder_success() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    Order order = mock(Order.class);
+    OrderReceptionResponse expectedResponse = mock(OrderReceptionResponse.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(orderService.acceptOrder(orderId)).thenReturn(expectedResponse);
+
+    OrderReceptionResponse response = orderFacade.acceptOrder(memberId, "SELLER", orderId);
+
+    assertThat(response).isSameAs(expectedResponse);
+
+    InOrder inOrder = inOrder(orderRepository, storeFacade, orderService);
+    inOrder.verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    inOrder.verify(storeFacade).validateStoreOwner(storeId, memberId);
+    inOrder.verify(orderService).acceptOrder(orderId);
+  }
+
+  @Test
+  @DisplayName("판매자 권한이 아니면 주문 접수를 처리하지 않는다")
+  void acceptOrder_notSeller() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+
+    assertThatThrownBy(() -> orderFacade.acceptOrder(memberId, "MEMBER", orderId))
+        .isInstanceOf(RuntimeException.class);
+
+    verifyNoInteractions(orderRepository, storeFacade, orderService);
+  }
+
+  @ParameterizedTest(name = "{0} 사유이면 재고를 복구한다")
+  @EnumSource(
+      value = OrderRejectReason.class,
+      names = {"NOT_READY", "SYSTEM_ERROR"})
+  @DisplayName("재고 복구가 필요한 모든 반려 사유는 환불과 재고 복구를 처리한다")
+  void rejectOrder_restoreStock(OrderRejectReason reason) {
+    Long sellerId = 1L;
+    Long customerId = 2L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    Long dishId = 200L;
+    Long quantity = 2L;
+    BigDecimal totalPrice = BigDecimal.valueOf(10_000);
+    Order order = mock(Order.class);
+    OrderRejectRequest request = new OrderRejectRequest(reason);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(order.getMemberId()).thenReturn(customerId);
+    when(order.getDishId()).thenReturn(dishId);
+    when(order.getQuantity()).thenReturn(quantity);
+    when(order.getTotalPrice()).thenReturn(totalPrice);
+
+    orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
+
+    verify(storeFacade).validateStoreOwner(storeId, sellerId);
+    verify(order).rejectOrder();
+    verify(depositFacade).refund(customerId, orderId, totalPrice);
+    verify(dishFacade).increaseStock(dishId, quantity);
+  }
+
+  @ParameterizedTest(name = "{0} 사유이면 재고를 복구하지 않는다")
+  @EnumSource(
+      value = OrderRejectReason.class,
+      names = {"OUT_OF_STOCK", "QUALITY_ISSUE", "STORE_CLOSED"})
+  @DisplayName("재고 복구가 필요하지 않은 모든 반려 사유는 환불만 처리한다")
+  void rejectOrder_withoutStockRestore(OrderRejectReason reason) {
+    Long sellerId = 1L;
+    Long customerId = 2L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    BigDecimal totalPrice = BigDecimal.valueOf(10_000);
+    Order order = mock(Order.class);
+    OrderRejectRequest request = new OrderRejectRequest(reason);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(order.getMemberId()).thenReturn(customerId);
+    when(order.getTotalPrice()).thenReturn(totalPrice);
+
+    orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
+
+    verify(storeFacade).validateStoreOwner(storeId, sellerId);
+    verify(order).rejectOrder();
+    verify(depositFacade).refund(customerId, orderId, totalPrice);
+    verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }
 }

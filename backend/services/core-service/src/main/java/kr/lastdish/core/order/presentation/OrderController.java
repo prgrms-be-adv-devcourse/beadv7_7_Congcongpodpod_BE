@@ -3,9 +3,7 @@ package kr.lastdish.core.order.presentation;
 import jakarta.validation.Valid;
 import kr.lastdish.core.common.response.ApiResponse;
 import kr.lastdish.core.order.application.OrderFacade;
-import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
-import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
-import kr.lastdish.core.order.presentation.dto.OrderResponse;
+import kr.lastdish.core.order.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,5 +26,25 @@ public class OrderController {
       @PathVariable Long orderId,
       @RequestBody @Valid OrderCancelRequest request) {
     return ApiResponse.ok(orderFacade.cancelOrder(memberId, orderId, request));
+  }
+
+  // 매장 주문 접수
+  @PostMapping("/{orderId}/accept")
+  public ApiResponse<OrderReceptionResponse> acceptOrder(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @RequestHeader("X-Authenticated-Role") String role,
+      @PathVariable Long orderId) {
+    return ApiResponse.ok(orderFacade.acceptOrder(memberId, role, orderId));
+  }
+
+  // 매장 주문 반려
+  @PostMapping("/{orderId}/reject")
+  public ApiResponse<Void> rejectOrder(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @RequestHeader("X-Authenticated-Role") String role,
+      @PathVariable Long orderId,
+      @RequestBody @Valid OrderRejectRequest request) {
+    orderFacade.rejectOrder(memberId, role, orderId, request);
+    return ApiResponse.ok();
   }
 }
