@@ -38,13 +38,20 @@ class DishStateChangedEventIntegrationTest {
 
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 10L, true, 5L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            10L,
+            1L,
+            true,
+            5L,
+            Instant.now());
     EventMessage message =
         new EventMessage(
             event.eventId(),
             event.eventType(),
             event.aggregateType(),
             event.aggregateId(),
+            event.aggregateVersion(),
             serializer.serialize(event),
             event.occurredAt());
 
