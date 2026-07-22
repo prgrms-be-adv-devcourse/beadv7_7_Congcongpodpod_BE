@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
-import kr.lastdish.core.dish.application.DishService;
+import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
@@ -24,7 +24,7 @@ class OrderFacadeTest {
 
   @Mock private OrderService orderService;
 
-  @Mock private DishService dishService;
+  @Mock private DishFacade dishFacade;
 
   @Mock private DepositService depositService;
 
@@ -57,11 +57,11 @@ class OrderFacadeTest {
     // then
     assertThat(response).isSameAs(expectedResponse);
 
-    InOrder inOrder = inOrder(orderService, dishService, depositService);
+    InOrder inOrder = inOrder(orderService, dishFacade, depositService);
 
     inOrder.verify(orderService).createOrder(memberId, request);
 
-    inOrder.verify(dishService).decreaseStock(100L, 2L);
+    inOrder.verify(dishFacade).decreaseStock(100L, 2L);
 
     inOrder.verify(depositService).use(memberId, 10L, BigDecimal.valueOf(10_000));
 
@@ -105,7 +105,7 @@ class OrderFacadeTest {
         .isInstanceOf(RuntimeException.class)
         .hasMessage("예치금 잔액이 부족합니다.");
 
-    verify(dishService).decreaseStock(100L, 2L);
+    verify(dishFacade).decreaseStock(100L, 2L);
 
     verify(depositService).use(memberId, 10L, BigDecimal.valueOf(10_000));
   }
