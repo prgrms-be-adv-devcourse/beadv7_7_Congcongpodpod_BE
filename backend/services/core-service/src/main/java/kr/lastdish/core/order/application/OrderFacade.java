@@ -5,7 +5,7 @@ import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
-import kr.lastdish.core.payment.application.DepositService;
+import kr.lastdish.core.payment.application.DepositFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,7 @@ public class OrderFacade {
 
   private final OrderService orderService;
   private final DishFacade dishFacade;
-  private final DepositService depositService;
+  private final DepositFacade depositFacade;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
@@ -28,7 +28,7 @@ public class OrderFacade {
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
 
     // 예치금 사용
-    depositService.use(memberId, order.getId(), order.getTotalPrice());
+    depositFacade.use(memberId, order.getId(), order.getTotalPrice());
 
     // 결제 완료 처리
     return orderService.completePayment(order.getId());
@@ -41,7 +41,7 @@ public class OrderFacade {
     Order order = orderService.cancelOrder(memberId, orderId, request);
 
     // 결제 환불
-    depositService.refund(memberId, orderId, order.getTotalPrice());
+    depositFacade.refund(memberId, orderId, order.getTotalPrice());
 
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
