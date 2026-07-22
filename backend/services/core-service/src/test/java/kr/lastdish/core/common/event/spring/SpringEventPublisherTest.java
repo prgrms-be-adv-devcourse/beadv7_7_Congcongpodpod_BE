@@ -34,7 +34,13 @@ class SpringEventPublisherTest {
     // given
     DomainEvent event =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 0L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            1L,
+            1L,
+            false,
+            0L,
+            Instant.now());
     EventMessage message = createMessage(event, "{\"dishId\":1}");
 
     when(eventDeserializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
@@ -52,7 +58,13 @@ class SpringEventPublisherTest {
     // given
     DomainEvent event =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            1L,
+            1L,
+            false,
+            5L,
+            Instant.now());
     EventMessage message = createMessage(event, "{\"dishId\":1}");
 
     when(eventDeserializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
@@ -78,6 +90,7 @@ class SpringEventPublisherTest {
         event.eventType(),
         event.aggregateType(),
         event.aggregateId(),
+        event.aggregateVersion(),
         payload,
         event.occurredAt());
   }

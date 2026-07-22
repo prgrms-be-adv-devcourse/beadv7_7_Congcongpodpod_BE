@@ -48,6 +48,7 @@ class SpringEventDeserializerTest {
           "eventId": "%s",
           "schemaVersion": 1,
           "aggregateId": 10,
+          "aggregateVersion": 3,
           "value": "변경값",
           "occurredAt": "%s"
         }
@@ -65,6 +66,7 @@ class SpringEventDeserializerTest {
     assertThat(event.eventId()).isEqualTo(eventId);
     assertThat(event.schemaVersion()).isEqualTo(1);
     assertThat(event.aggregateId()).isEqualTo(10L);
+    assertThat(event.aggregateVersion()).isEqualTo(3L);
     assertThat(event.value()).isEqualTo("변경값");
     assertThat(event.occurredAt()).isEqualTo(occurredAt);
   }
@@ -84,7 +86,12 @@ class SpringEventDeserializerTest {
   }
 
   private record TestDomainEvent(
-      UUID eventId, int schemaVersion, Long aggregateId, String value, Instant occurredAt)
+      UUID eventId,
+      int schemaVersion,
+      Long aggregateId,
+      long aggregateVersion,
+      String value,
+      Instant occurredAt)
       implements DomainEvent {
 
     @Override

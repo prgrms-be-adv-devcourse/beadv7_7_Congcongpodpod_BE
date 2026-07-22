@@ -29,7 +29,13 @@ class DishStateChangedEventListenerTest {
     // given
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 10L, true, 5L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            10L,
+            1L,
+            true,
+            5L,
+            Instant.now());
 
     // when
     listener.handle(event);

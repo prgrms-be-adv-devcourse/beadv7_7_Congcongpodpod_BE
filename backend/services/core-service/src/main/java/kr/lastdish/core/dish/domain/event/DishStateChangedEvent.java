@@ -13,6 +13,7 @@ public record DishStateChangedEvent(
     UUID eventId,
     int schemaVersion,
     Long dishId,
+    long aggregateVersion,
     boolean available,
     Long stockQuantity,
     Instant occurredAt)
@@ -20,7 +21,7 @@ public record DishStateChangedEvent(
 
   public static final String EVENT_TYPE = "DISH_STATE_CHANGED";
 
-  public static final int SCHEMA_VERSION = 1;
+  public static final int SCHEMA_VERSION = 2;
 
   @Override
   public String eventType() {

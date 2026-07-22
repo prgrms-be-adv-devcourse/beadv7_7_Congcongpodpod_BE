@@ -49,7 +49,7 @@ class DishServiceTest {
      */
     ReflectionTestUtils.setField(dish, "id", 10L);
 
-    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
     DishUpdateRequest request = createUpdateRequest(0L);
 
@@ -68,6 +68,7 @@ class DishServiceTest {
     DishStateChangedEvent event = (DishStateChangedEvent) capturedEvent;
 
     assertThat(event.dishId()).isEqualTo(10L);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.available()).isFalse();
     assertThat(event.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
   }
@@ -78,7 +79,7 @@ class DishServiceTest {
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 
-    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
     DishUpdateRequest request = createUpdateRequest(5L);
 
@@ -93,6 +94,7 @@ class DishServiceTest {
     DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
 
     assertThat(event.dishId()).isEqualTo(10L);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.available()).isTrue();
     assertThat(event.stockQuantity()).isEqualTo(5L);
   }
@@ -103,7 +105,7 @@ class DishServiceTest {
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 
-    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
@@ -116,6 +118,7 @@ class DishServiceTest {
     DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
 
     assertThat(event.dishId()).isEqualTo(10L);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.available()).isFalse();
   }
 

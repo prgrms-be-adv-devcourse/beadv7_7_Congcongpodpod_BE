@@ -108,6 +108,6 @@ class OutboxEventProcessorTest {
 
   private DishStateChangedEvent createDomainEvent() {
     return new DishStateChangedEvent(
-        UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
+        UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, 1L, false, 5L, Instant.now());
   }
 }

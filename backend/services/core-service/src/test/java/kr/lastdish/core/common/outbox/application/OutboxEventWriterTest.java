@@ -40,7 +40,7 @@ class OutboxEventWriterTest {
 
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, occurredAt);
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, false, 5L, occurredAt);
 
     String payload =
         """
@@ -73,6 +73,7 @@ class OutboxEventWriterTest {
     assertThat(savedOutbox.getEventType()).isEqualTo(DishStateChangedEvent.EVENT_TYPE);
     assertThat(savedOutbox.getAggregateType()).isEqualTo("DISH");
     assertThat(savedOutbox.getAggregateId()).isEqualTo(1L);
+    assertThat(savedOutbox.getAggregateVersion()).isEqualTo(3L);
     assertThat(savedOutbox.getPayload()).isEqualTo(payload);
     assertThat(savedOutbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(savedOutbox.getRetryCount()).isZero();
