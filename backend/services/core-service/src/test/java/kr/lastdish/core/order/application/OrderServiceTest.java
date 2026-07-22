@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.time.LocalTime;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
-import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import org.junit.jupiter.api.Test;
@@ -77,7 +76,6 @@ class OrderServiceTest {
     Long memberId = 1L;
     Long orderId = 2L;
     Order order = mock(Order.class);
-    OrderCancelRequest request = new OrderCancelRequest("Change of plans");
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
 
