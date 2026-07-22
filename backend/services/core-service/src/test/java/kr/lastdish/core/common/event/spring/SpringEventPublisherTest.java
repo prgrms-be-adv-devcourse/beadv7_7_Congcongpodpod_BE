@@ -1,8 +1,11 @@
 package kr.lastdish.core.common.event.spring;
 
-import kr.lastdish.core.common.event.DomainEvent;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
+import java.time.Instant;
+import java.util.UUID;
 import kr.lastdish.core.common.event.EventMessage;
-import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,18 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class SpringEventPublisherTest {
 
   @Mock private ApplicationEventPublisher applicationEventPublisher;
-
-  @Mock private SpringEventDeserializer eventDeserializer;
 
   private SpringEventPublisher eventPublisher;
 
@@ -50,25 +45,22 @@ class SpringEventPublisherTest {
   @Test
   void propagates_exception_when_spring_event_fails() {
     // given
-    DomainEvent event =
-        new DishStateChangedEvent(
+    EventMessage message =
+        new EventMessage(
             UUID.randomUUID(),
-            DishStateChangedEvent.SCHEMA_VERSION,
+            "DISH_STATE_CHANGED",
+            "DISH",
             1L,
             1L,
-            false,
-            5L,
+            "{\"dishId\":1}",
             Instant.now());
-    EventMessage message = createMessage(event, "{\"dishId\":1}");
-
-    when(eventDeserializer.deserialize(message.eventType(), message.payload())).thenReturn(event);
 
     RuntimeException publishException = new RuntimeException("Spring Event 발행 실패");
 
     /*
      * ApplicationEventPublisher가 이벤트를 발행할 때 예외를 발생시키도록 설정합니다.
      */
-    doThrow(publishException).when(applicationEventPublisher).publishEvent(event);
+    doThrow(publishException).when(applicationEventPublisher).publishEvent(message);
 
     // when & then
     /*
@@ -76,16 +68,5 @@ class SpringEventPublisherTest {
      * Outbox Processor가 실패를 감지하고 재시도할 수 있습니다.
      */
     assertThatThrownBy(() -> eventPublisher.publish(message)).isSameAs(publishException);
-  }
-
-  private EventMessage createMessage(DomainEvent event, String payload) {
-    return new EventMessage(
-        event.eventId(),
-        event.eventType(),
-        event.aggregateType(),
-        event.aggregateId(),
-        event.aggregateVersion(),
-        payload,
-        event.occurredAt());
   }
 }
