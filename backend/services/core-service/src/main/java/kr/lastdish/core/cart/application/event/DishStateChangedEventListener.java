@@ -19,6 +19,7 @@ public class DishStateChangedEventListener {
 
   @EventListener
   public void handle(DishStateChangedEvent event) {
-    synchronizer.synchronize(event.dishId(), event.available(), event.stockQuantity());
+    synchronizer.synchronize(
+        event.dishId(), event.available(), event.stockQuantity(), event.aggregateVersion());
   }
 }

@@ -69,6 +69,7 @@ class DishStateChangedEventIntegrationTest {
 
     // then
     assertThat(updatedCartItem.getStatus()).isEqualTo(CartItemStatus.INSUFFICIENT_STOCK);
+    assertThat(updatedCartItem.getLastAppliedDishVersion()).isEqualTo(1L);
 
     assertThat(updatedCartItem.isOrderable()).isFalse();
   }

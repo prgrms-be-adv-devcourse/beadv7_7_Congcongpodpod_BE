@@ -41,6 +41,6 @@ class DishStateChangedEventListenerTest {
     listener.handle(event);
 
     // then
-    verify(synchronizer).synchronize(10L, true, 5L);
+    verify(synchronizer).synchronize(10L, true, 5L, 1L);
   }
 }

@@ -42,12 +42,22 @@ public class CartItem {
   @Column(nullable = false, length = 30)
   private CartItemStatus status;
 
-  private CartItem(Long cartId, Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
+  @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+  private long lastAppliedDishVersion;
+
+  private CartItem(
+      Long cartId,
+      Long dishId,
+      String dishName,
+      BigDecimal unitPrice,
+      Long quantity,
+      long dishVersion) {
     this.cartId = cartId;
     this.dishId = dishId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+    this.lastAppliedDishVersion = dishVersion;
 
     // 초기값이 AVAILABLE인 이유는 Cart에 추가할 때 DishFacade를 통해 Dish 존재 여부와 재고를 확인하는걸로 확인했습니다.
     this.status = CartItemStatus.AVAILABLE;
@@ -59,15 +69,31 @@ public class CartItem {
 
   public static CartItem create(
       Long cartId, Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
-    return new CartItem(cartId, dishId, dishName, unitPrice, quantity);
+    return create(cartId, dishId, dishName, unitPrice, quantity, 0L);
+  }
+
+  public static CartItem create(
+      Long cartId,
+      Long dishId,
+      String dishName,
+      BigDecimal unitPrice,
+      Long quantity,
+      long dishVersion) {
+    return new CartItem(cartId, dishId, dishName, unitPrice, quantity, dishVersion);
   }
 
   public void replace(Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
+    replace(dishId, dishName, unitPrice, quantity, 0L);
+  }
+
+  public void replace(
+      Long dishId, String dishName, BigDecimal unitPrice, Long quantity, long dishVersion) {
 
     this.dishId = dishId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+    this.lastAppliedDishVersion = dishVersion;
 
     /*
      * CartService에서 교체할 Dish의 판매 여부와 재고를 검증한 뒤 호출하므로
@@ -78,11 +104,16 @@ public class CartItem {
   }
 
   public void changeQuantity(Long quantity) {
+    changeQuantity(quantity, this.lastAppliedDishVersion);
+  }
+
+  public void changeQuantity(Long quantity, long dishVersion) {
     if (quantity == null || quantity < 1) {
       throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
     }
 
     this.quantity = quantity;
+    this.lastAppliedDishVersion = dishVersion;
 
     /*
      * CartService에서 변경할 수량이 현재 Dish 재고 이내인지 검증한 뒤 호출하므로
@@ -101,8 +132,14 @@ public class CartItem {
    *
    * @param dishAvailable Dish 자체의 판매 가능 여부
    * @param stockQuantity 현재 Dish 재고
+   * @param aggregateVersion Dish 상태 변경 순서
    */
-  public void synchronizeDishState(boolean dishAvailable, Long stockQuantity) {
+  public void synchronizeDishState(
+      boolean dishAvailable, Long stockQuantity, long aggregateVersion) {
+    if (aggregateVersion <= this.lastAppliedDishVersion) {
+      return;
+    }
+
     if (!dishAvailable) {
       this.status = CartItemStatus.DISH_UNAVAILABLE;
     } else if (stockQuantity == null || stockQuantity <= 0) {
@@ -113,6 +150,7 @@ public class CartItem {
       this.status = CartItemStatus.AVAILABLE;
     }
 
+    this.lastAppliedDishVersion = aggregateVersion;
     this.updatedAt = LocalDateTime.now();
   }
 
