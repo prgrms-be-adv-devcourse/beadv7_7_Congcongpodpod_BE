@@ -6,13 +6,14 @@ import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 @RequiredArgsConstructor
 public class DishFacade {
 
   private final DishRepository dishRepository;
+  private final DishService dishService;
 
   /**
    * 조회 가능한(판매중) Dish의 스냅샷을 가져온다.
@@ -34,5 +35,13 @@ public class DishFacade {
   private static DishSnapshot toSnapshot(Dish dish) {
     return new DishSnapshot(
         dish.getId(), dish.getDishName(), dish.getDiscountPrice(), dish.getStockQuantity());
+  }
+
+  public void decreaseStock(Long dishId, Long quantity) {
+    dishService.decreaseStock(dishId, quantity);
+  }
+
+  public void increaseStock(Long dishId, Long quantity) {
+    dishService.increaseStock(dishId, quantity);
   }
 }
