@@ -9,13 +9,11 @@ import kr.lastdish.core.order.presentation.dto.*;
 import kr.lastdish.core.payment.application.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class OrderFacade {
 
   private final OrderRepository orderRepository;
@@ -81,20 +79,10 @@ public class OrderFacade {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
 
-    log.info("주문 거절 진입: sellerId={}, orderId={}, reason={}", memberId, orderId, request.reason());
-
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-
-    log.info(
-        "주문 조회 완료: orderId={}, status={}, storeId={}",
-        order.getId(),
-        order.getStatus(),
-        order.getStoreId());
 
     // 멤버가 store의 seller인지 검증
     storeFacade.validateStoreOwner(order.getStoreId(), memberId);
-
-    log.info("판매자 검증 완료");
 
     // 반려 사유에 따라 환불 프로세스 분기
     if (request.reason().shouldRestoreStock()) {
@@ -103,8 +91,6 @@ public class OrderFacade {
       rejectOrder(orderId);
       System.out.println("here");
     }
-
-    log.info("주문 상태 변경 완료");
   }
 
   @Transactional
