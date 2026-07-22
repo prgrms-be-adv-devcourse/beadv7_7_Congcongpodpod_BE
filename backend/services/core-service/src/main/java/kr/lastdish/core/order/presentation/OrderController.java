@@ -18,7 +18,7 @@ public class OrderController {
   @PostMapping
   public ApiResponse<OrderResponse> createOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-      @RequestBody OrderCreateRequest request) {
+      @RequestBody @Valid OrderCreateRequest request) {
     return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, request));
   }
 
