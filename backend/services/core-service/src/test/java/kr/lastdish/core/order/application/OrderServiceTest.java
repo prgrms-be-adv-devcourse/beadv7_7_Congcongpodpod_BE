@@ -7,12 +7,15 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
+import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
 import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -178,5 +185,80 @@ class OrderServiceTest {
     assertThat(response).isNotNull();
     verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).updateOrderStatus(request.status());
+  }
+
+  @Test
+  void getEachOrder_success() {
+    Long orderId = 1L;
+    Order order = mock(Order.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+
+    OrderResponse response = orderService.getEachOrder(orderId);
+
+    assertThat(response).isNotNull();
+    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+  }
+
+  @Test
+  void getMyOrders_success() {
+    Long memberId = 1L;
+    OrderStatus status = OrderStatus.RESERVED;
+    Pageable pageable = PageRequest.of(0, 20);
+    Order order = mock(Order.class);
+    Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
+
+    when(orderRepository.findAllByMemberIdAndStatus(memberId, status, pageable)).thenReturn(orders);
+
+    Page<OrderResponse> response = orderService.getMyOrders(memberId, status, pageable);
+
+    assertThat(response.getTotalElements()).isEqualTo(1);
+    assertThat(response.getContent()).hasSize(1);
+    verify(orderRepository, times(1)).findAllByMemberIdAndStatus(memberId, status, pageable);
+  }
+
+  @Test
+  void getMyOrders_withoutStatus_success() {
+    Long memberId = 1L;
+    Pageable pageable = PageRequest.of(0, 20);
+
+    when(orderRepository.findAllByMemberIdAndStatus(memberId, null, pageable))
+        .thenReturn(Page.empty(pageable));
+
+    Page<OrderResponse> response = orderService.getMyOrders(memberId, null, pageable);
+
+    assertThat(response).isEmpty();
+    verify(orderRepository, times(1)).findAllByMemberIdAndStatus(memberId, null, pageable);
+  }
+
+  @Test
+  void getStoreOrders_success() {
+    Long storeId = 1L;
+    OrderStatus status = OrderStatus.PICKUP_READY;
+    Pageable pageable = PageRequest.of(0, 20);
+    Order order = mock(Order.class);
+    Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
+
+    when(orderRepository.findAllByStoreIdAndStatus(storeId, status, pageable)).thenReturn(orders);
+
+    Page<OrderResponse> response = orderService.getStoreOrders(storeId, status, pageable);
+
+    assertThat(response.getTotalElements()).isEqualTo(1);
+    assertThat(response.getContent()).hasSize(1);
+    verify(orderRepository, times(1)).findAllByStoreIdAndStatus(storeId, status, pageable);
+  }
+
+  @Test
+  void getStoreOrders_withoutStatus_success() {
+    Long storeId = 1L;
+    Pageable pageable = PageRequest.of(0, 20);
+
+    when(orderRepository.findAllByStoreIdAndStatus(storeId, null, pageable))
+        .thenReturn(Page.empty(pageable));
+
+    Page<OrderResponse> response = orderService.getStoreOrders(storeId, null, pageable);
+
+    assertThat(response).isEmpty();
+    verify(orderRepository, times(1)).findAllByStoreIdAndStatus(storeId, null, pageable);
   }
 }

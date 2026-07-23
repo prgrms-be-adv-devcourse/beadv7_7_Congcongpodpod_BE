@@ -4,8 +4,11 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,5 +74,29 @@ public class OrderService {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     order.updateOrderStatus(request.status());
     return PickupStatusResponse.from(order);
+  }
+
+  public OrderResponse getEachOrder(Long orderId) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    return OrderResponse.from(order);
+  }
+
+  public PickupCodeResponse getPickupCode(Long orderId, Long memberId) {
+    Order order = orderRepository.findPickupAvailableOrder(orderId, memberId);
+    return PickupCodeResponse.from(order);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<OrderResponse> getMyOrders(Long memberId, OrderStatus status, Pageable pageable) {
+    return orderRepository
+        .findAllByMemberIdAndStatus(memberId, status, pageable)
+        .map(OrderResponse::from);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<OrderResponse> getStoreOrders(Long storeId, OrderStatus status, Pageable pageable) {
+    return orderRepository
+        .findAllByStoreIdAndStatus(storeId, status, pageable)
+        .map(OrderResponse::from);
   }
 }
