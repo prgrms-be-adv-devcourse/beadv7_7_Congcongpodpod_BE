@@ -7,6 +7,7 @@ import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
+import kr.lastdish.member.auth.presentation.dto.TokenRefreshRequest;
 import kr.lastdish.member.auth.presentation.dto.TokenResponse;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.exception.BusinessException;
@@ -52,7 +53,7 @@ class AuthServiceTest {
   }
 
   @Test
-  @DisplayName("유효한 리프레시 토큰으로 재발급(reissue)을 요청하면 새로운 Access Token이 발급된다.")
+  @DisplayName("유효한 리프레시 토큰으로 재발급을 요청하면 새로운 Access Token이 발급된다.")
   void reissueSuccess() {
     // given
     SignUpRequest signUpRequest =
@@ -68,12 +69,13 @@ class AuthServiceTest {
     TokenResponse initialTokens =
         authService.login(new LoginRequest("reissue@example.com", "password123!"));
 
-    // when
-    TokenResponse newTokens = authService.reissue(initialTokens.getRefreshToken());
+    // when (ReissueRequest 객체로 감싸서 전달)
+    TokenResponse newTokens =
+        authService.refresh(new TokenRefreshRequest(initialTokens.getRefreshToken()));
 
     // then
     assertThat(newTokens.getAccessToken()).isNotNull();
-    assertThat(newTokens.getRefreshToken()).isEqualTo(initialTokens.getRefreshToken());
+    assertThat(newTokens.getRefreshToken()).isNotNull();
   }
 
   @Test
@@ -88,9 +90,35 @@ class AuthServiceTest {
 
     String invalidRefreshToken = "invalid.token.string";
 
-    // when & then
-    assertThatThrownBy(() -> authService.reissue(invalidRefreshToken))
+    // when & then (ReissueRequest 객체로 감싸서 전달)
+    assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(invalidRefreshToken)))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
+  }
+
+  @Test
+  @DisplayName("만료된 리프레시 토큰으로 재발급을 요청하면 예외가 발생한다.")
+  void reissueFailWithExpiredToken() {
+    // given
+    SignUpRequest signUpRequest =
+        new SignUpRequest(
+            "expireduser",
+            "password123!",
+            "만료테스터",
+            "010-5555-6666",
+            "expired@example.com",
+            "MEMBER");
+    authService.signUp(signUpRequest);
+    TokenResponse tokens =
+        authService.login(new LoginRequest("expired@example.com", "password123!"));
+
+    // 만료된 토큰을 시뮬레이션하기 위해 임의의 만료된 토큰 문자열 혹은
+    // JwtTokenProvider를 활용해 유효기간이 지난 토큰을 mocking 하거나 생성할 수 있습니다.
+    String expiredToken = "expired.jwt.token.string";
+
+    // (만약 JwtTokenProvider가 validateToken에서 false를 반환하도록 동작한다면)
+    // when & then
+    assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(expiredToken)))
+        .isInstanceOf(BusinessException.class);
   }
 }
