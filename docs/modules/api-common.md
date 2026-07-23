@@ -29,4 +29,3 @@ implementation project(':modules:api-common')
 
 이 모듈은 Spring Bean을 등록하지 않는 순수 계약 모듈이므로
 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`가 없습니다.
-
