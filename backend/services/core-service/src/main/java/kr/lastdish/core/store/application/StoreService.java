@@ -201,4 +201,9 @@ public class StoreService {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
   }
+
+  @Transactional(readOnly = true)
+  public List<Long> findSettlementTargetStoreIds() {
+    return storeRepository.findAllActiveStoreIds();
+  }
 }

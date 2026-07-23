@@ -61,4 +61,9 @@ public class StoreRespositoryAdaptor implements StoreRepository {
     return storeJpaRepository.countByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
         minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN);
   }
+
+  @Override
+  public List<Long> findAllActiveStoreIds() {
+    return storeJpaRepository.findAllActiveStoreIds();
+  }
 }
