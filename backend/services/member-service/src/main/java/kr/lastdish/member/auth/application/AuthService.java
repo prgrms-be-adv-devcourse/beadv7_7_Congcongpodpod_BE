@@ -7,15 +7,12 @@ import java.time.LocalDateTime;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
-import kr.lastdish.member.auth.presentation.dto.LoginRequest;
-import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
-import kr.lastdish.member.auth.presentation.dto.SignUpResponse;
-import kr.lastdish.member.auth.presentation.dto.TokenResponse;
+import kr.lastdish.member.auth.presentation.dto.*;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
-import kr.lastdish.member.member.exception.*; // 커스텀 예외 및 ErrorCode 임포트
+import kr.lastdish.member.member.exception.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -102,10 +99,12 @@ public class AuthService {
   }
 
   @Transactional
-  public TokenResponse reissue(String requestRefreshToken) {
+  public TokenResponse refresh(TokenRefreshRequest request) {
+    String requestRefreshToken = request.getRefreshToken();
+
     // 1. Refresh Token 유효성 검증
     if (!jwtTokenProvider.validateToken(requestRefreshToken)) {
-      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+      throw new InvalidTokenException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
 
     // 2. 토큰에서 MemberId 추출 후 회원 조회
@@ -116,22 +115,30 @@ public class AuthService {
             .findById(memberId.getValue())
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
+    // 3. 이메일로 DB에 저장된 Refresh Token 조회
     RefreshToken refreshToken =
         refreshTokenRepository
             .findByEmail(member.getEmail())
             .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
 
-    // 3. 요청받은 토큰 해시값 비교
+    // 4. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 비교
     String hashedRequestToken = encryptSha256(requestRefreshToken);
     if (!hashedRequestToken.equals(refreshToken.getToken())) {
       throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISMATCH);
     }
 
-    // 4. 새로운 Access Token 발급
-    String newAccessToken =
-        jwtTokenProvider.createAccessToken(new MemberId(member.getId()), member.getRole());
+    // 5. 새로운 Access Token 및 Refresh Token 발급
+    String newAccessToken = jwtTokenProvider.createAccessToken(memberId, member.getRole());
+    String newRefreshTokenValue = jwtTokenProvider.createRefreshToken(memberId, member.getRole());
 
-    return new TokenResponse(newAccessToken, requestRefreshToken);
+    // 6. 새로운 Refresh Token을 해시화하여 DB 갱신
+    String hashedNewRefreshToken = encryptSha256(newRefreshTokenValue);
+    LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
+
+    refreshToken.updateToken(hashedNewRefreshToken, expiryDate);
+    refreshTokenRepository.save(refreshToken);
+
+    return new TokenResponse(newAccessToken, newRefreshTokenValue);
   }
 
   private String encryptSha256(String text) {
