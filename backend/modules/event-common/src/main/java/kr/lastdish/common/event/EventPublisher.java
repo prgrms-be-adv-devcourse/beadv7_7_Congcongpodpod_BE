@@ -1,4 +1,4 @@
-package kr.lastdish.core.common.event;
+package kr.lastdish.common.event;
 
 /**
  * Outbox에 저장된 직렬화 이벤트를 외부 전달 기술로 발행하는 포트입니다.

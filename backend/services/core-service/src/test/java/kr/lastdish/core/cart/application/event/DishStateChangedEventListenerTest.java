@@ -5,7 +5,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.EventMessage;
+import kr.lastdish.common.event.EventMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

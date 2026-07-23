@@ -1,4 +1,4 @@
-package kr.lastdish.core.common.event;
+package kr.lastdish.common.event;
 
 import java.time.Instant;
 import java.util.UUID;
