@@ -1,5 +1,8 @@
 package kr.lastdish.gateway.error;
 
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.UnknownHostException;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
 import org.slf4j.Logger;
@@ -16,11 +19,14 @@ import reactor.core.publisher.Mono;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
-import java.net.ConnectException;
-import java.net.NoRouteToHostException;
-import java.net.UnknownHostException;
-
+/**
+ * Gateway의 라우팅 및 하위 서비스 연결 과정에서 발생한 예외를 공통 API 오류 응답으로 변환한다.
+ *
+ * <p>Gateway는 WebFlux 기반이므로 MVC의 {@code GlobalExceptionHandler} 대신 {@link
+ * ErrorWebExceptionHandler}를 사용한다.
+ */
 @Component
+// Spring Boot의 기본 WebFlux 오류 처리기보다 먼저 실행한다.
 @Order(-2)
 public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
 
@@ -34,6 +40,7 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
 
   @Override
   public Mono<Void> handle(ServerWebExchange exchange, Throwable exception) {
+    // 이미 응답 전송이 시작되었다면 새로운 오류 본문을 쓸 수 없으므로 상위 처리 흐름으로 전달한다.
     if (exchange.getResponse().isCommitted()) {
       return Mono.error(exception);
     }
@@ -56,6 +63,7 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
       return resolveStatus(statusException.getStatusCode());
     }
 
+    // 실행 환경에 따라 동일한 하위 서비스 연결 실패가 서로 다른 네트워크 예외로 감싸질 수 있다.
     if (hasCause(exception, ConnectException.class)
         || hasCause(exception, NoRouteToHostException.class)
         || hasCause(exception, UnknownHostException.class)) {
@@ -78,6 +86,7 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
   private boolean hasCause(Throwable exception, Class<? extends Throwable> causeType) {
     Throwable current = exception;
 
+    // Reactor/Netty가 실제 네트워크 예외를 여러 단계로 감싸므로 전체 원인 체인을 확인한다.
     while (current != null) {
       if (causeType.isInstance(current)) {
         return true;
