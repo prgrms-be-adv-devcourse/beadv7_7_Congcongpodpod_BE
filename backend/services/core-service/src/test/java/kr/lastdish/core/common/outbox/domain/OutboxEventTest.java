@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import org.junit.jupiter.api.Test;
 
 class OutboxEventTest {
@@ -15,10 +16,18 @@ class OutboxEventTest {
     UUID eventId = UUID.randomUUID();
     Instant occurredAt = Instant.now();
 
+    DishStateChangedPayload eventPayload = new DishStateChangedPayload(false, 5L);
+
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, false, 5L, occurredAt);
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, eventPayload, occurredAt);
 
+    /*
+     * 현재 테스트에서는 OutboxEvent.create()가 전달받은 payload 문자열을
+     * 변경하지 않고 저장하는지만 검증합니다.
+     *
+     * 업무 payload만 직렬화하도록 변경하는 작업은 다음 커밋에서 수행합니다.
+     */
     String payload =
         """
         {
@@ -112,14 +121,15 @@ class OutboxEventTest {
 
   /** 각 테스트에서 반복되는 기본 Outbox 생성을 담당합니다. */
   private OutboxEvent createOutbox() {
+    DishStateChangedPayload payload = new DishStateChangedPayload(false, 5L);
+
     DishStateChangedEvent event =
         new DishStateChangedEvent(
             UUID.randomUUID(),
             DishStateChangedEvent.SCHEMA_VERSION,
             1L,
             1L,
-            false,
-            5L,
+            payload,
             Instant.now());
 
     return OutboxEvent.create(event, "{}");

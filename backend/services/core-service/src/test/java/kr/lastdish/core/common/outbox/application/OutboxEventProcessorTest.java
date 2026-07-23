@@ -13,6 +13,7 @@ import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -107,7 +108,9 @@ class OutboxEventProcessorTest {
   }
 
   private DishStateChangedEvent createDomainEvent() {
+    DishStateChangedPayload payload = new DishStateChangedPayload(false, 5L);
+
     return new DishStateChangedEvent(
-        UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, 1L, false, 5L, Instant.now());
+        UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, 1L, payload, Instant.now());
   }
 }
