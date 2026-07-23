@@ -6,10 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
-import kr.lastdish.member.auth.presentation.dto.LoginRequest;
-import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
-import kr.lastdish.member.auth.presentation.dto.TokenRefreshRequest;
-import kr.lastdish.member.auth.presentation.dto.TokenResponse;
+import kr.lastdish.member.auth.presentation.dto.*;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.exception.BusinessException;
@@ -126,5 +123,29 @@ class AuthServiceTest {
     assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(expiredToken)))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
+  }
+
+  @Test
+  @DisplayName("로그아웃을 요청하면 리프레시 토큰이 삭제되어 재발급 요청 시 예외가 발생한다.")
+  void logoutSuccess() {
+    // given
+    SignUpRequest signUpRequest =
+        new SignUpRequest(
+            "logoutuser",
+            "password123!",
+            "로그아웃테스터",
+            "010-7777-8888",
+            "logout@example.com",
+            "MEMBER");
+    authService.signUp(signUpRequest);
+    TokenResponse tokens =
+        authService.login(new LoginRequest("logout@example.com", "password123!"));
+
+    // when
+    authService.logout(new TokenLogoutRequest(tokens.getRefreshToken()));
+
+    // then
+    assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(tokens.getRefreshToken())))
+        .isInstanceOf(BusinessException.class);
   }
 }
