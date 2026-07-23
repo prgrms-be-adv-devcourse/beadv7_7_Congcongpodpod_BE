@@ -1,7 +1,7 @@
 package kr.lastdish.core.order.presentation;
 
 import jakarta.validation.Valid;
-import kr.lastdish.core.common.response.ApiResponse;
+import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.order.application.OrderFacade;
 import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;

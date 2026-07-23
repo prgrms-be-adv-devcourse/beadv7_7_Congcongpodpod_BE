@@ -17,6 +17,9 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation project(':modules:api-common')
+    implementation project(':modules:mvc-common')
+
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'

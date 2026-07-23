@@ -1,4 +1,4 @@
-package kr.lastdish.core.common.response;
+package kr.lastdish.common.api.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;

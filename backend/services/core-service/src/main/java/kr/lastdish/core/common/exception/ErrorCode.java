@@ -1,16 +1,12 @@
 package kr.lastdish.core.common.exception;
 
+import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public enum ErrorCode {
-  INVALID_INPUT(HttpStatus.BAD_REQUEST, "C001", "잘못된 요청입니다."),
-  INVALID_STATE(HttpStatus.CONFLICT, "C002", "처리할 수 없는 상태입니다."),
-  ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "대상을 찾을 수 없습니다."),
+public enum ErrorCode implements ErrorCodeSpec {
   SOLD_OUT(HttpStatus.CONFLICT, "C004", "재고가 소진되었습니다."),
-  SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "C503", "일시적으로 서비스를 이용할 수 없습니다."),
-  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C500", "서버 오류가 발생했습니다."),
   DISH_NOT_ON_SALE(HttpStatus.CONFLICT, "D001", "판매중인 상품이 아닙니다."),
   DISH_NOT_FOUND(HttpStatus.NOT_FOUND, "D002", "상품을 찾을 수 없습니다."),
   INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "D003", "재고가 부족합니다."),

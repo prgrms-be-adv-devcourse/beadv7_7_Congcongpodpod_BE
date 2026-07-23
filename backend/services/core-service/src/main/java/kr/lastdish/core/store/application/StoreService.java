@@ -2,8 +2,8 @@ package kr.lastdish.core.store.application;
 
 import java.math.BigDecimal;
 import java.util.List;
-import kr.lastdish.core.common.exception.BusinessException;
-import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +21,11 @@ public class StoreService {
   @Transactional
   public StoreResult register(RegisterStoreCommand command) {
     if (storeRepository.existsByMemberId(command.memberId())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "회원은 하나의 매장만 등록할 수 있습니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "회원은 하나의 매장만 등록할 수 있습니다.");
     }
 
     if (storeRepository.existsByBusinessNumber(command.businessNumber())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 등록된 사업자등록번호입니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "이미 등록된 사업자등록번호입니다.");
     }
 
     Store store =
@@ -87,10 +87,11 @@ public class StoreService {
     Store store =
         storeRepository
             .findById(storeId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
 
     if (!store.isOwnedBy(memberId)) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
     }
 
     return store;
@@ -110,15 +111,15 @@ public class StoreService {
   public StorePageResult getNearbyStores(
       BigDecimal latitude, BigDecimal longitude, double radiusKm, int page, int size) {
     if (radiusKm <= 0) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "검색 반경은 0보다 커야 합니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "검색 반경은 0보다 커야 합니다.");
     }
 
     if (page < 0) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "페이지 번호는 0 이상이어야 합니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "페이지 번호는 0 이상이어야 합니다.");
     }
 
     if (size <= 0) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "페이지 크기는 0보다 커야 합니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "페이지 크기는 0보다 커야 합니다.");
     }
 
     double latitudeValue = latitude.doubleValue();
@@ -158,7 +159,7 @@ public class StoreService {
     getOwnedStore(storeId, memberId);
 
     if (payoutAccountRepository.existsByStoreId(storeId)) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 등록된 정산 계좌가 있습니다.");
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "이미 등록된 정산 계좌가 있습니다.");
     }
 
     StorePayoutAccount payoutAccount =
@@ -178,7 +179,9 @@ public class StoreService {
         payoutAccountRepository
             .findByStoreId(storeId)
             .orElseThrow(
-                () -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
+                () ->
+                    new BusinessException(
+                        CommonErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
 
     payoutAccount.update(accountNumber, accountHolder);
 

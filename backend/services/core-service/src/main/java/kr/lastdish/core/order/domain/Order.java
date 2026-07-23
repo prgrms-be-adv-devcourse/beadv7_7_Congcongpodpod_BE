@@ -5,7 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
-import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -127,7 +128,7 @@ public class Order {
 
   private void validateCancelable() {
     if (this.status != OrderStatus.RESERVED) {
-      throw new BusinessException(ErrorCode.INVALID_STATE);
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
   }
 

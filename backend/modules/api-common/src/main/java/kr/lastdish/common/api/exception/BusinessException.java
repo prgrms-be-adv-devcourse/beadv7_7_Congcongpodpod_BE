@@ -1,18 +1,18 @@
-package kr.lastdish.core.common.exception;
+package kr.lastdish.common.api.exception;
 
 import lombok.Getter;
 
 @Getter
 public class BusinessException extends RuntimeException {
 
-  private final ErrorCode errorCode;
+  private final ErrorCodeSpec errorCode;
 
-  public BusinessException(ErrorCode errorCode) {
+  public BusinessException(ErrorCodeSpec errorCode) {
     super(errorCode.getMessage());
     this.errorCode = errorCode;
   }
 
-  public BusinessException(ErrorCode errorCode, String message) {
+  public BusinessException(ErrorCodeSpec errorCode, String message) {
     super(message);
     this.errorCode = errorCode;
   }
