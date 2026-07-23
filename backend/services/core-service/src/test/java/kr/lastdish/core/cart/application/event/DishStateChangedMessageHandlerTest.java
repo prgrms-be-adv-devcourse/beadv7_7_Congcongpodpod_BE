@@ -28,7 +28,7 @@ class DishStateChangedMessageHandlerTest {
 
   @Test
   void Payload를_Cart_입력으로_변환한다() {
-    EventMessage message = createMessage("{\"dishId\":10,\"available\":true,\"stockQuantity\":5}");
+    EventMessage message = createMessage("{\"available\":true,\"stockQuantity\":5}");
 
     handler.handle(message);
 
@@ -51,6 +51,7 @@ class DishStateChangedMessageHandlerTest {
         "DISH",
         10L,
         3L,
+        2,
         payload,
         Instant.now());
   }

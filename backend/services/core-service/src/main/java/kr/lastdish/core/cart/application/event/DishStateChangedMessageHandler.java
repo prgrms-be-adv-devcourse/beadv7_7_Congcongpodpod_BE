@@ -24,6 +24,9 @@ public class DishStateChangedMessageHandler {
     }
 
     synchronizer.synchronize(
-        payload.dishId(), payload.available(), payload.stockQuantity(), message.aggregateVersion());
+        message.aggregateId(),
+        payload.available(),
+        payload.stockQuantity(),
+        message.aggregateVersion());
   }
 }

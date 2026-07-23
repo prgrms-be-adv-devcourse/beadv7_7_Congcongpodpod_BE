@@ -39,7 +39,8 @@ class DishStateChangedEventIntegrationTest {
             "DISH",
             10L,
             1L,
-            "{\"dishId\":10,\"available\":true,\"stockQuantity\":5}",
+            2,
+            "{\"available\":true,\"stockQuantity\":5}",
             Instant.now());
 
     // when

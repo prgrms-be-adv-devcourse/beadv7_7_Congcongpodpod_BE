@@ -1,7 +1,8 @@
 package kr.lastdish.core.common.event.spring;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -34,7 +35,8 @@ class SpringEventPublisherTest {
             "DISH",
             10L,
             1L,
-            "{\"dishId\":10}",
+            2,
+            "{\"available\":true,\"stockQuantity\":5}",
             Instant.now());
 
     eventPublisher.publish(message);
@@ -52,7 +54,8 @@ class SpringEventPublisherTest {
             "DISH",
             1L,
             1L,
-            "{\"dishId\":1}",
+            2,
+            "{\"available\":false,\"stockQuantity\":0}",
             Instant.now());
 
     RuntimeException publishException = new RuntimeException("Spring Event 발행 실패");

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -27,25 +28,28 @@ class OutboxEventSerializerTest {
   @Test
   void Dish_이벤트를_Outbox_payload로_직렬화한다() {
     // given
+    DishStateChangedPayload eventPayload = new DishStateChangedPayload(false, 5L);
+
     DishStateChangedEvent source =
         new DishStateChangedEvent(
             UUID.randomUUID(),
             DishStateChangedEvent.SCHEMA_VERSION,
             1L,
             3L,
-            false,
-            5L,
+            eventPayload,
             Instant.now());
 
     // when
-    String payload = serializer.serialize(source);
+    String payload = serializer.serialize(source.payload());
 
     // then
     assertThat(payload)
-        .contains("\"schemaVersion\":2")
-        .contains("\"dishId\":1")
-        .contains("\"aggregateVersion\":3")
         .contains("\"available\":false")
-        .contains("\"stockQuantity\":5");
+        .contains("\"stockQuantity\":5")
+        .doesNotContain("eventId")
+        .doesNotContain("schemaVersion")
+        .doesNotContain("dishId")
+        .doesNotContain("aggregateVersion")
+        .doesNotContain("occurredAt");
   }
 }
