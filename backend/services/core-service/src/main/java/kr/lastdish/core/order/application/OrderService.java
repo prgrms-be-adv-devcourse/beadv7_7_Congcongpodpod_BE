@@ -2,7 +2,7 @@ package kr.lastdish.core.order.application;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
