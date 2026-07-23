@@ -1,7 +1,7 @@
 package kr.lastdish.core.dish.presentation;
 
 import jakarta.validation.Valid;
-import kr.lastdish.core.common.response.ApiResponse;
+import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;

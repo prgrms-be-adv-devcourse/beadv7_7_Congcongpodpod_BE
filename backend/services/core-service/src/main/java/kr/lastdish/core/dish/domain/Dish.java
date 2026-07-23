@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -56,6 +56,14 @@ public class Dish {
   @Column(nullable = false)
   private Boolean isDeleted;
 
+  /**
+   * Dish 상태 변경 이벤트의 순서입니다.
+   *
+   * <p>Cart 주문 가능 상태에 영향을 주는 이벤트가 생성될 때마다 증가합니다.
+   */
+  @Column(name = "event_version", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+  private long eventVersion;
+
   public static Dish create(
       Long storeId,
       String dishName,
@@ -78,6 +86,7 @@ public class Dish {
     dish.dishPrice = dishPrice;
     dish.discountPrice = discountPrice;
     dish.isDeleted = false;
+    dish.eventVersion = 0L;
     return dish;
   }
 
@@ -149,5 +158,36 @@ public class Dish {
 
   public void delete() {
     this.isDeleted = true;
+  }
+
+  /**
+   * 현재 Dish가 사용자에게 판매 가능한 상태인지 판단합니다.
+   *
+   * <p>다음 조건을 모두 만족해야 판매 가능한 상품입니다.
+   *
+   * <ul>
+   *   <li>Soft Delete되지 않음
+   *   <li>판매 상태가 ON_SALE
+   *   <li>재고 수량이 1개 이상
+   * </ul>
+   *
+   * <p>판매 가능 여부 판단 규칙을 Dish 엔티티에 모아 Application 계층에서 동일한 규칙을 반복해서 구현하지 않게 합니다.
+   */
+  public boolean isAvailable() {
+    return Boolean.FALSE.equals(isDeleted)
+        && dishStatus == DishStatus.ON_SALE
+        && stockQuantity != null
+        && stockQuantity > 0;
+  }
+
+  /**
+   * 새로운 Dish 상태 변경 이벤트에 사용할 version을 발급합니다.
+   *
+   * <p>Dish 변경, version 증가 및 Outbox 저장은 같은 트랜잭션에서 처리됩니다.
+   *
+   * @return 증가된 이벤트 version
+   */
+  public long nextEventVersion() {
+    return ++this.eventVersion;
   }
 }
