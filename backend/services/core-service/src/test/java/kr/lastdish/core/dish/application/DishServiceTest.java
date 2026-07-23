@@ -69,7 +69,7 @@ class DishServiceTest {
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.available()).isFalse();
+    assertThat(event.payload().available()).isFalse();
     assertThat(event.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
   }
 
@@ -95,8 +95,8 @@ class DishServiceTest {
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.available()).isTrue();
-    assertThat(event.stockQuantity()).isEqualTo(5L);
+    assertThat(event.payload().available()).isTrue();
+    assertThat(event.payload().stockQuantity()).isEqualTo(5L);
   }
 
   @Test
@@ -119,7 +119,7 @@ class DishServiceTest {
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.available()).isFalse();
+    assertThat(event.payload().available()).isFalse();
   }
 
   private Dish createDish(Long stockQuantity) {
@@ -165,7 +165,7 @@ class DishServiceTest {
 
     DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
 
-    assertThat(event.available()).isTrue();
-    assertThat(event.stockQuantity()).isEqualTo(5L);
+    assertThat(event.payload().available()).isTrue();
+    assertThat(event.payload().stockQuantity()).isEqualTo(5L);
   }
 }
