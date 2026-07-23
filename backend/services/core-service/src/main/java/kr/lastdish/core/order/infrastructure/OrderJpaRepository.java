@@ -23,7 +23,7 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       """)
   boolean existsActivePickupCode(
       @Param("storeId") Long storeId, @Param("pickupCode") String pickupCode);
-    
+
   @Query(
       """
         SELECT o
@@ -39,5 +39,4 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       @Param("orderStatuses") List<OrderStatus> orderStatuses,
       @Param("periodStart") LocalDateTime periodStart,
       @Param("periodEnd") LocalDateTime periodEnd);
-}
 }
