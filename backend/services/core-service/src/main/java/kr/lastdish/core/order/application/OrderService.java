@@ -1,5 +1,7 @@
 package kr.lastdish.core.order.application;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
@@ -46,6 +48,26 @@ public class OrderService {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
     return order;
+  }
+
+  private static final List<OrderStatus> SETTLEMENT_TARGET_STATUSES =
+      List.of(OrderStatus.PICKED_UP, OrderStatus.NO_SHOW);
+
+  @Transactional(readOnly = true)
+  public List<OrderSettlementInfo> findSettlementOrders(
+      Long storeId, LocalDateTime periodStart, LocalDateTime periodEnd) {
+    // validatePeriod(storeId, periodStart, periodEnd);
+
+    return orderRepository
+        .findSettlementTargetOrders(storeId, SETTLEMENT_TARGET_STATUSES, periodStart, periodEnd)
+        .stream()
+        .map(this::toSettlementInfo)
+        .toList();
+  }
+
+  private OrderSettlementInfo toSettlementInfo(Order order) {
+    return new OrderSettlementInfo(
+        order.getId(), order.getStoreId(), order.getTotalPrice(), order.getUpdatedAt());
   }
 
   private String generatePickupCode(Long storeId) {

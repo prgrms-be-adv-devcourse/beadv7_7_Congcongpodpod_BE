@@ -99,6 +99,26 @@ public class AuthService {
   }
 
   @Transactional
+  public void logout(TokenLogoutRequest request) {
+    String refreshToken = request.getRefreshToken();
+
+    // 1. 토큰 유효성 검증
+    if (!jwtTokenProvider.validateToken(refreshToken)) {
+      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    // 2. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 일치하는 토큰 조회
+    String hashedRefreshToken = encryptSha256(refreshToken);
+    RefreshToken savedToken =
+        refreshTokenRepository
+            .findByToken(hashedRefreshToken)
+            .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+
+    // 3. 토큰 삭제
+    refreshTokenRepository.delete(savedToken);
+  }
+
+  @Transactional
   public TokenResponse refresh(TokenRefreshRequest request) {
     String requestRefreshToken = request.getRefreshToken();
 
