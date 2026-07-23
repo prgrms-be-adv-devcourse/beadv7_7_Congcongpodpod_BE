@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Date;
+import java.util.UUID;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.Role;
 import org.springframework.stereotype.Component;
@@ -12,8 +13,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtTokenProvider {
 
-  private final PrivateKey privateKey; // RSA 개인 키
-  private final PublicKey publicKey; // RSA 공개 키 (게이트웨이 검증용)
+  private final PrivateKey privateKey;
+  private final PublicKey publicKey;
   private final long accessTokenValidityInMilliseconds;
   private final long refreshTokenValidityInMilliseconds;
 
@@ -33,6 +34,7 @@ public class JwtTokenProvider {
     Date validity = new Date(now.getTime() + accessTokenValidityInMilliseconds);
 
     return Jwts.builder()
+        .setId(UUID.randomUUID().toString())
         .setSubject(String.valueOf(memberId.getValue()))
         .claim("role", role.name())
         .setIssuer("lastdish-member-service")
@@ -47,11 +49,28 @@ public class JwtTokenProvider {
     Date validity = new Date(now.getTime() + refreshTokenValidityInMilliseconds);
 
     return Jwts.builder()
+        .setId(UUID.randomUUID().toString())
         .setSubject(String.valueOf(memberId.getValue()))
         .claim("role", role.name())
         .setIssuer("lastdish-member-service")
         .setIssuedAt(now)
         .setExpiration(validity)
+        .signWith(privateKey)
+        .compact();
+  }
+
+  // 만료 리프레시 토큰 생성
+  public String createExpiredRefreshToken(MemberId memberId, Role role) {
+    Date now = new Date();
+    Date expiredAt = new Date(now.getTime() - 1000);
+
+    return Jwts.builder()
+        .setId(UUID.randomUUID().toString())
+        .setSubject(String.valueOf(memberId.getValue()))
+        .claim("role", role.name())
+        .setIssuer("lastdish-member-service")
+        .setIssuedAt(new Date(now.getTime() - 2000))
+        .setExpiration(expiredAt)
         .signWith(privateKey)
         .compact();
   }

@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
-@EqualsAndHashCode // 값 객체 비교를 위해 equals & hashCode 추가
+@EqualsAndHashCode
 public class MemberId {
   private final Long value;
 
