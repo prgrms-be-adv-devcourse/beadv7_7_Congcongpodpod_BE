@@ -22,7 +22,7 @@ public class SettlementOrderReaderAdaptor implements SettlementOrderReader{
         return new SettlementOrderData(
                 order.orderId(),
                 order.storeId(),
-                order.salesAmount(),
+                order.salesAmount().tolongValue(),
                 order.orderCompletedAt()
         );
     }
