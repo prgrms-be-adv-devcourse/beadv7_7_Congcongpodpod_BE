@@ -1,6 +1,7 @@
 package kr.lastdish.member.member.domain;
 
-import kr.lastdish.member.member.exception.InvalidTokenException;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 
 public enum Role {
   MEMBER,
@@ -10,7 +11,7 @@ public enum Role {
     try {
       return Role.valueOf(raw);
     } catch (IllegalArgumentException e) {
-      throw new InvalidTokenException("유효하지 않은 role입니다: " + raw);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "유효하지 않은 role입니다: " + raw);
     }
   }
 }
