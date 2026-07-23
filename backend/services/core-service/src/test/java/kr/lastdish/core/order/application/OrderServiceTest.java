@@ -1,11 +1,14 @@
 package kr.lastdish.core.order.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
@@ -137,6 +140,29 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, availableCode);
     verify(order, never()).issuePickupCode(duplicatedCode);
     verify(order, times(1)).issuePickupCode(availableCode);
+  }
+
+  @Test
+  void acceptOrder_throwsExceptionWhenPickupCodeGenerationExceedsMaxRetry() {
+    Long orderId = 1L;
+    Long storeId = 2L;
+    String duplicatedCode = "123456";
+    Order order = mock(Order.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(pickupCodeGenerator.generate()).thenReturn(duplicatedCode);
+    when(orderRepository.validateActivePickUpCode(storeId, duplicatedCode)).thenReturn(true);
+
+    assertThatThrownBy(() -> orderService.acceptOrder(orderId))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.PICKUP_CODE_GENERATION_FAILED);
+
+    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(pickupCodeGenerator, times(5)).generate();
+    verify(orderRepository, times(5)).validateActivePickUpCode(storeId, duplicatedCode);
+    verify(order, never()).issuePickupCode(anyString());
   }
 
   @Test
