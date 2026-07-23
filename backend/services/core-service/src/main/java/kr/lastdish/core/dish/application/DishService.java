@@ -52,7 +52,8 @@ public class DishService {
     // 할인율 검증
     validateDiscountRate(request.dishPrice(), request.discountPrice());
 
-    Dish dish = getDish(dishId);
+    // 동시에 같은 Dish가 변경되면 동일한 event Version이 생성되지 않도록 이벤트가 발생하는 변경 메서드는 잠금 조회를 사용합니다.
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 
     boolean availableBefore = dish.isAvailable();
     Long stockQuantityBefore = dish.getStockQuantity();
@@ -75,7 +76,7 @@ public class DishService {
   @Transactional
   public DishResponse updateDishStatus(Long dishId, DishStatusRequest request) {
 
-    Dish dish = getDish(dishId);
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 
     boolean availableBefore = dish.isAvailable();
     Long stockQuantityBefore = dish.getStockQuantity();
@@ -110,13 +111,21 @@ public class DishService {
 
   @Transactional
   public void increaseStock(Long dishId, Long quantity) {
+
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+
+    boolean availableBefore = dish.isAvailable();
+
+    Long stockQuantityBefore = dish.getStockQuantity();
+
     dish.increaseStock(quantity);
+
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
   }
 
   @Transactional
   public void deleteDish(Long dishId) {
-    Dish dish = getDish(dishId);
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 
     boolean availableBefore = dish.isAvailable();
     Long stockQuantityBefore = dish.getStockQuantity();
@@ -150,7 +159,6 @@ public class DishService {
 
     boolean availableAfter = dish.isAvailable();
     Long stockQuantityAfter = dish.getStockQuantity();
-
     boolean availabilityChanged = availableBefore != availableAfter;
 
     boolean stockQuantityChanged = !Objects.equals(stockQuantityBefore, stockQuantityAfter);
@@ -159,11 +167,14 @@ public class DishService {
       return;
     }
 
+    long aggregateVersion = dish.nextEventVersion();
+
     DishStateChangedEvent event =
         new DishStateChangedEvent(
             UUID.randomUUID(),
             DishStateChangedEvent.SCHEMA_VERSION,
             dish.getId(),
+            aggregateVersion,
             availableAfter,
             stockQuantityAfter,
             Instant.now());

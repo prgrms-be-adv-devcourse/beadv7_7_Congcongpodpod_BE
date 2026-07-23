@@ -38,7 +38,7 @@ class CartDishStateSynchronizerTest {
         .thenReturn(List.of(orderableItem, insufficientItem));
 
     // when
-    synchronizer.synchronize(10L, true, 5L);
+    synchronizer.synchronize(10L, true, 5L, 1L);
 
     // then
     verify(cartItemRepository).findAllByDishId(10L);
@@ -56,11 +56,26 @@ class CartDishStateSynchronizerTest {
     when(cartItemRepository.findAllByDishId(10L)).thenReturn(List.of(cartItem));
 
     // when
-    synchronizer.synchronize(10L, false, 10L);
+    synchronizer.synchronize(10L, false, 10L, 1L);
 
     // then
     assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.DISH_UNAVAILABLE);
 
     assertThat(cartItem.isOrderable()).isFalse();
+  }
+
+  @Test
+  void 이전_버전의_Dish_이벤트는_CartItem에_반영하지_않는다() {
+    // given
+    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 1L, 2L);
+
+    when(cartItemRepository.findAllByDishId(10L)).thenReturn(List.of(cartItem));
+
+    // when
+    synchronizer.synchronize(10L, false, 0L, 1L);
+
+    // then
+    assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.AVAILABLE);
+    assertThat(cartItem.getLastAppliedDishVersion()).isEqualTo(2L);
   }
 }
