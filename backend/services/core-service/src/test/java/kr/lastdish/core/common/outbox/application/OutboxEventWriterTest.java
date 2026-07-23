@@ -11,6 +11,7 @@ import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
 import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,9 +39,11 @@ class OutboxEventWriterTest {
     UUID eventId = UUID.randomUUID();
     Instant occurredAt = Instant.now();
 
+    DishStateChangedPayload eventPayload = new DishStateChangedPayload(false, 5L);
+
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, false, 5L, occurredAt);
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, eventPayload, occurredAt);
 
     String payload =
         """
