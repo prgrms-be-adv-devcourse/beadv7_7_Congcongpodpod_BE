@@ -24,4 +24,9 @@ public class OrderRepositoryImpl implements OrderRepository {
         .findByIdAndIsDeletedFalse(orderId)
         .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
   }
+
+  @Override
+  public boolean validateActivePickUpCode(Long storeId, String pickUpCode) {
+    return orderJpaRepository.existsActivePickupCode(storeId, pickUpCode);
+  }
 }
