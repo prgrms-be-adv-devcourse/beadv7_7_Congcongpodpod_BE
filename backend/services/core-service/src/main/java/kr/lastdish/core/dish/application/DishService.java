@@ -11,6 +11,7 @@ import kr.lastdish.core.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
@@ -30,6 +31,10 @@ public class DishService {
 
     // 할인율 검증
     validateDiscountRate(request.dishPrice(), request.discountPrice());
+
+    if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
+      throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
+    }
 
     Dish dish =
         Dish.create(
@@ -159,6 +164,10 @@ public class DishService {
 
     boolean availableAfter = dish.isAvailable();
     Long stockQuantityAfter = dish.getStockQuantity();
+
+    DishStateChangedPayload payload =
+        new DishStateChangedPayload(availableAfter, stockQuantityAfter);
+
     boolean availabilityChanged = availableBefore != availableAfter;
 
     boolean stockQuantityChanged = !Objects.equals(stockQuantityBefore, stockQuantityAfter);
@@ -175,8 +184,7 @@ public class DishService {
             DishStateChangedEvent.SCHEMA_VERSION,
             dish.getId(),
             aggregateVersion,
-            availableAfter,
-            stockQuantityAfter,
+            payload,
             Instant.now());
 
     outboxEventWriter.append(event);

@@ -13,4 +13,6 @@ public interface OrderRepository {
       List<OrderStatus> orderStatuses,
       LocalDateTime periodStart,
       LocalDateTime periodEnd);
+
+  boolean validateActivePickUpCode(Long storeId, String pickUpCode);
 }
