@@ -48,14 +48,12 @@ class OutboxEventWriterTest {
     String payload =
         """
         {
-          "eventId": "%s",
-          "dishId": 1,
-          "available": false
+          "available": false,
+          "stockQuantity": 5
         }
-        """
-            .formatted(eventId);
+        """;
 
-    when(serializer.serialize(event)).thenReturn(payload);
+    when(serializer.serialize(event.payload())).thenReturn(payload);
 
     /*
      * repository.save()에 전달된 실제 OutboxEvent를 검증하기 위해
@@ -67,7 +65,7 @@ class OutboxEventWriterTest {
     writer.append(event);
 
     // then
-    verify(serializer).serialize(event);
+    verify(serializer).serialize(event.payload());
     verify(repository).save(outboxCaptor.capture());
 
     OutboxEvent savedOutbox = outboxCaptor.getValue();
@@ -77,6 +75,7 @@ class OutboxEventWriterTest {
     assertThat(savedOutbox.getAggregateType()).isEqualTo("DISH");
     assertThat(savedOutbox.getAggregateId()).isEqualTo(1L);
     assertThat(savedOutbox.getAggregateVersion()).isEqualTo(3L);
+    assertThat(savedOutbox.getSchemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
     assertThat(savedOutbox.getPayload()).isEqualTo(payload);
     assertThat(savedOutbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(savedOutbox.getRetryCount()).isZero();

@@ -34,6 +34,7 @@ class SpringEventPublisherTest {
             "DISH",
             10L,
             1L,
+            2,
             "{\"dishId\":10}",
             Instant.now());
 
@@ -52,6 +53,7 @@ class SpringEventPublisherTest {
             "DISH",
             1L,
             1L,
+            2,
             "{\"dishId\":1}",
             Instant.now());
 
