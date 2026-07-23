@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -193,7 +194,8 @@ public class StoreService {
     Store store =
         storeRepository
             .findById(storeId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
