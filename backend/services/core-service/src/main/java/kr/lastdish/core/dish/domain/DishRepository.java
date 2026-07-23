@@ -12,4 +12,6 @@ public interface DishRepository {
   Dish findWithLockByIdAndIsDeletedFalse(Long dishId);
 
   Optional<Dish> findAvailableById(Long dishId);
+
+  boolean existsByStoreIdAndIsDeletedFalse(Long storeId);
 }
