@@ -1,10 +1,5 @@
 package kr.lastdish.core.cart.application.event;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-
-import java.time.Instant;
-import java.util.UUID;
 import kr.lastdish.core.cart.application.CartDishStateSynchronizer;
 import kr.lastdish.core.common.event.EventMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +8,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class DishStateChangedMessageHandlerTest {
@@ -28,7 +29,7 @@ class DishStateChangedMessageHandlerTest {
 
   @Test
   void Payload를_Cart_입력으로_변환한다() {
-    EventMessage message = createMessage("{\"dishId\":10,\"available\":true,\"stockQuantity\":5}");
+    EventMessage message = createMessage("{\"available\":true,\"stockQuantity\":5}");
 
     handler.handle(message);
 
