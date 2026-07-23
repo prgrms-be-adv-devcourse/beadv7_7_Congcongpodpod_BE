@@ -125,9 +125,8 @@ Gateway를 우회하므로 Gateway의 인증, 인가, 사용자 헤더 주입을
 /api/v1/deposits/**                -> core-service
 ```
 
-권한은 URI에 `seller`같은 역할명을 넣지 않고 Gateway에서 HTTP Method와 리소스 경로를
-기준으로 검사한다. 서비스 점검용 `/internal/probe`는 Gateway에서 공개하지 않고
-Swagger 문서에서도 제외한다.
+권한은 URI에 `seller` 같은 역할명을 넣지 않고 Gateway에서 HTTP Method와 리소스 경로를
+기준으로 검사한다.
 
 ## 8. Gateway 통합 UI
 

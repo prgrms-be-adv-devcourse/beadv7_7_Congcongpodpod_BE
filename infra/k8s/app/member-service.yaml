@@ -39,6 +39,14 @@ spec:
                 secretKeyRef:
                   name: member-db-credentials
                   key: password
+            - name: JWT_ACCESS_PRIVATE_KEY_LOCATION
+              value: file:/etc/lastdish/jwt/access-private-key.pem
+            - name: JWT_ACCESS_PUBLIC_KEY_LOCATION
+              value: file:/etc/lastdish/jwt/access-public-key.pem
+          volumeMounts:
+            - name: member-jwt-keys
+              mountPath: /etc/lastdish/jwt
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -66,6 +74,10 @@ spec:
             capabilities:
               drop:
                 - ALL
+      volumes:
+        - name: member-jwt-keys
+          secret:
+            secretName: member-jwt-keys
 ---
 apiVersion: v1
 kind: Service

@@ -1,6 +1,3 @@
-core:
-  message: Hello from local Config Server
-
 spring:
   datasource:
     url: ${CORE_DB_URL:jdbc:postgresql://localhost:54322/core_db}

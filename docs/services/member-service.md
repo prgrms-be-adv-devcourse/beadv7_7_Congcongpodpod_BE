@@ -15,7 +15,7 @@ kr.lastdish.member
 - `auth`: 로그인, 로그아웃, 토큰 발급·갱신 및 인증 처리를 담당한다.
 - `member`: 회원가입, 회원 정보, 주소 및 회원 상태를 관리한다.
 - `shared`: 특정 업무 모듈에 속하지 않는 최소한의 공통 타입과 기술 기능을 관리한다.
-- `support`: 운영 지원 기능이나 업무 모듈에 포함되지 않는 임시 기능을 관리한다.
+- `support`: Swagger 등 애플리케이션 지원 설정을 관리한다.
 
 ## 모듈 내부 구조
 
@@ -37,4 +37,4 @@ kr.lastdish.member
 4. 다른 모듈의 `domain`, `infrastructure`, `presentation` 패키지를 직접 참조하지 않는다.
 5. 즉시 결과가 필요하지 않은 후속 처리는 Spring Application Event를 사용한다.
 6. `shared`에는 인증·회원 비즈니스 규칙을 두지 않는다.
-7. 별도 서비스인 `core-service`와는 Kubernetes Service 기반 HTTP 통신을 사용한다.
+7. 별도 서비스와 통신이 필요하면 Spring Application Event가 아닌 명시적인 외부 통신 계약을 사용한다.

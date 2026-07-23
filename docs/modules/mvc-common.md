@@ -36,4 +36,3 @@ kr.lastdish.common.mvc.MvcCommonAutoConfiguration
 Spring Boot는 애플리케이션 시작 시 의존 JAR의 이 파일을 읽고 자동 구성 클래스를 불러옵니다.
 `MvcCommonAutoConfiguration`은 Servlet 웹 애플리케이션에서만 활성화되며
 `GlobalExceptionHandler`를 Spring Bean으로 등록합니다.
-
