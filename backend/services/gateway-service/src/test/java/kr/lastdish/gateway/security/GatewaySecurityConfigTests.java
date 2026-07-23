@@ -61,10 +61,16 @@ class GatewaySecurityConfigTests {
         .expectHeader()
         .contentType(MediaType.APPLICATION_JSON)
         .expectBody()
-        .jsonPath("$.code")
-        .isEqualTo("INVALID_ACCESS_TOKEN")
-        .jsonPath("$.message")
-        .isEqualTo("인증이 필요합니다.");
+        .jsonPath("$.success")
+        .isEqualTo(false)
+        .jsonPath("$.data")
+        .doesNotExist()
+        .jsonPath("$.error.code")
+        .isEqualTo("G001")
+        .jsonPath("$.error.message")
+        .isEqualTo("인증이 필요합니다.")
+        .jsonPath("$.timestamp")
+        .exists();
   }
 
   @Test
@@ -96,10 +102,16 @@ class GatewaySecurityConfigTests {
         .expectHeader()
         .contentType(MediaType.APPLICATION_JSON)
         .expectBody()
-        .jsonPath("$.code")
-        .isEqualTo("ACCESS_DENIED")
-        .jsonPath("$.message")
-        .isEqualTo("접근 권한이 없습니다.");
+        .jsonPath("$.success")
+        .isEqualTo(false)
+        .jsonPath("$.data")
+        .doesNotExist()
+        .jsonPath("$.error.code")
+        .isEqualTo("G002")
+        .jsonPath("$.error.message")
+        .isEqualTo("접근 권한이 없습니다.")
+        .jsonPath("$.timestamp")
+        .exists();
   }
 
   @Test
