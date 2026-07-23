@@ -6,10 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
-import kr.lastdish.member.auth.presentation.dto.LoginRequest;
-import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
-import kr.lastdish.member.auth.presentation.dto.TokenRefreshRequest;
-import kr.lastdish.member.auth.presentation.dto.TokenResponse;
+import kr.lastdish.member.auth.presentation.dto.*;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.exception.BusinessException;
@@ -145,7 +142,7 @@ class AuthServiceTest {
         authService.login(new LoginRequest("logout@example.com", "password123!"));
 
     // when
-    authService.logout(new TokenRefreshRequest(tokens.getRefreshToken()));
+    authService.logout(new TokenLogoutRequest(tokens.getRefreshToken()));
 
     // then
     assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(tokens.getRefreshToken())))

@@ -99,7 +99,7 @@ public class AuthService {
   }
 
   @Transactional
-  public void logout(TokenRefreshRequest request) {
+  public void logout(TokenLogoutRequest request) {
     String refreshToken = request.getRefreshToken();
 
     // 1. 토큰 유효성 검증
