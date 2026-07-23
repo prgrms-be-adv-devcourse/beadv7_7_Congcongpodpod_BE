@@ -75,7 +75,13 @@ class OutboxFailureRecorderTest {
   private OutboxEvent createProcessingOutbox() {
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            1L,
+            1L,
+            false,
+            5L,
+            Instant.now());
 
     OutboxEvent outbox = OutboxEvent.create(event, "{}");
 

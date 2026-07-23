@@ -13,6 +13,7 @@ import java.util.UUID;
  * @param eventType 이벤트 종류
  * @param aggregateType 이벤트가 발생한 도메인 종류
  * @param aggregateId 이벤트가 발생한 도메인 식별자
+ * @param aggregateVersion 동일 Aggregate의 상태 변경 순서
  * @param payload 직렬화된 이벤트 JSON
  * @param occurredAt 이벤트 발생 시각
  */
@@ -21,5 +22,6 @@ public record EventMessage(
     String eventType,
     String aggregateType,
     Long aggregateId,
+    long aggregateVersion,
     String payload,
     Instant occurredAt) {}

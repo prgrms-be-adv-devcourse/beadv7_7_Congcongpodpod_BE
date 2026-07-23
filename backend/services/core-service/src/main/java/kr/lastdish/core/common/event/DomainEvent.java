@@ -48,6 +48,13 @@ public interface DomainEvent {
   Long aggregateId();
 
   /**
+   * 동일 Aggregate에서 발생한 상태 변경 순서입니다.
+   *
+   * <p>Consumer는 마지막으로 처리한 version 이하의 이벤트를 무시하여 과거 상태가 다시 반영되는 것을 방지할 수 있습니다.
+   */
+  long aggregateVersion();
+
+  /**
    * 비즈니스 이벤트가 실제로 발생한 시각입니다.
    *
    * <p>Outbox 발행 시각이 아니라 Dish 상태 등이 변경된 시각입니다.
