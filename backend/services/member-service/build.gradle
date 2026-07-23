@@ -17,6 +17,8 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation project(':modules:api-common')
+    implementation project(':modules:mvc-common')
     implementation project(':modules:event-common')
     implementation project(':modules:outbox')
 

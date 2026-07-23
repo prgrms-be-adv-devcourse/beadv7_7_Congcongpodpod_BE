@@ -18,6 +18,8 @@ RUN sed -i 's/\r$//' gradlew \
     && chmod +x gradlew \
     && ./gradlew :services:member-service:dependencies --no-daemon
 
+COPY modules/api-common/src modules/api-common/src
+COPY modules/mvc-common/src modules/mvc-common/src
 COPY modules/event-common/src modules/event-common/src
 COPY modules/outbox/src modules/outbox/src
 COPY services/member-service/src services/member-service/src
