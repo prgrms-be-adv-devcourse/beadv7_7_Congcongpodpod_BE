@@ -2,8 +2,8 @@ package kr.lastdish.core.common.outbox.application;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.EventMessage;
-import kr.lastdish.core.common.event.EventPublisher;
+import kr.lastdish.common.event.EventMessage;
+import kr.lastdish.common.event.EventPublisher;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;

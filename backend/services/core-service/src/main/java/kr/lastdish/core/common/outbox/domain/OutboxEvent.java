@@ -3,7 +3,7 @@ package kr.lastdish.core.common.outbox.domain;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.DomainEvent;
+import kr.lastdish.common.event.DomainEvent;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
