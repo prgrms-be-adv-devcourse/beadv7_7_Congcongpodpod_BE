@@ -45,4 +45,14 @@ public class OrderController {
     orderFacade.rejectOrder(memberId, role, orderId, request);
     return ApiResponse.ok();
   }
+
+  // 매장 픽업 처리
+  @PatchMapping("/{orderId}/pickup")
+  public ApiResponse<PickupStatusResponse> updatePickupStatus(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @RequestHeader("X-Authenticated-Role") String role,
+      @PathVariable Long orderId,
+      @RequestBody @Valid PickupStatusRequest request) {
+    return ApiResponse.ok(orderFacade.updateOrder(memberId, role, orderId, request));
+  }
 }

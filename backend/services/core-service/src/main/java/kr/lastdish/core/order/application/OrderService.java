@@ -56,4 +56,11 @@ public class OrderService {
     order.issuePickupCode(pickupCode);
     return OrderReceptionResponse.from(order);
   }
+
+  @Transactional
+  public PickupStatusResponse updatePickupStatus(Long orderId, PickupStatusRequest request) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.updateOrderStatus(request.status());
+    return PickupStatusResponse.from(order);
+  }
 }

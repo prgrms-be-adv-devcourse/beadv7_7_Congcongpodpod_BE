@@ -89,7 +89,6 @@ public class OrderFacade {
       rejectOrderAndRestoreStock(orderId);
     } else {
       rejectOrder(orderId);
-      System.out.println("here");
     }
   }
 
@@ -109,5 +108,22 @@ public class OrderFacade {
     order.rejectOrder();
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+  }
+
+  @Transactional
+  public PickupStatusResponse updateOrder(
+      Long memberId, String role, Long orderId, PickupStatusRequest request) {
+    // seller 검증
+    if (!role.equals("SELLER")) {
+      throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
+    }
+
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+
+    // 멤버가 store의 seller인지 검증
+    storeFacade.validateStoreOwner(order.getStoreId(), memberId);
+
+    // 상태 업데이트
+    return orderService.updatePickupStatus(orderId, request);
   }
 }
