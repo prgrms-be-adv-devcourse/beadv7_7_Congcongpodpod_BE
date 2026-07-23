@@ -27,4 +27,6 @@ public interface StoreRepository {
       BigDecimal maxLatitude,
       BigDecimal minLongitude,
       BigDecimal maxLongitude);
+
+  List<Long> findAllActiveStoreIds();
 }

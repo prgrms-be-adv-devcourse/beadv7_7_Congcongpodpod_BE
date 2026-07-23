@@ -11,7 +11,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class SettlementOrderReaderAdaptor implements SettlementOrderReader{
+public class SettlementOrderReaderAdaptor implements SettlementOrderReader {
     private final OrderFacade orderFacade;
 
     @Override
