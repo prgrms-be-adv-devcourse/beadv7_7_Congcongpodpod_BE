@@ -16,7 +16,9 @@ public enum ErrorCode {
   REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "Refresh Token 정보가 일치하지 않습니다."),
   DUPLICATE_USERNAME(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
   DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 등록된 이메일입니다."),
-  INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
+  INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+  LOGOUT_FAILED(HttpStatus.UNAUTHORIZED, "이미 로그아웃되었거나 유효하지 않은 토큰입니다.");
+
   private final HttpStatus status;
   private final String message;
 }
