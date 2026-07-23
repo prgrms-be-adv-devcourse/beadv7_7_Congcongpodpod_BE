@@ -57,15 +57,7 @@ public class OrderFacade {
   @Transactional
   public OrderReceptionResponse acceptOrder(Long memberId, String role, Long orderId) {
 
-    // seller 검증
-    if (!role.equals("SELLER")) {
-      throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
-    }
-
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-
-    // 멤버가 store의 seller인지 검증
-    storeFacade.validateStoreOwner(order.getStoreId(), memberId);
+    validateSellerOrder(memberId, role, orderId);
 
     // 주문 접수, 픽업 코드 발급
     return orderService.acceptOrder(orderId);
@@ -74,15 +66,7 @@ public class OrderFacade {
   // 매장 주문 반려
   @Transactional
   public void rejectOrder(Long memberId, String role, Long orderId, OrderRejectRequest request) {
-    // seller 검증
-    if (!role.equals("SELLER")) {
-      throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
-    }
-
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-
-    // 멤버가 store의 seller인지 검증
-    storeFacade.validateStoreOwner(order.getStoreId(), memberId);
+    validateSellerOrder(memberId, role, orderId);
 
     // 반려 사유에 따라 환불 프로세스 분기
     if (request.reason().shouldRestoreStock()) {
@@ -113,17 +97,18 @@ public class OrderFacade {
   @Transactional
   public PickupStatusResponse updateOrder(
       Long memberId, String role, Long orderId, PickupStatusRequest request) {
-    // seller 검증
-    if (!role.equals("SELLER")) {
+    validateSellerOrder(memberId, role, orderId);
+
+    // 상태 업데이트
+    return orderService.updatePickupStatus(orderId, request);
+  }
+
+  private void validateSellerOrder(Long memberId, String role, Long orderId) {
+    if (!"SELLER".equals(role)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
 
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-
-    // 멤버가 store의 seller인지 검증
     storeFacade.validateStoreOwner(order.getStoreId(), memberId);
-
-    // 상태 업데이트
-    return orderService.updatePickupStatus(orderId, request);
   }
 }
