@@ -1,11 +1,6 @@
 package kr.lastdish.core.cart.application.event;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
 import kr.lastdish.core.cart.domain.CartItemStatus;
@@ -15,6 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
@@ -40,7 +41,7 @@ class DishStateChangedEventIntegrationTest {
             10L,
             1L,
             2,
-            "{\"dishId\":10,\"available\":true,\"stockQuantity\":5}",
+            "{\"available\":true,\"stockQuantity\":5}",
             Instant.now());
 
     // when

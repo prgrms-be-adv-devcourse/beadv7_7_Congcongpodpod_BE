@@ -1,16 +1,17 @@
 package kr.lastdish.core.cart.application.event;
 
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
-import java.time.Instant;
-import java.util.UUID;
 import kr.lastdish.core.common.event.EventMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class DishStateChangedEventListenerTest {
@@ -47,6 +48,13 @@ class DishStateChangedEventListenerTest {
 
   private EventMessage createMessage(String eventType) {
     return new EventMessage(
-        UUID.randomUUID(), eventType, "DISH", 10L, 1L, 2, "{\"dishId\":10}", Instant.now());
+        UUID.randomUUID(),
+        eventType,
+        "DISH",
+        10L,
+        1L,
+        2,
+        "{\"available\":true,\"stockQuantity\":5}",
+        Instant.now());
   }
 }

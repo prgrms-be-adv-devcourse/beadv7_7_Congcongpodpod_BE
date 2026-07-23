@@ -1,10 +1,5 @@
 package kr.lastdish.core.common.event.spring;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
-
-import java.time.Instant;
-import java.util.UUID;
 import kr.lastdish.core.common.event.EventMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class SpringEventPublisherTest {
@@ -35,7 +37,7 @@ class SpringEventPublisherTest {
             10L,
             1L,
             2,
-            "{\"dishId\":10}",
+            "{\"available\":true,\"stockQuantity\":5}",
             Instant.now());
 
     eventPublisher.publish(message);
@@ -54,7 +56,7 @@ class SpringEventPublisherTest {
             1L,
             1L,
             2,
-            "{\"dishId\":1}",
+            "{\"available\":false,\"stockQuantity\":0}",
             Instant.now());
 
     RuntimeException publishException = new RuntimeException("Spring Event 발행 실패");
