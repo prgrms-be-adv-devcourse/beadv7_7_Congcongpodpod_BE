@@ -16,7 +16,16 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table(name = "orders")
+@Table(
+    name = "orders",
+    indexes = {
+      @Index(
+          name = "idx_orders_member_deleted_created_at",
+          columnList = "member_id, is_deleted, created_at"),
+      @Index(
+          name = "idx_orders_store_deleted_created_at",
+          columnList = "store_id, is_deleted, created_at")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
