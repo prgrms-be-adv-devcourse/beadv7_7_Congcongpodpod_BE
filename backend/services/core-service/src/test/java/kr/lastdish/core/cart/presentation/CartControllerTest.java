@@ -1,9 +1,6 @@
 package kr.lastdish.core.cart.presentation;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -86,6 +83,8 @@ class CartControllerTest {
         .perform(get("/api/v1/carts/members/{memberId}", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].cartItemId").value(itemId))
+        .andExpect(jsonPath("$.data.items[0].status").value("AVAILABLE"))
+        .andExpect(jsonPath("$.data.items[0].orderable").value(true))
         .andExpect(jsonPath("$.data.totalPrice").value(5000));
 
     // 4) 수량 변경
