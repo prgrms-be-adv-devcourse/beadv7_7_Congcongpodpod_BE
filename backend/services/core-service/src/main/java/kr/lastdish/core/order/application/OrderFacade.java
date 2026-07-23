@@ -1,11 +1,13 @@
 package kr.lastdish.core.order.application;
 
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
-import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
-import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
-import kr.lastdish.core.order.presentation.dto.OrderResponse;
+import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.presentation.dto.*;
 import kr.lastdish.core.payment.application.DepositFacade;
+import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderFacade {
 
+  private final OrderRepository orderRepository;
   private final OrderService orderService;
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
+  private final StoreFacade storeFacade;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
@@ -34,18 +38,77 @@ public class OrderFacade {
     return orderService.completePayment(order.getId());
   }
 
-  // 주문 취소 - 결제 환불 - 재고 복구
+  // 주문 취소 - 재고 복구 - 결제 환불
   @Transactional
-  public OrderResponse cancelOrder(Long memberId, Long orderId, OrderCancelRequest request) {
+  public OrderResponse cancelOrder(Long memberId, Long orderId) {
     // 주문 취소
-    Order order = orderService.cancelOrder(memberId, orderId, request);
-
-    // 결제 환불
-    depositFacade.refund(memberId, orderId, order.getTotalPrice());
+    Order order = orderService.cancelOrder(memberId, orderId);
 
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
 
+    // 결제 환불
+    depositFacade.refund(memberId, orderId, order.getTotalPrice());
+
     return OrderResponse.from(order);
+  }
+
+  // 매장 주문 접수
+  @Transactional
+  public OrderReceptionResponse acceptOrder(Long memberId, String role, Long orderId) {
+
+    validateSellerOrder(memberId, role, orderId);
+
+    // 주문 접수, 픽업 코드 발급
+    return orderService.acceptOrder(orderId);
+  }
+
+  // 매장 주문 반려
+  @Transactional
+  public void rejectOrder(Long memberId, String role, Long orderId, OrderRejectRequest request) {
+    validateSellerOrder(memberId, role, orderId);
+
+    // 반려 사유에 따라 환불 프로세스 분기
+    if (request.reason().shouldRestoreStock()) {
+      rejectOrderAndRestoreStock(orderId);
+    } else {
+      rejectOrder(orderId);
+    }
+  }
+
+  @Transactional
+  public void rejectOrderAndRestoreStock(Long orderId) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.rejectOrder();
+    // 환불
+    depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    // 재고 복구
+    dishFacade.increaseStock(order.getDishId(), order.getQuantity());
+  }
+
+  @Transactional
+  public void rejectOrder(Long orderId) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.rejectOrder();
+    // 환불 - 재고 복구 안함
+    depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+  }
+
+  @Transactional
+  public PickupStatusResponse updateOrder(
+      Long memberId, String role, Long orderId, PickupStatusRequest request) {
+    validateSellerOrder(memberId, role, orderId);
+
+    // 상태 업데이트
+    return orderService.updatePickupStatus(orderId, request);
+  }
+
+  private void validateSellerOrder(Long memberId, String role, Long orderId) {
+    if (!"SELLER".equals(role)) {
+      throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
+    }
+
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    storeFacade.validateStoreOwner(order.getStoreId(), memberId);
   }
 }

@@ -11,4 +11,6 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   Optional<Dish> findWithLockByIdAndIsDeletedFalse(Long dishId);
+
+  boolean existsByStoreIdAndIsDeletedFalse(Long storeId);
 }
