@@ -41,6 +41,30 @@ Access Token 검증과 역할 기반 접근 제어를 수행합니다.
 | `/openapi/member-service` | Member `/v3/api-docs` |
 | `/openapi/core-service` | Core `/v3/api-docs` |
 
+## 하위 서비스 타임아웃
+
+Gateway HTTP Client에는 모든 하위 서비스 라우트에 적용되는 연결·응답 제한 시간이
+설정되어 있습니다.
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 10s
+```
+
+| 설정 | 값 | 의미 |
+|---|---:|---|
+| `connect-timeout` | `3000ms` | 하위 서비스와 TCP 연결을 맺을 때까지 기다리는 최대 시간 |
+| `response-timeout` | `10s` | 연결 후 하위 서비스 응답을 기다리는 최대 시간 |
+
+연결 자체가 불가능하면 `G503`, 연결 후 응답 제한 시간을 초과하면 `G504`를 반환합니다.
+운영 환경에서는 Config Server의 `gateway-service.yml`에도 같은 설정을 추가해야 합니다.
+
 ## 접근 허용 목록
 
 보안 규칙은
@@ -124,6 +148,7 @@ Gateway가 직접 관리하는 오류:
 | 500 | `G500` | 분류되지 않은 Gateway 내부 오류 |
 | 502 | `G502` | 하위 서비스 응답 처리 실패 |
 | 503 | `G503` | 하위 서비스 연결·DNS·라우팅 실패 |
+| 504 | `G504` | 하위 서비스 응답 시간 초과 |
 
 하위 서비스가 반환한 `Cxxx` 또는 서비스별 도메인 오류 코드는 Gateway가 변경하지 않고
 전달합니다.
