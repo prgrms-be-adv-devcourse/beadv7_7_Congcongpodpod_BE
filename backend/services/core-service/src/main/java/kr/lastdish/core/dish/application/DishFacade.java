@@ -33,8 +33,13 @@ public class DishFacade {
 
   // 마감할인 서비스 특성상 스냅샷 단가는 discountPrice로 잡는다.
   private static DishSnapshot toSnapshot(Dish dish) {
+
     return new DishSnapshot(
-        dish.getId(), dish.getDishName(), dish.getDiscountPrice(), dish.getStockQuantity());
+        dish.getId(),
+        dish.getDishName(),
+        dish.getDiscountPrice(),
+        dish.getStockQuantity(),
+        dish.getEventVersion());
   }
 
   public void decreaseStock(Long dishId, Long quantity) {

@@ -17,7 +17,7 @@ class OutboxEventTest {
 
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, occurredAt);
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, false, 5L, occurredAt);
 
     String payload =
         """
@@ -38,6 +38,7 @@ class OutboxEventTest {
     assertThat(outbox.getEventType()).isEqualTo(DishStateChangedEvent.EVENT_TYPE);
     assertThat(outbox.getAggregateType()).isEqualTo("DISH");
     assertThat(outbox.getAggregateId()).isEqualTo(1L);
+    assertThat(outbox.getAggregateVersion()).isEqualTo(3L);
     assertThat(outbox.getPayload()).isEqualTo(payload);
     assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(outbox.getRetryCount()).isZero();
@@ -113,7 +114,13 @@ class OutboxEventTest {
   private OutboxEvent createOutbox() {
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            1L,
+            1L,
+            false,
+            5L,
+            Instant.now());
 
     return OutboxEvent.create(event, "{}");
   }

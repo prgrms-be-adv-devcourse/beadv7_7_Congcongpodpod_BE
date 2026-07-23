@@ -29,15 +29,22 @@ class OutboxEventSerializerTest {
     // given
     DishStateChangedEvent source =
         new DishStateChangedEvent(
-            UUID.randomUUID(), DishStateChangedEvent.SCHEMA_VERSION, 1L, false, 5L, Instant.now());
+            UUID.randomUUID(),
+            DishStateChangedEvent.SCHEMA_VERSION,
+            1L,
+            3L,
+            false,
+            5L,
+            Instant.now());
 
     // when
     String payload = serializer.serialize(source);
 
     // then
     assertThat(payload)
-        .contains("\"schemaVersion\":1")
+        .contains("\"schemaVersion\":2")
         .contains("\"dishId\":1")
+        .contains("\"aggregateVersion\":3")
         .contains("\"available\":false")
         .contains("\"stockQuantity\":5");
   }

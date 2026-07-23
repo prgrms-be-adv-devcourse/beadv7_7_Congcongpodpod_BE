@@ -26,14 +26,16 @@ public class CartDishStateSynchronizer {
    * @param dishId 변경된 Dish 식별자
    * @param available Dish 판매 가능 여부
    * @param stockQuantity 현재 Dish 재고
+   * @param aggregateVersion Dish 상태 변경 순서
    */
   @Transactional
-  public void synchronize(Long dishId, boolean available, Long stockQuantity) {
+  public void synchronize(
+      Long dishId, boolean available, Long stockQuantity, long aggregateVersion) {
 
     List<CartItem> cartItems = cartItemRepository.findAllByDishId(dishId);
 
     for (CartItem cartItem : cartItems) {
-      cartItem.synchronizeDishState(available, stockQuantity);
+      cartItem.synchronizeDishState(available, stockQuantity, aggregateVersion);
     }
   }
 }
