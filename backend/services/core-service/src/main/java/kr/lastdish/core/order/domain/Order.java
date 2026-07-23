@@ -112,16 +112,36 @@ public class Order {
     this.paymentStatus = PaymentStatus.COMPLETED;
   }
 
+  // 픽업 코드 발급 - 픽업 대기 상태 변경
+  public void issuePickupCode(String pickupCode) {
+    if (this.paymentStatus != PaymentStatus.COMPLETED) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+
+    if (this.pickupCode != null) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+    this.pickupCode = pickupCode;
+    this.status = OrderStatus.PICKUP_READY;
+  }
+
+  // 매장 주문 반려
+  public void rejectOrder() {
+    if (this.status != OrderStatus.RESERVED) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+    this.status = OrderStatus.REJECTED;
+  }
+
   public void delete() {
     this.isDeleted = true;
   }
 
   // 주문 취소
-  public void cancel(Long memberId, String cancelReason) {
+  public void cancel(Long memberId) {
     validateOwner(memberId);
     validateCancelable();
 
-    this.cancelReason = cancelReason;
     this.status = OrderStatus.CANCELLED;
   }
 
@@ -135,5 +155,13 @@ public class Order {
     if (!Objects.equals(this.memberId, memberId)) {
       throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
     }
+  }
+
+  // 픽업 상태 변경
+  public void updateOrderStatus(OrderStatus status) {
+    if (this.status != OrderStatus.PICKUP_READY) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+    this.status = status;
   }
 }
