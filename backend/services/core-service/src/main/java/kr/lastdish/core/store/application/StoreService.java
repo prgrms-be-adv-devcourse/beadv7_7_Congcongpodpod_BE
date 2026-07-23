@@ -187,4 +187,16 @@ public class StoreService {
 
     return PayoutAccountResult.from(payoutAccount);
   }
+
+  // StoreFacade 검증 메서드
+  public void validateSeller(Long storeId, Long memberId) {
+    Store store =
+        storeRepository
+            .findById(storeId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+
+    if (!store.isOwnedBy(memberId)) {
+      throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
+    }
+  }
 }
