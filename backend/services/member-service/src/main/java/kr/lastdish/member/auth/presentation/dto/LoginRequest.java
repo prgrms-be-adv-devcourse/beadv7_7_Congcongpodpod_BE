@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor // 이 부분을 추가해주세요
+@AllArgsConstructor
 public class LoginRequest {
 
   @NotBlank(message = "이메일은 필수 입력 값입니다.")
