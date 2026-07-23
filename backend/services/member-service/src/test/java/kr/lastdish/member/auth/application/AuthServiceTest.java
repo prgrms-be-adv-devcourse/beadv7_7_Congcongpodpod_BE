@@ -5,10 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
+import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
 import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
 import kr.lastdish.member.auth.presentation.dto.TokenRefreshRequest;
 import kr.lastdish.member.auth.presentation.dto.TokenResponse;
+import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
@@ -76,6 +78,7 @@ class AuthServiceTest {
     // then
     assertThat(newTokens.getAccessToken()).isNotNull();
     assertThat(newTokens.getRefreshToken()).isNotNull();
+    assertThat(newTokens.getRefreshToken()).isNotEqualTo(initialTokens.getRefreshToken());
   }
 
   @Test
@@ -96,6 +99,8 @@ class AuthServiceTest {
         .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
   }
 
+  @Autowired private JwtTokenProvider jwtTokenProvider;
+
   @Test
   @DisplayName("만료된 리프레시 토큰으로 재발급을 요청하면 예외가 발생한다.")
   void reissueFailWithExpiredToken() {
@@ -109,16 +114,17 @@ class AuthServiceTest {
             "expired@example.com",
             "MEMBER");
     authService.signUp(signUpRequest);
-    TokenResponse tokens =
-        authService.login(new LoginRequest("expired@example.com", "password123!"));
+    authService.login(new LoginRequest("expired@example.com", "password123!"));
 
-    // 만료된 토큰을 시뮬레이션하기 위해 임의의 만료된 토큰 문자열 혹은
-    // JwtTokenProvider를 활용해 유효기간이 지난 토큰을 mocking 하거나 생성할 수 있습니다.
-    String expiredToken = "expired.jwt.token.string";
+    Member member = memberRepository.findByEmail("expired@example.com").orElseThrow();
 
-    // (만약 JwtTokenProvider가 validateToken에서 false를 반환하도록 동작한다면)
+    String expiredToken =
+        jwtTokenProvider.createExpiredRefreshToken(
+            new kr.lastdish.member.member.domain.MemberId(member.getId()), member.getRole());
+
     // when & then
     assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(expiredToken)))
-        .isInstanceOf(BusinessException.class);
+        .isInstanceOf(BusinessException.class)
+        .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
   }
 }
