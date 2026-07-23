@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import kr.lastdish.common.event.DomainEvent;
-import kr.lastdish.core.common.outbox.application.OutboxEventWriter;
+import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Category;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
