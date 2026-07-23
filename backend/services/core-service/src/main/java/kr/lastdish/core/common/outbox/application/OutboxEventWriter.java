@@ -1,6 +1,6 @@
 package kr.lastdish.core.common.outbox.application;
 
-import kr.lastdish.core.common.event.DomainEvent;
+import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEvent;
 import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;

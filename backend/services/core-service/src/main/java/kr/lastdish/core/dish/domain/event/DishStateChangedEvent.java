@@ -2,7 +2,7 @@ package kr.lastdish.core.dish.domain.event;
 
 import java.time.Instant;
 import java.util.UUID;
-import kr.lastdish.core.common.event.DomainEvent;
+import kr.lastdish.common.event.DomainEvent;
 
 /**
  * Cart 등 다른 도메인이 알아야 하는 Dish 주문 상태가 변경되었음을 나타냅니다.
