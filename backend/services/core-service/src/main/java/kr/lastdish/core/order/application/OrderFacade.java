@@ -1,5 +1,7 @@
 package kr.lastdish.core.order.application;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
@@ -110,5 +112,10 @@ public class OrderFacade {
 
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     storeFacade.validateStoreOwner(order.getStoreId(), memberId);
+  }
+
+  public List<OrderSettlementInfo> findSettlementOrders(
+      Long storeId, LocalDateTime periodStart, LocalDateTime periodEnd) {
+    return orderService.findSettlementOrders(storeId, periodStart, periodEnd);
   }
 }
