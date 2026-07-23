@@ -1,6 +1,7 @@
 package kr.lastdish.gateway.security;
 
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.gateway.error.GatewayErrorCode;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
