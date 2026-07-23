@@ -44,4 +44,3 @@ kr.lastdish.common.event.EventCommonAutoConfiguration
 Spring Boot는 의존 JAR의 이 파일을 읽어 `EventCommonAutoConfiguration`을 자동으로 적용합니다.
 따라서 사용하는 서비스가 공통 모듈 패키지를 직접 컴포넌트 스캔하지 않아도
 설정 조건에 맞는 `SpringEventPublisher`가 Spring Bean으로 등록됩니다.
-
