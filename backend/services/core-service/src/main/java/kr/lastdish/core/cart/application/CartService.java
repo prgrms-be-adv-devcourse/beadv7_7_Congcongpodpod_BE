@@ -1,6 +1,8 @@
 package kr.lastdish.core.cart.application;
 
 import java.util.List;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.domain.Cart;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
@@ -9,7 +11,6 @@ import kr.lastdish.core.cart.presentation.dto.CartItemAddRequest;
 import kr.lastdish.core.cart.presentation.dto.CartItemResponse;
 import kr.lastdish.core.cart.presentation.dto.CartItemUpdateRequest;
 import kr.lastdish.core.cart.presentation.dto.CartResponse;
-import kr.lastdish.core.common.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
@@ -104,7 +105,8 @@ public class CartService {
     DishSnapshot dish =
         dishFacade
             .findDishSnapshot(dishId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "상품을 찾을 수 없습니다."));
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "상품을 찾을 수 없습니다."));
 
     if (quantity > dish.stockQuantity()) {
       throw new BusinessException(ErrorCode.SOLD_OUT);
@@ -117,7 +119,8 @@ public class CartService {
   private Cart getCartOrThrow(Long cartId) {
     return cartRepository
         .findById(cartId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "장바구니를 찾을 수 없습니다."));
+        .orElseThrow(
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "장바구니를 찾을 수 없습니다."));
   }
 
   // itemId로 CartItem을 찾고, 그 상품이 이 cartId 소유가 맞는지까지 확인한다.
@@ -126,10 +129,11 @@ public class CartService {
         cartItemRepository
             .findById(itemId)
             .orElseThrow(
-                () -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "장바구니 상품을 찾을 수 없습니다."));
+                () ->
+                    new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "장바구니 상품을 찾을 수 없습니다."));
 
     if (!cartItem.getCartId().equals(cartId)) {
-      throw new BusinessException(ErrorCode.ENTITY_NOT_FOUND, "장바구니 상품을 찾을 수 없습니다.");
+      throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "장바구니 상품을 찾을 수 없습니다.");
     }
 
     return cartItem;
