@@ -11,6 +11,7 @@ import kr.lastdish.core.common.outbox.domain.OutboxEventRepository;
 import kr.lastdish.core.common.outbox.domain.OutboxStatus;
 import kr.lastdish.core.common.outbox.infrastructure.OutboxEventSerializer;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,21 +39,21 @@ class OutboxEventWriterTest {
     UUID eventId = UUID.randomUUID();
     Instant occurredAt = Instant.now();
 
+    DishStateChangedPayload eventPayload = new DishStateChangedPayload(false, 5L);
+
     DishStateChangedEvent event =
         new DishStateChangedEvent(
-            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, false, 5L, occurredAt);
+            eventId, DishStateChangedEvent.SCHEMA_VERSION, 1L, 3L, eventPayload, occurredAt);
 
     String payload =
         """
         {
-          "eventId": "%s",
-          "dishId": 1,
-          "available": false
+          "available": false,
+          "stockQuantity": 5
         }
-        """
-            .formatted(eventId);
+        """;
 
-    when(serializer.serialize(event)).thenReturn(payload);
+    when(serializer.serialize(event.payload())).thenReturn(payload);
 
     /*
      * repository.save()에 전달된 실제 OutboxEvent를 검증하기 위해
@@ -64,7 +65,7 @@ class OutboxEventWriterTest {
     writer.append(event);
 
     // then
-    verify(serializer).serialize(event);
+    verify(serializer).serialize(event.payload());
     verify(repository).save(outboxCaptor.capture());
 
     OutboxEvent savedOutbox = outboxCaptor.getValue();
@@ -74,6 +75,7 @@ class OutboxEventWriterTest {
     assertThat(savedOutbox.getAggregateType()).isEqualTo("DISH");
     assertThat(savedOutbox.getAggregateId()).isEqualTo(1L);
     assertThat(savedOutbox.getAggregateVersion()).isEqualTo(3L);
+    assertThat(savedOutbox.getSchemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
     assertThat(savedOutbox.getPayload()).isEqualTo(payload);
     assertThat(savedOutbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(savedOutbox.getRetryCount()).isZero();
