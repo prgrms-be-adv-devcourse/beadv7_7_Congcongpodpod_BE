@@ -47,6 +47,13 @@ class DishStateChangedEventListenerTest {
 
   private EventMessage createMessage(String eventType) {
     return new EventMessage(
-        UUID.randomUUID(), eventType, "DISH", 10L, 1L, "{\"dishId\":10}", Instant.now());
+        UUID.randomUUID(),
+        eventType,
+        "DISH",
+        10L,
+        1L,
+        2,
+        "{\"available\":true,\"stockQuantity\":5}",
+        Instant.now());
   }
 }

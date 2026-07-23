@@ -54,6 +54,14 @@ public class OutboxEvent {
   @Column(name = "aggregate_version", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
   private long aggregateVersion;
 
+  /**
+   * 이벤트 payload 계약의 스키마 버전입니다.
+   *
+   * <p>Consumer가 지원하는 payload 구조인지 판단할 때 사용합니다.
+   */
+  @Column(name = "schema_version", nullable = false, columnDefinition = "INTEGER DEFAULT 1")
+  private int schemaVersion;
+
   /** DomainEvent를 JSON으로 직렬화한 값입니다. */
   @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
   private String payload;
@@ -96,7 +104,7 @@ public class OutboxEvent {
    *
    * <p>새 이벤트는 아직 발행되지 않았으므로 PENDING 상태로 생성합니다.
    */
-  public static OutboxEvent create(DomainEvent event, String payload) {
+  public static OutboxEvent create(DomainEvent<?> event, String payload) {
 
     OutboxEvent outbox = new OutboxEvent();
 
@@ -105,6 +113,7 @@ public class OutboxEvent {
     outbox.aggregateType = event.aggregateType();
     outbox.aggregateId = event.aggregateId();
     outbox.aggregateVersion = event.aggregateVersion();
+    outbox.schemaVersion = event.schemaVersion();
     outbox.payload = payload;
     outbox.status = OutboxStatus.PENDING;
     outbox.retryCount = 0;

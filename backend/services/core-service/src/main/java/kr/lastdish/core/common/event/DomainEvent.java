@@ -10,7 +10,7 @@ import java.util.UUID;
  *
  * <p>현재는 Spring Event로 발행하지만, 향후 Kafka로 전환하더라도 이벤트 계약은 그대로 유지할 수 있습니다.
  */
-public interface DomainEvent {
+public interface DomainEvent<P> {
 
   /**
    * 이벤트를 고유하게 식별하는 값입니다.
@@ -60,4 +60,6 @@ public interface DomainEvent {
    * <p>Outbox 발행 시각이 아니라 Dish 상태 등이 변경된 시각입니다.
    */
   Instant occurredAt();
+
+  P payload();
 }

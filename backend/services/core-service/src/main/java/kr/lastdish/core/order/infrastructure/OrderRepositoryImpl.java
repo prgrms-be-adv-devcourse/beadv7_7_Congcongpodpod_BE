@@ -37,4 +37,8 @@ public class OrderRepositoryImpl implements OrderRepository {
     return orderJpaRepository.findSettlementTargetOrders(
         storeId, orderStatuses, periodStart, periodEnd);
   }
+
+  public boolean validateActivePickUpCode(Long storeId, String pickUpCode) {
+    return orderJpaRepository.existsActivePickupCode(storeId, pickUpCode);
+  }
 }
