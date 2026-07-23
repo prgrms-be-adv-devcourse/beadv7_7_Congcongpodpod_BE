@@ -34,4 +34,10 @@ public class AuthController {
     TokenResponse response = authService.refresh(request);
     return ResponseEntity.ok(response);
   }
+
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout(@Valid @RequestBody TokenLogoutRequest request) {
+    authService.logout(request); // DTO 객체 그대로 전달
+    return ResponseEntity.ok().build();
+  }
 }
