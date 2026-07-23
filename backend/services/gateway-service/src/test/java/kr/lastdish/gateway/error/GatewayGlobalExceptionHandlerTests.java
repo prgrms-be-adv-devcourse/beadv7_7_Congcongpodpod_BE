@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,10 @@ class GatewayGlobalExceptionHandlerTests {
         new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "test"),
         HttpStatus.SERVICE_UNAVAILABLE,
         GatewayErrorCode.SERVICE_UNAVAILABLE);
+    assertError(
+        new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, "test"),
+        HttpStatus.GATEWAY_TIMEOUT,
+        GatewayErrorCode.GATEWAY_TIMEOUT);
   }
 
   @Test
@@ -60,6 +65,14 @@ class GatewayGlobalExceptionHandlerTests {
         new IllegalStateException(new NoRouteToHostException("host is unreachable")),
         HttpStatus.SERVICE_UNAVAILABLE,
         GatewayErrorCode.SERVICE_UNAVAILABLE);
+  }
+
+  @Test
+  void mapsNestedTimeoutToGatewayTimeout() throws Exception {
+    assertError(
+        new IllegalStateException(new TimeoutException("response timeout")),
+        HttpStatus.GATEWAY_TIMEOUT,
+        GatewayErrorCode.GATEWAY_TIMEOUT);
   }
 
   @Test
