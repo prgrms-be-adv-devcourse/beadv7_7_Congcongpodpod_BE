@@ -2,7 +2,7 @@ package kr.lastdish.core.store.presentation;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import kr.lastdish.core.common.response.ApiResponse;
+import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.PayoutAccountResult;
 import kr.lastdish.core.store.application.dto.StorePageResult;
