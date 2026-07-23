@@ -1,6 +1,7 @@
 package kr.lastdish.core.settlement.application;
 
 import kr.lastdish.core.order.application.OrderFacade;
+import kr.lastdish.core.order.presentation.dto.OrderSettlementInfo;
 import kr.lastdish.core.settlement.application.dto.SettlementOrderData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ public class SettlementOrderReaderAdaptor implements SettlementOrderReader{
         return new SettlementOrderData(
                 order.orderId(),
                 order.storeId(),
-                order.salesAmount().tolongValue(),
+                order.salesAmount().longValueExact(),
                 order.orderCompletedAt()
         );
     }
