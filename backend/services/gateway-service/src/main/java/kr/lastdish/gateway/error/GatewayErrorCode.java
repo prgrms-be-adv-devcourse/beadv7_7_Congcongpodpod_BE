@@ -3,6 +3,11 @@ package kr.lastdish.gateway.error;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import org.springframework.http.HttpStatus;
 
+/**
+ * Gateway에서 직접 발생하는 오류 코드.
+ *
+ * <p>각 하위 서비스의 도메인 오류 코드는 해당 서비스가 관리하며, Gateway는 인증·라우팅·연결 오류만 관리한다.
+ */
 public enum GatewayErrorCode implements ErrorCodeSpec {
   INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "G001", "인증이 필요합니다."),
   ACCESS_DENIED(HttpStatus.FORBIDDEN, "G002", "접근 권한이 없습니다."),
