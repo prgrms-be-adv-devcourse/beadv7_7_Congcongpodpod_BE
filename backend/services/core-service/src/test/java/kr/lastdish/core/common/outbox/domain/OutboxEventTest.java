@@ -31,13 +31,10 @@ class OutboxEventTest {
     String payload =
         """
         {
-          "eventId": "%s",
-          "schemaVersion": 1,
-          "dishId": 1,
-          "available": false
+          "available": false,
+          "stockQuantity": 5
         }
-        """
-            .formatted(eventId);
+        """;
 
     // when
     OutboxEvent outbox = OutboxEvent.create(event, payload);
@@ -48,6 +45,7 @@ class OutboxEventTest {
     assertThat(outbox.getAggregateType()).isEqualTo("DISH");
     assertThat(outbox.getAggregateId()).isEqualTo(1L);
     assertThat(outbox.getAggregateVersion()).isEqualTo(3L);
+    assertThat(outbox.getSchemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
     assertThat(outbox.getPayload()).isEqualTo(payload);
     assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(outbox.getRetryCount()).isZero();

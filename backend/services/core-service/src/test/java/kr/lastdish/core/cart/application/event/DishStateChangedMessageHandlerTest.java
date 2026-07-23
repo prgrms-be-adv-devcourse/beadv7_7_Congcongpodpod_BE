@@ -51,6 +51,7 @@ class DishStateChangedMessageHandlerTest {
         "DISH",
         10L,
         3L,
+        2,
         payload,
         Instant.now());
   }

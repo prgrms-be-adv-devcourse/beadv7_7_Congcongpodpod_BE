@@ -51,6 +51,7 @@ public class OutboxEventProcessor {
             outbox.getAggregateType(),
             outbox.getAggregateId(),
             outbox.getAggregateVersion(),
+            outbox.getSchemaVersion(),
             outbox.getPayload(),
             outbox.getOccurredAt());
 
