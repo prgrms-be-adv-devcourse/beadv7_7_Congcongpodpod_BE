@@ -1,5 +1,7 @@
 package kr.lastdish.core.order.application;
 
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.presentation.dto.*;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
   private final OrderRepository orderRepository;
   private final PickupCodeGenerator pickupCodeGenerator;
+  private static final int MAX_PICKUP_CODE_RETRY = 5;
 
   public Order createOrder(Long memberId, OrderCreateRequest request) {
     Order order =
@@ -42,17 +45,23 @@ public class OrderService {
     return order;
   }
 
+  private String generatePickupCode(Long storeId) {
+    for (int retry = 0; retry < MAX_PICKUP_CODE_RETRY; retry++) {
+      String pickupCode = pickupCodeGenerator.generate();
+
+      if (!orderRepository.validateActivePickUpCode(storeId, pickupCode)) {
+        return pickupCode;
+      }
+    }
+
+    throw new BusinessException(ErrorCode.PICKUP_CODE_GENERATION_FAILED);
+  }
+
   @Transactional
   // 주문 접수 - 픽업 코드 발급
   public OrderReceptionResponse acceptOrder(Long orderId) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-
-    // 중복일시 다시 생성
-    String pickupCode;
-    do {
-      pickupCode = pickupCodeGenerator.generate();
-    } while (orderRepository.validateActivePickUpCode(order.getStoreId(), pickupCode));
-
+    String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
     return OrderReceptionResponse.from(order);
   }
