@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "dishes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Dish {
