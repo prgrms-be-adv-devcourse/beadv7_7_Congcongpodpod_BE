@@ -56,10 +56,18 @@ services:
       context: ./backend
       dockerfile: services/member-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       MEMBER_DB_URL: jdbc:postgresql://member-db:5432/member_db
       MEMBER_DB_USERNAME: member
       MEMBER_DB_PASSWORD: member_local_password
+      JWT_ACCESS_PRIVATE_KEY_LOCATION: file:/run/secrets/access-private-key.pem
+      JWT_ACCESS_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
+    secrets:
+      - source: access-private-key
+        target: access-private-key.pem
+      - source: access-public-key
+        target: access-public-key.pem
     depends_on:
       config-server:
         condition: service_healthy
@@ -73,6 +81,7 @@ services:
       context: ./backend
       dockerfile: services/core-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
       CORE_DB_USERNAME: core
@@ -90,7 +99,12 @@ services:
       context: ./backend
       dockerfile: services/gateway-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
+      JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
+    secrets:
+      - source: access-public-key
+        target: access-public-key.pem
     depends_on:
       config-server:
         condition: service_healthy
@@ -100,6 +114,12 @@ services:
         condition: service_started
     ports:
       - "8080:8080"
+
+secrets:
+  access-private-key:
+    file: ./infra/local/keys/access-private-key.pem
+  access-public-key:
+    file: ./infra/local/keys/access-public-key.pem
 
 volumes:
   member-db-data:
