@@ -96,7 +96,7 @@ class MemberServiceApplicationTests {
         .perform(
             post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(loginJson))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accessToken").exists())
-        .andExpect(jsonPath("$.refreshToken").exists());
+        .andExpect(jsonPath("$.data.accessToken").exists())
+        .andExpect(jsonPath("$.data.refreshToken").exists());
   }
 }
