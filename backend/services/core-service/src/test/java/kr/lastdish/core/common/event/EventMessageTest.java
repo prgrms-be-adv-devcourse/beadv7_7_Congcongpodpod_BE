@@ -1,10 +1,11 @@
 package kr.lastdish.core.common.event;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EventMessageTest {
 
@@ -17,16 +18,14 @@ class EventMessageTest {
     String payload =
         """
         {
-          "schemaVersion": 1,
-          "dishId": 10,
-          "available": true,
+          "available": false,
           "stockQuantity": 5
         }
         """;
 
     // when
     EventMessage message =
-        new EventMessage(eventId, "DISH_STATE_CHANGED", "DISH", 10L, 3L, payload, occurredAt);
+        new EventMessage(eventId, "DISH_STATE_CHANGED", "DISH", 10L, 3L, 2, payload, occurredAt);
 
     // then
     assertThat(message.eventId()).isEqualTo(eventId);
@@ -34,6 +33,7 @@ class EventMessageTest {
     assertThat(message.aggregateType()).isEqualTo("DISH");
     assertThat(message.aggregateId()).isEqualTo(10L);
     assertThat(message.aggregateVersion()).isEqualTo(3L);
+    assertThat(message.schemaVersion()).isEqualTo(2);
     assertThat(message.payload()).isEqualTo(payload);
     assertThat(message.occurredAt()).isEqualTo(occurredAt);
   }

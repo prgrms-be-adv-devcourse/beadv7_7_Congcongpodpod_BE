@@ -57,6 +57,8 @@ class OutboxEventProcessorTest {
     assertThat(message.eventType()).isEqualTo(outbox.getEventType());
     assertThat(message.aggregateType()).isEqualTo(outbox.getAggregateType());
     assertThat(message.aggregateId()).isEqualTo(outbox.getAggregateId());
+    assertThat(message.aggregateVersion()).isEqualTo(outbox.getAggregateVersion());
+    assertThat(message.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
     assertThat(message.payload()).isEqualTo(outbox.getPayload());
     assertThat(message.occurredAt()).isEqualTo(outbox.getOccurredAt());
 

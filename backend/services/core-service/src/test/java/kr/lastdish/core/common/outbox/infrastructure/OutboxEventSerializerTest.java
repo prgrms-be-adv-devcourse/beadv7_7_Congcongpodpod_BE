@@ -40,14 +40,16 @@ class OutboxEventSerializerTest {
             Instant.now());
 
     // when
-    String payload = serializer.serialize(source);
+    String payload = serializer.serialize(source.payload());
 
     // then
     assertThat(payload)
-        .contains("\"schemaVersion\":2")
-        .contains("\"dishId\":1")
-        .contains("\"aggregateVersion\":3")
         .contains("\"available\":false")
-        .contains("\"stockQuantity\":5");
+        .contains("\"stockQuantity\":5")
+        .doesNotContain("eventId")
+        .doesNotContain("schemaVersion")
+        .doesNotContain("dishId")
+        .doesNotContain("aggregateVersion")
+        .doesNotContain("occurredAt");
   }
 }
