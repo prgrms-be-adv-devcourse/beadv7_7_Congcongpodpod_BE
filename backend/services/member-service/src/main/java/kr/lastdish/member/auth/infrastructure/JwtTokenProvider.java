@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtTokenProvider {
 
-  private final PrivateKey privateKey; // RSA 개인 키
-  private final PublicKey publicKey; // RSA 공개 키 (게이트웨이 검증용)
+  private final PrivateKey privateKey;
+  private final PublicKey publicKey;
   private final long accessTokenValidityInMilliseconds;
   private final long refreshTokenValidityInMilliseconds;
 
