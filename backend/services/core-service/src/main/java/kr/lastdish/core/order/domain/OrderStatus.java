@@ -5,7 +5,8 @@ public enum OrderStatus {
   PICKUP_READY("픽업 대기"),
   PICKED_UP("픽업 완료"),
   NO_SHOW("노쇼"),
-  CANCELLED("취소");
+  CANCELLED("취소"),
+  REJECTED("거절");
 
   private final String displayName;
 

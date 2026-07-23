@@ -1,7 +1,7 @@
 package kr.lastdish.core.payment.domain.deposit;
 
 import java.math.BigDecimal;
-import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 
 public class InsufficientBalanceException extends BusinessException {
