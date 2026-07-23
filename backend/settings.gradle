@@ -4,3 +4,8 @@ include 'services:config-server'
 include 'services:gateway-service'
 include 'services:core-service'
 include 'services:member-service'
+
+include 'modules:api-common'
+include 'modules:mvc-common'
+include 'modules:event-common'
+include 'modules:outbox'
