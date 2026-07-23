@@ -10,6 +10,8 @@ import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
+import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
+import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -135,5 +137,20 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, availableCode);
     verify(order, never()).issuePickupCode(duplicatedCode);
     verify(order, times(1)).issuePickupCode(availableCode);
+  }
+
+  @Test
+  void updatePickupStatus_success() {
+    Long orderId = 1L;
+    Order order = mock(Order.class);
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+
+    PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
+
+    assertThat(response).isNotNull();
+    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(order, times(1)).updateOrderStatus(request.status());
   }
 }

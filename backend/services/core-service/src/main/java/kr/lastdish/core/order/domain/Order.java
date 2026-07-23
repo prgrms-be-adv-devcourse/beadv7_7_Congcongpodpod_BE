@@ -156,4 +156,12 @@ public class Order {
       throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
     }
   }
+
+  // 픽업 상태 변경
+  public void updateOrderStatus(OrderStatus status) {
+    if (this.status != OrderStatus.PICKUP_READY) {
+      throw new BusinessException(ErrorCode.INVALID_STATE);
+    }
+    this.status = status;
+  }
 }

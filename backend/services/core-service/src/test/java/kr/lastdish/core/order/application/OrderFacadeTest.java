@@ -14,6 +14,8 @@ import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import kr.lastdish.core.order.presentation.dto.OrderRejectReason;
 import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
+import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
+import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
 import kr.lastdish.core.payment.application.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.DisplayName;
@@ -212,5 +214,42 @@ class OrderFacadeTest {
     verify(order).rejectOrder();
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
+  }
+
+  @Test
+  @DisplayName("판매자가 픽업 상태를 변경하면 매장 소유자를 검증하고 상태를 업데이트한다")
+  void updateOrder_success() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    Order order = mock(Order.class);
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+    PickupStatusResponse expectedResponse = mock(PickupStatusResponse.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getStoreId()).thenReturn(storeId);
+    when(orderService.updatePickupStatus(orderId, request)).thenReturn(expectedResponse);
+
+    PickupStatusResponse response = orderFacade.updateOrder(memberId, "SELLER", orderId, request);
+
+    assertThat(response).isSameAs(expectedResponse);
+
+    InOrder inOrder = inOrder(orderRepository, storeFacade, orderService);
+    inOrder.verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    inOrder.verify(storeFacade).validateStoreOwner(storeId, memberId);
+    inOrder.verify(orderService).updatePickupStatus(orderId, request);
+  }
+
+  @Test
+  @DisplayName("판매자 권한이 아니면 픽업 상태를 변경하지 않는다")
+  void updateOrder_notSeller() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+
+    assertThatThrownBy(() -> orderFacade.updateOrder(memberId, "MEMBER", orderId, request))
+        .isInstanceOf(RuntimeException.class);
+
+    verifyNoInteractions(orderRepository, storeFacade, orderService);
   }
 }
