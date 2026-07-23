@@ -1,5 +1,10 @@
 package kr.lastdish.core.cart.application.event;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+
+import java.time.Instant;
+import java.util.UUID;
 import kr.lastdish.core.cart.application.CartDishStateSynchronizer;
 import kr.lastdish.core.common.event.EventMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,12 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class DishStateChangedMessageHandlerTest {
