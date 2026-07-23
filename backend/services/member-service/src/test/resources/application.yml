@@ -1,15 +1,29 @@
 spring:
-  application:
-    name: member-service
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
   cloud:
     config:
-      enabled: false
+      enabled: false # 테스트 중 Config Server 연결 차단
 
-member:
-  message: Hello from test config
+jwt:
+  rsa:
+    access-private-key-location: classpath:keys/test-private-key.pem
+    access-public-key-location: classpath:keys/test-public-key.pem
+  access-token-validity-in-seconds: 3600
+  refresh-token-validity-in-seconds: 1209600
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,refresh
+        include: "health,info,refresh"

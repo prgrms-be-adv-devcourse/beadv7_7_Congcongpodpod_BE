@@ -1,6 +1,3 @@
-member:
-  message: 222Hello from local Config Server
-
 spring:
   datasource:
     url: ${MEMBER_DB_URL:jdbc:postgresql://localhost:54321/member_db}
