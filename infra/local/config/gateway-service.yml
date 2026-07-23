@@ -3,6 +3,9 @@ spring:
     gateway:
       server:
         webflux:
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 10s
           routes:
             - id: core-service
               uri: http://core-service:8080

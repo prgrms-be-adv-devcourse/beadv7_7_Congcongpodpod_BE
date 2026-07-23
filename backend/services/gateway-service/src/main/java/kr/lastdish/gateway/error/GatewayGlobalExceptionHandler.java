@@ -3,6 +3,7 @@ package kr.lastdish.gateway.error;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeoutException;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
 import org.slf4j.Logger;
@@ -63,6 +64,10 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
       return resolveStatus(statusException.getStatusCode());
     }
 
+    if (hasCause(exception, TimeoutException.class)) {
+      return GatewayErrorCode.GATEWAY_TIMEOUT;
+    }
+
     // 실행 환경에 따라 동일한 하위 서비스 연결 실패가 서로 다른 네트워크 예외로 감싸질 수 있다.
     if (hasCause(exception, ConnectException.class)
         || hasCause(exception, NoRouteToHostException.class)
@@ -79,6 +84,7 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
       case 404 -> GatewayErrorCode.ROUTE_NOT_FOUND;
       case 502 -> GatewayErrorCode.BAD_GATEWAY;
       case 503 -> GatewayErrorCode.SERVICE_UNAVAILABLE;
+      case 504 -> GatewayErrorCode.GATEWAY_TIMEOUT;
       default -> GatewayErrorCode.INTERNAL_ERROR;
     };
   }
