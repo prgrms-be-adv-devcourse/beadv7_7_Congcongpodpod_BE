@@ -1,6 +1,6 @@
 package kr.lastdish.core.cart.application.event;
 
-import kr.lastdish.core.common.event.EventMessage;
+import kr.lastdish.common.event.EventMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
