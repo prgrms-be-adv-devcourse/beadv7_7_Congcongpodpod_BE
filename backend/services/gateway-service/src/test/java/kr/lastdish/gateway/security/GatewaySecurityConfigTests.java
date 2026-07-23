@@ -51,6 +51,25 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void unknownPublicRouteUsesGatewayErrorResponse() {
+    webTestClient
+        .get()
+        .uri("/api/v1/dishes/unknown")
+        .exchange()
+        .expectStatus()
+        .isNotFound()
+        .expectHeader()
+        .contentType(MediaType.APPLICATION_JSON)
+        .expectBody()
+        .jsonPath("$.success")
+        .isEqualTo(false)
+        .jsonPath("$.error.code")
+        .isEqualTo("G004")
+        .jsonPath("$.timestamp")
+        .exists();
+  }
+
+  @Test
   void protectedRouteRejectsRequestsWithoutAuthentication() {
     webTestClient
         .get()
