@@ -1,10 +1,13 @@
 package kr.lastdish.core.order.application;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.presentation.dto.OrderCancelRequest;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
+import kr.lastdish.core.order.presentation.dto.OrderSettlementInfo;
 import kr.lastdish.core.payment.application.DepositFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,5 +50,10 @@ public class OrderFacade {
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
 
     return OrderResponse.from(order);
+  }
+
+  public List<OrderSettlementInfo> findSettlementOrders(
+      Long storeId, LocalDateTime periodStart, LocalDateTime periodEnd) {
+    return orderService.findSettlementOrders(storeId, periodStart, periodEnd);
   }
 }
