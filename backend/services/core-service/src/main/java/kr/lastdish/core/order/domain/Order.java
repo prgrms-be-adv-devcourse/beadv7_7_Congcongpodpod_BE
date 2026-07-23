@@ -5,7 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
-import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -115,11 +116,11 @@ public class Order {
   // 픽업 코드 발급 - 픽업 대기 상태 변경
   public void issuePickupCode(String pickupCode) {
     if (this.paymentStatus != PaymentStatus.COMPLETED) {
-      throw new BusinessException(ErrorCode.INVALID_STATE);
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
 
     if (this.pickupCode != null) {
-      throw new BusinessException(ErrorCode.INVALID_STATE);
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.pickupCode = pickupCode;
     this.status = OrderStatus.PICKUP_READY;
@@ -128,7 +129,7 @@ public class Order {
   // 매장 주문 반려
   public void rejectOrder() {
     if (this.status != OrderStatus.RESERVED) {
-      throw new BusinessException(ErrorCode.INVALID_STATE);
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = OrderStatus.REJECTED;
   }
@@ -147,7 +148,7 @@ public class Order {
 
   private void validateCancelable() {
     if (this.status != OrderStatus.RESERVED) {
-      throw new BusinessException(ErrorCode.INVALID_STATE);
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
   }
 
@@ -160,7 +161,7 @@ public class Order {
   // 픽업 상태 변경
   public void updateOrderStatus(OrderStatus status) {
     if (this.status != OrderStatus.PICKUP_READY) {
-      throw new BusinessException(ErrorCode.INVALID_STATE);
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = status;
   }

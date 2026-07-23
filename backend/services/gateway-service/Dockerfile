@@ -9,6 +9,10 @@ COPY services/config-server/build.gradle services/config-server/build.gradle
 COPY services/gateway-service/build.gradle services/gateway-service/build.gradle
 COPY services/core-service/build.gradle services/core-service/build.gradle
 COPY services/member-service/build.gradle services/member-service/build.gradle
+COPY modules/api-common/build.gradle modules/api-common/build.gradle
+COPY modules/mvc-common/build.gradle modules/mvc-common/build.gradle
+COPY modules/event-common/build.gradle modules/event-common/build.gradle
+COPY modules/outbox/build.gradle modules/outbox/build.gradle
 
 RUN sed -i 's/\r$//' gradlew \
     && chmod +x gradlew \
