@@ -28,6 +28,11 @@ public class MemberRepositoryImpl implements MemberRepository {
   }
 
   @Override
+  public Optional<Member> findByEmail(String email) {
+    return jpaMemberRepository.findByEmail(email);
+  }
+
+  @Override
   public boolean existsByUserName(String userName) {
     return jpaMemberRepository.existsByUserName(userName);
   }

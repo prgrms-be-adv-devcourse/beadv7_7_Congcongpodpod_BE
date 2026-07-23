@@ -1,5 +1,6 @@
 package kr.lastdish.core.cart.infrastructure;
 
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
@@ -24,6 +25,11 @@ public class CartItemRepositoryImpl implements CartItemRepository {
   @Override
   public Optional<CartItem> findByCartId(Long cartId) {
     return cartItemJpaRepository.findByCartId(cartId);
+  }
+
+  @Override
+  public List<CartItem> findAllByDishId(Long dishId) {
+    return cartItemJpaRepository.findAllByDishId(dishId);
   }
 
   @Override

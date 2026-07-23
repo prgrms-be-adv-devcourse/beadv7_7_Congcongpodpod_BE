@@ -15,6 +15,6 @@ public record DishUpdateRequest(
     String description,
     @NotNull Category category,
     String thumbnailUrl,
-    @NotNull @Positive Long stockQuantity,
+    @NotNull @PositiveOrZero Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,
     @NotNull @PositiveOrZero BigDecimal discountPrice) {}
