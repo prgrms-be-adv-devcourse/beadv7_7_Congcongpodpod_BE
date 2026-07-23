@@ -1,19 +1,15 @@
 package kr.lastdish.core.payment.domain.payment;
 
-public class PaymentException extends RuntimeException {
-  private final String errorCode;
+import kr.lastdish.core.common.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 
-  public PaymentException(String message) {
-    super(message);
-    this.errorCode = "PAYMENT_ERROR";
+public class PaymentException extends BusinessException {
+
+  public PaymentException(ErrorCode errorCode, String message) {
+    super(errorCode, message);
   }
 
-  public PaymentException(String message, String errorCode) {
-    super(message);
-    this.errorCode = errorCode;
-  }
-
-  public String getErrorCode() {
-    return errorCode;
+  public PaymentException(ErrorCode errorCode) {
+    super(errorCode);
   }
 }
