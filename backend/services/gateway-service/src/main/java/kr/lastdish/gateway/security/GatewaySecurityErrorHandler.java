@@ -1,7 +1,7 @@
 package kr.lastdish.gateway.security;
 
+import kr.lastdish.common.api.response.ApiResponse;
 import org.jspecify.annotations.NullMarked;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.access.AccessDeniedException;
@@ -43,7 +43,7 @@ public class GatewaySecurityErrorHandler
   @Override
   public Mono<Void> commence(
       ServerWebExchange exchange, AuthenticationException authenticationException) {
-    return writeResponse(exchange, HttpStatus.UNAUTHORIZED, "INVALID_ACCESS_TOKEN", "인증이 필요합니다.");
+    return writeResponse(exchange, GatewayErrorCode.INVALID_ACCESS_TOKEN);
   }
 
   /**
@@ -54,23 +54,22 @@ public class GatewaySecurityErrorHandler
    */
   @Override
   public Mono<Void> handle(ServerWebExchange exchange, AccessDeniedException exception) {
-    return writeResponse(exchange, HttpStatus.FORBIDDEN, "ACCESS_DENIED", "접근 권한이 없습니다.");
+    return writeResponse(exchange, GatewayErrorCode.ACCESS_DENIED);
   }
 
-  private Mono<Void> writeResponse(
-      ServerWebExchange exchange, HttpStatus status, String code, String message) {
+  private Mono<Void> writeResponse(ServerWebExchange exchange, GatewayErrorCode errorCode) {
     ServerHttpResponse response = exchange.getResponse();
-    response.setStatusCode(status);
+    response.setStatusCode(errorCode.getStatus());
     response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
     try {
-      // ErrorResponse를 직접 직렬화해 하위 서비스까지 요청을 보내지 않고 Gateway 응답을 종료한다.
-      byte[] body = objectMapper.writeValueAsBytes(new ErrorResponse(code, message));
+      // 공통 ApiResponse를 직접 직렬화해 하위 서비스까지 요청을 보내지 않고 Gateway 응답을 종료한다.
+      byte[] body =
+          objectMapper.writeValueAsBytes(
+              ApiResponse.fail(errorCode.getCode(), errorCode.getMessage()));
       return response.writeWith(Mono.just(response.bufferFactory().wrap(body)));
     } catch (JacksonException exception) {
       return Mono.error(exception);
     }
   }
-
-  private record ErrorResponse(String code, String message) {}
 }
