@@ -38,17 +38,17 @@ public class OrderFacade {
     return orderService.completePayment(order.getId());
   }
 
-  // 주문 취소 - 결제 환불 - 재고 복구
+  // 주문 취소 - 재고 복구 - 결제 환불
   @Transactional
   public OrderResponse cancelOrder(Long memberId, Long orderId) {
     // 주문 취소
     Order order = orderService.cancelOrder(memberId, orderId);
 
-    // 결제 환불
-    depositFacade.refund(memberId, orderId, order.getTotalPrice());
-
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
+
+    // 결제 환불
+    depositFacade.refund(memberId, orderId, order.getTotalPrice());
 
     return OrderResponse.from(order);
   }
