@@ -3,6 +3,8 @@ package kr.lastdish.gateway.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.UnknownHostException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -48,6 +50,14 @@ class GatewayGlobalExceptionHandlerTests {
   void mapsNestedConnectionFailureToServiceUnavailable() throws Exception {
     assertError(
         new IllegalStateException(new ConnectException("connection refused")),
+        HttpStatus.SERVICE_UNAVAILABLE,
+        GatewayErrorCode.SERVICE_UNAVAILABLE);
+    assertError(
+        new IllegalStateException(new UnknownHostException("core-service")),
+        HttpStatus.SERVICE_UNAVAILABLE,
+        GatewayErrorCode.SERVICE_UNAVAILABLE);
+    assertError(
+        new IllegalStateException(new NoRouteToHostException("host is unreachable")),
         HttpStatus.SERVICE_UNAVAILABLE,
         GatewayErrorCode.SERVICE_UNAVAILABLE);
   }

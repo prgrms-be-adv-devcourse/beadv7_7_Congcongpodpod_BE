@@ -1,6 +1,5 @@
 package kr.lastdish.gateway.error;
 
-import java.net.ConnectException;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
 import org.slf4j.Logger;
@@ -16,6 +15,10 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
+
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.UnknownHostException;
 
 @Component
 @Order(-2)
@@ -53,7 +56,9 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
       return resolveStatus(statusException.getStatusCode());
     }
 
-    if (hasCause(exception, ConnectException.class)) {
+    if (hasCause(exception, ConnectException.class)
+        || hasCause(exception, NoRouteToHostException.class)
+        || hasCause(exception, UnknownHostException.class)) {
       return GatewayErrorCode.SERVICE_UNAVAILABLE;
     }
 
