@@ -14,10 +14,9 @@ public record DishStateChangedEvent(
     int schemaVersion,
     Long dishId,
     long aggregateVersion,
-    boolean available,
-    Long stockQuantity,
+    DishStateChangedPayload payload,
     Instant occurredAt)
-    implements DomainEvent {
+    implements DomainEvent<DishStateChangedPayload> {
 
   public static final String EVENT_TYPE = "DISH_STATE_CHANGED";
 

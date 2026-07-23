@@ -2,11 +2,7 @@ package kr.lastdish.member.auth.presentation;
 
 import jakarta.validation.Valid;
 import kr.lastdish.member.auth.application.AuthService;
-import kr.lastdish.member.auth.presentation.dto.LoginRequest;
-import kr.lastdish.member.auth.presentation.dto.ReissueRequest;
-import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
-import kr.lastdish.member.auth.presentation.dto.SignUpResponse;
-import kr.lastdish.member.auth.presentation.dto.TokenResponse;
+import kr.lastdish.member.auth.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth") // 변경됨
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -34,8 +30,8 @@ public class AuthController {
   }
 
   @PostMapping("/refresh")
-  public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody ReissueRequest request) {
-    TokenResponse response = authService.reissue(request.getRefreshToken());
+  public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody TokenRefreshRequest request) {
+    TokenResponse response = authService.refresh(request);
     return ResponseEntity.ok(response);
   }
 }

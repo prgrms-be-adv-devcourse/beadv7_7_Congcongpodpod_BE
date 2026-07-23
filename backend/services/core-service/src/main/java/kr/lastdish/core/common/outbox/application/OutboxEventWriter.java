@@ -25,9 +25,9 @@ public class OutboxEventWriter {
    *
    * @param event 저장할 도메인 이벤트
    */
-  public void append(DomainEvent event) {
-    // DomainEvent를 DB에 저장 가능한 JSON 문자열로 변환합니다.
-    String payload = serializer.serialize(event);
+  public void append(DomainEvent<?> event) {
+    // 공통 메타데이터를 제외한 처리할 payload만 JSON 문자열로 변환합니다.
+    String payload = serializer.serialize(event.payload());
 
     // 이벤트 메타데이터와 JSON payload로 PENDING Outbox를 생성합니다.
     OutboxEvent outbox = OutboxEvent.create(event, payload);
