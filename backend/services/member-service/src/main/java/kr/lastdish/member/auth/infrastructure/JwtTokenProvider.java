@@ -59,22 +59,6 @@ public class JwtTokenProvider {
         .compact();
   }
 
-  // 만료 리프레시 토큰 생성
-  public String createExpiredRefreshToken(MemberId memberId, Role role) {
-    Date now = new Date();
-    Date expiredAt = new Date(now.getTime() - 1000);
-
-    return Jwts.builder()
-        .setId(UUID.randomUUID().toString())
-        .setSubject(String.valueOf(memberId.getValue()))
-        .claim("role", role.name())
-        .setIssuer("lastdish-member-service")
-        .setIssuedAt(new Date(now.getTime() - 2000))
-        .setExpiration(expiredAt)
-        .signWith(privateKey)
-        .compact();
-  }
-
   public boolean validateToken(String token) {
     try {
       Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token);

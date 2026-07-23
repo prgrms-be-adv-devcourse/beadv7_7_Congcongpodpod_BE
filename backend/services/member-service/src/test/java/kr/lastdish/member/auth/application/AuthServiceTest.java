@@ -3,15 +3,20 @@ package kr.lastdish.member.auth.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.util.Date;
+import java.util.UUID;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
-import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
 import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
 import kr.lastdish.member.auth.presentation.dto.TokenRefreshRequest;
 import kr.lastdish.member.auth.presentation.dto.TokenResponse;
 import kr.lastdish.member.member.domain.Member;
+import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
+import kr.lastdish.member.member.domain.Role;
 import kr.lastdish.member.member.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -71,7 +76,7 @@ class AuthServiceTest {
     TokenResponse initialTokens =
         authService.login(new LoginRequest("reissue@example.com", "password123!"));
 
-    // when (ReissueRequest 객체로 감싸서 전달)
+    // when
     TokenResponse newTokens =
         authService.refresh(new TokenRefreshRequest(initialTokens.getRefreshToken()));
 
@@ -99,12 +104,9 @@ class AuthServiceTest {
         .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
   }
 
-  @Autowired private JwtTokenProvider jwtTokenProvider;
-
   @Test
   @DisplayName("만료된 리프레시 토큰으로 재발급을 요청하면 예외가 발생한다.")
   void reissueFailWithExpiredToken() {
-    // given
     SignUpRequest signUpRequest =
         new SignUpRequest(
             "expireduser",
@@ -119,12 +121,27 @@ class AuthServiceTest {
     Member member = memberRepository.findByEmail("expired@example.com").orElseThrow();
 
     String expiredToken =
-        jwtTokenProvider.createExpiredRefreshToken(
-            new kr.lastdish.member.member.domain.MemberId(member.getId()), member.getRole());
+        createExpiredRefreshTokenForTest(new MemberId(member.getId()), member.getRole());
 
-    // when & then
     assertThatThrownBy(() -> authService.refresh(new TokenRefreshRequest(expiredToken)))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
+  }
+
+  private String createExpiredRefreshTokenForTest(MemberId memberId, Role role) {
+    Date now = new Date();
+    Date expiredAt = new Date(now.getTime() - 1000);
+
+    return Jwts.builder()
+        .setId(UUID.randomUUID().toString())
+        .setSubject(String.valueOf(memberId.getValue()))
+        .claim("role", role.name())
+        .setIssuer("lastdish-member-service")
+        .setIssuedAt(new Date(now.getTime() - 2000))
+        .setExpiration(expiredAt)
+        .signWith(
+            Keys.hmacShaKeyFor(
+                "this-is-a-very-secure-secret-key-for-test-purpose-32bytes!".getBytes()))
+        .compact();
   }
 }
