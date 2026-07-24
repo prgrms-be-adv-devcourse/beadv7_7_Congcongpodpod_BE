@@ -1,9 +1,10 @@
 package kr.lastdish.member.member.presentation.dto;
 
-import java.time.LocalDateTime;
-import kr.lastdish.member.member.domain.Member;
+import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Getter
 @RequiredArgsConstructor
@@ -18,15 +19,17 @@ public class MemberProfileResponse {
   private final LocalDateTime createdAt;
   private final LocalDateTime updatedAt;
 
-  public static MemberProfileResponse from(Member member) {
+  public static MemberProfileResponse from(
+      MemberProfileResult result) {
+
     return new MemberProfileResponse(
-        member.getId(),
-        member.getUserName(),
-        member.getName(),
-        member.getPhone(),
-        member.getEmail(),
-        member.getRole().name(),
-        member.getCreatedAt(),
-        member.getUpdatedAt());
+        result.id(),
+        result.userName(),
+        result.name(),
+        result.phone(),
+        result.email(),
+        result.role(),
+        result.createdAt(),
+        result.updatedAt());
   }
 }

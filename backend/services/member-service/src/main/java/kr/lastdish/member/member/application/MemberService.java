@@ -2,10 +2,10 @@ package kr.lastdish.member.member.application;
 
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
+import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.exception.ErrorCode;
-import kr.lastdish.member.member.presentation.dto.MemberProfileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +18,13 @@ public class MemberService {
   private final MemberRepository memberRepository;
   private final RefreshTokenRepository refreshTokenRepository;
 
-  public MemberProfileResponse getMemberById(Long memberId) {
+  public MemberProfileResult getMemberById(Long memberId) {
     Member member =
         memberRepository
             .findActiveById(memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-    return MemberProfileResponse.from(member);
+    return MemberProfileResult.from(member);
   }
 
   // 회원 탈퇴
