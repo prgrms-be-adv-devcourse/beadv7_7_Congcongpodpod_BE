@@ -13,8 +13,6 @@ public class TokenResponse {
   private String refreshToken;
 
   public static TokenResponse from(TokenResult result) {
-    return new TokenResponse(
-        result.accessToken(),
-        result.refreshToken());
+    return new TokenResponse(result.accessToken(), result.refreshToken());
   }
 }
