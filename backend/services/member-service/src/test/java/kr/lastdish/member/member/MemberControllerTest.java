@@ -65,7 +65,7 @@ class MemberControllerTest {
 
     // when & then: 4. 토큰을 담아 내 프로필 조회 API 호출
     mockMvc
-        .perform(get("/api/members/me").header("Authorization", "Bearer " + accessToken))
+        .perform(get("/api/v1/members/me").header("Authorization", "Bearer " + accessToken))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.userName").value("lookupuser"))
         .andExpect(jsonPath("$.data.name").value("조회테스터"))
