@@ -1,11 +1,13 @@
 package kr.lastdish.common.outbox.infrastructure;
 
 import jakarta.persistence.EntityManager;
+import kr.lastdish.common.outbox.domain.OutboxClaimRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
 /**
  * 발행할 Outbox 이벤트를 DB Lock으로 선점합니다.
@@ -17,7 +19,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 @RequiredArgsConstructor
-public class OutboxClaimRepository {
+public class OutboxClaimRepositoryAdapter implements OutboxClaimRepository {
 
   private final EntityManager entityManager;
 
@@ -32,6 +34,7 @@ public class OutboxClaimRepository {
    * @param lockExpiredBefore 이 시각보다 오래된 PROCESSING 이벤트를 만료로 판단
    * @return 선점된 이벤트 식별자 목록
    */
+  @Override
   public List<UUID> claim(int batchSize, Instant now, Instant lockExpiredBefore) {
     String sql =
         """
