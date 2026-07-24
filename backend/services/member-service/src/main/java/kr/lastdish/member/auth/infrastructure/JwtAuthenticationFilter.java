@@ -5,9 +5,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import kr.lastdish.member.member.domain.MemberId;
+import kr.lastdish.member.member.domain.Role; // Role 임포트 확인
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -32,13 +35,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     if (token != null && jwtTokenProvider.validateToken(token)) {
       // 3. 토큰에서 memberId 추출
       MemberId memberId = jwtTokenProvider.getMemberId(token);
-
-      // 컨트롤러에서 @AuthenticationPrincipal Long 타입으로 받기 위해 형변환
       Long id = memberId.getValue();
 
-      // 4. SecurityContext에 인증 정보 저장
+      // 4. 토큰에서 Role(Enum)을 가져와서 name()으로 문자열 변환
+      Role role = jwtTokenProvider.getRole(token);
+      List<SimpleGrantedAuthority> authorities =
+          List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+
+      // 5. SecurityContext에 인증 정보 저장
       UsernamePasswordAuthenticationToken authentication =
-          new UsernamePasswordAuthenticationToken(id, null, null);
+          new UsernamePasswordAuthenticationToken(id, null, authorities);
       authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
       SecurityContextHolder.getContext().setAuthentication(authentication);
