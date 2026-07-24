@@ -1,5 +1,6 @@
-package kr.lastdish.member.auth.presentation;
+package kr.lastdish.member.member;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -7,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
+import kr.lastdish.member.member.domain.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,28 +17,28 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class AuthControllerTest {
+class MemberControllerTest {
 
   @Autowired private MockMvc mockMvc;
+
+  @Autowired private MemberRepository memberRepository;
 
   @Autowired private ObjectMapper objectMapper;
 
   @Test
-  @DisplayName("회원가입 후 로그인 및 토큰 재발급 통합 테스트")
-  void signUpAndLoginAndRefreshTest() throws Exception {
-    // given 1: 회원가입 요청 데이터
+  @DisplayName("내 프로필을 성공적으로 조회한다.")
+  void getMyProfileSuccess() throws Exception {
+    // given: 1. 회원가입 요청
     SignUpRequest signUpRequest =
         new SignUpRequest(
-            "testuser", "password123!", "테스터", "010-1234-5678", "test@example.com", "MEMBER");
+            "lookupuser", "password123!", "조회테스터", "010-1234-9999", "lookup@example.com", "MEMBER");
 
-    // when 1: 회원가입 API 호출
     mockMvc
         .perform(
             post("/api/v1/auth/signup")
@@ -44,35 +46,29 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(signUpRequest)))
         .andExpect(status().isOk());
 
-    // given 2: 로그인 요청 데이터
-    LoginRequest loginRequest = new LoginRequest("test@example.com", "password123!");
-
-    // when 2: 로그인 API 호출 및 토큰 발급 확인
-    MvcResult loginResult =
+    // given: 2. 로그인 요청 시 올바른 이메일 형식 전달
+    LoginRequest loginRequest = new LoginRequest("lookup@example.com", "password123!");
+    String loginResponseBody =
         mockMvc
             .perform(
                 post("/api/v1/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(loginRequest)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.accessToken").exists())
-            .andExpect(jsonPath("$.data.refreshToken").exists())
-            .andReturn();
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
 
-    // 응답받은 JSON에서 JsonPath를 이용해 리프레시 토큰 값 직접 추출
-    String responseBody = loginResult.getResponse().getContentAsString();
-    String refreshToken = com.jayway.jsonpath.JsonPath.read(responseBody, "$.data.refreshToken");
+    // 3. 로그인 응답(ApiResponse)의 data 내부에서 accessToken 필드 추출
+    String accessToken =
+        objectMapper.readTree(loginResponseBody).path("data").path("accessToken").asText();
 
-    // given 3: 리프레시 토큰으로 재발급 요청 데이터 준비
-    String refreshJson = "{\"refreshToken\":\"" + refreshToken + "\"}";
-
-    // when 3: 토큰 재발급 API 호출 및 새로운 Access Token 발급 확인
+    // when & then: 4. 토큰을 담아 내 프로필 조회 API 호출
     mockMvc
-        .perform(
-            post("/api/v1/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(refreshJson))
+        .perform(get("/api/v1/members/me").header("Authorization", "Bearer " + accessToken))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.accessToken").exists());
+        .andExpect(jsonPath("$.data.userName").value("lookupuser"))
+        .andExpect(jsonPath("$.data.name").value("조회테스터"))
+        .andExpect(jsonPath("$.data.email").value("lookup@example.com"));
   }
 }
