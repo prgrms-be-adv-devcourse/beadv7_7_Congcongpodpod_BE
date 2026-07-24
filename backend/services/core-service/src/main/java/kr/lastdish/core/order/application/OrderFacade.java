@@ -6,6 +6,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
+import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.*;
@@ -70,33 +71,36 @@ public class OrderFacade {
 
   // 매장 주문 반려
   @Transactional
-  public void rejectOrder(Long memberId, String role, Long orderId, OrderRejectRequest request) {
+  public OrderRejectResponse rejectOrder(
+      Long memberId, String role, Long orderId, OrderRejectRequest request) {
     validateSellerOrder(memberId, role, orderId);
 
     // 반려 사유에 따라 환불 프로세스 분기
     if (request.reason().shouldRestoreStock()) {
-      rejectOrderAndRestoreStock(orderId);
+      return rejectOrderAndRestoreStock(orderId, request.reason());
     } else {
-      rejectOrder(orderId);
+      return rejectOrder(orderId, request.reason());
     }
   }
 
   @Transactional
-  public void rejectOrderAndRestoreStock(Long orderId) {
+  public OrderRejectResponse rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.rejectOrder();
+    order.rejectOrder(reason);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
+    return OrderRejectResponse.from(order);
   }
 
   @Transactional
-  public void rejectOrder(Long orderId) {
+  public OrderRejectResponse rejectOrder(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.rejectOrder();
+    order.rejectOrder(reason);
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    return OrderRejectResponse.from(order);
   }
 
   @Transactional

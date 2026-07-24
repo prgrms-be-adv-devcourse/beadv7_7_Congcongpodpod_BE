@@ -98,8 +98,10 @@ public class OrderService {
     return PickupStatusResponse.from(order);
   }
 
-  public OrderResponse getEachOrder(Long orderId) {
+  @Transactional(readOnly = true)
+  public OrderResponse getEachOrder(Long memberId, Long orderId) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.validateOwner(memberId);
     return OrderResponse.from(order);
   }
 

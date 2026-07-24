@@ -190,14 +190,18 @@ class OrderServiceTest {
   @Test
   void getEachOrder_success() {
     Long orderId = 1L;
+    Long memberId = 1L;
     Order order = mock(Order.class);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    doNothing().when(order).validateOwner(memberId);
+    when(order.getRejectReason()).thenReturn(null);
 
-    OrderResponse response = orderService.getEachOrder(orderId);
+    OrderResponse response = orderService.getEachOrder(memberId, orderId);
 
     assertThat(response).isNotNull();
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    verify(order).validateOwner(memberId);
   }
 
   @Test
