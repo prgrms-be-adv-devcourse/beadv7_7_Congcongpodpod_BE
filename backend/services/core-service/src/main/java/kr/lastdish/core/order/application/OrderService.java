@@ -45,8 +45,9 @@ public class OrderService {
     return OrderResponse.from(order);
   }
 
+  @Transactional
   public Order cancelOrder(Long memberId, Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
     return order;
   }
@@ -86,7 +87,7 @@ public class OrderService {
   @Transactional
   // 주문 접수 - 픽업 코드 발급
   public OrderReceptionResponse acceptOrder(Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
     return OrderReceptionResponse.from(order);
@@ -94,7 +95,7 @@ public class OrderService {
 
   @Transactional
   public PickupStatusResponse updatePickupStatus(Long orderId, PickupStatusRequest request) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
 
     switch (request.status()) {
       case PICKED_UP -> order.completePickup();
