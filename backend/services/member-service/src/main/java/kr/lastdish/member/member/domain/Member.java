@@ -62,4 +62,10 @@ public class Member {
     this.updatedAt = LocalDateTime.now();
     this.isDeleted = false;
   }
+
+  public void withdraw() {
+    this.isDeleted = true;
+    this.deletedAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now();
+  }
 }
