@@ -6,22 +6,24 @@
 
 ```text
 kr.lastdish.core
+├── cart
+├── dish
+├── order
 ├── payment
 ├── settlement
 ├── store
-├── cart
-├── dish
-├── shared
+├── common
 └── support
 ```
 
-- `payment`: 결제 요청, 승인, 취소 및 결제 상태를 관리한다.
-- `settlement`: 정산 계산, 확정 및 정산 상태를 관리한다.
-- `store`: 매장 정보와 영업 상태를 관리한다.
 - `cart`: 사용자의 장바구니와 장바구니 항목을 관리한다.
 - `dish`: 메뉴 정보와 판매 가능 상태를 관리한다.
-- `shared`: 특정 업무 모듈에 속하지 않는 최소한의 공통 타입과 기술 기능을 관리한다.
-- `support`: 운영 지원 기능이나 업무 모듈에 포함되지 않는 임시 기능을 관리한다.
+- `order`: 주문 생성과 주문 상태를 관리한다.
+- `payment`: 결제와 예치금 상태를 관리한다.
+- `settlement`: 정산 기능의 업무 경계다.
+- `store`: 매장 정보와 영업 상태를 관리한다.
+- `common`: Core Service 내부에서만 사용하는 공통 타입을 관리한다.
+- `support`: Swagger 등 애플리케이션 지원 설정을 관리한다.
 
 ## 모듈 내부 구조
 
@@ -46,5 +48,5 @@ kr.lastdish.core
 2. 다른 모듈은 해당 모듈의 `domain`, `infrastructure`, `presentation` 패키지를 직접 참조하지 않는다.
 3. 즉시 결과가 필요한 모듈 간 동기 호출은 명시적으로 공개된 `application` API를 사용한다.
 4. 즉시 결과가 필요하지 않은 후속 처리는 Spring Application Event를 사용한다.
-5. `shared`에는 비즈니스 규칙을 두지 않으며, 모듈 간 결합을 우회하는 용도로 사용하지 않는다.
-6. 별도 서비스인 `member-service`와는 Spring Event가 아닌 Kubernetes Service 기반 HTTP 통신을 사용한다.
+5. `common`에는 도메인 비즈니스 규칙을 두지 않으며, 모듈 간 결합을 우회하는 용도로 사용하지 않는다.
+6. 별도 서비스와 통신이 필요하면 Spring Application Event가 아닌 명시적인 외부 통신 계약을 사용한다.

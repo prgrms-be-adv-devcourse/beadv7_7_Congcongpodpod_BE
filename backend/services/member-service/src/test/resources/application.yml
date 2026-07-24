@@ -22,9 +22,6 @@ jwt:
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 1209600
 
-member:
-  message: "Hello from test config"
-
 management:
   endpoints:
     web:
