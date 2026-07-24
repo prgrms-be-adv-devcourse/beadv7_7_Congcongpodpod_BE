@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class OutboxRepositoryAdapter implements OutboxEventRepository {
 
+  @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
   private final OutboxJpaRepository jpaRepository;
 
   @Override
