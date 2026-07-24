@@ -1,16 +1,14 @@
 package kr.lastdish.member.auth.infrastructure;
 
+import java.util.Optional;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 @Repository
 @RequiredArgsConstructor
-public class RefreshTokenRepositoryAdapter
-    implements RefreshTokenRepository {
+public class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
 
   private final JpaRefreshTokenRepository jpaRepository;
 

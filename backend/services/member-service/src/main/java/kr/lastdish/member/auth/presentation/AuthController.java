@@ -20,32 +20,28 @@ public class AuthController {
   private final AuthService authService;
 
   @PostMapping("/signup")
-  public ApiResponse<SignUpResponse> signUp(
-      @Valid @RequestBody SignUpRequest request) {
+  public ApiResponse<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
 
     SignUpResult result = authService.signUp(request.toCommand());
     return ApiResponse.ok(SignUpResponse.from(result));
   }
 
   @PostMapping("/login")
-  public ApiResponse<TokenResponse> login(
-      @Valid @RequestBody LoginRequest request) {
+  public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
 
     TokenResult result = authService.login(request.toCommand());
     return ApiResponse.ok(TokenResponse.from(result));
   }
 
   @PostMapping("/refresh")
-  public ApiResponse<TokenResponse> reissue(
-      @Valid @RequestBody TokenRefreshRequest request) {
+  public ApiResponse<TokenResponse> reissue(@Valid @RequestBody TokenRefreshRequest request) {
 
     TokenResult result = authService.refresh(request.toCommand());
     return ApiResponse.ok(TokenResponse.from(result));
   }
 
   @PostMapping("/logout")
-  public ApiResponse<Void> logout(
-      @Valid @RequestBody TokenLogoutRequest request) {
+  public ApiResponse<Void> logout(@Valid @RequestBody TokenLogoutRequest request) {
 
     authService.logout(request.toCommand());
     return ApiResponse.ok();

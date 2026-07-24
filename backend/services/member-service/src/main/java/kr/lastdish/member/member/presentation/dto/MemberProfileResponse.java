@@ -1,10 +1,9 @@
 package kr.lastdish.member.member.presentation.dto;
 
+import java.time.LocalDateTime;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Getter
 @RequiredArgsConstructor
@@ -19,8 +18,7 @@ public class MemberProfileResponse {
   private final LocalDateTime createdAt;
   private final LocalDateTime updatedAt;
 
-  public static MemberProfileResponse from(
-      MemberProfileResult result) {
+  public static MemberProfileResponse from(MemberProfileResult result) {
 
     return new MemberProfileResponse(
         result.id(),
