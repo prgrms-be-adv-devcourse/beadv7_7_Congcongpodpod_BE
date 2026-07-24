@@ -110,8 +110,7 @@ class GatewayJwtConfigTests {
   }
 
   private String createToken(
-      KeyPair signingKeyPair, String issuer, Instant expiresAt, String tokenType)
-      throws Exception {
+      KeyPair signingKeyPair, String issuer, Instant expiresAt, String tokenType) throws Exception {
     JWTClaimsSet.Builder claimsBuilder =
         new JWTClaimsSet.Builder()
             .issuer(issuer)
