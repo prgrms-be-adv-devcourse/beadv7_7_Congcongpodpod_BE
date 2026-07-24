@@ -48,6 +48,9 @@ public class Order {
   private OrderStatus status;
 
   @Enumerated(EnumType.STRING)
+  private OrderRejectReason rejectReason;
+
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private PaymentStatus paymentStatus;
 
@@ -81,8 +84,6 @@ public class Order {
 
   @Column(nullable = false)
   private Long quantity;
-
-  private String cancelReason;
 
   @Column(nullable = false)
   private Boolean isDeleted;
@@ -136,11 +137,12 @@ public class Order {
   }
 
   // 매장 주문 반려
-  public void rejectOrder() {
+  public void rejectOrder(OrderRejectReason reason) {
     if (this.status != OrderStatus.RESERVED) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = OrderStatus.REJECTED;
+    this.rejectReason = reason;
   }
 
   public void delete() {
@@ -161,7 +163,7 @@ public class Order {
     }
   }
 
-  private void validateOwner(Long memberId) {
+  public void validateOwner(Long memberId) {
     if (!Objects.equals(this.memberId, memberId)) {
       throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
     }
@@ -170,6 +172,9 @@ public class Order {
   // 픽업 상태 변경
   public void updateOrderStatus(OrderStatus status) {
     if (this.status != OrderStatus.PICKUP_READY) {
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
+    }
+    if (status != OrderStatus.PICKED_UP && status != OrderStatus.NO_SHOW) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = status;

@@ -9,11 +9,11 @@ import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
+import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
-import kr.lastdish.core.order.presentation.dto.OrderRejectReason;
 import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
@@ -190,7 +190,7 @@ class OrderFacadeTest {
     orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
 
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
-    verify(order).rejectOrder();
+    verify(order).rejectOrder(reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade).increaseStock(dishId, quantity);
   }
@@ -217,7 +217,7 @@ class OrderFacadeTest {
     orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
 
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
-    verify(order).rejectOrder();
+    verify(order).rejectOrder(reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }

@@ -7,7 +7,6 @@ import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import kr.lastdish.core.order.domain.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
