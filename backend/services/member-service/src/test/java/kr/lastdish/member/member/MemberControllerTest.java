@@ -59,10 +59,11 @@ class MemberControllerTest {
             .getResponse()
             .getContentAsString();
 
-    // 3. 로그인 응답에서 accessToken 필드 추출[cite: 1]
-    String accessToken = objectMapper.readTree(loginResponseBody).path("accessToken").asText();
+    // 3. 로그인 응답(ApiResponse)의 data 내부에서 accessToken 필드 추출
+    String accessToken =
+        objectMapper.readTree(loginResponseBody).path("data").path("accessToken").asText();
 
-    // when & then: 4. 토큰을 담아 내 프로필 조회 API 호출 (ApiResponse 구조에 맞춰 $.data 경로 사용)
+    // when & then: 4. 토큰을 담아 내 프로필 조회 API 호출
     mockMvc
         .perform(get("/api/members/me").header("Authorization", "Bearer " + accessToken))
         .andExpect(status().isOk())
