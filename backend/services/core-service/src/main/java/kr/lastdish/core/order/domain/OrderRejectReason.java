@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.presentation.dto;
+package kr.lastdish.core.order.domain;
 
 public enum OrderRejectReason {
   OUT_OF_STOCK(false, "재고 소진으로 주문이 취소되었어요. 결제하신 금액은 예치금으로 환불됩니다."),
