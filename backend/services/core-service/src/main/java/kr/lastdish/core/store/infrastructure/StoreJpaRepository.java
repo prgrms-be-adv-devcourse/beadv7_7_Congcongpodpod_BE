@@ -32,7 +32,8 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
       BigDecimal maxLongitude,
       StoreStatus status);
 
-  @Query("""
+  @Query(
+      """
         SELECT store.id
         FROM Store store
         WHERE store.deleted IS false

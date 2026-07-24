@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Set;
 
 public interface SettlementDetailRepository {
-    SettlementDetail save(SettlementDetail settlementDetail);
+  SettlementDetail save(SettlementDetail settlementDetail);
 
-    List<SettlementDetail> saveAll(List<SettlementDetail> settlementDetails);
+  List<SettlementDetail> saveAll(List<SettlementDetail> settlementDetails);
 
-    boolean existsByOrderId(Long orderId);
+  boolean existsByOrderId(Long orderId);
 
-    Set<Long> findSettledOrderIds(Collection<Long> orderIds);
+  Set<Long> findSettledOrderIds(Collection<Long> orderIds);
 }
