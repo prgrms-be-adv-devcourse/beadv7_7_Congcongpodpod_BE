@@ -112,7 +112,7 @@ public class OrderService {
     return OrderResponse.from(order);
   }
 
-  public PickupCodeResponse getPickupCode(Long orderId, Long memberId) {
+  public PickupCodeResponse getPickupCode(Long memberId, Long orderId) {
     Order order = orderRepository.findPickupAvailableOrder(orderId, memberId);
     return PickupCodeResponse.from(order);
   }
