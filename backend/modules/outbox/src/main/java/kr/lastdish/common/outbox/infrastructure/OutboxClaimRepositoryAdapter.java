@@ -1,13 +1,12 @@
 package kr.lastdish.common.outbox.infrastructure;
 
 import jakarta.persistence.EntityManager;
-import kr.lastdish.common.outbox.domain.OutboxClaimRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import kr.lastdish.common.outbox.domain.OutboxClaimRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 /**
  * 발행할 Outbox 이벤트를 DB Lock으로 선점합니다.

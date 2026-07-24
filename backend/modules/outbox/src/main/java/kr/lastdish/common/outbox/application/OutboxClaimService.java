@@ -1,14 +1,13 @@
 package kr.lastdish.common.outbox.application;
 
-import kr.lastdish.common.outbox.domain.OutboxClaimRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import kr.lastdish.common.outbox.domain.OutboxClaimRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 발행할 Outbox 이벤트를 짧은 DB 트랜잭션에서 선점합니다.
