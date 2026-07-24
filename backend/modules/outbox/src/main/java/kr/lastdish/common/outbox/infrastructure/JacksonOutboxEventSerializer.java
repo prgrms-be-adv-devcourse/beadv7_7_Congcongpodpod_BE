@@ -1,5 +1,6 @@
 package kr.lastdish.common.outbox.infrastructure;
 
+import kr.lastdish.common.outbox.domain.OutboxEventSerializer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
@@ -12,10 +13,11 @@ import tools.jackson.databind.ObjectMapper;
  */
 @Component
 @RequiredArgsConstructor
-public class OutboxEventSerializer {
+public class JacksonOutboxEventSerializer implements OutboxEventSerializer {
 
   private final ObjectMapper objectMapper;
 
+  @Override
   public String serialize(Object payload) {
     try {
       return objectMapper.writeValueAsString(payload);
