@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MemberServiceTest {
 
   @Mock private MemberRepository memberRepository;
+  @Mock private RefreshTokenRepository refreshTokenRepository;
 
   @InjectMocks private MemberService memberService;
 
@@ -50,6 +52,7 @@ class MemberServiceTest {
     assertThat(member.getIsDeleted()).isTrue();
     assertThat(member.getDeletedAt()).isNotNull();
     verify(memberRepository).findById(memberId);
+    verify(refreshTokenRepository).deleteByEmail(member.getEmail());
   }
 
   @Test
