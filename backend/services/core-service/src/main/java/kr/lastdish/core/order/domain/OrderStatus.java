@@ -17,4 +17,13 @@ public enum OrderStatus {
   public String getDisplayName() {
     return displayName;
   }
+
+  public boolean canTransitionTo(OrderStatus nextStatus) {
+    return switch (this) {
+      case RESERVED ->
+          nextStatus == PICKUP_READY || nextStatus == CANCELLED || nextStatus == REJECTED;
+      case PICKUP_READY -> nextStatus == PICKED_UP || nextStatus == NO_SHOW;
+      case PICKED_UP, NO_SHOW, CANCELLED, REJECTED -> false;
+    };
+  }
 }

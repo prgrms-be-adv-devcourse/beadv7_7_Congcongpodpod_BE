@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -173,18 +174,56 @@ class OrderServiceTest {
   }
 
   @Test
-  void updatePickupStatus_success() {
+  void updatePickupStatus_pickedUp_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
     PickupStatusRequest request = mock(PickupStatusRequest.class);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(request.status()).thenReturn(OrderStatus.PICKED_UP);
 
     PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
 
     assertThat(response).isNotNull();
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
-    verify(order, times(1)).updateOrderStatus(request.status());
+    verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    verify(order).completePickup();
+    verify(order, never()).markNoShow();
+  }
+
+  @Test
+  void updatePickupStatus_noShow_success() {
+    Long orderId = 1L;
+    Order order = mock(Order.class);
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(request.status()).thenReturn(OrderStatus.NO_SHOW);
+
+    PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
+
+    assertThat(response).isNotNull();
+    verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    verify(order).markNoShow();
+    verify(order, never()).completePickup();
+  }
+
+  @Test
+  void updatePickupStatus_invalidStatus() {
+    Long orderId = 1L;
+    Order order = mock(Order.class);
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(request.status()).thenReturn(OrderStatus.RESERVED);
+
+    assertThatThrownBy(() -> orderService.updatePickupStatus(orderId, request))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(CommonErrorCode.INVALID_STATE);
+
+    verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    verify(order, never()).completePickup();
+    verify(order, never()).markNoShow();
   }
 
   @Test
