@@ -18,7 +18,8 @@ public enum ErrorCode implements ErrorCodeSpec {
   DUPLICATE_USERNAME(HttpStatus.CONFLICT, "M006", "이미 사용 중인 아이디입니다."),
   DUPLICATE_EMAIL(HttpStatus.CONFLICT, "M007", "이미 등록된 이메일입니다."),
   INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "M008", "유효하지 않은 토큰입니다."),
-  LOGOUT_FAILED(HttpStatus.UNAUTHORIZED, "M009", "이미 로그아웃되었거나 유효하지 않은 토큰입니다.");
+  LOGOUT_FAILED(HttpStatus.UNAUTHORIZED, "M009", "이미 로그아웃되었거나 유효하지 않은 토큰입니다."),
+  ALREADY_WITHDRAWN_MEMBER(HttpStatus.BAD_REQUEST, "M010", "이미 탈퇴한 회원입니다.");
 
   private final HttpStatus status;
   private final String code;
