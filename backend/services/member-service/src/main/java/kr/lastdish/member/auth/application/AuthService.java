@@ -9,11 +9,12 @@ import kr.lastdish.member.auth.application.dto.*;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
+import kr.lastdish.member.auth.exception.AuthErrorCode;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
-import kr.lastdish.member.member.exception.ErrorCode;
+import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,11 +33,11 @@ public class AuthService {
   @Transactional
   public SignUpResult signUp(SignUpCommand command) {
     if (memberRepository.existsByUserName(command.userName())) {
-      throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
+      throw new BusinessException(AuthErrorCode.DUPLICATE_USERNAME);
     }
 
     if (memberRepository.existsByEmail(command.email())) {
-      throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+      throw new BusinessException(AuthErrorCode.DUPLICATE_EMAIL);
     }
 
     String encodedPassword = passwordEncoder.encode(command.password());
@@ -63,11 +64,11 @@ public class AuthService {
     Member member =
         memberRepository
             .findByEmail(command.email())
-            .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_NOT_FOUND));
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.EMAIL_NOT_FOUND));
 
     // 2. 비밀번호 검증 (비밀번호 불일치 -> 401)
     if (!passwordEncoder.matches(command.password(), member.getPassword())) {
-      throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+      throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
     }
 
     // 3. 토큰 생성
@@ -104,7 +105,7 @@ public class AuthService {
 
     // 1. 토큰 유효성 검증
     if (!tokenProvider.validateToken(refreshToken)) {
-      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
 
     // 2. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 일치하는 토큰 조회
@@ -112,7 +113,7 @@ public class AuthService {
     RefreshToken savedToken =
         refreshTokenRepository
             .findByToken(hashedRefreshToken)
-            .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 
     // 3. 토큰 삭제
     refreshTokenRepository.delete(savedToken);
@@ -124,11 +125,11 @@ public class AuthService {
 
     // 1. Refresh Token 유효성 검증
     if (!tokenProvider.validateToken(requestRefreshToken)) {
-      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
     //  토큰 타입이 실제로 refresh인지 검증 (Access Token으로 재발급 요청 차단)
     if (!tokenProvider.isRefreshToken(requestRefreshToken)) {
-      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
 
     // 2. 토큰에서 MemberId 추출 후 회원 조회
@@ -137,18 +138,18 @@ public class AuthService {
     Member member =
         memberRepository
             .findById(memberId.getValue())
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+            .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
     // 3. 이메일로 DB에 저장된 Refresh Token 조회
     RefreshToken refreshToken =
         refreshTokenRepository
             .findByEmail(member.getEmail())
-            .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 
     // 4. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 비교
     String hashedRequestToken = encryptSha256(requestRefreshToken);
     if (!hashedRequestToken.equals(refreshToken.getToken())) {
-      throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISMATCH);
+      throw new BusinessException(AuthErrorCode.REFRESH_TOKEN_MISMATCH);
     }
 
     // 5. 새로운 Access Token 및 Refresh Token 발급
