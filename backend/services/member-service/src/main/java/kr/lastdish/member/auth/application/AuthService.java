@@ -1,10 +1,10 @@
 package kr.lastdish.member.auth.application;
 
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.member.auth.application.dto.*;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
-import kr.lastdish.member.auth.presentation.dto.*;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
@@ -31,44 +31,46 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
 
   @Transactional
-  public SignUpResponse signUp(SignUpRequest request) {
-    if (memberRepository.existsByUserName(request.userName())) {
+  public SignUpResult signUp(SignUpCommand command) {
+    if (memberRepository.existsByUserName(command.userName())) {
       throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
     }
 
-    if (memberRepository.existsByEmail(request.email())) {
+    if (memberRepository.existsByEmail(command.email())) {
       throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
     }
 
-    String encodedPassword = passwordEncoder.encode(request.password());
-    Role role = Role.from(request.role().toUpperCase());
+    String encodedPassword = passwordEncoder.encode(command.password());
+    Role role = Role.from(command.role().toUpperCase());
 
     Member member =
         Member.builder()
-            .userName(request.userName())
+            .userName(command.userName())
             .password(encodedPassword)
-            .name(request.name())
-            .phone(request.phone())
-            .email(request.email())
+            .name(command.name())
+            .phone(command.phone())
+            .email(command.email())
             .role(role)
             .build();
 
     Member savedMember = memberRepository.save(member);
 
-    return SignUpResponse.of(
-        savedMember.getId(), savedMember.getUserName(), savedMember.getEmail());
+    return new SignUpResult(
+        savedMember.getId(),
+        savedMember.getUserName(),
+        savedMember.getEmail());
   }
 
   @Transactional
-  public TokenResponse login(LoginRequest request) {
+  public TokenResult login(LoginCommand command) {
     // 1. 이메일로 회원 조회 (이메일 없음 -> 404)
     Member member =
         memberRepository
-            .findByEmail(request.getEmail())
+            .findByEmail(command.email())
             .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_NOT_FOUND));
 
     // 2. 비밀번호 검증 (비밀번호 불일치 -> 401)
-    if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
+    if (!passwordEncoder.matches(command.password(), member.getPassword())) {
       throw new BusinessException(ErrorCode.INVALID_PASSWORD);
     }
 
@@ -97,12 +99,12 @@ public class AuthService {
     refreshToken.updateToken(hashedRefreshToken, expiryDate);
     refreshTokenRepository.save(refreshToken);
 
-    return new TokenResponse(accessToken, refreshTokenValue);
+    return new TokenResult(accessToken, refreshTokenValue);
   }
 
   @Transactional
-  public void logout(TokenLogoutRequest request) {
-    String refreshToken = request.getRefreshToken();
+  public void logout(RefreshTokenCommand command) {
+    String refreshToken = command.refreshToken();
 
     // 1. 토큰 유효성 검증
     if (!tokenProvider.validateToken(refreshToken)) {
@@ -121,8 +123,8 @@ public class AuthService {
   }
 
   @Transactional
-  public TokenResponse refresh(TokenRefreshRequest request) {
-    String requestRefreshToken = request.getRefreshToken();
+  public TokenResult refresh(RefreshTokenCommand command) {
+    String requestRefreshToken = command.refreshToken();
 
     // 1. Refresh Token 유효성 검증
     if (!tokenProvider.validateToken(requestRefreshToken)) {
@@ -164,7 +166,7 @@ public class AuthService {
     refreshToken.updateToken(hashedNewRefreshToken, expiryDate);
     refreshTokenRepository.save(refreshToken);
 
-    return new TokenResponse(newAccessToken, newRefreshTokenValue);
+    return new TokenResult(newAccessToken, newRefreshTokenValue);
   }
 
   private String encryptSha256(String text) {
