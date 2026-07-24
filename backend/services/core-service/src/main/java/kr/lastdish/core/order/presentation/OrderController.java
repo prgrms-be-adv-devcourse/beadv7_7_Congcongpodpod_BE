@@ -44,13 +44,12 @@ public class OrderController {
 
   // 매장 주문 반려
   @PostMapping("/{orderId}/reject")
-  public ApiResponse<Void> rejectOrder(
+  public ApiResponse<OrderRejectResponse> rejectOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @RequestHeader("X-Authenticated-Role") String role,
       @PathVariable Long orderId,
       @RequestBody @Valid OrderRejectRequest request) {
-    orderFacade.rejectOrder(memberId, role, orderId, request);
-    return ApiResponse.ok();
+    return ApiResponse.ok(orderFacade.rejectOrder(memberId, role, orderId, request));
   }
 
   // 매장 픽업 처리
@@ -64,8 +63,9 @@ public class OrderController {
   }
 
   @GetMapping("/{orderId}")
-  public ApiResponse<OrderResponse> getEachOrder(@PathVariable Long orderId) {
-    return ApiResponse.ok(orderService.getEachOrder(orderId));
+  public ApiResponse<OrderResponse> getEachOrder(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long orderId) {
+    return ApiResponse.ok(orderService.getEachOrder(memberId, orderId));
   }
 
   @GetMapping("/{orderId}/pickupCode")
