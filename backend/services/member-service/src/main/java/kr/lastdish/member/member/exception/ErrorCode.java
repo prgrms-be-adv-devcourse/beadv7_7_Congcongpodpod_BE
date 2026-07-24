@@ -9,10 +9,8 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ErrorCode implements ErrorCodeSpec {
 
-  // Member 관련 에러
-  MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "회원을 찾을 수 없습니다."),
-
-  // Auth 및 가입 중복 체크 관련 에러
+  // Auth / Member 관련 에러 코드
+  MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "존재하지 않는 회원입니다."),
   EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 이메일입니다."),
   INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "M003", "비밀번호가 일치하지 않습니다."),
   INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "M004", "유효하지 않은 Refresh Token입니다."),
