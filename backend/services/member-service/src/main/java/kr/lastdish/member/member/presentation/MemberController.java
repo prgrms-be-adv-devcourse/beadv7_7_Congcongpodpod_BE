@@ -20,8 +20,7 @@ public class MemberController {
 
   @GetMapping("/me")
   public ApiResponse<MemberProfileResponse> getMyProfile(@AuthenticationPrincipal Long memberId) {
-    MemberProfileResult result =
-        memberService.getMemberById(memberId);
+    MemberProfileResult result = memberService.getMemberById(memberId);
     return ApiResponse.ok(MemberProfileResponse.from(result));
   }
 

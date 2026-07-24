@@ -2,15 +2,14 @@ package kr.lastdish.member.auth.infrastructure;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import kr.lastdish.member.auth.domain.TokenProvider;
-import kr.lastdish.member.member.domain.MemberId;
-import kr.lastdish.member.member.domain.Role;
-import org.springframework.stereotype.Component;
-
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Date;
 import java.util.UUID;
+import kr.lastdish.member.auth.domain.TokenProvider;
+import kr.lastdish.member.member.domain.MemberId;
+import kr.lastdish.member.member.domain.Role;
+import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider implements TokenProvider {

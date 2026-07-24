@@ -18,13 +18,6 @@ public record SignUpRequest(
     ) {
 
   public SignUpCommand toCommand() {
-    return new SignUpCommand(
-        userName,
-        password,
-        name,
-        phone,
-        email,
-        role);
+    return new SignUpCommand(userName, password, name, phone, email, role);
   }
-
 }

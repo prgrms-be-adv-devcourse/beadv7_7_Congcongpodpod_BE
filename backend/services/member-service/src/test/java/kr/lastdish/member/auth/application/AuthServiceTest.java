@@ -1,5 +1,8 @@
 package kr.lastdish.member.auth.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.application.dto.LoginCommand;
 import kr.lastdish.member.auth.application.dto.RefreshTokenCommand;
@@ -17,9 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -149,7 +149,8 @@ class AuthServiceTest {
     authService.logout(new RefreshTokenCommand(tokenResult.refreshToken()));
 
     // then
-    assertThatThrownBy(() -> authService.refresh(new RefreshTokenCommand(tokenResult.refreshToken())))
+    assertThatThrownBy(
+            () -> authService.refresh(new RefreshTokenCommand(tokenResult.refreshToken())))
         .isInstanceOf(BusinessException.class);
   }
 }
