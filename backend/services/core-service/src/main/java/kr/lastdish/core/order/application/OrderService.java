@@ -3,6 +3,7 @@ package kr.lastdish.core.order.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -94,7 +95,13 @@ public class OrderService {
   @Transactional
   public PickupStatusResponse updatePickupStatus(Long orderId, PickupStatusRequest request) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.updateOrderStatus(request.status());
+
+    switch (request.status()) {
+      case PICKED_UP -> order.completePickup();
+      case NO_SHOW -> order.markNoShow();
+      default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
+    }
+
     return PickupStatusResponse.from(order);
   }
 
