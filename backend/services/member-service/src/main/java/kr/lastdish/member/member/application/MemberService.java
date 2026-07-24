@@ -21,7 +21,7 @@ public class MemberService {
   public MemberProfileResponse getMemberById(Long memberId) {
     Member member =
         memberRepository
-            .findById(memberId)
+            .findActiveById(memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
     return MemberProfileResponse.from(member);
