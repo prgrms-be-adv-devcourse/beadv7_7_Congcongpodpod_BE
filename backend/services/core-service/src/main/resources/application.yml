@@ -6,6 +6,11 @@ spring:
     name: core-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  batch:
+    job:
+      enabled: false
+#    jdbc:
+#      initialize-schema: always
 
 management:
   endpoints:

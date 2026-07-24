@@ -1,5 +1,6 @@
 package kr.lastdish.core.store.application;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,5 +11,9 @@ public class StoreFacade {
 
   public void validateStoreOwner(Long storeId, Long memberId) {
     storeService.validateSeller(storeId, memberId);
+  }
+
+  public List<Long> findSettlementTargetStoreIds() {
+    return storeService.findSettlementTargetStoreIds();
   }
 }

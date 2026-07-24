@@ -1,12 +1,14 @@
 package kr.lastdish.core.store.infrastructure;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface StoreJpaRepository extends JpaRepository<Store, Long> {
   Optional<Store> findByIdAndDeletedFalse(Long storeId);
@@ -29,4 +31,12 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
       BigDecimal minLongitude,
       BigDecimal maxLongitude,
       StoreStatus status);
+
+  @Query(
+      """
+        SELECT store.id
+        FROM Store store
+        WHERE store.deleted IS false
+        """)
+  List<Long> findAllActiveStoreIds();
 }
