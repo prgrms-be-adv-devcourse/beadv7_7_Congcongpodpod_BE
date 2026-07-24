@@ -169,10 +169,6 @@ public class Order {
     transitionTo(OrderStatus.NO_SHOW);
   }
 
-  public void updateOrderStatus(OrderStatus status) {
-    transitionTo(status);
-  }
-
   private void transitionTo(OrderStatus nextStatus) {
     if (!this.status.canTransitionTo(nextStatus)) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
