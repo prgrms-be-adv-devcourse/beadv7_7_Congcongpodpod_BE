@@ -181,6 +181,7 @@ class OrderFacadeTest {
     OrderRejectRequest request = new OrderRejectRequest(reason);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(order.getMemberId()).thenReturn(customerId);
     when(order.getDishId()).thenReturn(dishId);
@@ -210,6 +211,7 @@ class OrderFacadeTest {
     OrderRejectRequest request = new OrderRejectRequest(reason);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(order.getMemberId()).thenReturn(customerId);
     when(order.getTotalPrice()).thenReturn(totalPrice);

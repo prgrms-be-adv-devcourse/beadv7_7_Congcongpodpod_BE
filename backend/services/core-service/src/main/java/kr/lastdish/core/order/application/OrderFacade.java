@@ -85,7 +85,7 @@ public class OrderFacade {
 
   @Transactional
   public OrderRejectResponse rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.rejectOrder(reason);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
@@ -96,7 +96,7 @@ public class OrderFacade {
 
   @Transactional
   public OrderRejectResponse rejectOrder(Long orderId, OrderRejectReason reason) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.rejectOrder(reason);
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());

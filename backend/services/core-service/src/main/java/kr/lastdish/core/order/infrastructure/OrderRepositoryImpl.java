@@ -31,6 +31,13 @@ public class OrderRepositoryImpl implements OrderRepository {
   }
 
   @Override
+  public Order findWithLockByIdAndIsDeletedFalse(Long orderId) {
+    return orderJpaRepository
+        .findWithLockByIdAndIsDeletedFalse(orderId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+  }
+
+  @Override
   public List<Order> findSettlementTargetOrders(
       Long storeId,
       List<OrderStatus> orderStatuses,
