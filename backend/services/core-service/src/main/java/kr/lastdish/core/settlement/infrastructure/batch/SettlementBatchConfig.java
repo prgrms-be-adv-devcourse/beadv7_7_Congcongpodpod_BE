@@ -14,22 +14,22 @@ import org.springframework.transaction.PlatformTransactionManager;
 @Configuration
 @RequiredArgsConstructor
 public class SettlementBatchConfig {
-    private final JobRepository jobRepository;
-    private final PlatformTransactionManager transactionManager;
-    private final MonthlySettlementTasklet monthlySettlementTasklet;
+  private final JobRepository jobRepository;
+  private final PlatformTransactionManager transactionManager;
+  private final MonthlySettlementTasklet monthlySettlementTasklet;
 
-    @Bean
-    public Job monthlySettlementJob(){
-        return new JobBuilder("monthlySettlementJob", jobRepository)
-                .start(monthlySettlementStep())
-                .build();
-    }
+  @Bean
+  public Job monthlySettlementJob() {
+    return new JobBuilder("monthlySettlementJob", jobRepository)
+        .start(monthlySettlementStep())
+        .build();
+  }
 
-    @Bean
-    public Step monthlySettlementStep(){
-        return new StepBuilder("monthlySettlementStep", jobRepository)
-                .tasklet(monthlySettlementTasklet)
-                .transactionManager(transactionManager)
-                .build();
-    }
+  @Bean
+  public Step monthlySettlementStep() {
+    return new StepBuilder("monthlySettlementStep", jobRepository)
+        .tasklet(monthlySettlementTasklet)
+        .transactionManager(transactionManager)
+        .build();
+  }
 }
