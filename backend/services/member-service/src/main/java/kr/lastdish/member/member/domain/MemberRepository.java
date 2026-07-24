@@ -7,6 +7,9 @@ public interface MemberRepository {
 
   Optional<Member> findById(Long id);
 
+  // 탈퇴를 하지 않은 회원만 조회하는 메서드
+  Optional<Member> findActiveById(Long id);
+
   Optional<Member> findByUserName(String userName);
 
   Optional<Member> findByEmail(String email);
