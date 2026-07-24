@@ -2,7 +2,7 @@ package kr.lastdish.member.member.domain;
 
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
-import kr.lastdish.member.member.exception.ErrorCode;
+import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -22,7 +22,7 @@ public class MemberId {
     try {
       this.value = Long.parseLong(raw);
     } catch (NumberFormatException e) {
-      throw new BusinessException(ErrorCode.INVALID_TOKEN, "유효하지 않은 토큰입니다.");
+      throw new BusinessException(MemberErrorCode.INVALID_MEMBER_ID, "유효하지 않은 토큰입니다.");
     }
   }
 }

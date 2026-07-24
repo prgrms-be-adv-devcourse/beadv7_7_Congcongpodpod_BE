@@ -12,7 +12,7 @@ import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
-import kr.lastdish.member.member.exception.ErrorCode;
+import kr.lastdish.member.member.exception.MemberErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,6 +65,6 @@ class MemberServiceTest {
     // when & then
     assertThatThrownBy(() -> memberService.withdrawMember(memberId))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
+        .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
   }
 }
