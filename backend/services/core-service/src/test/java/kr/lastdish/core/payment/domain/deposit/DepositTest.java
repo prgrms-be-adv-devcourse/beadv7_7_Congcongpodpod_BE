@@ -65,4 +65,24 @@ class DepositTest {
 
     assertThat(deposit.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
   }
+
+  @Test
+  void 충전하면_잔액이_증가한다() {
+    Deposit deposit = Deposit.createDefault(1L);
+
+    deposit.charge(new BigDecimal("10000"));
+
+    assertThat(deposit.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
+  }
+
+  @Test
+  void 충전_금액이_0이하이면_예외가_발생한다() {
+    Deposit deposit = Deposit.createDefault(1L);
+    deposit.charge(new BigDecimal("10000"));
+
+    assertThatThrownBy(() -> deposit.charge(BigDecimal.ZERO))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    assertThat(deposit.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
+  }
 }

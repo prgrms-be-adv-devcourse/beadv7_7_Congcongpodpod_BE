@@ -17,4 +17,8 @@ public class DepositFacade {
   public DepositTransactionResult refund(Long memberId, Long orderId, BigDecimal amount) {
     return depositService.refund(memberId, orderId, amount);
   }
+
+  public DepositTransactionResult charge(Long memberId, Long paymentId, BigDecimal amount) {
+    return depositService.charge(memberId, paymentId, amount);
+  }
 }

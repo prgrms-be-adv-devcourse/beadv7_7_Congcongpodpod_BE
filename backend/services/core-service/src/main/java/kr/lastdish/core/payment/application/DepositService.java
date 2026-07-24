@@ -25,7 +25,7 @@ public class DepositService {
     return DepositBalanceResponse.from(getOrCreateDeposit(memberId));
   }
 
-  /** 회원의 예치금 지갑을 조회. 아직 예치금 지갑이 생성되지 않은 회원인 경우, NPE를 방지하기 위해 잔액이 0원인 지갑을 신규 생성하여 반환. */
+  // 회원의 예치금 조회 시점에 예치금 정보가 생성되지 않은 회원인 경우, NPE를 방지하기 위해 잔액이 0원인 지갑을 신규 생성하여 반환
   @Transactional
   public Deposit getOrCreateDeposit(Long memberId) {
     return depositRepository
@@ -63,6 +63,23 @@ public class DepositService {
     DepositHistory history =
         depositHistoryRepository.save(
             DepositHistory.recordRefund(memberId, orderId, amount, deposit.getBalance()));
+
+    return DepositTransactionResult.from(history);
+  }
+
+  // 예치금 충전. 결제 승인 성공 시 잔액을 늘리고 기록
+  @Transactional
+  public DepositTransactionResult charge(Long memberId, Long paymentId, BigDecimal amount) {
+    Deposit deposit =
+        depositRepository
+            .findWithLockByMemberId(memberId)
+            .orElseGet(() -> depositRepository.save(Deposit.createDefault(memberId)));
+
+    deposit.charge(amount);
+
+    DepositHistory history =
+        depositHistoryRepository.save(
+            DepositHistory.recordCharge(memberId, paymentId, amount, deposit.getBalance()));
 
     return DepositTransactionResult.from(history);
   }
