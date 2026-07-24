@@ -5,11 +5,13 @@ import kr.lastdish.member.member.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface JpaMemberRepository extends JpaRepository<Member, Long> {
-  Optional<Member> findByUserName(String userName);
+  Optional<Member> findByIdAndIsDeletedFalse(Long id);
 
-  Optional<Member> findByEmail(String email);
+  Optional<Member> findByUserNameAndIsDeletedFalse(String userName);
 
-  boolean existsByUserName(String userName);
+  Optional<Member> findByEmailAndIsDeletedFalse(String email);
 
-  boolean existsByEmail(String email);
+  boolean existsByUserNameAndIsDeletedFalse(String userName);
+
+  boolean existsByEmailAndIsDeletedFalse(String email);
 }
