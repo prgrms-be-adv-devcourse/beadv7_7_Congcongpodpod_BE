@@ -1,6 +1,7 @@
 package kr.lastdish.member.member.application;
 
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.exception.ErrorCode;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
 
   private final MemberRepository memberRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
 
   public MemberProfileResponse getMemberById(Long memberId) {
     Member member =
@@ -28,7 +30,7 @@ public class MemberService {
   // 회원 탈퇴
   @Transactional
   public void withdrawMember(Long memberId) {
-    // 1. 탈퇴 여부와 상관없이 ID로 회원 조회, 전체 조회용 findById 사용
+    // 1. 탈퇴 여부와 상관없이 ID로 회원 조회
     Member member =
         memberRepository
             .findById(memberId)
@@ -40,5 +42,7 @@ public class MemberService {
     }
 
     member.withdraw();
+
+    refreshTokenRepository.deleteByEmail(member.getEmail());
   }
 }

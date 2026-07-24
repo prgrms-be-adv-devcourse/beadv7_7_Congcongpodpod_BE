@@ -11,7 +11,8 @@ public interface JpaMemberRepository extends JpaRepository<Member, Long> {
 
   Optional<Member> findByEmailAndIsDeletedFalse(String email);
 
-  boolean existsByUserNameAndIsDeletedFalse(String userName);
+  // 검사를 할 때 탈퇴한 회원이 쓰던 아이디와 이메일도 포함해서 체크
+  boolean existsByUserName(String userName);
 
-  boolean existsByEmailAndIsDeletedFalse(String email);
+  boolean existsByEmail(String email);
 }

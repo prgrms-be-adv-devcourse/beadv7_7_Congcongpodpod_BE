@@ -17,9 +17,15 @@ public class MemberRepositoryImpl implements MemberRepository {
     return jpaMemberRepository.save(member);
   }
 
+  // 탈퇴 여부 상관없이 조회
   @Override
   public Optional<Member> findById(Long id) {
-    // 👉 수정된 JpaMemberRepository 메서드 호출
+    return jpaMemberRepository.findById(id);
+  }
+
+  // 일반 조회 시 탈퇴된 회원을 제외하고 싶을 때 사용
+  @Override
+  public Optional<Member> findActiveById(Long id) {
     return jpaMemberRepository.findByIdAndIsDeletedFalse(id);
   }
 
@@ -35,11 +41,11 @@ public class MemberRepositoryImpl implements MemberRepository {
 
   @Override
   public boolean existsByUserName(String userName) {
-    return jpaMemberRepository.existsByUserNameAndIsDeletedFalse(userName);
+    return jpaMemberRepository.existsByUserName(userName);
   }
 
   @Override
   public boolean existsByEmail(String email) {
-    return jpaMemberRepository.existsByEmailAndIsDeletedFalse(email);
+    return jpaMemberRepository.existsByEmail(email);
   }
 }
