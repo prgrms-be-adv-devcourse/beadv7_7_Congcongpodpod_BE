@@ -10,6 +10,8 @@ public interface OrderRepository {
 
   Order findByIdAndIsDeletedFalse(Long orderId);
 
+  Order findWithLockByIdAndIsDeletedFalse(Long orderId);
+
   List<Order> findSettlementTargetOrders(
       Long storeId,
       List<OrderStatus> orderStatuses,
