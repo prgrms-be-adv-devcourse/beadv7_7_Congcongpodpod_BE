@@ -2,7 +2,7 @@ package kr.lastdish.common.outbox;
 
 import kr.lastdish.common.outbox.application.*;
 import kr.lastdish.common.outbox.infrastructure.OutboxClaimRepositoryAdapter;
-import kr.lastdish.common.outbox.infrastructure.OutboxEventSerializer;
+import kr.lastdish.common.outbox.infrastructure.JacksonOutboxEventSerializer;
 import kr.lastdish.common.outbox.infrastructure.OutboxRepositoryAdapter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
@@ -24,7 +24,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     OutboxFailureRecorder.class,
     OutboxScheduler.class,
     OutboxClaimRepositoryAdapter.class,
-    OutboxEventSerializer.class,
+    JacksonOutboxEventSerializer.class,
     OutboxRepositoryAdapter.class
 })
 public class OutboxAutoConfiguration {}
