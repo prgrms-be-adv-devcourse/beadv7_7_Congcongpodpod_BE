@@ -28,7 +28,8 @@ public class SettlementBatchConfig {
     @Bean
     public Step monthlySettlementStep(){
         return new StepBuilder("monthlySettlementStep", jobRepository)
-                .tasklet(monthlySettlementTasklet, transactionManager)
+                .tasklet(monthlySettlementTasklet)
+                .transactionManager(transactionManager)
                 .build();
     }
 }
