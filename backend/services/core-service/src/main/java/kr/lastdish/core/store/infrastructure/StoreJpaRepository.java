@@ -35,7 +35,7 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
   @Query("""
         SELECT store.id
         FROM Store store
-        WHERE store.deleted IS NULL
+        WHERE store.deleted IS false
         """)
   List<Long> findAllActiveStoreIds();
 }
