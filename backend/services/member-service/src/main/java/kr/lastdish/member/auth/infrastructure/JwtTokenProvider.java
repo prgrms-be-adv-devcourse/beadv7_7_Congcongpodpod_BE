@@ -37,6 +37,7 @@ public class JwtTokenProvider {
         .setId(UUID.randomUUID().toString())
         .setSubject(String.valueOf(memberId.getValue()))
         .claim("role", role.name())
+        .claim("token_type", "access")
         .setIssuer("lastdish-member-service")
         .setIssuedAt(now)
         .setExpiration(validity)
@@ -52,6 +53,7 @@ public class JwtTokenProvider {
         .setId(UUID.randomUUID().toString())
         .setSubject(String.valueOf(memberId.getValue()))
         .claim("role", role.name())
+        .claim("token_type", "refresh")
         .setIssuer("lastdish-member-service")
         .setIssuedAt(now)
         .setExpiration(validity)
@@ -68,6 +70,7 @@ public class JwtTokenProvider {
         .setId(UUID.randomUUID().toString())
         .setSubject(String.valueOf(memberId.getValue()))
         .claim("role", role.name())
+        .claim("token_type", "refresh")
         .setIssuer("lastdish-member-service")
         .setIssuedAt(new Date(now.getTime() - 2000))
         .setExpiration(expiredAt)
@@ -79,6 +82,28 @@ public class JwtTokenProvider {
     try {
       Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token);
       return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  // Access Token 여부 확인
+  public boolean isAccessToken(String token) {
+    try {
+      Claims claims =
+          Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token).getBody();
+      return "access".equals(claims.get("token_type"));
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  // Refresh Token 여부 확인
+  public boolean isRefreshToken(String token) {
+    try {
+      Claims claims =
+          Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token).getBody();
+      return "refresh".equals(claims.get("token_type"));
     } catch (Exception e) {
       return false;
     }

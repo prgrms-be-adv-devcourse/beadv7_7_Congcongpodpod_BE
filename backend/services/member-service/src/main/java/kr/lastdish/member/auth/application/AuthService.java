@@ -127,6 +127,10 @@ public class AuthService {
     if (!jwtTokenProvider.validateToken(requestRefreshToken)) {
       throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
+    //  토큰 타입이 실제로 refresh인지 검증 (Access Token으로 재발급 요청 차단)
+    if (!jwtTokenProvider.isRefreshToken(requestRefreshToken)) {
+      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+    }
 
     // 2. 토큰에서 MemberId 추출 후 회원 조회
     MemberId memberId = jwtTokenProvider.getMemberId(requestRefreshToken);
