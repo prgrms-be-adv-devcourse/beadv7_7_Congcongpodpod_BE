@@ -16,7 +16,16 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table(name = "orders")
+@Table(
+    name = "orders",
+    indexes = {
+      @Index(
+          name = "idx_orders_member_deleted_created_at",
+          columnList = "member_id, is_deleted, created_at"),
+      @Index(
+          name = "idx_orders_store_deleted_created_at",
+          columnList = "store_id, is_deleted, created_at")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
@@ -37,6 +46,9 @@ public class Order {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private OrderStatus status;
+
+  @Enumerated(EnumType.STRING)
+  private OrderRejectReason rejectReason;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -72,8 +84,6 @@ public class Order {
 
   @Column(nullable = false)
   private Long quantity;
-
-  private String cancelReason;
 
   @Column(nullable = false)
   private Boolean isDeleted;
@@ -122,16 +132,15 @@ public class Order {
     if (this.pickupCode != null) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
+
+    transitionTo(OrderStatus.PICKUP_READY);
     this.pickupCode = pickupCode;
-    this.status = OrderStatus.PICKUP_READY;
   }
 
   // 매장 주문 반려
-  public void rejectOrder() {
-    if (this.status != OrderStatus.RESERVED) {
-      throw new BusinessException(CommonErrorCode.INVALID_STATE);
-    }
-    this.status = OrderStatus.REJECTED;
+  public void rejectOrder(OrderRejectReason reason) {
+    transitionTo(OrderStatus.REJECTED);
+    this.rejectReason = reason;
   }
 
   public void delete() {
@@ -141,28 +150,29 @@ public class Order {
   // 주문 취소
   public void cancel(Long memberId) {
     validateOwner(memberId);
-    validateCancelable();
-
-    this.status = OrderStatus.CANCELLED;
+    transitionTo(OrderStatus.CANCELLED);
   }
 
-  private void validateCancelable() {
-    if (this.status != OrderStatus.RESERVED) {
-      throw new BusinessException(CommonErrorCode.INVALID_STATE);
-    }
-  }
-
-  private void validateOwner(Long memberId) {
+  public void validateOwner(Long memberId) {
     if (!Objects.equals(this.memberId, memberId)) {
       throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
     }
   }
 
-  // 픽업 상태 변경
-  public void updateOrderStatus(OrderStatus status) {
-    if (this.status != OrderStatus.PICKUP_READY) {
+  // 픽업 완료
+  public void completePickup() {
+    transitionTo(OrderStatus.PICKED_UP);
+  }
+
+  // 노쇼 처리
+  public void markNoShow() {
+    transitionTo(OrderStatus.NO_SHOW);
+  }
+
+  private void transitionTo(OrderStatus nextStatus) {
+    if (!this.status.canTransitionTo(nextStatus)) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
-    this.status = status;
+    this.status = nextStatus;
   }
 }

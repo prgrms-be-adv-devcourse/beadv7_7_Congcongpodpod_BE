@@ -7,12 +7,16 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
+import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
 import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -82,12 +90,12 @@ class OrderServiceTest {
     Long orderId = 2L;
     Order order = mock(Order.class);
 
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
 
     Order result = orderService.cancelOrder(memberId, orderId);
 
     assertThat(result).isSameAs(order);
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId);
   }
 
@@ -98,7 +106,7 @@ class OrderServiceTest {
     String pickupCode = "123456";
     Order order = mock(Order.class);
 
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(pickupCodeGenerator.generate()).thenReturn(pickupCode);
     when(orderRepository.validateActivePickUpCode(storeId, pickupCode)).thenReturn(false);
@@ -109,7 +117,7 @@ class OrderServiceTest {
 
     assertThat(response.orderId()).isEqualTo(orderId);
     assertThat(response.pickUpCode()).isEqualTo(pickupCode);
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(pickupCodeGenerator, times(1)).generate();
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, pickupCode);
     verify(order, times(1)).issuePickupCode(pickupCode);
@@ -123,7 +131,7 @@ class OrderServiceTest {
     String availableCode = "654321";
     Order order = mock(Order.class);
 
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(pickupCodeGenerator.generate()).thenReturn(duplicatedCode, availableCode);
     when(orderRepository.validateActivePickUpCode(storeId, duplicatedCode)).thenReturn(true);
@@ -149,7 +157,7 @@ class OrderServiceTest {
     String duplicatedCode = "123456";
     Order order = mock(Order.class);
 
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(pickupCodeGenerator.generate()).thenReturn(duplicatedCode);
     when(orderRepository.validateActivePickUpCode(storeId, duplicatedCode)).thenReturn(true);
@@ -159,24 +167,141 @@ class OrderServiceTest {
         .extracting("errorCode")
         .isEqualTo(ErrorCode.PICKUP_CODE_GENERATION_FAILED);
 
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(pickupCodeGenerator, times(5)).generate();
     verify(orderRepository, times(5)).validateActivePickUpCode(storeId, duplicatedCode);
     verify(order, never()).issuePickupCode(anyString());
   }
 
   @Test
-  void updatePickupStatus_success() {
+  void updatePickupStatus_pickedUp_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
     PickupStatusRequest request = mock(PickupStatusRequest.class);
 
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(request.status()).thenReturn(OrderStatus.PICKED_UP);
 
     PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
 
     assertThat(response).isNotNull();
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
-    verify(order, times(1)).updateOrderStatus(request.status());
+    verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
+    verify(order).completePickup();
+    verify(order, never()).markNoShow();
+  }
+
+  @Test
+  void updatePickupStatus_noShow_success() {
+    Long orderId = 1L;
+    Order order = mock(Order.class);
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(request.status()).thenReturn(OrderStatus.NO_SHOW);
+
+    PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
+
+    assertThat(response).isNotNull();
+    verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
+    verify(order).markNoShow();
+    verify(order, never()).completePickup();
+  }
+
+  @Test
+  void updatePickupStatus_invalidStatus() {
+    Long orderId = 1L;
+    Order order = mock(Order.class);
+    PickupStatusRequest request = mock(PickupStatusRequest.class);
+
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(request.status()).thenReturn(OrderStatus.RESERVED);
+
+    assertThatThrownBy(() -> orderService.updatePickupStatus(orderId, request))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(CommonErrorCode.INVALID_STATE);
+
+    verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
+    verify(order, never()).completePickup();
+    verify(order, never()).markNoShow();
+  }
+
+  @Test
+  void getEachOrder_success() {
+    Long orderId = 1L;
+    Long memberId = 1L;
+    Order order = mock(Order.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    doNothing().when(order).validateOwner(memberId);
+    when(order.getRejectReason()).thenReturn(null);
+
+    OrderResponse response = orderService.getEachOrder(memberId, orderId);
+
+    assertThat(response).isNotNull();
+    verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
+    verify(order).validateOwner(memberId);
+  }
+
+  @Test
+  void getMyOrders_success() {
+    Long memberId = 1L;
+    OrderStatus status = OrderStatus.RESERVED;
+    Pageable pageable = PageRequest.of(0, 20);
+    Order order = mock(Order.class);
+    Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
+
+    when(orderRepository.findAllByMemberIdAndStatus(memberId, status, pageable)).thenReturn(orders);
+
+    Page<OrderResponse> response = orderService.getMyOrders(memberId, status, pageable);
+
+    assertThat(response.getTotalElements()).isEqualTo(1);
+    assertThat(response.getContent()).hasSize(1);
+    verify(orderRepository, times(1)).findAllByMemberIdAndStatus(memberId, status, pageable);
+  }
+
+  @Test
+  void getMyOrders_withoutStatus_success() {
+    Long memberId = 1L;
+    Pageable pageable = PageRequest.of(0, 20);
+
+    when(orderRepository.findAllByMemberIdAndStatus(memberId, null, pageable))
+        .thenReturn(Page.empty(pageable));
+
+    Page<OrderResponse> response = orderService.getMyOrders(memberId, null, pageable);
+
+    assertThat(response).isEmpty();
+    verify(orderRepository, times(1)).findAllByMemberIdAndStatus(memberId, null, pageable);
+  }
+
+  @Test
+  void getStoreOrders_success() {
+    Long storeId = 1L;
+    OrderStatus status = OrderStatus.PICKUP_READY;
+    Pageable pageable = PageRequest.of(0, 20);
+    Order order = mock(Order.class);
+    Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
+
+    when(orderRepository.findAllByStoreIdAndStatus(storeId, status, pageable)).thenReturn(orders);
+
+    Page<OrderResponse> response = orderService.getStoreOrders(storeId, status, pageable);
+
+    assertThat(response.getTotalElements()).isEqualTo(1);
+    assertThat(response.getContent()).hasSize(1);
+    verify(orderRepository, times(1)).findAllByStoreIdAndStatus(storeId, status, pageable);
+  }
+
+  @Test
+  void getStoreOrders_withoutStatus_success() {
+    Long storeId = 1L;
+    Pageable pageable = PageRequest.of(0, 20);
+
+    when(orderRepository.findAllByStoreIdAndStatus(storeId, null, pageable))
+        .thenReturn(Page.empty(pageable));
+
+    Page<OrderResponse> response = orderService.getStoreOrders(storeId, null, pageable);
+
+    assertThat(response).isEmpty();
+    verify(orderRepository, times(1)).findAllByStoreIdAndStatus(storeId, null, pageable);
   }
 }

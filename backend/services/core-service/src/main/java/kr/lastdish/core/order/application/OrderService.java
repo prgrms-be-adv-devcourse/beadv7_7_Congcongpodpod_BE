@@ -3,12 +3,15 @@ package kr.lastdish.core.order.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,8 +45,9 @@ public class OrderService {
     return OrderResponse.from(order);
   }
 
+  @Transactional
   public Order cancelOrder(Long memberId, Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
     return order;
   }
@@ -83,7 +87,7 @@ public class OrderService {
   @Transactional
   // 주문 접수 - 픽업 코드 발급
   public OrderReceptionResponse acceptOrder(Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
     return OrderReceptionResponse.from(order);
@@ -91,8 +95,40 @@ public class OrderService {
 
   @Transactional
   public PickupStatusResponse updatePickupStatus(Long orderId, PickupStatusRequest request) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.updateOrderStatus(request.status());
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
+
+    switch (request.status()) {
+      case PICKED_UP -> order.completePickup();
+      case NO_SHOW -> order.markNoShow();
+      default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
+    }
+
     return PickupStatusResponse.from(order);
+  }
+
+  @Transactional(readOnly = true)
+  public OrderResponse getEachOrder(Long memberId, Long orderId) {
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.validateOwner(memberId);
+    return OrderResponse.from(order);
+  }
+
+  public PickupCodeResponse getPickupCode(Long memberId, Long orderId) {
+    Order order = orderRepository.findPickupAvailableOrder(orderId, memberId);
+    return PickupCodeResponse.from(order);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<OrderResponse> getMyOrders(Long memberId, OrderStatus status, Pageable pageable) {
+    return orderRepository
+        .findAllByMemberIdAndStatus(memberId, status, pageable)
+        .map(OrderResponse::from);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<OrderResponse> getStoreOrders(Long storeId, OrderStatus status, Pageable pageable) {
+    return orderRepository
+        .findAllByStoreIdAndStatus(storeId, status, pageable)
+        .map(OrderResponse::from);
   }
 }

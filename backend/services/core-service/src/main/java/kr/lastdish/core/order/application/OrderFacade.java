@@ -6,11 +6,15 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
+import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.*;
 import kr.lastdish.core.payment.application.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,33 +71,36 @@ public class OrderFacade {
 
   // 매장 주문 반려
   @Transactional
-  public void rejectOrder(Long memberId, String role, Long orderId, OrderRejectRequest request) {
+  public OrderRejectResponse rejectOrder(
+      Long memberId, String role, Long orderId, OrderRejectRequest request) {
     validateSellerOrder(memberId, role, orderId);
 
     // 반려 사유에 따라 환불 프로세스 분기
     if (request.reason().shouldRestoreStock()) {
-      rejectOrderAndRestoreStock(orderId);
+      return rejectOrderAndRestoreStock(orderId, request.reason());
     } else {
-      rejectOrder(orderId);
+      return rejectOrder(orderId, request.reason());
     }
   }
 
   @Transactional
-  public void rejectOrderAndRestoreStock(Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.rejectOrder();
+  public OrderRejectResponse rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
+    order.rejectOrder(reason);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
+    return OrderRejectResponse.from(order);
   }
 
   @Transactional
-  public void rejectOrder(Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
-    order.rejectOrder();
+  public OrderRejectResponse rejectOrder(Long orderId, OrderRejectReason reason) {
+    Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
+    order.rejectOrder(reason);
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    return OrderRejectResponse.from(order);
   }
 
   @Transactional
@@ -105,10 +112,22 @@ public class OrderFacade {
     return orderService.updatePickupStatus(orderId, request);
   }
 
-  private void validateSellerOrder(Long memberId, String role, Long orderId) {
+  @Transactional(readOnly = true)
+  public Page<OrderResponse> getStoreOrders(
+      Long memberId, String role, Long storeId, OrderStatus status, Pageable pageable) {
+    validateSeller(role);
+    storeFacade.validateStoreOwner(storeId, memberId);
+    return orderService.getStoreOrders(storeId, status, pageable);
+  }
+
+  private void validateSeller(String role) {
     if (!"SELLER".equals(role)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
+  }
+
+  private void validateSellerOrder(Long memberId, String role, Long orderId) {
+    validateSeller(role);
 
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     storeFacade.validateStoreOwner(order.getStoreId(), memberId);
