@@ -5,7 +5,7 @@ import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
-import kr.lastdish.member.member.exception.ErrorCode;
+import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ public class MemberService {
     Member member =
         memberRepository
             .findActiveById(memberId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+            .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
     return MemberProfileResult.from(member);
   }
@@ -34,11 +34,11 @@ public class MemberService {
     Member member =
         memberRepository
             .findById(memberId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+            .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
     // 2. 이미 탈퇴한 회원인지 체크
     if (Boolean.TRUE.equals(member.getIsDeleted())) {
-      throw new BusinessException(ErrorCode.ALREADY_WITHDRAWN_MEMBER);
+      throw new BusinessException(MemberErrorCode.ALREADY_WITHDRAWN_MEMBER);
     }
 
     member.withdraw();
