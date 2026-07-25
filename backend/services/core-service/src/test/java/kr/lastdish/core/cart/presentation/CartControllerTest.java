@@ -217,7 +217,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 3L))))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.code").value("C004"));
+        .andExpect(jsonPath("$.error.code").value("CT004"));
   }
 
   @Test
@@ -262,7 +262,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(5L))))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.code").value("C004"));
+        .andExpect(jsonPath("$.error.code").value("CT004"));
 
     // 실패했으니 수량은 그대로 1이어야 한다
     mockMvc
