@@ -220,11 +220,4 @@ public class StoreService {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
   }
-
-  // 매장 존재 여부 점검 메서드
-  public void validateStore(Long storeId) {
-    storeRepository
-        .findById(storeId)
-        .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
-  }
 }
