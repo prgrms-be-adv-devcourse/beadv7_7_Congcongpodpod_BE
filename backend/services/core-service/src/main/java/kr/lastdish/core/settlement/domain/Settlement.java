@@ -117,8 +117,7 @@ public class Settlement {
       long settlementAmount,
       String bankName,
       String accountNumber,
-      String accountHolder
-  ) {
+      String accountHolder) {
     validate(
         storeId,
         settlementMonth,

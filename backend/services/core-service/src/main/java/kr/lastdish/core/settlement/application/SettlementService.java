@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
-
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.settlement.application.dto.SettlementAccountData;
@@ -60,10 +59,12 @@ public class SettlementService {
     }
 
     SettlementAccountData account =
-            settlementStoreReader.readAccountByStoreId(storeId)
-                    .orElseThrow(() ->
-                            new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND,
-                                    "정산 계좌가 등록되지 않았습니다. storeId=" + storeId));
+        settlementStoreReader
+            .readAccountByStoreId(storeId)
+            .orElseThrow(
+                () ->
+                    new BusinessException(
+                        CommonErrorCode.ENTITY_NOT_FOUND, "정산 계좌가 등록되지 않았습니다. storeId=" + storeId));
 
     List<OrderSettlementAmount> calculatedOrders = calculateOrders(unsettledOrders);
 
@@ -142,10 +143,9 @@ public class SettlementService {
         SettlementCalculator.DEFAULT_FEE_RATE,
         feeAmount,
         settlementAmount,
-            account.bankName(),
-            account.accountNumber(),
-            account.accountHolder()
-            );
+        account.bankName(),
+        account.accountNumber(),
+        account.accountHolder());
   }
 
   // 정산된 주문 리스트 -> 정산 내역으로 변환

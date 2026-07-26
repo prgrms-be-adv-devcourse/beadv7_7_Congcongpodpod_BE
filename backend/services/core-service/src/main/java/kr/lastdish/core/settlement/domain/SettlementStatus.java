@@ -36,6 +36,7 @@ public enum SettlementStatus {
   }
 
   private BusinessException invalidTransition(String action) {
-    return new BusinessException(CommonErrorCode.INVALID_STATE, "%s 상태에서는 정산을 %s 처리할 수 없습니다.".formatted(this, action));
+    return new BusinessException(
+        CommonErrorCode.INVALID_STATE, "%s 상태에서는 정산을 %s 처리할 수 없습니다.".formatted(this, action));
   }
 }
