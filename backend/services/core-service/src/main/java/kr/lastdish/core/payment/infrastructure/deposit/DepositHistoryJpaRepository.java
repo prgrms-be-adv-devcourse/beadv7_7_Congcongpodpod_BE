@@ -1,4 +1,4 @@
-package kr.lastdish.core.payment.infrastructure;
+package kr.lastdish.core.payment.infrastructure.deposit;
 
 import kr.lastdish.core.payment.domain.deposit.DepositHistory;
 import org.springframework.data.domain.Page;

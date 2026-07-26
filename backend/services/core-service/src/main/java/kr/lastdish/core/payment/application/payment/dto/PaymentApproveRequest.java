@@ -1,4 +1,4 @@
-package kr.lastdish.core.payment.application.dto;
+package kr.lastdish.core.payment.application.payment.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

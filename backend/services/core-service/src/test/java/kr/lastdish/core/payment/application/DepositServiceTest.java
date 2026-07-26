@@ -8,13 +8,15 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import kr.lastdish.core.payment.application.dto.DepositTransactionResult;
+
+import kr.lastdish.core.payment.application.deposit.DepositService;
+import kr.lastdish.core.payment.application.deposit.dto.DepositTransactionResult;
 import kr.lastdish.core.payment.domain.deposit.Deposit;
 import kr.lastdish.core.payment.domain.deposit.DepositHistory;
 import kr.lastdish.core.payment.domain.deposit.DepositNotFoundException;
 import kr.lastdish.core.payment.domain.deposit.InsufficientBalanceException;
-import kr.lastdish.core.payment.infrastructure.DepositHistoryJpaRepository;
-import kr.lastdish.core.payment.infrastructure.DepositJpaRepository;
+import kr.lastdish.core.payment.infrastructure.deposit.DepositHistoryJpaRepository;
+import kr.lastdish.core.payment.infrastructure.deposit.DepositJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
