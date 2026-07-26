@@ -10,7 +10,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import kr.lastdish.core.dish.domain.Category;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.infrastructure.DishJpaRepository;
 import kr.lastdish.core.order.domain.Order;
@@ -63,7 +62,6 @@ class OrderConcurrencyIntegrationTest {
                           "테스트 메뉴",
                           LocalDateTime.now(),
                           "테스트",
-                          Category.KOREAN,
                           null,
                           3L,
                           BigDecimal.valueOf(2_000),
