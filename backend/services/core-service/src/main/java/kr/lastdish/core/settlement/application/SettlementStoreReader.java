@@ -8,4 +8,6 @@ public interface SettlementStoreReader {
   List<Long> readSettlementTargetStoreIds();
 
   Optional<SettlementAccountData> readAccountByStoreId(Long storeId);
+
+  Long readStoreIdByMemberId(Long memberId);
 }
