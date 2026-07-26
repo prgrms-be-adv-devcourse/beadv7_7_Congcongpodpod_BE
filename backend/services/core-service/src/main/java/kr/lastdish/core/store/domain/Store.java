@@ -55,6 +55,10 @@ public class Store {
   @Column(name = "is_deleted", nullable = false)
   private boolean deleted;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private Category category;
+
   @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<StoreHoliday> holidays = new ArrayList<>();
 
@@ -67,7 +71,8 @@ public class Store {
       LocalTime openTime,
       LocalTime closeTime,
       BigDecimal latitude,
-      BigDecimal longitude) {
+      BigDecimal longitude,
+      Category category) {
     this.memberId = memberId;
     this.storeName = storeName;
     this.businessNumber = businessNumber;
@@ -77,6 +82,7 @@ public class Store {
     this.closeTime = closeTime;
     this.latitude = latitude;
     this.longitude = longitude;
+    this.category = category;
     this.status = StoreStatus.OPEN;
     this.deleted = false;
   }
@@ -92,7 +98,8 @@ public class Store {
       LocalTime openTime,
       LocalTime closeTime,
       BigDecimal latitude,
-      BigDecimal longitude) {
+      BigDecimal longitude,
+      Category category) {
     this.storeName = storeName;
     this.storeAddress = storeAddress;
     this.storePhone = storePhone;
@@ -100,6 +107,7 @@ public class Store {
     this.closeTime = closeTime;
     this.latitude = latitude;
     this.longitude = longitude;
+    this.category = category;
   }
 
   // 기존 휴무일 제거 후 새로운 휴무일로 교체
