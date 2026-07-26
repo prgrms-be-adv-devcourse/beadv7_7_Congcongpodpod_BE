@@ -11,4 +11,8 @@ public class StoreFacade {
   public void validateStoreOwner(Long storeId, Long memberId) {
     storeService.validateSeller(storeId, memberId);
   }
+
+  public void validateStore(Long storeId) {
+    storeService.validateStore(storeId);
+  }
 }

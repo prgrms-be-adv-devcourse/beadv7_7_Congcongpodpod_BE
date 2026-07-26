@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
-import kr.lastdish.core.dish.domain.Category;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
@@ -128,7 +127,6 @@ class DishServiceTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        Category.KOREAN,
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),
@@ -141,7 +139,6 @@ class DishServiceTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        Category.KOREAN,
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),

@@ -1,4 +1,4 @@
-package kr.lastdish.core.dish.domain;
+package kr.lastdish.core.store.domain;
 
 public enum Category {
   CHICKEN("치킨"),
