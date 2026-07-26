@@ -1,4 +1,4 @@
-package kr.lastdish.core.payment.infrastructure;
+package kr.lastdish.core.payment.infrastructure.payment;
 
 import kr.lastdish.core.payment.domain.payment.PaymentLog;
 import kr.lastdish.core.payment.domain.payment.PaymentLogRepository;

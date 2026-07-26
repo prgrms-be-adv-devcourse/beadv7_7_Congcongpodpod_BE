@@ -1,4 +1,4 @@
-package kr.lastdish.core.payment.infrastructure;
+package kr.lastdish.core.payment.infrastructure.deposit;
 
 import java.util.Optional;
 import kr.lastdish.core.payment.domain.deposit.Deposit;

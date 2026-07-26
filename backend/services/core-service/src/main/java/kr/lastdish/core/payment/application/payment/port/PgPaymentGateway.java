@@ -1,7 +1,7 @@
-package kr.lastdish.core.payment.application.port;
+package kr.lastdish.core.payment.application.payment.port;
 
 import java.math.BigDecimal;
-import kr.lastdish.core.payment.application.dto.PgApprovalResult;
+import kr.lastdish.core.payment.application.payment.dto.PgApprovalResult;
 
 public interface PgPaymentGateway {
 

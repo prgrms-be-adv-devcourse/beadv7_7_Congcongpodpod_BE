@@ -1,12 +1,12 @@
-package kr.lastdish.core.payment.infrastructure;
+package kr.lastdish.core.payment.infrastructure.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
-import kr.lastdish.core.payment.application.dto.PgApprovalResult;
-import kr.lastdish.core.payment.application.port.PgPaymentGateway;
+import kr.lastdish.core.payment.application.payment.dto.PgApprovalResult;
+import kr.lastdish.core.payment.application.payment.port.PgPaymentGateway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
