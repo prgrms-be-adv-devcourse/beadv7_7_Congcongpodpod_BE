@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.core.settlement.application.dto.SettlementAccountData;
 import kr.lastdish.core.settlement.application.dto.SettlementCreateResult;
 import kr.lastdish.core.settlement.application.dto.SettlementOrderData;
 import kr.lastdish.core.settlement.application.dto.SettlementPeriod;
@@ -21,6 +24,7 @@ public class SettlementService {
   private final SettlementOrderReader settlementOrderReader;
   private final SettlementRepository settlementRepository;
   private final SettlementDetailRepository settlementDetailRepository;
+  private final SettlementStoreReader settlementStoreReader;
 
   /*
    * 한 매장의 월 정산을 하나의 독립된 트랜잭션으로 생성합니다.
@@ -54,10 +58,19 @@ public class SettlementService {
       return SettlementCreateResult.skipped(storeId);
     }
 
+    SettlementAccountData account =
+        settlementStoreReader
+            .readAccountByStoreId(storeId)
+            .orElseThrow(
+                () ->
+                    new BusinessException(
+                        CommonErrorCode.ENTITY_NOT_FOUND, "정산 계좌가 등록되지 않았습니다. storeId=" + storeId));
+
     List<OrderSettlementAmount> calculatedOrders = calculateOrders(unsettledOrders);
 
     // 정산 생성
-    Settlement settlement = createSettlement(storeId, settlementMonth, period, calculatedOrders);
+    Settlement settlement =
+        createSettlement(storeId, settlementMonth, period, calculatedOrders, account);
 
     Settlement savedSettlement = settlementRepository.save(settlement);
 
@@ -108,7 +121,8 @@ public class SettlementService {
       Long storeId,
       YearMonth settlementMonth,
       SettlementPeriod period,
-      List<OrderSettlementAmount> calculatedOrders) {
+      List<OrderSettlementAmount> calculatedOrders,
+      SettlementAccountData account) {
     // 정산 전체 판매액 합산
     long grossAmount =
         calculatedOrders.stream().mapToLong(OrderSettlementAmount::salesAmount).sum();
@@ -129,7 +143,10 @@ public class SettlementService {
         grossAmount,
         SettlementCalculator.DEFAULT_FEE_RATE,
         feeAmount,
-        settlementAmount);
+        settlementAmount,
+        account.bankName(),
+        account.accountNumber(),
+        account.accountHolder());
   }
 
   // 정산된 주문 리스트 -> 정산 내역으로 변환

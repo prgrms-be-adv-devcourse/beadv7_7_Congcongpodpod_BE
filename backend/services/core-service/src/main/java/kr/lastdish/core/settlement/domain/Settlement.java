@@ -96,6 +96,15 @@ public class Settlement {
   @Column(name = "failure_reason", length = 500)
   private String failureReason;
 
+  @Column(nullable = false, length = 20)
+  private String bankCode;
+
+  @Column(nullable = false, length = 100)
+  private String accountNumber;
+
+  @Column(nullable = false, length = 50)
+  private String accountHolder;
+
   public Settlement(
       Long storeId,
       YearMonth settlementMonth,
@@ -105,7 +114,10 @@ public class Settlement {
       long grossAmount,
       BigDecimal feeRate,
       long feeAmount,
-      long settlementAmount) {
+      long settlementAmount,
+      String bankName,
+      String accountNumber,
+      String accountHolder) {
     validate(
         storeId,
         settlementMonth,
@@ -126,37 +138,28 @@ public class Settlement {
     this.feeRate = feeRate;
     this.feeAmount = feeAmount;
     this.settlementAmount = settlementAmount;
+    this.bankCode = bankName;
+    this.accountNumber = accountNumber;
+    this.accountHolder = accountHolder;
     this.settlementStatus = SettlementStatus.PROCESSING;
   }
 
   public void complete() {
-    if (settlementStatus != SettlementStatus.PROCESSING) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "처리 중인 정산만 완료할 수 있습니다.");
-    }
-
-    this.settlementStatus = SettlementStatus.COMPLETED;
+    this.settlementStatus = settlementStatus.complete();
     this.failureReason = null;
   }
 
   public void fail(String failureReason) {
-    if (settlementStatus != SettlementStatus.PROCESSING) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "처리 중인 정산만 실패 처리할 수 있습니다.");
-    }
-
     if (failureReason == null || failureReason.isBlank()) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "실패 사유는 필수입니다.");
     }
 
-    this.settlementStatus = SettlementStatus.FAILED;
+    this.settlementStatus = settlementStatus.fail();
     this.failureReason = failureReason;
   }
 
   public void restart() {
-    if (settlementStatus != SettlementStatus.FAILED) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "실패한 정산만 재시작할 수 있습니다.");
-    }
-
-    this.settlementStatus = SettlementStatus.PROCESSING;
+    this.settlementStatus = settlementStatus.restart();
     this.failureReason = null;
   }
 
