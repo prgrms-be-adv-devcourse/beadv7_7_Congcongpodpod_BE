@@ -69,7 +69,8 @@ public class SettlementService {
     List<OrderSettlementAmount> calculatedOrders = calculateOrders(unsettledOrders);
 
     // 정산 생성
-    Settlement settlement = createSettlement(storeId, settlementMonth, period, calculatedOrders, account);
+    Settlement settlement =
+        createSettlement(storeId, settlementMonth, period, calculatedOrders, account);
 
     Settlement savedSettlement = settlementRepository.save(settlement);
 
