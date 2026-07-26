@@ -38,7 +38,8 @@ public class StorePayoutAccount {
   @Column(name = "is_deleted", nullable = false)
   private boolean deleted;
 
-  public StorePayoutAccount(Long storeId, String bankName, String accountNumber, String accountHolder) {
+  public StorePayoutAccount(
+      Long storeId, String bankName, String accountNumber, String accountHolder) {
     this.storeId = storeId;
     this.bankName = bankName;
     this.accountNumber = accountNumber;

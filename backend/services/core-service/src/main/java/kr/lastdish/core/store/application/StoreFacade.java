@@ -2,7 +2,6 @@ package kr.lastdish.core.store.application;
 
 import java.util.List;
 import java.util.Optional;
-
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,13 +24,11 @@ public class StoreFacade {
   }
 
   public Optional<StoreSettlementAccountResult> findSettlementAccount(Long storeId) {
-    return storePayoutAccountRepository.findByStoreId(storeId)
-            .map(account ->
-                    new StoreSettlementAccountResult(
-                            account.getBankName(),
-                            account.getAccountNumber(),
-                            account.getAccountHolder()
-                    )
-            );
+    return storePayoutAccountRepository
+        .findByStoreId(storeId)
+        .map(
+            account ->
+                new StoreSettlementAccountResult(
+                    account.getBankName(), account.getAccountNumber(), account.getAccountHolder()));
   }
 }
