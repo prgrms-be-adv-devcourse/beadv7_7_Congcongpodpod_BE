@@ -20,6 +20,9 @@ public class StorePayoutAccount {
   @Column(name = "store_id", nullable = false)
   private Long storeId;
 
+  @Column(name = "bank_name", nullable = false)
+  private String bankName;
+
   @Column(name = "account_number", nullable = false)
   private String accountNumber;
 
@@ -35,8 +38,9 @@ public class StorePayoutAccount {
   @Column(name = "is_deleted", nullable = false)
   private boolean deleted;
 
-  public StorePayoutAccount(Long storeId, String accountNumber, String accountHolder) {
+  public StorePayoutAccount(Long storeId, String bankName, String accountNumber, String accountHolder) {
     this.storeId = storeId;
+    this.bankName = bankName;
     this.accountNumber = accountNumber;
     this.accountHolder = accountHolder;
     this.active = true;
@@ -44,7 +48,8 @@ public class StorePayoutAccount {
     this.deleted = false;
   }
 
-  public void update(String accountNumber, String accountHolder) {
+  public void update(String bankName, String accountNumber, String accountHolder) {
+    this.bankName = bankName;
     this.accountNumber = accountNumber;
     this.accountHolder = accountHolder;
     this.updatedAt = LocalDateTime.now();

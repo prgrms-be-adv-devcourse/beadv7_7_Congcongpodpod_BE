@@ -84,7 +84,7 @@ public class StoreController {
       @Valid @RequestBody StoreAccountRequest request) {
     PayoutAccountResult result =
         storeService.registerPayoutAccount(
-            storeId, memberId, request.accountNumber(), request.accountHolder());
+            storeId, memberId, request.bankName(), request.accountNumber(), request.accountHolder());
 
     return ApiResponse.ok(StoreAccountResponse.from(result));
   }
@@ -96,7 +96,7 @@ public class StoreController {
       @Valid @RequestBody StoreAccountRequest request) {
     PayoutAccountResult result =
         storeService.updatePayoutAccount(
-            storeId, memberId, request.accountNumber(), request.accountHolder());
+            storeId, memberId, request.bankName(), request.accountNumber(), request.accountHolder());
 
     return ApiResponse.ok(StoreAccountResponse.from(result));
   }
