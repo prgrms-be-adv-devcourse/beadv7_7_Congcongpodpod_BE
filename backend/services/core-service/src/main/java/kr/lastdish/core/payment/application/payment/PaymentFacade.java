@@ -1,10 +1,11 @@
-package kr.lastdish.core.payment.application;
+package kr.lastdish.core.payment.application.payment;
 
 import java.math.BigDecimal;
 import kr.lastdish.common.api.exception.CommonErrorCode;
-import kr.lastdish.core.payment.application.dto.PaymentApproveResponse;
-import kr.lastdish.core.payment.application.dto.PgApprovalResult;
-import kr.lastdish.core.payment.application.port.PgPaymentGateway;
+import kr.lastdish.core.payment.application.deposit.DepositFacade;
+import kr.lastdish.core.payment.application.payment.dto.PaymentApproveResponse;
+import kr.lastdish.core.payment.application.payment.dto.PgApprovalResult;
+import kr.lastdish.core.payment.application.payment.port.PgPaymentGateway;
 import kr.lastdish.core.payment.domain.payment.Payment;
 import kr.lastdish.core.payment.domain.payment.PaymentException;
 import lombok.RequiredArgsConstructor;

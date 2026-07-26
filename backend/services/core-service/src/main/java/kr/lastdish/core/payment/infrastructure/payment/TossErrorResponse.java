@@ -1,4 +1,4 @@
-package kr.lastdish.core.payment.infrastructure;
+package kr.lastdish.core.payment.infrastructure.payment;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

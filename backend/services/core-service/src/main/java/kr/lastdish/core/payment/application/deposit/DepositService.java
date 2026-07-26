@@ -1,8 +1,8 @@
-package kr.lastdish.core.payment.application;
+package kr.lastdish.core.payment.application.deposit;
 
 import java.math.BigDecimal;
-import kr.lastdish.core.payment.application.dto.DepositBalanceResponse;
-import kr.lastdish.core.payment.application.dto.DepositTransactionResult;
+import kr.lastdish.core.payment.application.deposit.dto.DepositBalanceResponse;
+import kr.lastdish.core.payment.application.deposit.dto.DepositTransactionResult;
 import kr.lastdish.core.payment.domain.deposit.Deposit;
 import kr.lastdish.core.payment.domain.deposit.DepositHistory;
 import kr.lastdish.core.payment.domain.deposit.DepositNotFoundException;

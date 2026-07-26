@@ -6,7 +6,7 @@ import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.presentation.dto.*;
-import kr.lastdish.core.payment.application.DepositFacade;
+import kr.lastdish.core.payment.application.deposit.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,12 +1,12 @@
 package kr.lastdish.core.payment.presentation;
 
 import jakarta.validation.Valid;
-import kr.lastdish.core.payment.application.PaymentFacade;
-import kr.lastdish.core.payment.application.PaymentService;
-import kr.lastdish.core.payment.application.dto.PaymentApproveRequest;
-import kr.lastdish.core.payment.application.dto.PaymentApproveResponse;
-import kr.lastdish.core.payment.application.dto.PaymentReadyRequest;
-import kr.lastdish.core.payment.application.dto.PaymentReadyResponse;
+import kr.lastdish.core.payment.application.payment.PaymentFacade;
+import kr.lastdish.core.payment.application.payment.PaymentService;
+import kr.lastdish.core.payment.application.payment.dto.PaymentApproveRequest;
+import kr.lastdish.core.payment.application.payment.dto.PaymentApproveResponse;
+import kr.lastdish.core.payment.application.payment.dto.PaymentReadyRequest;
+import kr.lastdish.core.payment.application.payment.dto.PaymentReadyResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
