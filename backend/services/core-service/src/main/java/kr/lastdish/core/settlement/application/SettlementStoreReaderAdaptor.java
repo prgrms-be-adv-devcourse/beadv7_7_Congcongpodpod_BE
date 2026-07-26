@@ -26,4 +26,9 @@ public class SettlementStoreReaderAdaptor implements SettlementStoreReader {
                 new SettlementAccountData(
                     account.bankName(), account.accountNumber(), account.accountHolder()));
   }
+
+  @Override
+  public Long readStoreIdByMemberId(Long memberId) {
+    return storeFacade.findStoreIdByMemberId(memberId);
+  }
 }
