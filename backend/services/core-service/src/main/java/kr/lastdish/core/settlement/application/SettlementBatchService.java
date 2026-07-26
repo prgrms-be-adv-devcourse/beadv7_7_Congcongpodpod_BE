@@ -1,6 +1,9 @@
 package kr.lastdish.core.settlement.application;
 
 import java.time.YearMonth;
+
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.settlement.presentation.dto.MonthlySettlementJobResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.job.Job;
@@ -29,7 +32,7 @@ public class SettlementBatchService {
 
       return MonthlySettlementJobResponse.from(jobExecution, settlementMonth);
     } catch (Exception exception) {
-      throw new IllegalStateException("월 정산 배치를 실행하지 못했습니다.", exception);
+      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "월 정산 배치를 실행하지 못했습니다. Exception : " + exception);
     }
   }
 }
