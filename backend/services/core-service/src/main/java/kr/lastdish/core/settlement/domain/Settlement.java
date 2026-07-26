@@ -96,6 +96,15 @@ public class Settlement {
   @Column(name = "failure_reason", length = 500)
   private String failureReason;
 
+  @Column(nullable = false, length = 20)
+  private String bankCode;
+
+  @Column(nullable = false, length = 100)
+  private String accountNumber;
+
+  @Column(nullable = false, length = 50)
+  private String accountHolder;
+
   public Settlement(
       Long storeId,
       YearMonth settlementMonth,
@@ -105,7 +114,11 @@ public class Settlement {
       long grossAmount,
       BigDecimal feeRate,
       long feeAmount,
-      long settlementAmount) {
+      long settlementAmount,
+      String bankName,
+      String accountNumber,
+      String accountHolder
+  ) {
     validate(
         storeId,
         settlementMonth,
@@ -126,6 +139,9 @@ public class Settlement {
     this.feeRate = feeRate;
     this.feeAmount = feeAmount;
     this.settlementAmount = settlementAmount;
+    this.bankCode = bankName;
+    this.accountNumber = accountNumber;
+    this.accountHolder = accountHolder;
     this.settlementStatus = SettlementStatus.PROCESSING;
   }
 
