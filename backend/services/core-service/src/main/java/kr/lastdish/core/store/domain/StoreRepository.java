@@ -29,4 +29,6 @@ public interface StoreRepository {
       BigDecimal maxLongitude);
 
   List<Long> findAllActiveStoreIds();
+
+  Optional<Store> findByMemberId(Long memberId);
 }
