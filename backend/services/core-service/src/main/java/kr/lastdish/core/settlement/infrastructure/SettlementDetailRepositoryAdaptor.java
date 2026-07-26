@@ -37,4 +37,9 @@ public class SettlementDetailRepositoryAdaptor implements SettlementDetailReposi
 
     return new HashSet<>(jpaSettlementDetailRepository.findSettledOrderIds(orderIds));
   }
+
+  @Override
+  public List<SettlementDetail> findAllBySettlementId(Long settlementId) {
+    return jpaSettlementDetailRepository.findAllBySettlementIdOrderByIdAsc(settlementId);
+  }
 }
