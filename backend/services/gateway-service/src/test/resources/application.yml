@@ -4,6 +4,19 @@ spring:
   cloud:
     config:
       enabled: false
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              "[/api/**]":
+                allowed-origins:
+                  - https://lastdish.kr
+                  - https://www.lastdish.kr
+                allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowed-headers: [Authorization, Content-Type]
+                max-age: 3600
 
 management:
   endpoints:
