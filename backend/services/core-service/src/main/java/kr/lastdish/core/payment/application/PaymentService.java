@@ -9,8 +9,8 @@ import kr.lastdish.core.payment.application.dto.PgApprovalResult;
 import kr.lastdish.core.payment.domain.payment.Payment;
 import kr.lastdish.core.payment.domain.payment.PaymentException;
 import kr.lastdish.core.payment.domain.payment.PaymentLog;
-import kr.lastdish.core.payment.infrastructure.PaymentLogRepository;
-import kr.lastdish.core.payment.infrastructure.PaymentRepository;
+import kr.lastdish.core.payment.domain.payment.PaymentRepository;
+import kr.lastdish.core.payment.domain.payment.PaymentLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -43,7 +43,7 @@ public class PaymentService {
   @Transactional
   public Payment getReadyPayment(String merchantOrderId, BigDecimal requestedAmount) {
     Payment payment =
-        paymentRepository
+            paymentRepository
             .findWithLockByMerchantOrderId(merchantOrderId)
             .orElseThrow(
                 () ->
@@ -64,7 +64,7 @@ public class PaymentService {
   @Transactional
   public Payment approvePayment(Long paymentId, PgApprovalResult pgResult) {
     Payment payment =
-        paymentRepository
+            paymentRepository
             .findById(paymentId)
             .orElseThrow(
                 () ->
@@ -89,7 +89,7 @@ public class PaymentService {
   @Transactional
   public Payment failPayment(Long paymentId, PgApprovalResult pgResult) {
     Payment payment =
-        paymentRepository
+            paymentRepository
             .findById(paymentId)
             .orElseThrow(
                 () ->

@@ -6,7 +6,7 @@ import kr.lastdish.core.payment.domain.deposit.Deposit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
-public interface DepositRepository extends JpaRepository<Deposit, Long> {
+public interface DepositJpaRepository extends JpaRepository<Deposit, Long> {
 
   Optional<Deposit> findByMemberId(Long memberId);
 
