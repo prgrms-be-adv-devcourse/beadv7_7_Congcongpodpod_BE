@@ -13,8 +13,8 @@ import kr.lastdish.core.payment.domain.deposit.Deposit;
 import kr.lastdish.core.payment.domain.deposit.DepositHistory;
 import kr.lastdish.core.payment.domain.deposit.DepositNotFoundException;
 import kr.lastdish.core.payment.domain.deposit.InsufficientBalanceException;
-import kr.lastdish.core.payment.infrastructure.DepositHistoryRepository;
-import kr.lastdish.core.payment.infrastructure.DepositRepository;
+import kr.lastdish.core.payment.infrastructure.DepositHistoryJpaRepository;
+import kr.lastdish.core.payment.infrastructure.DepositJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,8 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DepositServiceTest {
 
-  @Mock private DepositRepository depositRepository;
-  @Mock private DepositHistoryRepository depositHistoryRepository;
+  @Mock private DepositJpaRepository depositRepository;
+  @Mock private DepositHistoryJpaRepository depositHistoryRepository;
 
   @InjectMocks private DepositService depositService;
 

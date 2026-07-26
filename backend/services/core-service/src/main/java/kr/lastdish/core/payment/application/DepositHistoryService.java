@@ -1,7 +1,7 @@
 package kr.lastdish.core.payment.application;
 
 import kr.lastdish.core.payment.application.dto.DepositHistoryResponse;
-import kr.lastdish.core.payment.infrastructure.DepositHistoryRepository;
+import kr.lastdish.core.payment.domain.deposit.DepositHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
