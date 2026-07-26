@@ -146,33 +146,21 @@ public class Settlement {
   }
 
   public void complete() {
-    if (settlementStatus != SettlementStatus.PROCESSING) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "처리 중인 정산만 완료할 수 있습니다.");
-    }
-
-    this.settlementStatus = SettlementStatus.COMPLETED;
+    this.settlementStatus = settlementStatus.complete();
     this.failureReason = null;
   }
 
   public void fail(String failureReason) {
-    if (settlementStatus != SettlementStatus.PROCESSING) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "처리 중인 정산만 실패 처리할 수 있습니다.");
-    }
-
     if (failureReason == null || failureReason.isBlank()) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "실패 사유는 필수입니다.");
     }
 
-    this.settlementStatus = SettlementStatus.FAILED;
+    this.settlementStatus = settlementStatus.fail();
     this.failureReason = failureReason;
   }
 
   public void restart() {
-    if (settlementStatus != SettlementStatus.FAILED) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "실패한 정산만 재시작할 수 있습니다.");
-    }
-
-    this.settlementStatus = SettlementStatus.PROCESSING;
+    this.settlementStatus = settlementStatus.restart();
     this.failureReason = null;
   }
 
