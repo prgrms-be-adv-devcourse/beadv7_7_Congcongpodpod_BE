@@ -1,8 +1,10 @@
 package kr.lastdish.core.dish.infrastructure;
 
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.domain.DishStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -43,5 +45,10 @@ public class DishRepositoryImpl implements DishRepository {
   @Override
   public boolean existsByStoreIdAndIsDeletedFalse(Long storeId) {
     return dishJpaRepository.existsByStoreIdAndIsDeletedFalse(storeId);
+  }
+
+  @Override
+  public List<Dish> findOnSaleByStoreId(Long storeId) {
+    return dishJpaRepository.findOnSaleByStoreId(storeId, DishStatus.ON_SALE);
   }
 }
