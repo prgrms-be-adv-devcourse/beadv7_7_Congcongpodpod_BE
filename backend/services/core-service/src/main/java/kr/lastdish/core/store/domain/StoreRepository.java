@@ -19,6 +19,7 @@ public interface StoreRepository {
       BigDecimal maxLatitude,
       BigDecimal minLongitude,
       BigDecimal maxLongitude,
+      Category category,
       int page,
       int size);
 
@@ -26,5 +27,6 @@ public interface StoreRepository {
       BigDecimal minLatitude,
       BigDecimal maxLatitude,
       BigDecimal minLongitude,
-      BigDecimal maxLongitude);
+      BigDecimal maxLongitude,
+      Category category);
 }
