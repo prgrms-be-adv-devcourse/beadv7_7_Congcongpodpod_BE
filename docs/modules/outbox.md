@@ -95,4 +95,3 @@ Outbox JPA 구성도 같은 `EntityManagerFactory`에 합류시킵니다.
 
 이 클래스는 자동 구성 내부 구현이므로 package-private으로 유지하며,
 서비스 코드에서 직접 호출하거나 `@Import`하지 않습니다.
-

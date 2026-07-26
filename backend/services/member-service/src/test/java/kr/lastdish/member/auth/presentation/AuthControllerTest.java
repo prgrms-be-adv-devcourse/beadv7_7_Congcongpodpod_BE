@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
-import kr.lastdish.member.auth.presentation.dto.TokenResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,16 +55,16 @@ class AuthControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(loginRequest)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.data.accessToken").exists())
+            .andExpect(jsonPath("$.data.refreshToken").exists())
             .andReturn();
 
-    // 응답받은 토큰 파싱
+    // 응답받은 JSON에서 JsonPath를 이용해 리프레시 토큰 값 직접 추출
     String responseBody = loginResult.getResponse().getContentAsString();
-    TokenResponse tokenResponse = objectMapper.readValue(responseBody, TokenResponse.class);
+    String refreshToken = com.jayway.jsonpath.JsonPath.read(responseBody, "$.data.refreshToken");
 
     // given 3: 리프레시 토큰으로 재발급 요청 데이터 준비
-    String refreshJson = "{\"refreshToken\":\"" + tokenResponse.getRefreshToken() + "\"}";
+    String refreshJson = "{\"refreshToken\":\"" + refreshToken + "\"}";
 
     // when 3: 토큰 재발급 API 호출 및 새로운 Access Token 발급 확인
     mockMvc
@@ -74,6 +73,6 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(refreshJson))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accessToken").exists());
+        .andExpect(jsonPath("$.data.accessToken").exists());
   }
 }
