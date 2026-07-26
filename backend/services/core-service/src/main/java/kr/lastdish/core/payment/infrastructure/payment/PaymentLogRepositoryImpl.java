@@ -9,10 +9,10 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class PaymentLogRepositoryImpl implements PaymentLogRepository {
 
-    private final PaymentLogJpaRepository paymentLogJpaRepository;
+  private final PaymentLogJpaRepository paymentLogJpaRepository;
 
-    @Override
-    public PaymentLog save(PaymentLog paymentLog) {
-        return paymentLogJpaRepository.save(paymentLog);
-    }
+  @Override
+  public PaymentLog save(PaymentLog paymentLog) {
+    return paymentLogJpaRepository.save(paymentLog);
+  }
 }
