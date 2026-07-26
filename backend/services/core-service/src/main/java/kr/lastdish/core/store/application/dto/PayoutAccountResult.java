@@ -6,6 +6,7 @@ import kr.lastdish.core.store.domain.StorePayoutAccount;
 public record PayoutAccountResult(
     Long payoutAccountId,
     Long storeId,
+    String bankName,
     String accountNumber,
     String accountHolder,
     boolean active,
@@ -14,6 +15,7 @@ public record PayoutAccountResult(
     return new PayoutAccountResult(
         account.getId(),
         account.getStoreId(),
+        account.getBankName(),
         maskAccountNumber(account.getAccountNumber()),
         account.getAccountHolder(),
         account.isActive(),
