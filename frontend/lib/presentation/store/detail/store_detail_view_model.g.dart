@@ -72,15 +72,21 @@ class StoreDetailViewModelFamily extends Family<AsyncValue<Store>> {
   /// 화면에서는 `ref.watch(storeDetailViewModelProvider(storeId))`처럼 파라미터를 넣어서 쓴다.
   ///
   /// Copied from [storeDetailViewModel].
-  StoreDetailViewModelProvider call(int storeId) {
-    return StoreDetailViewModelProvider(storeId);
+  StoreDetailViewModelProvider call(
+    int storeId,
+  ) {
+    return StoreDetailViewModelProvider(
+      storeId,
+    );
   }
 
   @override
   StoreDetailViewModelProvider getProviderOverride(
     covariant StoreDetailViewModelProvider provider,
   ) {
-    return call(provider.storeId);
+    return call(
+      provider.storeId,
+    );
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -117,19 +123,24 @@ class StoreDetailViewModelProvider extends AutoDisposeFutureProvider<Store> {
   /// 화면에서는 `ref.watch(storeDetailViewModelProvider(storeId))`처럼 파라미터를 넣어서 쓴다.
   ///
   /// Copied from [storeDetailViewModel].
-  StoreDetailViewModelProvider(int storeId)
-    : this._internal(
-        (ref) => storeDetailViewModel(ref as StoreDetailViewModelRef, storeId),
-        from: storeDetailViewModelProvider,
-        name: r'storeDetailViewModelProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$storeDetailViewModelHash,
-        dependencies: StoreDetailViewModelFamily._dependencies,
-        allTransitiveDependencies:
-            StoreDetailViewModelFamily._allTransitiveDependencies,
-        storeId: storeId,
-      );
+  StoreDetailViewModelProvider(
+    int storeId,
+  ) : this._internal(
+          (ref) => storeDetailViewModel(
+            ref as StoreDetailViewModelRef,
+            storeId,
+          ),
+          from: storeDetailViewModelProvider,
+          name: r'storeDetailViewModelProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$storeDetailViewModelHash,
+          dependencies: StoreDetailViewModelFamily._dependencies,
+          allTransitiveDependencies:
+              StoreDetailViewModelFamily._allTransitiveDependencies,
+          storeId: storeId,
+        );
 
   StoreDetailViewModelProvider._internal(
     super._createNotifier, {
@@ -193,6 +204,5 @@ class _StoreDetailViewModelProviderElement
   @override
   int get storeId => (origin as StoreDetailViewModelProvider).storeId;
 }
-
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

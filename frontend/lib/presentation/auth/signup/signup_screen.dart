@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +86,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       // copyWithPrevious로 계속 이어받아서, 회원가입이 실패해도 next.hasValue가 true로
       // 남는다. hasError를 먼저 확인해서 갈라야 한다.
       if (next.hasError) {
+        // login_screen.dart와 같은 이유 — 디버그 빌드에서만 콘솔에 전체 스택트레이스를 남긴다.
+        if (kDebugMode) {
+          debugPrint('[signup] ${next.error}\n${next.stackTrace}');
+        }
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(next.error.toString())));

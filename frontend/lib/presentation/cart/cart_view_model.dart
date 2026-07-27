@@ -25,20 +25,14 @@ class CartViewModel extends _$CartViewModel {
     return _mutate(
       () => ref
           .read(cartRepositoryProvider)
-          .updateItemQuantity(
-            cartId: cartId,
-            itemId: itemId,
-            quantity: quantity,
-          ),
+          .updateItemQuantity(cartId: cartId, itemId: itemId, quantity: quantity),
     );
   }
 
   Future<void> removeItem(int itemId) {
     final cartId = state.requireValue.cartId;
     return _mutate(
-      () => ref
-          .read(cartRepositoryProvider)
-          .removeItem(cartId: cartId, itemId: itemId),
+      () => ref.read(cartRepositoryProvider).removeItem(cartId: cartId, itemId: itemId),
     );
   }
 
@@ -47,7 +41,7 @@ class CartViewModel extends _$CartViewModel {
     return _mutate(() => ref.read(cartRepositoryProvider).clearCart(cartId));
   }
 
-  /// 변경 요청 하나를 보내고, 끝나면 최신 카트로 상태를 통째로 다시 채운다.
+  /// 변경 요청 하나를 보내고, 성공하면 최신 카트로 상태를 다시 채운다.
   ///
   /// 버튼 중복 탭 방지는 여기(state.isLoading)로 하지 않는다 — 직접 해봤다가
   /// 알게 된 것인데, `state = AsyncLoading()`을 수동으로 지정하면 Riverpod이 이걸
@@ -55,10 +49,16 @@ class CartViewModel extends _$CartViewModel {
   /// 통째로 바뀌어버린다(`ref.invalidateSelf()`가 만드는 "이어서 로딩"/isRefreshing과는
   /// 다른 경로다). 그래서 중복 탭 방지는 화면 쪽 로컬 상태(cart_screen.dart의
   /// `_isMutating`)로 옮기고, 여기서는 순수하게 "요청 보내고 최신 데이터로 채우기"만 한다.
+  ///
+  /// ⚠️ 2026-07-27 수정: 예전엔 `AsyncValue.guard`로 감싸서 실패하면 state를
+  /// `AsyncError`로 바꿨는데, 그러면 `cart_screen.dart`의 `cartAsync.when()`이 error
+  /// 분기로 넘어가면서 화면에 이미 그려져 있던 카트(상품/수량 등)가 통째로 에러 메시지로
+  /// 바뀌어버렸다 — 재고 초과처럼 "이번 변경 하나만 실패한" 상황인데도 마치 상품이
+  /// 사라진 것처럼 보이는 버그였다. 이제는 실패하면 state를 안 건드리고(마지막으로
+  /// 성공했던 카트가 화면에 그대로 남는다) 예외만 위로 던져서, 호출부(cart_screen.dart의
+  /// `_run`)가 스낵바 하나로만 알려주게 한다.
   Future<void> _mutate(Future<void> Function() action) async {
-    state = await AsyncValue.guard(() async {
-      await action();
-      return ref.read(cartRepositoryProvider).getMyCart();
-    });
+    await action();
+    state = AsyncData(await ref.read(cartRepositoryProvider).getMyCart());
   }
 }

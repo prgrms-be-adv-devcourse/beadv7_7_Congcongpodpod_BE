@@ -12,8 +12,7 @@ part of 'cart.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 CartItem _$CartItemFromJson(Map<String, dynamic> json) {
   return _CartItem.fromJson(json);
@@ -24,11 +23,11 @@ mixin _$CartItem {
   int get cartItemId => throw _privateConstructorUsedError;
   int get dishId => throw _privateConstructorUsedError;
   String get dishName =>
-      throw _privateConstructorUsedError; // 원 단위 정수로 가정(금액은 원 단위, 소수점 없음).
-  // 백엔드가 소수점 있는 값을 내려주면(BigDecimal이라 이론상 가능) 이 타입을 num으로 바꿔야 한다.
-  int get unitPrice => throw _privateConstructorUsedError;
+      throw _privateConstructorUsedError; // 2026-07-27 실제 로컬 연동 테스트로 확인: 백엔드가 `BigDecimal`이라 실제로
+// "10000.00"처럼 소수점을 붙여 내려온다(int로 받으면 파싱 시 캐스팅 에러) — num으로 수정.
+  num get unitPrice => throw _privateConstructorUsedError;
   int get quantity => throw _privateConstructorUsedError;
-  int get subtotalPrice => throw _privateConstructorUsedError;
+  num get subtotalPrice => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -41,14 +40,13 @@ abstract class $CartItemCopyWith<$Res> {
   factory $CartItemCopyWith(CartItem value, $Res Function(CartItem) then) =
       _$CartItemCopyWithImpl<$Res, CartItem>;
   @useResult
-  $Res call({
-    int cartItemId,
-    int dishId,
-    String dishName,
-    int unitPrice,
-    int quantity,
-    int subtotalPrice,
-  });
+  $Res call(
+      {int cartItemId,
+      int dishId,
+      String dishName,
+      num unitPrice,
+      int quantity,
+      num subtotalPrice});
 }
 
 /// @nodoc
@@ -71,35 +69,32 @@ class _$CartItemCopyWithImpl<$Res, $Val extends CartItem>
     Object? quantity = null,
     Object? subtotalPrice = null,
   }) {
-    return _then(
-      _value.copyWith(
-            cartItemId: null == cartItemId
-                ? _value.cartItemId
-                : cartItemId // ignore: cast_nullable_to_non_nullable
-                      as int,
-            dishId: null == dishId
-                ? _value.dishId
-                : dishId // ignore: cast_nullable_to_non_nullable
-                      as int,
-            dishName: null == dishName
-                ? _value.dishName
-                : dishName // ignore: cast_nullable_to_non_nullable
-                      as String,
-            unitPrice: null == unitPrice
-                ? _value.unitPrice
-                : unitPrice // ignore: cast_nullable_to_non_nullable
-                      as int,
-            quantity: null == quantity
-                ? _value.quantity
-                : quantity // ignore: cast_nullable_to_non_nullable
-                      as int,
-            subtotalPrice: null == subtotalPrice
-                ? _value.subtotalPrice
-                : subtotalPrice // ignore: cast_nullable_to_non_nullable
-                      as int,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      cartItemId: null == cartItemId
+          ? _value.cartItemId
+          : cartItemId // ignore: cast_nullable_to_non_nullable
+              as int,
+      dishId: null == dishId
+          ? _value.dishId
+          : dishId // ignore: cast_nullable_to_non_nullable
+              as int,
+      dishName: null == dishName
+          ? _value.dishName
+          : dishName // ignore: cast_nullable_to_non_nullable
+              as String,
+      unitPrice: null == unitPrice
+          ? _value.unitPrice
+          : unitPrice // ignore: cast_nullable_to_non_nullable
+              as num,
+      quantity: null == quantity
+          ? _value.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as int,
+      subtotalPrice: null == subtotalPrice
+          ? _value.subtotalPrice
+          : subtotalPrice // ignore: cast_nullable_to_non_nullable
+              as num,
+    ) as $Val);
   }
 }
 
@@ -107,19 +102,17 @@ class _$CartItemCopyWithImpl<$Res, $Val extends CartItem>
 abstract class _$$CartItemImplCopyWith<$Res>
     implements $CartItemCopyWith<$Res> {
   factory _$$CartItemImplCopyWith(
-    _$CartItemImpl value,
-    $Res Function(_$CartItemImpl) then,
-  ) = __$$CartItemImplCopyWithImpl<$Res>;
+          _$CartItemImpl value, $Res Function(_$CartItemImpl) then) =
+      __$$CartItemImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    int cartItemId,
-    int dishId,
-    String dishName,
-    int unitPrice,
-    int quantity,
-    int subtotalPrice,
-  });
+  $Res call(
+      {int cartItemId,
+      int dishId,
+      String dishName,
+      num unitPrice,
+      int quantity,
+      num subtotalPrice});
 }
 
 /// @nodoc
@@ -127,9 +120,8 @@ class __$$CartItemImplCopyWithImpl<$Res>
     extends _$CartItemCopyWithImpl<$Res, _$CartItemImpl>
     implements _$$CartItemImplCopyWith<$Res> {
   __$$CartItemImplCopyWithImpl(
-    _$CartItemImpl _value,
-    $Res Function(_$CartItemImpl) _then,
-  ) : super(_value, _then);
+      _$CartItemImpl _value, $Res Function(_$CartItemImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -141,48 +133,45 @@ class __$$CartItemImplCopyWithImpl<$Res>
     Object? quantity = null,
     Object? subtotalPrice = null,
   }) {
-    return _then(
-      _$CartItemImpl(
-        cartItemId: null == cartItemId
-            ? _value.cartItemId
-            : cartItemId // ignore: cast_nullable_to_non_nullable
-                  as int,
-        dishId: null == dishId
-            ? _value.dishId
-            : dishId // ignore: cast_nullable_to_non_nullable
-                  as int,
-        dishName: null == dishName
-            ? _value.dishName
-            : dishName // ignore: cast_nullable_to_non_nullable
-                  as String,
-        unitPrice: null == unitPrice
-            ? _value.unitPrice
-            : unitPrice // ignore: cast_nullable_to_non_nullable
-                  as int,
-        quantity: null == quantity
-            ? _value.quantity
-            : quantity // ignore: cast_nullable_to_non_nullable
-                  as int,
-        subtotalPrice: null == subtotalPrice
-            ? _value.subtotalPrice
-            : subtotalPrice // ignore: cast_nullable_to_non_nullable
-                  as int,
-      ),
-    );
+    return _then(_$CartItemImpl(
+      cartItemId: null == cartItemId
+          ? _value.cartItemId
+          : cartItemId // ignore: cast_nullable_to_non_nullable
+              as int,
+      dishId: null == dishId
+          ? _value.dishId
+          : dishId // ignore: cast_nullable_to_non_nullable
+              as int,
+      dishName: null == dishName
+          ? _value.dishName
+          : dishName // ignore: cast_nullable_to_non_nullable
+              as String,
+      unitPrice: null == unitPrice
+          ? _value.unitPrice
+          : unitPrice // ignore: cast_nullable_to_non_nullable
+              as num,
+      quantity: null == quantity
+          ? _value.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as int,
+      subtotalPrice: null == subtotalPrice
+          ? _value.subtotalPrice
+          : subtotalPrice // ignore: cast_nullable_to_non_nullable
+              as num,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CartItemImpl implements _CartItem {
-  const _$CartItemImpl({
-    required this.cartItemId,
-    required this.dishId,
-    required this.dishName,
-    required this.unitPrice,
-    required this.quantity,
-    required this.subtotalPrice,
-  });
+  const _$CartItemImpl(
+      {required this.cartItemId,
+      required this.dishId,
+      required this.dishName,
+      required this.unitPrice,
+      required this.quantity,
+      required this.subtotalPrice});
 
   factory _$CartItemImpl.fromJson(Map<String, dynamic> json) =>
       _$$CartItemImplFromJson(json);
@@ -193,14 +182,14 @@ class _$CartItemImpl implements _CartItem {
   final int dishId;
   @override
   final String dishName;
-  // 원 단위 정수로 가정(금액은 원 단위, 소수점 없음).
-  // 백엔드가 소수점 있는 값을 내려주면(BigDecimal이라 이론상 가능) 이 타입을 num으로 바꿔야 한다.
+// 2026-07-27 실제 로컬 연동 테스트로 확인: 백엔드가 `BigDecimal`이라 실제로
+// "10000.00"처럼 소수점을 붙여 내려온다(int로 받으면 파싱 시 캐스팅 에러) — num으로 수정.
   @override
-  final int unitPrice;
+  final num unitPrice;
   @override
   final int quantity;
   @override
-  final int subtotalPrice;
+  final num subtotalPrice;
 
   @override
   String toString() {
@@ -227,15 +216,8 @@ class _$CartItemImpl implements _CartItem {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    cartItemId,
-    dishId,
-    dishName,
-    unitPrice,
-    quantity,
-    subtotalPrice,
-  );
+  int get hashCode => Object.hash(runtimeType, cartItemId, dishId, dishName,
+      unitPrice, quantity, subtotalPrice);
 
   @JsonKey(ignore: true)
   @override
@@ -245,19 +227,20 @@ class _$CartItemImpl implements _CartItem {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CartItemImplToJson(this);
+    return _$$CartItemImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _CartItem implements CartItem {
-  const factory _CartItem({
-    required final int cartItemId,
-    required final int dishId,
-    required final String dishName,
-    required final int unitPrice,
-    required final int quantity,
-    required final int subtotalPrice,
-  }) = _$CartItemImpl;
+  const factory _CartItem(
+      {required final int cartItemId,
+      required final int dishId,
+      required final String dishName,
+      required final num unitPrice,
+      required final int quantity,
+      required final num subtotalPrice}) = _$CartItemImpl;
 
   factory _CartItem.fromJson(Map<String, dynamic> json) =
       _$CartItemImpl.fromJson;
@@ -268,13 +251,13 @@ abstract class _CartItem implements CartItem {
   int get dishId;
   @override
   String get dishName;
-  @override // 원 단위 정수로 가정(금액은 원 단위, 소수점 없음).
-  // 백엔드가 소수점 있는 값을 내려주면(BigDecimal이라 이론상 가능) 이 타입을 num으로 바꿔야 한다.
-  int get unitPrice;
+  @override // 2026-07-27 실제 로컬 연동 테스트로 확인: 백엔드가 `BigDecimal`이라 실제로
+// "10000.00"처럼 소수점을 붙여 내려온다(int로 받으면 파싱 시 캐스팅 에러) — num으로 수정.
+  num get unitPrice;
   @override
   int get quantity;
   @override
-  int get subtotalPrice;
+  num get subtotalPrice;
   @override
   @JsonKey(ignore: true)
   _$$CartItemImplCopyWith<_$CartItemImpl> get copyWith =>
@@ -290,7 +273,7 @@ mixin _$Cart {
   int get cartId => throw _privateConstructorUsedError;
   int get memberId => throw _privateConstructorUsedError;
   List<CartItem> get items => throw _privateConstructorUsedError;
-  int get totalPrice => throw _privateConstructorUsedError;
+  num get totalPrice => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -302,7 +285,7 @@ abstract class $CartCopyWith<$Res> {
   factory $CartCopyWith(Cart value, $Res Function(Cart) then) =
       _$CartCopyWithImpl<$Res, Cart>;
   @useResult
-  $Res call({int cartId, int memberId, List<CartItem> items, int totalPrice});
+  $Res call({int cartId, int memberId, List<CartItem> items, num totalPrice});
 }
 
 /// @nodoc
@@ -323,39 +306,35 @@ class _$CartCopyWithImpl<$Res, $Val extends Cart>
     Object? items = null,
     Object? totalPrice = null,
   }) {
-    return _then(
-      _value.copyWith(
-            cartId: null == cartId
-                ? _value.cartId
-                : cartId // ignore: cast_nullable_to_non_nullable
-                      as int,
-            memberId: null == memberId
-                ? _value.memberId
-                : memberId // ignore: cast_nullable_to_non_nullable
-                      as int,
-            items: null == items
-                ? _value.items
-                : items // ignore: cast_nullable_to_non_nullable
-                      as List<CartItem>,
-            totalPrice: null == totalPrice
-                ? _value.totalPrice
-                : totalPrice // ignore: cast_nullable_to_non_nullable
-                      as int,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      cartId: null == cartId
+          ? _value.cartId
+          : cartId // ignore: cast_nullable_to_non_nullable
+              as int,
+      memberId: null == memberId
+          ? _value.memberId
+          : memberId // ignore: cast_nullable_to_non_nullable
+              as int,
+      items: null == items
+          ? _value.items
+          : items // ignore: cast_nullable_to_non_nullable
+              as List<CartItem>,
+      totalPrice: null == totalPrice
+          ? _value.totalPrice
+          : totalPrice // ignore: cast_nullable_to_non_nullable
+              as num,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$CartImplCopyWith<$Res> implements $CartCopyWith<$Res> {
   factory _$$CartImplCopyWith(
-    _$CartImpl value,
-    $Res Function(_$CartImpl) then,
-  ) = __$$CartImplCopyWithImpl<$Res>;
+          _$CartImpl value, $Res Function(_$CartImpl) then) =
+      __$$CartImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({int cartId, int memberId, List<CartItem> items, int totalPrice});
+  $Res call({int cartId, int memberId, List<CartItem> items, num totalPrice});
 }
 
 /// @nodoc
@@ -363,7 +342,7 @@ class __$$CartImplCopyWithImpl<$Res>
     extends _$CartCopyWithImpl<$Res, _$CartImpl>
     implements _$$CartImplCopyWith<$Res> {
   __$$CartImplCopyWithImpl(_$CartImpl _value, $Res Function(_$CartImpl) _then)
-    : super(_value, _then);
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -373,38 +352,36 @@ class __$$CartImplCopyWithImpl<$Res>
     Object? items = null,
     Object? totalPrice = null,
   }) {
-    return _then(
-      _$CartImpl(
-        cartId: null == cartId
-            ? _value.cartId
-            : cartId // ignore: cast_nullable_to_non_nullable
-                  as int,
-        memberId: null == memberId
-            ? _value.memberId
-            : memberId // ignore: cast_nullable_to_non_nullable
-                  as int,
-        items: null == items
-            ? _value._items
-            : items // ignore: cast_nullable_to_non_nullable
-                  as List<CartItem>,
-        totalPrice: null == totalPrice
-            ? _value.totalPrice
-            : totalPrice // ignore: cast_nullable_to_non_nullable
-                  as int,
-      ),
-    );
+    return _then(_$CartImpl(
+      cartId: null == cartId
+          ? _value.cartId
+          : cartId // ignore: cast_nullable_to_non_nullable
+              as int,
+      memberId: null == memberId
+          ? _value.memberId
+          : memberId // ignore: cast_nullable_to_non_nullable
+              as int,
+      items: null == items
+          ? _value._items
+          : items // ignore: cast_nullable_to_non_nullable
+              as List<CartItem>,
+      totalPrice: null == totalPrice
+          ? _value.totalPrice
+          : totalPrice // ignore: cast_nullable_to_non_nullable
+              as num,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CartImpl implements _Cart {
-  const _$CartImpl({
-    required this.cartId,
-    required this.memberId,
-    required final List<CartItem> items,
-    required this.totalPrice,
-  }) : _items = items;
+  const _$CartImpl(
+      {required this.cartId,
+      required this.memberId,
+      required final List<CartItem> items,
+      required this.totalPrice})
+      : _items = items;
 
   factory _$CartImpl.fromJson(Map<String, dynamic> json) =>
       _$$CartImplFromJson(json);
@@ -422,7 +399,7 @@ class _$CartImpl implements _Cart {
   }
 
   @override
-  final int totalPrice;
+  final num totalPrice;
 
   @override
   String toString() {
@@ -444,13 +421,8 @@ class _$CartImpl implements _Cart {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    cartId,
-    memberId,
-    const DeepCollectionEquality().hash(_items),
-    totalPrice,
-  );
+  int get hashCode => Object.hash(runtimeType, cartId, memberId,
+      const DeepCollectionEquality().hash(_items), totalPrice);
 
   @JsonKey(ignore: true)
   @override
@@ -460,17 +432,18 @@ class _$CartImpl implements _Cart {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CartImplToJson(this);
+    return _$$CartImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _Cart implements Cart {
-  const factory _Cart({
-    required final int cartId,
-    required final int memberId,
-    required final List<CartItem> items,
-    required final int totalPrice,
-  }) = _$CartImpl;
+  const factory _Cart(
+      {required final int cartId,
+      required final int memberId,
+      required final List<CartItem> items,
+      required final num totalPrice}) = _$CartImpl;
 
   factory _Cart.fromJson(Map<String, dynamic> json) = _$CartImpl.fromJson;
 
@@ -481,7 +454,7 @@ abstract class _Cart implements Cart {
   @override
   List<CartItem> get items;
   @override
-  int get totalPrice;
+  num get totalPrice;
   @override
   @JsonKey(ignore: true)
   _$$CartImplCopyWith<_$CartImpl> get copyWith =>

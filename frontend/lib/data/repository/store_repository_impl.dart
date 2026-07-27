@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_error_mapper.dart';
+import '../../domain/model/dish.dart';
 import '../../domain/model/store.dart';
 import '../../domain/repository/store_repository.dart';
 
@@ -19,6 +20,7 @@ class StoreRepositoryImpl implements StoreRepository {
     double radiusKm = 3,
     int page = 0,
     int size = 10,
+    String? category,
   }) async {
     try {
       final response = await _dio.get(
@@ -29,6 +31,9 @@ class StoreRepositoryImpl implements StoreRepository {
           'radiusKm': radiusKm,
           'page': page,
           'size': size,
+          // null이면 dio가 쿼리 파라미터 자체를 안 붙인다 — 그래서 카테고리 없을 때
+          // "category="처럼 빈 값을 보내는 게 아니라 파라미터가 통째로 빠진다(서버 쪽 optional과 일치).
+          if (category != null) 'category': category,
         },
       );
 
@@ -60,5 +65,99 @@ class StoreRepositoryImpl implements StoreRepository {
     } on DioException catch (e) {
       throw mapCoreServiceError(e);
     }
+  }
+
+  @override
+  Future<Store> registerStore({
+    required String storeName,
+    required String businessNumber,
+    required String storeAddress,
+    required String storePhone,
+    required String openTime,
+    required String closeTime,
+    required double latitude,
+    required double longitude,
+    required String category,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/stores',
+        data: {
+          'storeName': storeName,
+          'businessNumber': businessNumber,
+          'storeAddress': storeAddress,
+          'storePhone': storePhone,
+          'openTime': openTime,
+          'closeTime': closeTime,
+          'latitude': latitude,
+          'longitude': longitude,
+          'category': category,
+        },
+      );
+      return Store.fromJson(_unwrap(response.data));
+    } on DioException catch (e) {
+      throw mapCoreServiceError(e);
+    }
+  }
+
+  @override
+  Future<Store> updateStore({
+    required int storeId,
+    required String storeName,
+    required String storeAddress,
+    required String storePhone,
+    required String openTime,
+    required String closeTime,
+    required double latitude,
+    required double longitude,
+    required String category,
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/stores/$storeId',
+        data: {
+          'storeName': storeName,
+          'storeAddress': storeAddress,
+          'storePhone': storePhone,
+          'openTime': openTime,
+          'closeTime': closeTime,
+          'latitude': latitude,
+          'longitude': longitude,
+          'category': category,
+        },
+      );
+      return Store.fromJson(_unwrap(response.data));
+    } on DioException catch (e) {
+      throw mapCoreServiceError(e);
+    }
+  }
+
+  @override
+  Future<List<Store>> getMyStores() async {
+    try {
+      final response = await _dio.get('/stores/mine');
+      final body = response.data as Map<String, dynamic>;
+      final data = body['data'] as List<dynamic>;
+      return data.map((json) => Store.fromJson(json as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw mapCoreServiceError(e);
+    }
+  }
+
+  @override
+  Future<Dish?> getMyDish(int storeId) async {
+    try {
+      final response = await _dio.get('/stores/$storeId/dish');
+      return Dish.fromJson(_unwrap(response.data));
+    } on DioException catch (e) {
+      // D002 = 아직 상품을 등록 안 함 — 화면은 이걸 에러가 아니라 "등록 폼 보여주기"로 다뤄야 하므로 null.
+      if (e.response?.statusCode == 404) return null;
+      throw mapCoreServiceError(e);
+    }
+  }
+
+  Map<String, dynamic> _unwrap(Object? responseData) {
+    final body = responseData as Map<String, dynamic>;
+    return body['data'] as Map<String, dynamic>;
   }
 }

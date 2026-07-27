@@ -13,6 +13,11 @@ part 'store_list_view_model.g.dart';
 /// ⚠️ 위/경도는 지금 하드코딩이다(강남역 부근 좌표) — 실기기 위치 권한 연동은
 /// 범위 밖으로 미뤄뒀다.
 /// 나중에 실제 위치로 바꿀 때는 이 두 상수를 GPS 값으로 교체하기만 하면 된다.
+///
+/// `ref.watch(selectedStoreCategoryProvider)`로 카테고리 필터 상태를 구독한다 — 사용자가
+/// 칩을 눌러 필터를 바꾸면(`SelectedStoreCategory.select`) 그 상태가 바뀌고, Riverpod이
+/// 이 Provider를 자동으로 다시 빌드해서 새 카테고리로 목록을 다시 조회해준다(수동으로
+/// `refresh()`를 부를 필요 없음 — `ref.watch`가 의존성을 추적해주는 덕분).
 @riverpod
 class StoreListViewModel extends _$StoreListViewModel {
   static const _mockLatitude = 37.4979; // 강남역 부근(임시)
@@ -21,9 +26,11 @@ class StoreListViewModel extends _$StoreListViewModel {
   @override
   Future<List<Store>> build() {
     final repository = ref.watch(storeRepositoryProvider);
+    final category = ref.watch(selectedStoreCategoryProvider);
     return repository.getNearbyStores(
       latitude: _mockLatitude,
       longitude: _mockLongitude,
+      category: category,
     );
   }
 
@@ -34,4 +41,16 @@ class StoreListViewModel extends _$StoreListViewModel {
     ref.invalidateSelf();
     await future;
   }
+}
+
+/// 홈 화면 상단 카테고리 필터 칩이 선택한 값. `null`이면 "전체"(필터 없음).
+/// 상태 자체는 아주 단순해서(선택된 문자열 하나) `AsyncNotifier`가 아니라 그냥
+/// 동기 `Notifier`로 둔다 — API 호출은 여기서 안 하고, 이 상태를 지켜보는
+/// `StoreListViewModel.build()` 쪽에서 한다(관심사 분리).
+@riverpod
+class SelectedStoreCategory extends _$SelectedStoreCategory {
+  @override
+  String? build() => null;
+
+  void select(String? category) => state = category;
 }

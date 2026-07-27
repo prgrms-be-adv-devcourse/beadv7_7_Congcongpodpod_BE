@@ -31,9 +31,8 @@ String _$tokenStorageHash() => r'3b3d79a8ce620c21ad544efaa5bb0ea58a9fb649';
 final tokenStorageProvider = FutureProvider<TokenStorage>.internal(
   tokenStorage,
   name: r'tokenStorageProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$tokenStorageHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$tokenStorageHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

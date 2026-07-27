@@ -23,7 +23,10 @@ class MobileWidthConstraint extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _maxWidth),
-          child: ColoredBox(color: AppColors.background, child: child),
+          child: ColoredBox(
+            color: AppColors.background,
+            child: child,
+          ),
         ),
       ),
     );
