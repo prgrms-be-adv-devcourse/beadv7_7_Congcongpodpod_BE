@@ -33,8 +33,7 @@ class AuthControllerTest {
   void signUpAndLoginAndRefreshTest() throws Exception {
     // given 1: 회원가입 요청 데이터
     SignUpRequest signUpRequest =
-        new SignUpRequest(
-            "testuser", "password123!", "테스터", "010-1234-5678", "test@example.com", "MEMBER");
+        new SignUpRequest("testuser", "password123!", "테스터", "010-1234-5678", "test@example.com");
 
     // when 1: 회원가입 API 호출
     mockMvc

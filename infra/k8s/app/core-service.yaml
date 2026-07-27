@@ -29,6 +29,8 @@ spec:
               value: http://config-server.platform.svc.cluster.local:8888
             - name: CORE_DB_URL
               value: jdbc:postgresql://core-db.data.svc.cluster.local:5432/core_db
+            - name: MEMBER_SERVICE_BASE_URL
+              value: http://member-service
             - name: CORE_DB_USERNAME
               valueFrom:
                 secretKeyRef:
