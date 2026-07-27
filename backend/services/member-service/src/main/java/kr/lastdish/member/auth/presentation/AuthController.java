@@ -1,10 +1,10 @@
 package kr.lastdish.member.auth.presentation;
 
 import jakarta.validation.Valid;
+import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.member.auth.application.AuthService;
 import kr.lastdish.member.auth.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,26 +18,26 @@ public class AuthController {
   private final AuthService authService;
 
   @PostMapping("/signup")
-  public ResponseEntity<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
+  public ApiResponse<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
     SignUpResponse response = authService.signUp(request);
-    return ResponseEntity.ok(response);
+    return ApiResponse.ok(response);
   }
 
   @PostMapping("/login")
-  public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+  public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
     TokenResponse response = authService.login(request);
-    return ResponseEntity.ok(response);
+    return ApiResponse.ok(response);
   }
 
   @PostMapping("/refresh")
-  public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody TokenRefreshRequest request) {
+  public ApiResponse<TokenResponse> reissue(@Valid @RequestBody TokenRefreshRequest request) {
     TokenResponse response = authService.refresh(request);
-    return ResponseEntity.ok(response);
+    return ApiResponse.ok(response);
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<Void> logout(@Valid @RequestBody TokenLogoutRequest request) {
-    authService.logout(request); // DTO 객체 그대로 전달
-    return ResponseEntity.ok().build();
+  public ApiResponse<Void> logout(@Valid @RequestBody TokenLogoutRequest request) {
+    authService.logout(request);
+    return ApiResponse.ok();
   }
 }
