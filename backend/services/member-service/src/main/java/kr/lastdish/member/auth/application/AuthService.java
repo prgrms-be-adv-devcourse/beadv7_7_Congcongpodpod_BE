@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
@@ -12,7 +13,7 @@ import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
-import kr.lastdish.member.member.exception.*;
+import kr.lastdish.member.member.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -124,7 +125,11 @@ public class AuthService {
 
     // 1. Refresh Token 유효성 검증
     if (!jwtTokenProvider.validateToken(requestRefreshToken)) {
-      throw new InvalidTokenException(ErrorCode.INVALID_REFRESH_TOKEN);
+      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+    }
+    //  토큰 타입이 실제로 refresh인지 검증 (Access Token으로 재발급 요청 차단)
+    if (!jwtTokenProvider.isRefreshToken(requestRefreshToken)) {
+      throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
 
     // 2. 토큰에서 MemberId 추출 후 회원 조회
