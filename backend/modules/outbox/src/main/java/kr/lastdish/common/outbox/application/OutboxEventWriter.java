@@ -3,7 +3,7 @@ package kr.lastdish.common.outbox.application;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.domain.OutboxEvent;
 import kr.lastdish.common.outbox.domain.OutboxEventRepository;
-import kr.lastdish.common.outbox.infrastructure.OutboxEventSerializer;
+import kr.lastdish.common.outbox.domain.OutboxEventSerializer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
