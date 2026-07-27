@@ -16,9 +16,9 @@ public class InternalMemberController {
   private final MemberService memberService;
 
   // 이 API는 Gateway에 라우팅하지 않고 core-service에서만 호출한다.
-  @PatchMapping("/{memberId}/seller")
-  public ApiResponse<Void> promoteToSeller(@PathVariable Long memberId) {
-    memberService.promoteToSeller(memberId);
+  @PatchMapping("/{memberId}/seller-role")
+  public ApiResponse<Void> grantSellerRole(@PathVariable Long memberId) {
+    memberService.grantSellerRole(memberId);
     return ApiResponse.ok(null);
   }
 }

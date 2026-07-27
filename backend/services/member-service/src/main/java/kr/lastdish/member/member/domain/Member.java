@@ -69,7 +69,7 @@ public class Member {
     this.updatedAt = LocalDateTime.now();
   }
 
-  public void promoteToSeller() {
+  public void grantSellerRole() {
     if (role == Role.SELLER) {
       return;
     }
