@@ -8,6 +8,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.security.converter.RsaKeyConverters;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
@@ -19,7 +23,7 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
  * Gateway가 토큰 발급 권한을 갖지 않는다.
  *
  * <p>이 Decoder는 요청마다 Member Service나 DB를 호출하지 않는다. 로컬에 주입된 공개키로 서명과 표준 시간 claim을 검증하고, 설정된 issuer와
- * 토큰의 {@code iss}가 일치하는지도 검사한다. Refresh Token 검증은 Member Service 책임이며 이 구성의 대상이 아니다.
+ * 토큰의 {@code iss}가 일치하는지와 {@code token_type}이 {@code access}인지도 검사한다.
  */
 @Configuration
 public class GatewayJwtConfig {
@@ -39,8 +43,12 @@ public class GatewayJwtConfig {
     // Nimbus Decoder가 RS256 JWT의 서명을 비동기 WebFlux 방식으로 검증한다.
     NimbusReactiveJwtDecoder jwtDecoder = NimbusReactiveJwtDecoder.withPublicKey(publicKey).build();
 
-    // 기본 검증에는 exp/nbf 시간 검사가 포함되고, createDefaultWithIssuer가 issuer 검사도 추가한다.
-    jwtDecoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuer));
+    // 보호 API에는 서명/시간/issuer 검증을 통과한 Access Token만 사용할 수 있다.
+    OAuth2TokenValidator<Jwt> defaultValidator = JwtValidators.createDefaultWithIssuer(issuer);
+    OAuth2TokenValidator<Jwt> accessTokenValidator =
+        new JwtClaimValidator<>("token_type", "access"::equals);
+    jwtDecoder.setJwtValidator(
+        new DelegatingOAuth2TokenValidator<>(defaultValidator, accessTokenValidator));
     return jwtDecoder;
   }
 }

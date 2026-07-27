@@ -30,14 +30,7 @@ class DishTest {
      * 재고를 0으로 변경합니다.
      */
     dish.update(
-        "김치찌개",
-        LocalDateTime.now(),
-        "상품 설명",
-        Category.KOREAN,
-        null,
-        0L,
-        BigDecimal.valueOf(10000),
-        BigDecimal.ZERO);
+        "김치찌개", LocalDateTime.now(), "상품 설명", null, 0L, BigDecimal.valueOf(10000), BigDecimal.ZERO);
 
     // when
     boolean available = dish.isAvailable();
@@ -65,7 +58,6 @@ class DishTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        Category.KOREAN,
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),
