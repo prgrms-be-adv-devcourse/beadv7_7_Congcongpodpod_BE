@@ -25,11 +25,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
       @Index(
           name = "idx_orders_store_deleted_created_at",
           columnList = "store_id, is_deleted, created_at")
-    },
-    uniqueConstraints = {
-      @UniqueConstraint(
-          name = "uk_orders_store_pickup_code",
-          columnNames = {"store_id", "pickup_code"})
     })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
