@@ -30,7 +30,8 @@ public class PaymentFacade {
 
     // Toss와 통신
     PgApprovalResult pgResult =
-        pgPaymentGateway.approve(paymentKey, merchantOrderId, requestedAmount);
+        pgPaymentGateway.approve(
+            readyPayment.getId(), paymentKey, merchantOrderId, requestedAmount);
 
     // Toss 결제 거절 -> 실패 반영 후 종료
     if (!pgResult.success()) {

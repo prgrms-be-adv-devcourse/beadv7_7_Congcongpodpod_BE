@@ -82,7 +82,7 @@ public class Payment {
   }
 
   // 결제 준비(READY) 상태인지 검증
-  private void validateReadyStatus() {
+  public void validateReadyStatus() {
     if (this.approvedStatus != ApprovedStatus.READY) {
       throw new PaymentException(ErrorCode.INVALID_PAYMENT_STATUS, buildStatusMessage());
     }
