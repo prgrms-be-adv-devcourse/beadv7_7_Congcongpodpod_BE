@@ -1,9 +1,8 @@
 package kr.lastdish.core.dish.domain.event;
 
-import kr.lastdish.common.event.DomainEvent;
-
 import java.time.Instant;
 import java.util.UUID;
+import kr.lastdish.common.event.DomainEvent;
 
 public record DishPriceChangedEvent(
     UUID eventId,
