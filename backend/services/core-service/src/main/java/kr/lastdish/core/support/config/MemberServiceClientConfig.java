@@ -1,4 +1,4 @@
-package kr.lastdish.core.store.infrastructure.config;
+package kr.lastdish.core.support.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
