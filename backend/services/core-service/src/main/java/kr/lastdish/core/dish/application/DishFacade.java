@@ -41,7 +41,7 @@ public class DishFacade {
         dish.getDishName(),
         dish.getDiscountPrice(),
         dish.getStockQuantity(),
-        dish.getEventVersion());
+        dish.getAggregateVersion());
   }
 
   public void decreaseStock(Long dishId, Long quantity) {
