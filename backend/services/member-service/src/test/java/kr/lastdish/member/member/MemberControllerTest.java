@@ -37,7 +37,7 @@ class MemberControllerTest {
     // given: 1. 회원가입 요청
     SignUpRequest signUpRequest =
         new SignUpRequest(
-            "lookupuser", "password123!", "조회테스터", "010-1234-9999", "lookup@example.com", "MEMBER");
+            "lookupuser", "password123!", "조회테스터", "010-1234-9999", "lookup@example.com");
 
     mockMvc
         .perform(
