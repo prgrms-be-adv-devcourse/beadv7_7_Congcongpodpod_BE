@@ -68,4 +68,13 @@ public class Member {
     this.deletedAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
   }
+
+  public void grantSellerRole() {
+    if (role == Role.SELLER) {
+      return;
+    }
+
+    role = Role.SELLER;
+    updatedAt = LocalDateTime.now();
+  }
 }
