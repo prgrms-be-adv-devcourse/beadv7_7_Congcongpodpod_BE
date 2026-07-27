@@ -160,16 +160,7 @@ public class Order {
   // 주문 취소
   public void cancel(Long memberId) {
     validateOwner(memberId);
-    validatePaymentCompleted();
-
     transitionTo(OrderStatus.CANCELLED);
-    this.paymentStatus = PaymentStatus.REFUNDED;
-  }
-
-  private void validatePaymentCompleted() {
-    if (this.paymentStatus != PaymentStatus.COMPLETED) {
-      throw new BusinessException(CommonErrorCode.INVALID_STATE);
-    }
   }
 
   public void validateOwner(Long memberId) {
