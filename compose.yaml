@@ -103,6 +103,7 @@ services:
       SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
+      GATEWAY_CORS_ORIGIN: "*"
     secrets:
       - source: access-public-key
         target: access-public-key.pem
