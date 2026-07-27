@@ -9,3 +9,15 @@ springdoc:
         url: /openapi/member-service
       - name: core-service
         url: /openapi/core-service
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              "[/api/**]":
+                allowed-origins:
+                  - http://localhost:3000
+                  - http://127.0.0.1:3000

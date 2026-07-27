@@ -1,6 +1,7 @@
-# LastDish Backend
+# LastDish
 
-Java 21, Spring Boot 4.1.0, Spring Cloud 2025.1.2 기반 멀티 서비스 백엔드입니다.
+Flutter 프론트엔드와 Java 21, Spring Boot 4.1.0, Spring Cloud 2025.1.2 기반
+멀티 서비스 백엔드로 구성됩니다.
 Gateway를 단일 진입점으로 사용하며 Member/Core Service와 서비스별 PostgreSQL을
 분리합니다.
 
@@ -14,6 +15,13 @@ Gateway를 단일 진입점으로 사용하며 Member/Core Service와 서비스�
 | Config Server | `8888` | 서비스 설정 제공 |
 
 상세 문서는 [`docs`](docs/README.md)에서 확인합니다.
+
+## 디렉터리 구성
+
+- `frontend/`: Flutter 애플리케이션
+- `backend/`: Spring Boot 멀티 서비스
+- `infra/`: 로컬·Kubernetes 인프라 설정
+- `docs/`: 아키텍처와 서비스 문서
 
 ## 로컬 실행
 
@@ -45,3 +53,24 @@ Gateway 라우팅, 접근 허용 목록, 내부 인증 헤더와 오류 코드�
 docker compose logs -f gateway-service member-service core-service
 docker compose down
 ```
+
+세미프로젝트 프론트엔드는 Flutter Web을 기본 대상으로 사용합니다.
+
+Flutter를 처음 사용하는 경우 운영체제에 맞게 SDK를 설치합니다. Windows 설치와
+환경 변수 설정은 [`frontend/README.md`](frontend/README.md)를 참고합니다.
+
+```bash
+# macOS
+brew install --cask flutter
+flutter doctor
+flutter config --enable-web
+```
+
+```bash
+cd frontend
+flutter pub get
+flutter run -d chrome --web-port 3000
+```
+
+API 주소 설정과 웹 배포 빌드는 [`frontend/README.md`](frontend/README.md)를
+참고합니다.
