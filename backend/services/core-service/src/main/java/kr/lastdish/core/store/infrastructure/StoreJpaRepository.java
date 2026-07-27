@@ -21,13 +21,13 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
 
   @Query(
       """
-          SELECT s FROM Store s
-          WHERE s.latitude BETWEEN :minLatitude AND :maxLatitude
-            AND s.longitude BETWEEN :minLongitude AND :maxLongitude
-            AND s.status = :status
-            AND s.deleted = false
-            AND (:category IS NULL OR s.category = :category)
-          """)
+      SELECT s FROM Store s
+      WHERE s.latitude BETWEEN :minLatitude AND :maxLatitude
+        AND s.longitude BETWEEN :minLongitude AND :maxLongitude
+        AND s.status = :status
+        AND s.deleted = false
+        AND (:category IS NULL OR s.category = :category)
+      """)
   Page<Store> findOpenStoresByLocationRange(
       @Param("minLatitude") BigDecimal minLatitude,
       @Param("maxLatitude") BigDecimal maxLatitude,

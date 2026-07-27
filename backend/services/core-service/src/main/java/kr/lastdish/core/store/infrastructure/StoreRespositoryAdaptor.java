@@ -3,6 +3,7 @@ package kr.lastdish.core.store.infrastructure;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreRepository;
 import kr.lastdish.core.store.domain.StoreStatus;
@@ -42,13 +43,20 @@ public class StoreRespositoryAdaptor implements StoreRepository {
       BigDecimal maxLatitude,
       BigDecimal minLongitude,
       BigDecimal maxLongitude,
+      Category category,
       int page,
       int size) {
     PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
 
     return storeJpaRepository
-        .findAllByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
-            minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN, pageable)
+        .findOpenStoresByLocationRange(
+            minLatitude,
+            maxLatitude,
+            minLongitude,
+            maxLongitude,
+            StoreStatus.OPEN,
+            category,
+            pageable)
         .getContent();
   }
 
@@ -57,9 +65,10 @@ public class StoreRespositoryAdaptor implements StoreRepository {
       BigDecimal minLatitude,
       BigDecimal maxLatitude,
       BigDecimal minLongitude,
-      BigDecimal maxLongitude) {
-    return storeJpaRepository.countByLatitudeBetweenAndLongitudeBetweenAndStatusAndDeletedFalse(
-        minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN);
+      BigDecimal maxLongitude,
+      Category category) {
+    return storeJpaRepository.countOpenStoresByLocationRange(
+        minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN, category);
   }
 
   @Override
