@@ -1,13 +1,11 @@
 package kr.lastdish.gateway.security;
 
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.OPTIONS;
-import static org.springframework.http.HttpMethod.POST;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+
+import static org.springframework.http.HttpMethod.*;
 
 /**
  * Gateway 라우팅 전에 실행되는 WebFlux Security 필터 체인을 구성한다.
@@ -60,6 +58,9 @@ public class GatewaySecurityConfig {
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()
+                    // 일반 회원이 최초 매장을 등록해 SELLER로 전환할 수 있도록 허용한다.
+                    .pathMatchers(POST, "/api/v1/stores")
+                    .hasAnyRole("MEMBER", "SELLER")
                     // 가게·상품 변경과 정산 기능은 판매자만 이용한다.
                     .pathMatchers(
                         "/api/v1/stores/**", "/api/v1/dishes/**", "/api/v1/settlements/**")
