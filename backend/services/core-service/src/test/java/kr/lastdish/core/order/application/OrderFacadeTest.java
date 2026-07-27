@@ -7,7 +7,7 @@ import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
-import kr.lastdish.core.cart.application.CartService;
+import kr.lastdish.core.cart.application.CartFacade;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
@@ -40,7 +40,7 @@ import org.springframework.data.domain.Pageable;
 class OrderFacadeTest {
 
   @Mock private OrderService orderService;
-  @Mock private CartService cartService;
+  @Mock private CartFacade cartFacade;
 
   @Mock private DishFacade dishFacade;
 
@@ -69,7 +69,7 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
-    when(cartService.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
     when(orderService.createOrder(memberId, request.phone(), cartItem)).thenReturn(order);
 
     OrderResponse expectedResponse = mock(OrderResponse.class);
@@ -82,9 +82,9 @@ class OrderFacadeTest {
     // then
     assertThat(response).isSameAs(expectedResponse);
 
-    InOrder inOrder = inOrder(cartService, orderService, dishFacade, depositFacade);
+    InOrder inOrder = inOrder(cartFacade, orderService, dishFacade, depositFacade);
 
-    inOrder.verify(cartService).getOrderSnapshot(memberId, cartItemId);
+    inOrder.verify(cartFacade).getOrderSnapshot(memberId, cartItemId);
     inOrder.verify(orderService).createOrder(memberId, request.phone(), cartItem);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
@@ -119,7 +119,7 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
-    when(cartService.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
     when(orderService.createOrder(memberId, request.phone(), cartItem)).thenReturn(order);
 
     doThrow(new RuntimeException("예치금 잔액이 부족합니다."))
