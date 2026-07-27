@@ -21,21 +21,24 @@ class OrderTest {
   }
 
   @Test
-  void cancellationRefundsAndDuplicateCancellationIsRejected() {
+  void cancellationChangesOnlyOrderStatusAndDuplicateCancellationIsRejected() {
     Order order = createOrder();
     order.paymentSuccess();
 
     order.cancel(1L);
     assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
-    assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+    assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.COMPLETED);
     assertThatThrownBy(() -> order.cancel(1L)).isInstanceOf(BusinessException.class);
   }
 
   @Test
-  void pendingPaymentOrderCannotBeCancelled() {
+  void cancellationDoesNotChangePendingPaymentStatus() {
     Order order = createOrder();
 
-    assertThatThrownBy(() -> order.cancel(1L)).isInstanceOf(BusinessException.class);
+    order.cancel(1L);
+
+    assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
   }
 
   private Order createOrder() {
