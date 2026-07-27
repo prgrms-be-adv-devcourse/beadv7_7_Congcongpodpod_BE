@@ -48,12 +48,12 @@ public class MemberService {
 
   // 회원 승급
   @Transactional
-  public void promoteToSeller(Long memberId) {
+  public void grantSellerRole(Long memberId) {
     Member member =
         memberRepository
             .findActiveById(memberId)
             .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-    member.promoteToSeller();
+    member.grantSellerRole();
   }
 }

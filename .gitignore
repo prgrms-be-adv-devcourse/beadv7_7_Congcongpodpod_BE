@@ -4,7 +4,8 @@
 
 **/.gradle/
 **/build/
-**/out/
+/out/
+/backend/out/
 backend/workspace/
 
 # Local AI assistant settings, instructions, sessions, and memory
