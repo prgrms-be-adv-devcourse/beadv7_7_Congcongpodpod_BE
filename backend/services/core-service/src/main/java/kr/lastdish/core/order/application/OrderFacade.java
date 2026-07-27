@@ -3,10 +3,13 @@ package kr.lastdish.core.order.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.cart.application.CartService;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.*;
 import kr.lastdish.core.payment.application.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
@@ -20,15 +23,19 @@ public class OrderFacade {
 
   private final OrderRepository orderRepository;
   private final OrderService orderService;
+  private final CartService cartService;
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
   private final StoreFacade storeFacade;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResponse payAndCreateOrder(Long memberId, OrderCreateRequest request) {
+  public OrderResponse payAndCreateOrder(
+      Long memberId, Long cartItemId, OrderCreateRequest request) {
+    CartOrderSnapshot cartItem = cartService.getOrderSnapshot(memberId, cartItemId);
+
     // 주문 생성 및 저장
-    Order order = orderService.createOrder(memberId, request);
+    Order order = orderService.createOrder(memberId, request.phone(), cartItem);
 
     // 재고 차감
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
@@ -43,8 +50,15 @@ public class OrderFacade {
   // 주문 취소 - 재고 복구 - 결제 환불
   @Transactional
   public OrderResponse cancelOrder(Long memberId, Long orderId) {
+    boolean alreadyCancelled =
+        orderRepository.findByIdAndIsDeletedFalse(orderId).getStatus() == OrderStatus.CANCELLED;
+
     // 주문 취소
     Order order = orderService.cancelOrder(memberId, orderId);
+
+    if (alreadyCancelled) {
+      return OrderResponse.from(order);
+    }
 
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());

@@ -36,9 +36,12 @@ public class DishFacade {
 
     return new DishSnapshot(
         dish.getId(),
+        dish.getStoreId(),
         dish.getDishName(),
         dish.getDiscountPrice(),
         dish.getStockQuantity(),
+        dish.getPickupStartTime(),
+        dish.getPickupEndTime(),
         dish.getEventVersion());
   }
 
