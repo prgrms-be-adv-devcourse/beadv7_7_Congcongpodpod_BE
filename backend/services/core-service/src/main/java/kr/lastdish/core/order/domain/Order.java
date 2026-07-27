@@ -142,16 +142,14 @@ public class Order {
     if (this.pickupCode != null) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
+
+    transitionTo(OrderStatus.PICKUP_READY);
     this.pickupCode = pickupCode;
-    this.status = OrderStatus.PICKUP_READY;
   }
 
   // 매장 주문 반려
   public void rejectOrder(OrderRejectReason reason) {
-    if (!this.status.canTransitionTo(OrderStatus.REJECTED)) {
-      throw new BusinessException(CommonErrorCode.INVALID_STATE);
-    }
-    this.status = OrderStatus.REJECTED;
+    transitionTo(OrderStatus.REJECTED);
     this.rejectReason = Objects.requireNonNull(reason);
   }
 
@@ -162,14 +160,14 @@ public class Order {
   // 주문 취소
   public void cancel(Long memberId) {
     validateOwner(memberId);
-    validateCancelable();
+    validatePaymentCompleted();
 
-    this.status = OrderStatus.CANCELLED;
+    transitionTo(OrderStatus.CANCELLED);
     this.paymentStatus = PaymentStatus.REFUNDED;
   }
 
-  private void validateCancelable() {
-    if (this.status != OrderStatus.RESERVED || this.paymentStatus != PaymentStatus.COMPLETED) {
+  private void validatePaymentCompleted() {
+    if (this.paymentStatus != PaymentStatus.COMPLETED) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
   }
@@ -193,13 +191,5 @@ public class Order {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = nextStatus;
-  }
-
-  // 픽업 상태 변경
-  public void updateOrderStatus(OrderStatus status) {
-    if (this.status != OrderStatus.PICKUP_READY) {
-      throw new BusinessException(CommonErrorCode.INVALID_STATE);
-    }
-    this.status = status;
   }
 }
