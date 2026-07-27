@@ -13,11 +13,10 @@ public record SignUpRequest(
         String password,
     @NotBlank(message = "이름은 필수 입력값입니다.") String name,
     @NotBlank(message = "전화번호는 필수 입력값입니다.") String phone,
-    @NotBlank(message = "이메일은 필수 입력값입니다.") @Email(message = "이메일 형식이 올바르지 않습니다.") String email,
-    @NotBlank(message = "역할(ROLE)은 필수 입력값입니다.") String role // "MEMBER" 또는 "SELLER"
+    @NotBlank(message = "이메일은 필수 입력값입니다.") @Email(message = "이메일 형식이 올바르지 않습니다.") String email
     ) {
 
   public SignUpCommand toCommand() {
-    return new SignUpCommand(userName, password, name, phone, email, role);
+    return new SignUpCommand(userName, password, name, phone, email);
   }
 }
