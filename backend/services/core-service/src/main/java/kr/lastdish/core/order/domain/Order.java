@@ -16,7 +16,13 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table(name = "orders")
+@Table(
+    name = "orders",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_orders_store_pickup_code",
+          columnNames = {"store_id", "pickup_code"})
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
@@ -110,6 +116,9 @@ public class Order {
 
   // 결제 완료
   public void paymentSuccess() {
+    if (this.paymentStatus != PaymentStatus.PENDING) {
+      throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+    }
     this.paymentStatus = PaymentStatus.COMPLETED;
   }
 
@@ -132,6 +141,7 @@ public class Order {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = OrderStatus.REJECTED;
+    refundPayment();
   }
 
   public void delete() {
@@ -139,17 +149,29 @@ public class Order {
   }
 
   // 주문 취소
-  public void cancel(Long memberId) {
+  public boolean cancel(Long memberId) {
     validateOwner(memberId);
+    if (this.status == OrderStatus.CANCELLED) {
+      return false;
+    }
     validateCancelable();
 
     this.status = OrderStatus.CANCELLED;
+    refundPayment();
+    return true;
   }
 
   private void validateCancelable() {
-    if (this.status != OrderStatus.RESERVED) {
+    if (this.status != OrderStatus.RESERVED || this.paymentStatus != PaymentStatus.COMPLETED) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
+  }
+
+  private void refundPayment() {
+    if (this.paymentStatus != PaymentStatus.COMPLETED) {
+      throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+    }
+    this.paymentStatus = PaymentStatus.REFUNDED;
   }
 
   private void validateOwner(Long memberId) {

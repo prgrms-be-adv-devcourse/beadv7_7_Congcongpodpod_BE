@@ -13,11 +13,12 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
   private final OrderFacade orderFacade;
 
-  @PostMapping
+  @PostMapping("/cartItems/{cartItemId}")
   public ApiResponse<OrderResponse> createOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PathVariable Long cartItemId,
       @RequestBody @Valid OrderCreateRequest request) {
-    return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, request));
+    return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, cartItemId, request));
   }
 
   @PatchMapping("/{orderId}/cancel")
