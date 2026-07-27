@@ -7,6 +7,10 @@ import java.util.Base64;
 import java.util.Map;
 import kr.lastdish.core.payment.application.payment.dto.PgApprovalResult;
 import kr.lastdish.core.payment.application.payment.port.PgPaymentGateway;
+import kr.lastdish.core.payment.domain.payment.PaymentLog;
+import kr.lastdish.core.payment.domain.payment.PaymentLogRepository;
+import kr.lastdish.core.payment.domain.payment.PgProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -14,9 +18,11 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 @Component
+@RequiredArgsConstructor
 public class TossPaymentGateway implements PgPaymentGateway {
 
   private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
+  private final PaymentLogRepository paymentLogRepository;
 
   @Value("${toss.secret-key:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}")
   private String secretKey;
@@ -33,7 +39,16 @@ public class TossPaymentGateway implements PgPaymentGateway {
   }
 
   @Override
-  public PgApprovalResult approve(String paymentKey, String orderId, BigDecimal amount) {
+  public PgApprovalResult approve(
+      Long paymentId, String paymentKey, String orderId, BigDecimal amount) {
+
+    // REQUEST 로그 기록
+    paymentLogRepository.save(
+        PaymentLog.createRequestLog(
+            paymentId,
+            PgProvider.TOSS,
+            String.format("paymentKey=%s, orderId=%s, amount=%s", paymentKey, orderId, amount)));
+
     try {
       String rawJson =
           restClient
