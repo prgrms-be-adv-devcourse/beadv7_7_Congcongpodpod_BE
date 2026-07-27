@@ -70,4 +70,9 @@ public class StoreRespositoryAdaptor implements StoreRepository {
     return storeJpaRepository.countOpenStoresByLocationRange(
         minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN, category);
   }
+
+  @Override
+  public List<Long> findAllActiveStoreIds() {
+    return storeJpaRepository.findAllActiveStoreIds();
+  }
 }

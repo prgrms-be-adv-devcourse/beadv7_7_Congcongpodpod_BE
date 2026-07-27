@@ -175,7 +175,7 @@ public class StoreService {
   // 매장 정산 계좌
   @Transactional
   public PayoutAccountResult registerPayoutAccount(
-      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+      Long storeId, Long memberId, String bankName, String accountNumber, String accountHolder) {
     getOwnedStore(storeId, memberId);
 
     if (payoutAccountRepository.existsByStoreId(storeId)) {
@@ -183,7 +183,7 @@ public class StoreService {
     }
 
     StorePayoutAccount payoutAccount =
-        new StorePayoutAccount(storeId, accountNumber, accountHolder);
+        new StorePayoutAccount(storeId, bankName, accountNumber, accountHolder);
 
     StorePayoutAccount savedAccount = payoutAccountRepository.save(payoutAccount);
 
@@ -192,7 +192,7 @@ public class StoreService {
 
   @Transactional
   public PayoutAccountResult updatePayoutAccount(
-      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+      Long storeId, Long memberId, String bankName, String accountNumber, String accountHolder) {
     getOwnedStore(storeId, memberId);
 
     StorePayoutAccount payoutAccount =
@@ -203,7 +203,7 @@ public class StoreService {
                     new BusinessException(
                         CommonErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
 
-    payoutAccount.update(accountNumber, accountHolder);
+    payoutAccount.update(bankName, accountNumber, accountHolder);
 
     return PayoutAccountResult.from(payoutAccount);
   }
@@ -219,5 +219,10 @@ public class StoreService {
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
+  }
+
+  @Transactional(readOnly = true)
+  public List<Long> findSettlementTargetStoreIds() {
+    return storeRepository.findAllActiveStoreIds();
   }
 }
