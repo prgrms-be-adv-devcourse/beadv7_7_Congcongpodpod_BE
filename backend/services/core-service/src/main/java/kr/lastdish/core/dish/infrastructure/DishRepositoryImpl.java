@@ -51,4 +51,9 @@ public class DishRepositoryImpl implements DishRepository {
   public List<Dish> findOnSaleByStoreId(Long storeId) {
     return dishJpaRepository.findOnSaleByStoreId(storeId, DishStatus.ON_SALE);
   }
+
+  @Override
+  public Optional<Dish> findByStoreIdAndIsDeletedFalse(Long storeId) {
+    return dishJpaRepository.findByStoreIdAndIsDeletedFalse(storeId);
+  }
 }
