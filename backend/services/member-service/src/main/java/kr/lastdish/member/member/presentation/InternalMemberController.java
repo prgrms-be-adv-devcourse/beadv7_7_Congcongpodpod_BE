@@ -2,11 +2,10 @@ package kr.lastdish.member.member.presentation;
 
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.member.member.application.MemberService;
+import kr.lastdish.member.member.application.dto.MemberProfileResult;
+import kr.lastdish.member.member.presentation.dto.OrderMemberInfoResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/internal/v1/members")
@@ -20,5 +19,13 @@ public class InternalMemberController {
   public ApiResponse<Void> grantSellerRole(@PathVariable Long memberId) {
     memberService.grantSellerRole(memberId);
     return ApiResponse.ok(null);
+  }
+
+  @GetMapping("/{memberId}/order-info")
+  public ApiResponse<OrderMemberInfoResponse> getOrderMemberInfo(@PathVariable Long memberId) {
+
+    MemberProfileResult result = memberService.getMemberById(memberId);
+
+    return ApiResponse.ok(OrderMemberInfoResponse.from(result));
   }
 }
