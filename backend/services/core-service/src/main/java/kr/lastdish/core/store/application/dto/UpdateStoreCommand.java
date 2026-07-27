@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
+import kr.lastdish.core.store.domain.Category;
 
 public record UpdateStoreCommand(
     String storeName,
@@ -13,4 +14,5 @@ public record UpdateStoreCommand(
     LocalTime closeTime,
     BigDecimal latitude,
     BigDecimal longitude,
+    Category category,
     List<DayOfWeek> holidays) {}

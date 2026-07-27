@@ -6,6 +6,20 @@ spring:
     name: gateway-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              "[/api/**]":
+                allowed-origins:
+                  - ${GATEWAY_CORS_ORIGIN:https://lastdish.kr}
+                  - ${GATEWAY_CORS_WWW_ORIGIN:https://www.lastdish.kr}
+                allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowed-headers: [Authorization, Content-Type]
+                max-age: 3600
 
 management:
   endpoints:
