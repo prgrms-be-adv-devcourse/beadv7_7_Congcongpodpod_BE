@@ -51,6 +51,8 @@ public class PaymentService {
                         CommonErrorCode.ENTITY_NOT_FOUND,
                         "결제 정보를 찾을 수 없습니다. merchantOrderId=" + merchantOrderId));
 
+    payment.validateReadyStatus(); // 이미 처리된 결제인지 먼저 확인 (불필요한 PG 호출 방지)
+
     if (payment.getAmount().compareTo(requestedAmount) != 0) {
       throw new PaymentException(
           CommonErrorCode.INVALID_INPUT,
