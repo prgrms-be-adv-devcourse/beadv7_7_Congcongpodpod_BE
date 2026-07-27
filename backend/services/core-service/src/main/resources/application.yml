@@ -6,6 +6,11 @@ spring:
     name: core-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  batch:
+    job:
+      enabled: false
+#    jdbc:
+#      initialize-schema: always
 
 management:
   endpoints:
@@ -22,6 +27,10 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+services:
+  member:
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
 
 event:
   publisher: ${EVENT_PUBLISHER:spring}

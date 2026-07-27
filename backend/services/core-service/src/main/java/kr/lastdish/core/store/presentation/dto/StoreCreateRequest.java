@@ -8,6 +8,7 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
+import kr.lastdish.core.store.domain.Category;
 
 public record StoreCreateRequest(
     @NotBlank String storeName,
@@ -18,6 +19,7 @@ public record StoreCreateRequest(
     @NotNull @JsonFormat(pattern = "HH:mm") LocalTime closeTime,
     @NotNull BigDecimal latitude,
     @NotNull BigDecimal longitude,
+    @NotNull Category category,
     List<DayOfWeek> holidays) {
 
   public RegisterStoreCommand toCommand(Long memberId) {
@@ -31,6 +33,7 @@ public record StoreCreateRequest(
         closeTime,
         latitude,
         longitude,
+        category,
         holidays == null ? List.of() : holidays);
   }
 }

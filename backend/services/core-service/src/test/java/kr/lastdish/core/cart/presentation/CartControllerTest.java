@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import kr.lastdish.core.cart.presentation.dto.CartItemAddRequest;
 import kr.lastdish.core.cart.presentation.dto.CartItemUpdateRequest;
-import kr.lastdish.core.dish.domain.Category;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,6 @@ class CartControllerTest {
                 "치킨마요 마감할인 세트",
                 LocalDateTime.now(),
                 "마감 임박 할인 상품",
-                Category.KOREAN,
                 null,
                 10L,
                 BigDecimal.valueOf(8000),
@@ -132,7 +130,6 @@ class CartControllerTest {
                 "치킨마요 마감할인 세트",
                 LocalDateTime.now(),
                 "마감 임박 할인 상품",
-                Category.KOREAN,
                 null,
                 10L,
                 BigDecimal.valueOf(8000),
@@ -144,7 +141,6 @@ class CartControllerTest {
                 "소불고기 마감할인 세트",
                 LocalDateTime.now(),
                 "마감 임박 할인 상품",
-                Category.KOREAN,
                 null,
                 10L,
                 BigDecimal.valueOf(9000),
@@ -196,7 +192,6 @@ class CartControllerTest {
                 "치킨마요 마감할인 세트",
                 LocalDateTime.now(),
                 "마감 임박 할인 상품",
-                Category.KOREAN,
                 null,
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
@@ -217,7 +212,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 3L))))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.code").value("C004"));
+        .andExpect(jsonPath("$.error.code").value("CT004"));
   }
 
   @Test
@@ -229,7 +224,6 @@ class CartControllerTest {
                 "치킨마요 마감할인 세트",
                 LocalDateTime.now(),
                 "마감 임박 할인 상품",
-                Category.KOREAN,
                 null,
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
@@ -262,7 +256,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(5L))))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.code").value("C004"));
+        .andExpect(jsonPath("$.error.code").value("CT004"));
 
     // 실패했으니 수량은 그대로 1이어야 한다
     mockMvc

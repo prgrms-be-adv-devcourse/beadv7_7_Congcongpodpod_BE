@@ -5,6 +5,7 @@ import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ public class StoreService {
 
   private final StoreRepository storeRepository;
   private final StorePayoutAccountRepository payoutAccountRepository;
+  private final DishFacade dishFacade;
 
   @Transactional
   public StoreResult register(RegisterStoreCommand command) {
@@ -39,7 +41,8 @@ public class StoreService {
             command.openTime(),
             command.closeTime(),
             command.latitude(),
-            command.longitude());
+            command.longitude(),
+            command.category());
 
     command.holidays().forEach(store::addHoliday);
 
@@ -59,7 +62,8 @@ public class StoreService {
         command.openTime(),
         command.closeTime(),
         command.latitude(),
-        command.longitude());
+        command.longitude(),
+        command.category());
 
     store.replaceHolidays(command.holidays());
 
@@ -110,7 +114,12 @@ public class StoreService {
 
   // 위치 기반 조회(기본 구현)
   public StorePageResult getNearbyStores(
-      BigDecimal latitude, BigDecimal longitude, double radiusKm, int page, int size) {
+      BigDecimal latitude,
+      BigDecimal longitude,
+      Category category,
+      double radiusKm,
+      int page,
+      int size) {
     if (radiusKm <= 0) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "검색 반경은 0보다 커야 합니다.");
     }
@@ -145,18 +154,28 @@ public class StoreService {
 
     List<Store> stores =
         storeRepository.findOpenStoresByLocationRange(
-            minLatitude, maxLatitude, minLongitude, maxLongitude, page, size);
+            minLatitude, maxLatitude, minLongitude, maxLongitude, category, page, size);
+
+    List<NearbyStoreResult> results =
+        stores.stream()
+            .map(
+                store ->
+                    new NearbyStoreResult(
+                        StoreResult.from(store),
+                        dishFacade.getOnSaleDishesByStoreId(store.getId())))
+            .toList();
 
     long totalElements =
-        storeRepository.countByLocationRange(minLatitude, maxLatitude, minLongitude, maxLongitude);
+        storeRepository.countByLocationRange(
+            minLatitude, maxLatitude, minLongitude, maxLongitude, category);
 
-    return StorePageResult.of(stores, page, size, totalElements);
+    return StorePageResult.of(results, page, size, totalElements);
   }
 
   // 매장 정산 계좌
   @Transactional
   public PayoutAccountResult registerPayoutAccount(
-      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+      Long storeId, Long memberId, String bankName, String accountNumber, String accountHolder) {
     getOwnedStore(storeId, memberId);
 
     if (payoutAccountRepository.existsByStoreId(storeId)) {
@@ -164,7 +183,7 @@ public class StoreService {
     }
 
     StorePayoutAccount payoutAccount =
-        new StorePayoutAccount(storeId, accountNumber, accountHolder);
+        new StorePayoutAccount(storeId, bankName, accountNumber, accountHolder);
 
     StorePayoutAccount savedAccount = payoutAccountRepository.save(payoutAccount);
 
@@ -173,7 +192,7 @@ public class StoreService {
 
   @Transactional
   public PayoutAccountResult updatePayoutAccount(
-      Long storeId, Long memberId, String accountNumber, String accountHolder) {
+      Long storeId, Long memberId, String bankName, String accountNumber, String accountHolder) {
     getOwnedStore(storeId, memberId);
 
     StorePayoutAccount payoutAccount =
@@ -184,7 +203,7 @@ public class StoreService {
                     new BusinessException(
                         CommonErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
 
-    payoutAccount.update(accountNumber, accountHolder);
+    payoutAccount.update(bankName, accountNumber, accountHolder);
 
     return PayoutAccountResult.from(payoutAccount);
   }
@@ -200,5 +219,10 @@ public class StoreService {
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
     }
+  }
+
+  @Transactional(readOnly = true)
+  public List<Long> findSettlementTargetStoreIds() {
+    return storeRepository.findAllActiveStoreIds();
   }
 }
