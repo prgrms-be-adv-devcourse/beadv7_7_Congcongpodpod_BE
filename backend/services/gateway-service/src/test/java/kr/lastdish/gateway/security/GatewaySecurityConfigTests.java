@@ -74,7 +74,7 @@ class GatewaySecurityConfigTests {
 
   @Test
   void myStoreRouteRejectsRequestsWithoutAuthentication() {
-    webTestClient.get().uri("/api/v1/stores/me").exchange().expectStatus().isUnauthorized();
+    webTestClient.get().uri("/api/v1/stores/mine").exchange().expectStatus().isUnauthorized();
   }
 
   @Test
@@ -90,7 +90,7 @@ class GatewaySecurityConfigTests {
                 .jwt(jwt -> jwt.subject("1"))
                 .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
         .get()
-        .uri("/api/v1/stores/me")
+        .uri("/api/v1/stores/mine")
         .exchange()
         .expectStatus()
         .isForbidden();
@@ -104,7 +104,7 @@ class GatewaySecurityConfigTests {
                 .jwt(jwt -> jwt.subject("2"))
                 .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
         .get()
-        .uri("/api/v1/stores/me")
+        .uri("/api/v1/stores/mine")
         .exchange()
         .expectStatus()
         .isOk();
@@ -277,7 +277,7 @@ class GatewaySecurityConfigTests {
           .andRoute(GET("/openapi/member-service"), request -> ok().build())
           .andRoute(GET("/api/v1/dishes/1"), request -> ok().build())
           .andRoute(GET("/api/v1/stores/1"), request -> ok().build())
-          .andRoute(GET("/api/v1/stores/me"), request -> ok().build())
+          .andRoute(GET("/api/v1/stores/mine"), request -> ok().build())
           .andRoute(GET("/api/v1/stores/1/dish"), request -> ok().build())
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
           .andRoute(POST("/api/v1/stores"), request -> ok().build())
