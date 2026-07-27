@@ -25,7 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = "services.member.base-url=http://localhost")
+@SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 class StoreControllerTest {
