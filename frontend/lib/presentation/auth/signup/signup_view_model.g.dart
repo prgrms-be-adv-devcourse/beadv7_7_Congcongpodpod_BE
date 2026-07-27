@@ -19,14 +19,14 @@ String _$signupViewModelHash() => r'2ff1ca96ea936cce9783ed946c0cbe03a01ed9dd';
 @ProviderFor(SignupViewModel)
 final signupViewModelProvider =
     AutoDisposeAsyncNotifierProvider<SignupViewModel, void>.internal(
-      SignupViewModel.new,
-      name: r'signupViewModelProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$signupViewModelHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  SignupViewModel.new,
+  name: r'signupViewModelProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$signupViewModelHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$SignupViewModel = AutoDisposeAsyncNotifier<void>;
 // ignore_for_file: type=lint

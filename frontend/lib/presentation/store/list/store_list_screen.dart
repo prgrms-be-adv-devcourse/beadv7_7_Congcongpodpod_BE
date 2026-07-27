@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/domain/error/app_exception.dart';
 import '../../../core/network/token_storage_provider.dart';
 import '../../../core/routing/route_paths.dart';
+import '../../../domain/model/category.dart';
+import '../../../domain/model/dish.dart';
 import '../../../domain/model/store.dart';
 import '../../../ui/app_colors.dart';
 import '../../../ui/app_spacing.dart';
+import '../../cart/cart_repository_provider.dart';
 import 'store_list_view_model.dart';
 
-/// 매장 목록 화면 (B3, 홈 `/`). 로그인 성공 후 랜딩 화면이자 구매자 핵심 경로의 시작점
-/// (흐름: B3 매장목록 → B4 매장상세 → ...).
+/// 매장 목록 화면 (B3, 홈 `/`). 로그인 성공 후 랜딩 화면이자 구매자 핵심 경로의 시작점.
+///
+/// 2026-07-27 재구현: 백엔드가 `category` 필터와 `dishes[]` 임베딩을 반영하면서(ADR
+/// 017/018), 매장상세(B4)/상품상세(B5) 화면 없이 이 화면 카드 안에서 카테고리 필터 →
+/// 상품 확인 → 장바구니 담기까지 전부 끝내는 구조로 바뀌었다.
 class StoreListScreen extends ConsumerWidget {
   const StoreListScreen({super.key});
 
@@ -46,12 +53,67 @@ class StoreListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      // AsyncValue.when: data/error/loading 세 가지를 전부 분기해야만 컴파일이 되므로,
-      // "로딩 중인데 화면은 데이터를 그리려고 하는" 상태 불일치 버그를 막아준다.
-      body: storesAsync.when(
-        data: (stores) => _StoreListView(stores: stores),
-        error: (error, stackTrace) => _ErrorView(message: error.toString()),
-        loading: () => const Center(child: CircularProgressIndicator()),
+      body: Column(
+        children: [
+          const _CategoryFilterBar(),
+          Expanded(
+            // AsyncValue.when: data/error/loading 세 가지를 전부 분기해야만 컴파일이 되므로,
+            // "로딩 중인데 화면은 데이터를 그리려고 하는" 상태 불일치 버그를 막아준다.
+            child: storesAsync.when(
+              data: (stores) => _StoreListView(stores: stores),
+              error: (error, stackTrace) => _ErrorView(message: error.toString()),
+              loading: () => const Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 카테고리 필터 칩 한 줄("전체" + 15개). 가로 스크롤 — 화면 폭에 다 안 들어가서.
+class _CategoryFilterBar extends ConsumerWidget {
+  const _CategoryFilterBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedStoreCategoryProvider);
+
+    Widget chip(String? value, String label) {
+      final isSelected = selected == value;
+      return Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.xs),
+        child: ChoiceChip(
+          label: Text(label),
+          selected: isSelected,
+          // 이미 선택된 칩을 다시 누르면 "전체"로 돌아간다 — 매번 다른 칩을
+          // 눌러 해제해야 하는 것보다 자연스럽다.
+          onSelected: (_) => ref
+              .read(selectedStoreCategoryProvider.notifier)
+              .select(isSelected ? null : value),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: SizedBox(
+        height: 40,
+        // ListView 대신 SingleChildScrollView + Row를 쓴다 — 화면에 ListView가
+        // 이미 하나 더 있어서(매장 목록), 위젯 타입으로 찾는 테스트/도구가
+        // 둘을 혼동하지 않게 하려는 것도 이유 중 하나다.
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              chip(null, '전체'),
+              for (final value in categoryValues) chip(value, categoryLabel(value)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -100,6 +162,8 @@ class _StoreListView extends ConsumerWidget {
   }
 }
 
+/// 매장 카드. 더 이상 탭해서 상세 화면으로 안 넘어간다(B4 폐기) — 카드 자체가
+/// 매장 정보 + 판매중 상품(0~1개) + 담기 버튼까지 전부 보여준다.
 class _StoreCard extends StatelessWidget {
   const _StoreCard({required this.store});
 
@@ -109,37 +173,147 @@ class _StoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Card(
-      // 카드 모양(테두리/모서리)은 app_theme.dart의 cardTheme이 전역으로 이미 정해뒀다 —
-      // 여기선 내용만 채우면 된다.
-      child: InkWell(
-        // context.push: go와 달리 현재 화면 위에 "쌓는다" — 상세에서 뒤로가기하면
-        // 목록으로 돌아온다(회원가입 화면 진입 때와 같은 방식, login_screen.dart 참고).
-        onTap: () =>
-            context.push(RoutePaths.storeDetailOf(store.storeId.toString())),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                store.storeName,
-                style: textTheme.titleMedium?.copyWith(
-                  color: AppColors.textStrong,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    store.storeName,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.textStrong,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
+                Chip(
+                  label: Text(categoryLabel(store.category)),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              store.storeAddress,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.textBody),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '영업시간 ${store.openTime} ~ ${store.closeTime}',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+            ),
+            const Divider(height: AppSpacing.lg),
+            // dishes가 빈 리스트 = 지금 판매중인 상품이 없음(품절/마감 포함,
+            // 서버가 이미 ON_SALE만 걸러서 준다 — ADR 018).
+            if (store.dishes.isEmpty)
               Text(
-                store.storeAddress,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.textBody),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '영업시간 ${store.openTime} ~ ${store.closeTime}',
+                '지금 판매중인 상품이 없어요',
                 style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
-              ),
-            ],
-          ),
+              )
+            else
+              for (final dish in store.dishes) _DishRow(dish: dish),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// 상품 1건 표시 + 담기 버튼. ADR 004(매장≈상품 1개)라 지금은 매장당 최대 1줄만 그려진다.
+class _DishRow extends ConsumerStatefulWidget {
+  const _DishRow({required this.dish});
+
+  final Dish dish;
+
+  @override
+  ConsumerState<_DishRow> createState() => _DishRowState();
+}
+
+class _DishRowState extends ConsumerState<_DishRow> {
+  // 중복 탭 방지용 로컬 상태. cart_screen.dart의 `_isMutating`과 같은 이유 —
+  // Riverpod state를 직접 로딩으로 바꾸면 화면 전체가 스피너로 바뀌어버리는 문제를
+  // 피하려고, "지금 이 버튼 하나만 처리 중"이라는 걸 위젯 로컬 상태로만 관리한다.
+  bool _isAdding = false;
+
+  Future<void> _addToCart() async {
+    setState(() => _isAdding = true);
+    try {
+      final cartRepository = ref.read(cartRepositoryProvider);
+      // Cart는 회원가입 시 자동 생성되고, 이 첫 조회에서 cartId를 얻는다
+      // (별도 "장바구니 생성" API가 없음 — api-contracts.md Cart 절 참고).
+      final cart = await cartRepository.getMyCart();
+      await cartRepository.addItem(
+        cartId: cart.cartId,
+        dishId: widget.dish.dishId,
+        quantity: 1,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${widget.dish.dishName} 담았어요')),
+      );
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isAdding = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final dish = widget.dish;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(dish.dishName, style: textTheme.bodyMedium),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      '${dish.dishPrice.toInt()}원',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textHint,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      '${dish.discountPrice.toInt()}원',
+                      style: textTheme.titleSmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '재고 ${dish.stockQuantity}개',
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+                ),
+              ],
+            ),
+          ),
+          FilledButton(
+            onPressed: _isAdding ? null : _addToCart,
+            child: _isAdding
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('담기'),
+          ),
+        ],
       ),
     );
   }

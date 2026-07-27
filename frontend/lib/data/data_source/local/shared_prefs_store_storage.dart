@@ -14,8 +14,9 @@ class SharedPrefsStoreStorage implements RecentStoreStorage {
 
   @override
   Future<int?> getLastStoreId() async {
-    return _prefs.getInt(_storeId);
-  }
+      return _prefs.getInt(_storeId);
+    }
+
 
   @override
   Future<void> clear() async {

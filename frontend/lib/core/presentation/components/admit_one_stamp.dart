@@ -67,6 +67,5 @@ class _DashedCirclePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedCirclePainter oldDelegate) =>
-      oldDelegate.color != color;
+  bool shouldRepaint(covariant _DashedCirclePainter oldDelegate) => oldDelegate.color != color;
 }

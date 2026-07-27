@@ -17,14 +17,14 @@ String _$authRepositoryHash() => r'880dee765bc68afa752b930aeecb5b8f1c9e25cf';
 @ProviderFor(authRepository)
 final authRepositoryProvider =
     AutoDisposeFutureProvider<AuthRepository>.internal(
-      authRepository,
-      name: r'authRepositoryProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$authRepositoryHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  authRepository,
+  name: r'authRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$authRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef AuthRepositoryRef = AutoDisposeFutureProviderRef<AuthRepository>;
 // ignore_for_file: type=lint
