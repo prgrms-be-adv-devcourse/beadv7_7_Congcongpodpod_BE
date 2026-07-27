@@ -66,7 +66,6 @@ class AuthRepositoryImpl implements AuthRepository {
           'name': name,
           'phone': phone,
           'email': email,
-          'role': 'MEMBER',
         },
       );
     } on DioException catch (e) {
