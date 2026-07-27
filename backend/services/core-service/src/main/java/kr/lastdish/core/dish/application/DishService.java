@@ -1,16 +1,12 @@
 package kr.lastdish.core.dish.application;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishPriceChangedPayload;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
@@ -20,6 +16,13 @@ import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +63,9 @@ public class DishService {
     // 동시에 같은 Dish가 변경되면 동일한 event Version이 생성되지 않도록 이벤트가 발생하는 변경 메서드는 잠금 조회를 사용합니다.
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 
+    // Dish 변경 전 가격을 저장합니다.
+    BigDecimal unitPriceBefore = dish.getDiscountPrice();
+
     boolean availableBefore = dish.isAvailable();
     Long stockQuantityBefore = dish.getStockQuantity();
 
@@ -73,6 +79,7 @@ public class DishService {
         request.discountPrice());
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendPriceEventIfChanged(dish, unitPriceBefore);
 
     return DishResponse.from(dish);
   }
@@ -184,6 +191,38 @@ public class DishService {
             dish.getId(),
             aggregateVersion,
             payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  /**
+   * Cart의 가격 표시에 영향을 주는 Dish 상태가 바뀌었을 때 Outbox 이벤트를 기록합니다.
+   *
+   * <p> 가격이 변경되면 해당 이벤트를 발행 합니다.
+   *
+   * @param dish 변경이 완료된 Dish
+   * @param unitPriceBefore 변경 전 가격
+   */
+  private void appendPriceEventIfChanged(
+      Dish dish,
+      BigDecimal unitPriceBefore) {
+
+    BigDecimal unitPriceAfter = dish.getDiscountPrice();
+
+    if (unitPriceBefore.compareTo(unitPriceAfter) == 0) {
+      return;
+    }
+
+    long aggregateVersion = dish.nextEventVersion();
+
+    DishPriceChangedEvent event =
+        new DishPriceChangedEvent(
+            UUID.randomUUID(),
+            DishPriceChangedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            new DishPriceChangedPayload(unitPriceAfter),
             Instant.now());
 
     outboxEventWriter.append(event);
