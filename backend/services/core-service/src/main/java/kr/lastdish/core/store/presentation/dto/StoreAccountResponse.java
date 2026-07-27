@@ -7,6 +7,7 @@ import kr.lastdish.core.store.application.dto.PayoutAccountResult;
 public record StoreAccountResponse(
     Long payoutAccountId,
     Long storeId,
+    String bankName,
     String accountNumber,
     String accountHolder,
     boolean active,
@@ -15,6 +16,7 @@ public record StoreAccountResponse(
     return new StoreAccountResponse(
         result.payoutAccountId(),
         result.storeId(),
+        result.bankName(),
         result.accountNumber(),
         result.accountHolder(),
         result.active(),

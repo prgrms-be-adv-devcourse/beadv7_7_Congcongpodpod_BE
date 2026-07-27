@@ -29,4 +29,6 @@ public interface StoreRepository {
       BigDecimal minLongitude,
       BigDecimal maxLongitude,
       Category category);
+
+  List<Long> findAllActiveStoreIds();
 }
