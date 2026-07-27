@@ -7,8 +7,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import kr.lastdish.member.member.domain.MemberId;
-import kr.lastdish.member.member.domain.Role; // Role 임포트 확인
+import kr.lastdish.member.member.domain.Role;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,14 +26,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   @Override
   protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull FilterChain filterChain)
       throws ServletException, IOException {
 
     // 1. Request Header에서 토큰 추출
     String token = parseBearerToken(request);
 
-    // 2. 토큰 유효성 검사
-    if (token != null && jwtTokenProvider.validateToken(token)) {
+    // 2. 토큰 유효성 검사 및 Access Token 여부 검증 추가
+    if (token != null
+        && jwtTokenProvider.validateToken(token)
+        && jwtTokenProvider.isAccessToken(token)) {
       // 3. 토큰에서 memberId 추출
       MemberId memberId = jwtTokenProvider.getMemberId(token);
       Long id = memberId.getValue();

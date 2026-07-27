@@ -1,6 +1,7 @@
 package kr.lastdish.gateway.security;
 
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.OPTIONS;
 import static org.springframework.http.HttpMethod.POST;
 
 import org.springframework.context.annotation.Bean;
@@ -42,6 +43,9 @@ public class GatewaySecurityConfig {
         .authorizeExchange(
             exchange ->
                 exchange
+                    // 브라우저의 CORS 사전 요청은 Bearer Token 없이 정책 확인만 수행한다.
+                    .pathMatchers(OPTIONS, "/api/**")
+                    .permitAll()
                     // 회원가입, 로그인, Refresh Token 재발급은 Access Token 없이 요청한다.
                     .pathMatchers(
                         POST, "/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh")
