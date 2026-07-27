@@ -6,9 +6,12 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import kr.lastdish.core.cart.application.CartService;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import kr.lastdish.core.order.presentation.dto.OrderRejectReason;
@@ -32,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderFacadeTest {
 
   @Mock private OrderService orderService;
+  @Mock private CartService cartService;
 
   @Mock private DishFacade dishFacade;
 
@@ -48,8 +52,10 @@ class OrderFacadeTest {
   void payAndCreateOrder_success() {
     // given
     Long memberId = 1L;
+    Long cartItemId = 1L;
 
     OrderCreateRequest request = createRequest();
+    CartOrderSnapshot cartItem = createCartOrderSnapshot();
 
     Order order = mock(Order.class);
 
@@ -58,21 +64,23 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
-    when(orderService.createOrder(memberId, request)).thenReturn(order);
+    when(cartService.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(orderService.createOrder(memberId, request.phone(), cartItem)).thenReturn(order);
 
     OrderResponse expectedResponse = mock(OrderResponse.class);
 
     when(orderService.completePayment(10L)).thenReturn(expectedResponse);
 
     // when
-    OrderResponse response = orderFacade.payAndCreateOrder(memberId, request);
+    OrderResponse response = orderFacade.payAndCreateOrder(memberId, cartItemId, request);
 
     // then
     assertThat(response).isSameAs(expectedResponse);
 
-    InOrder inOrder = inOrder(orderService, dishFacade, depositFacade);
+    InOrder inOrder = inOrder(cartService, orderService, dishFacade, depositFacade);
 
-    inOrder.verify(orderService).createOrder(memberId, request);
+    inOrder.verify(cartService).getOrderSnapshot(memberId, cartItemId);
+    inOrder.verify(orderService).createOrder(memberId, request.phone(), cartItem);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
 
@@ -82,15 +90,12 @@ class OrderFacadeTest {
   }
 
   private OrderCreateRequest createRequest() {
-    return new OrderCreateRequest(
-        1L,
-        1L,
-        "010-1234-5678",
-        "김밥",
-        2L,
-        BigDecimal.valueOf(5_000),
-        LocalTime.of(18, 0),
-        LocalTime.of(19, 0));
+    return new OrderCreateRequest("010-1234-5678");
+  }
+
+  private CartOrderSnapshot createCartOrderSnapshot() {
+    return new CartOrderSnapshot(
+        1L, 100L, "김밥", 2L, BigDecimal.valueOf(5_000), LocalTime.of(18, 0), LocalTime.of(19, 0));
   }
 
   @Test
@@ -98,7 +103,9 @@ class OrderFacadeTest {
   void payAndCreateOrder_depositFailure() {
     // given
     Long memberId = 1L;
+    Long cartItemId = 1L;
     OrderCreateRequest request = createRequest();
+    CartOrderSnapshot cartItem = createCartOrderSnapshot();
 
     Order order = mock(Order.class);
 
@@ -107,20 +114,38 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
-    when(orderService.createOrder(memberId, request)).thenReturn(order);
+    when(cartService.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(orderService.createOrder(memberId, request.phone(), cartItem)).thenReturn(order);
 
     doThrow(new RuntimeException("예치금 잔액이 부족합니다."))
         .when(depositFacade)
         .use(memberId, 10L, BigDecimal.valueOf(10_000));
 
     // when & then
-    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, request))
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, request))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("예치금 잔액이 부족합니다.");
 
     verify(dishFacade).decreaseStock(100L, 2L);
 
     verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
+  }
+
+  @Test
+  @DisplayName("이미 취소된 주문 취소 재요청은 재고와 예치금을 다시 복구하지 않는다")
+  void cancelOrder_idempotentRetry() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    Order cancelledOrder = mock(Order.class);
+
+    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(cancelledOrder);
+    when(cancelledOrder.getStatus()).thenReturn(OrderStatus.CANCELLED);
+    when(orderService.cancelOrder(memberId, orderId)).thenReturn(cancelledOrder);
+
+    OrderResponse response = orderFacade.cancelOrder(memberId, orderId);
+
+    assertThat(response).isNotNull();
+    verifyNoInteractions(dishFacade, depositFacade);
   }
 
   @Test

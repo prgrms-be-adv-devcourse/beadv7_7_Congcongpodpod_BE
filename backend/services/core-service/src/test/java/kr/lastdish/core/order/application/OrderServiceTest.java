@@ -8,10 +8,10 @@ import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
-import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
 import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
@@ -33,13 +33,13 @@ class OrderServiceTest {
   @Test
   void createOrder_success() {
     Long memberId = 1L;
-    OrderCreateRequest request =
-        new OrderCreateRequest(
-            2L, // storeId
-            3L, // dishId
-            "010-1234-5678", // phone
+    String phone = "010-1234-5678";
+    CartOrderSnapshot cartItem =
+        new CartOrderSnapshot(
+            2L,
+            3L,
             "DishName",
-            4L, // quantity
+            4L,
             BigDecimal.valueOf(5000),
             LocalTime.of(18, 0),
             LocalTime.of(19, 0));
@@ -47,18 +47,17 @@ class OrderServiceTest {
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    Order order = orderService.createOrder(memberId, request);
+    Order order = orderService.createOrder(memberId, phone, cartItem);
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
-    assertThat(order.getStoreId()).isEqualTo(request.storeId());
-    assertThat(order.getDishId()).isEqualTo(request.dishId());
-    assertThat(order.getQuantity()).isEqualTo(request.quantity());
-    assertThat(order.getPhone()).isEqualTo(request.phone());
-    assertThat(order.getDishName()).isEqualTo(request.dishName());
-    assertThat(order.getUnitPrice()).isEqualByComparingTo(request.unitPrice());
-    assertThat(order.getTotalPrice())
-        .isEqualByComparingTo(request.unitPrice().multiply(BigDecimal.valueOf(request.quantity())));
+    assertThat(order.getStoreId()).isEqualTo(2L);
+    assertThat(order.getDishId()).isEqualTo(3L);
+    assertThat(order.getQuantity()).isEqualTo(4L);
+    assertThat(order.getPhone()).isEqualTo(phone);
+    assertThat(order.getDishName()).isEqualTo("DishName");
+    assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
+    assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
 
     verify(orderRepository, times(1)).save(any(Order.class));
   }
@@ -84,6 +83,7 @@ class OrderServiceTest {
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
 
+    when(order.cancel(memberId)).thenReturn(true);
     Order result = orderService.cancelOrder(memberId, orderId);
 
     assertThat(result).isSameAs(order);

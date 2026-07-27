@@ -3,6 +3,7 @@ package kr.lastdish.core.order.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -19,19 +20,18 @@ public class OrderService {
   private final PickupCodeGenerator pickupCodeGenerator;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
 
-  public Order createOrder(Long memberId, OrderCreateRequest request) {
+  public Order createOrder(Long memberId, String phone, CartOrderSnapshot cartItem) {
     Order order =
         Order.create(
             memberId,
-            request.storeId(),
-            request.dishId(),
-            // request.memberName(),
-            request.phone(),
-            request.dishName(),
-            request.quantity(),
-            request.unitPrice(),
-            request.pickupStartAt(),
-            request.pickupEndAt());
+            cartItem.storeId(),
+            cartItem.dishId(),
+            phone,
+            cartItem.dishName(),
+            cartItem.quantity(),
+            cartItem.unitPrice(),
+            cartItem.pickupStartAt(),
+            cartItem.pickupEndAt());
 
     return orderRepository.save(order);
   }
