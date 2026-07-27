@@ -38,7 +38,7 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
       Pageable pageable);
 
   @Query(
-          """
+      """
           SELECT COUNT(s) FROM Store s
           WHERE s.latitude BETWEEN :minLatitude AND :maxLatitude
             AND s.longitude BETWEEN :minLongitude AND :maxLongitude
@@ -47,12 +47,12 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
             AND (:category IS NULL OR s.category = :category)
           """)
   long countOpenStoresByLocationRange(
-          @Param("minLatitude") BigDecimal minLatitude,
-          @Param("maxLatitude") BigDecimal maxLatitude,
-          @Param("minLongitude") BigDecimal minLongitude,
-          @Param("maxLongitude") BigDecimal maxLongitude,
-          @Param("status") StoreStatus status,
-          @Param("category") Category category);
+      @Param("minLatitude") BigDecimal minLatitude,
+      @Param("maxLatitude") BigDecimal maxLatitude,
+      @Param("minLongitude") BigDecimal minLongitude,
+      @Param("maxLongitude") BigDecimal maxLongitude,
+      @Param("status") StoreStatus status,
+      @Param("category") Category category);
 
   @Query(
       """
