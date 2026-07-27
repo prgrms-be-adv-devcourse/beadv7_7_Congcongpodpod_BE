@@ -1,9 +1,5 @@
 package kr.lastdish.member.auth.application;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.application.dto.*;
 import kr.lastdish.member.auth.domain.RefreshToken;
@@ -19,6 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +42,6 @@ public class AuthService {
     }
 
     String encodedPassword = passwordEncoder.encode(command.password());
-    Role role = Role.from(command.role().toUpperCase());
 
     Member member =
         Member.builder()
@@ -50,7 +50,7 @@ public class AuthService {
             .name(command.name())
             .phone(command.phone())
             .email(command.email())
-            .role(role)
+            .role(Role.MEMBER)
             .build();
 
     Member savedMember = memberRepository.save(member);
