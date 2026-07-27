@@ -45,6 +45,9 @@ public class CartItem {
   @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
   private long lastAppliedDishVersion;
 
+  @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+  private long lastAppliedDishPriceVersion;
+
   private CartItem(
       Long cartId,
       Long dishId,
@@ -58,6 +61,7 @@ public class CartItem {
     this.unitPrice = unitPrice;
     this.quantity = quantity;
     this.lastAppliedDishVersion = dishVersion;
+    this.lastAppliedDishPriceVersion = dishVersion;
 
     // 초기값이 AVAILABLE인 이유는 Cart에 추가할 때 DishFacade를 통해 Dish 존재 여부와 재고를 확인하는걸로 확인했습니다.
     this.status = CartItemStatus.AVAILABLE;
@@ -94,6 +98,7 @@ public class CartItem {
     this.unitPrice = unitPrice;
     this.quantity = quantity;
     this.lastAppliedDishVersion = dishVersion;
+    this.lastAppliedDishPriceVersion = dishVersion;
 
     /*
      * CartService에서 교체할 Dish의 판매 여부와 재고를 검증한 뒤 호출하므로
@@ -151,6 +156,27 @@ public class CartItem {
     }
 
     this.lastAppliedDishVersion = aggregateVersion;
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  /**
+   * 최신 Dish 가격 이벤트를 CartItem 단가에 반영합니다.
+   *
+   * @param unitPrice Dish의 현재 판매 가격
+   * @param aggregateVersion Dish 가격 변경 이벤트 순서
+   */
+  public void synchronizeDishPrice(BigDecimal unitPrice, long aggregateVersion) {
+
+    if (aggregateVersion <= this.lastAppliedDishPriceVersion) {
+      return;
+    }
+
+    if (unitPrice == null || unitPrice.signum() < 0) {
+      throw new IllegalArgumentException("Dish 판매 가격은 0 이상이어야 합니다.");
+    }
+
+    this.unitPrice = unitPrice;
+    this.lastAppliedDishPriceVersion = aggregateVersion;
     this.updatedAt = LocalDateTime.now();
   }
 
