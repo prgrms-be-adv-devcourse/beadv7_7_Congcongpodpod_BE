@@ -38,7 +38,7 @@ class AuthServiceTest {
     // given
     SignUpCommand command =
         new SignUpCommand(
-            "hashtestuser", "password123!", "해시테스터", "010-9999-8888", "hash@example.com", "MEMBER");
+            "hashtestuser", "password123!", "해시테스터", "010-9999-8888", "hash@example.com");
     authService.signUp(command);
 
     LoginCommand loginCommand = new LoginCommand("hash@example.com", "password123!");
@@ -61,12 +61,7 @@ class AuthServiceTest {
     // given
     SignUpCommand command =
         new SignUpCommand(
-            "reissueuser",
-            "password123!",
-            "재발급테스터",
-            "010-1111-2222",
-            "reissue@example.com",
-            "MEMBER");
+            "reissueuser", "password123!", "재발급테스터", "010-1111-2222", "reissue@example.com");
     authService.signUp(command);
 
     TokenResult initialTokens =
@@ -87,8 +82,7 @@ class AuthServiceTest {
   void reissueFailWithInvalidToken() {
     // given
     SignUpCommand signUpCommand =
-        new SignUpCommand(
-            "failuser", "password123!", "실패테스터", "010-3333-4444", "fail@example.com", "MEMBER");
+        new SignUpCommand("failuser", "password123!", "실패테스터", "010-3333-4444", "fail@example.com");
     authService.signUp(signUpCommand);
     authService.login(new LoginCommand("fail@example.com", "password123!"));
 
@@ -108,12 +102,7 @@ class AuthServiceTest {
     // given
     SignUpCommand signUpCommand =
         new SignUpCommand(
-            "expireduser",
-            "password123!",
-            "만료테스터",
-            "010-5555-6666",
-            "expired@example.com",
-            "MEMBER");
+            "expireduser", "password123!", "만료테스터", "010-5555-6666", "expired@example.com");
     authService.signUp(signUpCommand);
     authService.login(new LoginCommand("expired@example.com", "password123!"));
 
@@ -135,12 +124,7 @@ class AuthServiceTest {
     // given
     SignUpCommand signUpCommand =
         new SignUpCommand(
-            "logoutuser",
-            "password123!",
-            "로그아웃테스터",
-            "010-7777-8888",
-            "logout@example.com",
-            "MEMBER");
+            "logoutuser", "password123!", "로그아웃테스터", "010-7777-8888", "logout@example.com");
     authService.signUp(signUpCommand);
     TokenResult tokenResult =
         authService.login(new LoginCommand("logout@example.com", "password123!"));
