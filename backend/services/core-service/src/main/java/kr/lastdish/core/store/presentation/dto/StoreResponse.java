@@ -6,6 +6,7 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.core.store.application.dto.StoreResult;
+import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.StoreStatus;
 
 public record StoreResponse(
@@ -20,6 +21,7 @@ public record StoreResponse(
     StoreStatus status,
     BigDecimal latitude,
     BigDecimal longitude,
+    Category category,
     List<DayOfWeek> holidays) {
 
   public static StoreResponse from(StoreResult result) {
@@ -35,6 +37,7 @@ public record StoreResponse(
         result.status(),
         result.latitude(),
         result.longitude(),
+        result.category(),
         result.holidays());
   }
 }

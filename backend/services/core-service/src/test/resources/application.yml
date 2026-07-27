@@ -5,6 +5,10 @@ spring:
     config:
       enabled: false
 
+services:
+  member:
+    base-url: http://localhost
+
 management:
   endpoints:
     web:
