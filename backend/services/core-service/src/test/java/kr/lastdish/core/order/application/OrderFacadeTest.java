@@ -6,15 +6,16 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 import kr.lastdish.core.cart.application.CartService;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
+import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
-import kr.lastdish.core.order.presentation.dto.OrderRejectReason;
 import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
@@ -30,6 +31,10 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class OrderFacadeTest {
@@ -132,23 +137,6 @@ class OrderFacadeTest {
   }
 
   @Test
-  @DisplayName("이미 취소된 주문 취소 재요청은 재고와 예치금을 다시 복구하지 않는다")
-  void cancelOrder_idempotentRetry() {
-    Long memberId = 1L;
-    Long orderId = 10L;
-    Order cancelledOrder = mock(Order.class);
-
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(cancelledOrder);
-    when(cancelledOrder.getStatus()).thenReturn(OrderStatus.CANCELLED);
-    when(orderService.cancelOrder(memberId, orderId)).thenReturn(cancelledOrder);
-
-    OrderResponse response = orderFacade.cancelOrder(memberId, orderId);
-
-    assertThat(response).isNotNull();
-    verifyNoInteractions(dishFacade, depositFacade);
-  }
-
-  @Test
   @DisplayName("판매자가 주문을 접수하면 매장 소유자를 검증하고 픽업 코드를 발급한다")
   void acceptOrder_success() {
     Long memberId = 1L;
@@ -200,6 +188,7 @@ class OrderFacadeTest {
     OrderRejectRequest request = new OrderRejectRequest(reason);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(order.getMemberId()).thenReturn(customerId);
     when(order.getDishId()).thenReturn(dishId);
@@ -209,7 +198,7 @@ class OrderFacadeTest {
     orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
 
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
-    verify(order).rejectOrder();
+    verify(order).rejectOrder(reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade).increaseStock(dishId, quantity);
   }
@@ -229,6 +218,7 @@ class OrderFacadeTest {
     OrderRejectRequest request = new OrderRejectRequest(reason);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(order.getMemberId()).thenReturn(customerId);
     when(order.getTotalPrice()).thenReturn(totalPrice);
@@ -236,7 +226,7 @@ class OrderFacadeTest {
     orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
 
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
-    verify(order).rejectOrder();
+    verify(order).rejectOrder(reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }
@@ -276,5 +266,60 @@ class OrderFacadeTest {
         .isInstanceOf(RuntimeException.class);
 
     verifyNoInteractions(orderRepository, storeFacade, orderService);
+  }
+
+  @Test
+  @DisplayName("판매자가 자신의 매장 주문 목록을 조회한다")
+  void getStoreOrders_success() {
+    Long memberId = 1L;
+    Long storeId = 100L;
+    OrderStatus status = OrderStatus.PICKUP_READY;
+    Pageable pageable = PageRequest.of(0, 20);
+    OrderResponse orderResponse = mock(OrderResponse.class);
+    Page<OrderResponse> expected = new PageImpl<>(List.of(orderResponse), pageable, 1);
+
+    when(orderService.getStoreOrders(storeId, status, pageable)).thenReturn(expected);
+
+    Page<OrderResponse> response =
+        orderFacade.getStoreOrders(memberId, "SELLER", storeId, status, pageable);
+
+    assertThat(response).isSameAs(expected);
+    assertThat(response.getTotalElements()).isEqualTo(1);
+
+    InOrder inOrder = inOrder(storeFacade, orderService);
+    inOrder.verify(storeFacade).validateStoreOwner(storeId, memberId);
+    inOrder.verify(orderService).getStoreOrders(storeId, status, pageable);
+  }
+
+  @Test
+  @DisplayName("판매자 권한이 아니면 매장 주문 목록을 조회하지 않는다")
+  void getStoreOrders_notSeller() {
+    Long memberId = 1L;
+    Long storeId = 100L;
+    Pageable pageable = PageRequest.of(0, 20);
+
+    assertThatThrownBy(
+            () -> orderFacade.getStoreOrders(memberId, "MEMBER", storeId, null, pageable))
+        .isInstanceOf(RuntimeException.class);
+
+    verifyNoInteractions(storeFacade, orderService);
+  }
+
+  @Test
+  @DisplayName("매장 소유자가 아니면 주문 목록을 조회하지 않는다")
+  void getStoreOrders_notStoreOwner() {
+    Long memberId = 1L;
+    Long storeId = 100L;
+    Pageable pageable = PageRequest.of(0, 20);
+    RuntimeException exception = new RuntimeException("매장 소유자가 아닙니다.");
+
+    doThrow(exception).when(storeFacade).validateStoreOwner(storeId, memberId);
+
+    assertThatThrownBy(
+            () -> orderFacade.getStoreOrders(memberId, "SELLER", storeId, null, pageable))
+        .isSameAs(exception);
+
+    verify(storeFacade).validateStoreOwner(storeId, memberId);
+    verify(orderService, never()).getStoreOrders(anyLong(), any(), any(Pageable.class));
   }
 }

@@ -1,5 +1,6 @@
 package kr.lastdish.member.auth.presentation.dto;
 
+import kr.lastdish.member.auth.application.dto.TokenResult;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,7 +12,7 @@ public class TokenResponse {
   private String accessToken;
   private String refreshToken;
 
-  public static TokenResponse of(String accessToken, String refreshToken) {
-    return new TokenResponse(accessToken, refreshToken);
+  public static TokenResponse from(TokenResult result) {
+    return new TokenResponse(result.accessToken(), result.refreshToken());
   }
 }

@@ -3,6 +3,7 @@ package kr.lastdish.core.dish.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -42,7 +43,6 @@ public class DishService {
             request.dishName(),
             request.registeredAt(),
             request.description(),
-            request.category(),
             request.thumbnailUrl(),
             request.stockQuantity(),
             request.dishPrice(),
@@ -67,7 +67,6 @@ public class DishService {
         request.dishName(),
         request.registeredAt(),
         request.description(),
-        request.category(),
         request.thumbnailUrl(),
         request.stockQuantity(),
         request.dishPrice(),
@@ -188,5 +187,9 @@ public class DishService {
             Instant.now());
 
     outboxEventWriter.append(event);
+  }
+
+  public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
+    return dishRepository.findOnSaleByStoreId(storeId).stream().map(DishResponse::from).toList();
   }
 }

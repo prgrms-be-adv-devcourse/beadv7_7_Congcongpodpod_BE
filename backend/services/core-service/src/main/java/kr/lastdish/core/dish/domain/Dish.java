@@ -31,10 +31,6 @@ public class Dish {
   @Column(nullable = false)
   private String description;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private Category category;
-
   private String thumbnailUrl;
 
   @Column(nullable = false)
@@ -69,7 +65,6 @@ public class Dish {
       String dishName,
       LocalDateTime registeredAt,
       String description,
-      Category category,
       String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
@@ -79,7 +74,6 @@ public class Dish {
     dish.dishName = dishName;
     dish.registeredAt = registeredAt;
     dish.description = description;
-    dish.category = category;
     dish.thumbnailUrl = thumbnailUrl;
     dish.stockQuantity = stockQuantity;
     dish.dishStatus = DishStatus.ON_SALE;
@@ -94,7 +88,6 @@ public class Dish {
       String dishName,
       LocalDateTime registeredAt,
       String description,
-      Category category,
       String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
@@ -102,7 +95,6 @@ public class Dish {
     this.dishName = dishName;
     this.registeredAt = registeredAt;
     this.description = description;
-    this.category = category;
     this.thumbnailUrl = thumbnailUrl;
     this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
