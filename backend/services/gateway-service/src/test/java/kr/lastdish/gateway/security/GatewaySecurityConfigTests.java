@@ -9,12 +9,16 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -38,6 +42,19 @@ class GatewaySecurityConfigTests {
   @Test
   void loginRouteAllowsRequestsWithoutAuthentication() {
     webTestClient.post().uri("/api/v1/auth/login").exchange().expectStatus().isOk();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"https://lastdish.kr", "https://www.lastdish.kr"})
+  void corsPreflightDoesNotRequireAuthentication(String origin) {
+    webTestClient
+        .options()
+        .uri("/api/v1/auth/login")
+        .header(HttpHeaders.ORIGIN, origin)
+        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.POST.name())
+        .exchange()
+        .expectStatus()
+        .isOk();
   }
 
   @Test
@@ -134,6 +151,20 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void memberCanRegisterStore() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .post()
+        .uri("/api/v1/stores")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
   void sellerCanAccessSellerRoute() {
     webTestClient
         .mutateWith(
@@ -189,6 +220,7 @@ class GatewaySecurityConfigTests {
           .andRoute(GET("/openapi/member-service"), request -> ok().build())
           .andRoute(GET("/api/v1/dishes/1"), request -> ok().build())
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
+          .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }

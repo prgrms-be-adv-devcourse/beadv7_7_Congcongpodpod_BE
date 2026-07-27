@@ -1,7 +1,6 @@
 package kr.lastdish.gateway.security;
 
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.*;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +41,9 @@ public class GatewaySecurityConfig {
         .authorizeExchange(
             exchange ->
                 exchange
+                    // 브라우저의 CORS 사전 요청은 Bearer Token 없이 정책 확인만 수행한다.
+                    .pathMatchers(OPTIONS, "/api/**")
+                    .permitAll()
                     // 회원가입, 로그인, Refresh Token 재발급은 Access Token 없이 요청한다.
                     .pathMatchers(
                         POST, "/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh")
@@ -56,6 +58,9 @@ public class GatewaySecurityConfig {
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()
+                    // 일반 회원이 최초 매장을 등록해 SELLER로 전환할 수 있도록 허용한다.
+                    .pathMatchers(POST, "/api/v1/stores")
+                    .hasAnyRole("MEMBER", "SELLER")
                     // 가게·상품 변경과 정산 기능은 판매자만 이용한다.
                     .pathMatchers(
                         "/api/v1/stores/**", "/api/v1/dishes/**", "/api/v1/settlements/**")

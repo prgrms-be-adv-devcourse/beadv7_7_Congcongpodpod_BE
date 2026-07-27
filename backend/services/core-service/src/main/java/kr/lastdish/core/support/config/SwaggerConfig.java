@@ -45,8 +45,20 @@ public class SwaggerConfig {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
+        // Swagger UI 문서 엔드포인트만 대상으로 한다 — 전체 경로(`/**`)에 걸면 일반 API 호출까지
+        // 이 origin 하나로 제한돼버려서, Gateway CORS 설정과 무관하게 막히는 문제가 있었다.
         registry
-            .addMapping("/**")
+            .addMapping("/swagger-ui/**")
+            .allowedOrigins(allowedOrigin)
+            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            .allowedHeaders("*");
+        registry
+            .addMapping("/swagger-ui.html")
+            .allowedOrigins(allowedOrigin)
+            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            .allowedHeaders("*");
+        registry
+            .addMapping("/v3/api-docs/**")
             .allowedOrigins(allowedOrigin)
             .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             .allowedHeaders("*");
