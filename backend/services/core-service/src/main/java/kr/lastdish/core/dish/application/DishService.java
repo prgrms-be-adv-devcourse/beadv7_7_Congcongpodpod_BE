@@ -1,5 +1,11 @@
 package kr.lastdish.core.dish.application;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
@@ -16,13 +22,6 @@ import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -199,14 +198,12 @@ public class DishService {
   /**
    * Cart의 가격 표시에 영향을 주는 Dish 상태가 바뀌었을 때 Outbox 이벤트를 기록합니다.
    *
-   * <p> 가격이 변경되면 해당 이벤트를 발행 합니다.
+   * <p>가격이 변경되면 해당 이벤트를 발행 합니다.
    *
    * @param dish 변경이 완료된 Dish
    * @param unitPriceBefore 변경 전 가격
    */
-  private void appendPriceEventIfChanged(
-      Dish dish,
-      BigDecimal unitPriceBefore) {
+  private void appendPriceEventIfChanged(Dish dish, BigDecimal unitPriceBefore) {
 
     BigDecimal unitPriceAfter = dish.getDiscountPrice();
 
