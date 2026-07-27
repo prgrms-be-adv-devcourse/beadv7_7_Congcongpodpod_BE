@@ -41,7 +41,6 @@ public class AuthService {
     }
 
     String encodedPassword = passwordEncoder.encode(command.password());
-    Role role = Role.from(command.role().toUpperCase());
 
     Member member =
         Member.builder()
@@ -50,7 +49,7 @@ public class AuthService {
             .name(command.name())
             .phone(command.phone())
             .email(command.email())
-            .role(role)
+            .role(Role.MEMBER)
             .build();
 
     Member savedMember = memberRepository.save(member);

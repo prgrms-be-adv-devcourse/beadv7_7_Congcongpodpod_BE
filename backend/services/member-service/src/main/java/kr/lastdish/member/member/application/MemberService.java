@@ -45,4 +45,15 @@ public class MemberService {
 
     refreshTokenRepository.deleteByEmail(member.getEmail());
   }
+
+  // 회원 승급
+  @Transactional
+  public void grantSellerRole(Long memberId) {
+    Member member =
+        memberRepository
+            .findActiveById(memberId)
+            .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+    member.grantSellerRole();
+  }
 }

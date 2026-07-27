@@ -86,6 +86,7 @@ services:
       CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
       CORE_DB_USERNAME: core
       CORE_DB_PASSWORD: core_local_password
+      MEMBER_SERVICE_BASE_URL: http://member-service:8080
     depends_on:
       config-server:
         condition: service_healthy
