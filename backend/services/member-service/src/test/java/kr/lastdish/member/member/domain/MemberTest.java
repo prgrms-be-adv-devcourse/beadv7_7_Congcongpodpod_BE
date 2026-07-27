@@ -24,15 +24,15 @@ class MemberTest {
 
   @Test
   void MEMBER를_SELLER로_변경한다() {
-    member.promoteToSeller();
+    member.grantSellerRole();
 
     assertThat(member.getRole()).isEqualTo(Role.SELLER);
   }
 
   @Test
   void 이미_SELLER인_회원도_멱등하게_처리한다() {
-    member.promoteToSeller();
-    member.promoteToSeller();
+    member.grantSellerRole();
+    member.grantSellerRole();
 
     assertThat(member.getRole()).isEqualTo(Role.SELLER);
   }

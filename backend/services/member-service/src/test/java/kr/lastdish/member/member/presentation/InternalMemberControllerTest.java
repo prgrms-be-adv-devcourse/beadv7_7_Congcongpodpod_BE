@@ -23,8 +23,10 @@ class InternalMemberControllerTest {
 
   @Test
   void 판매자_승급을_요청한다() throws Exception {
-    mockMvc.perform(patch("/internal/v1/members/{memberId}/seller", 1L)).andExpect(status().isOk());
+    mockMvc
+        .perform(patch("/internal/v1/members/{memberId}/seller-role", 1L))
+        .andExpect(status().isOk());
 
-    verify(memberService).promoteToSeller(1L);
+    verify(memberService).grantSellerRole(1L);
   }
 }
