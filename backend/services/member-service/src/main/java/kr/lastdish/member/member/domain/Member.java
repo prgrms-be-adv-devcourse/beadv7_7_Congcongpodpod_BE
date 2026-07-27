@@ -1,11 +1,12 @@
 package kr.lastdish.member.member.domain;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "members")
@@ -67,5 +68,14 @@ public class Member {
     this.isDeleted = true;
     this.deletedAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
+  }
+
+  public void promoteToSeller() {
+    if (role == Role.SELLER) {
+      return;
+    }
+
+    role = Role.SELLER;
+    updatedAt = LocalDateTime.now();
   }
 }
