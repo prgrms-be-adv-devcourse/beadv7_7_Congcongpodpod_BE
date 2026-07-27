@@ -6,6 +6,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -100,6 +101,24 @@ public class StoreService {
     }
 
     return store;
+  }
+
+  // Seller 본인 매장 조회
+  public StoreResult getMyStore(Long memberId) {
+    Store store =
+        storeRepository
+            .findByMemberId(memberId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "등록된 매장이 없습니다."));
+
+    return StoreResult.from(store);
+  }
+
+  // Seller 상품관리용 조회 — 판매 상태와 무관하게 본인 매장의 상품을 조회한다.
+  public DishResponse getMyDish(Long storeId, Long memberId) {
+    getOwnedStore(storeId, memberId);
+
+    return dishFacade.getDishByStoreId(storeId);
   }
 
   // 매장 상세 조회
