@@ -181,7 +181,7 @@ public class DishService {
       return;
     }
 
-    long aggregateVersion = dish.nextEventVersion();
+    long aggregateVersion = dish.nextAggregateVersion();
 
     DishStateChangedEvent event =
         new DishStateChangedEvent(
@@ -211,7 +211,7 @@ public class DishService {
       return;
     }
 
-    long aggregateVersion = dish.nextEventVersion();
+    long aggregateVersion = dish.nextAggregateVersion();
 
     DishPriceChangedEvent event =
         new DishPriceChangedEvent(
