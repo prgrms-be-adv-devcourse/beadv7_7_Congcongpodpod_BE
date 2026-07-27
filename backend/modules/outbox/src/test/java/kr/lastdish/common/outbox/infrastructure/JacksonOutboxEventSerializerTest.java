@@ -10,24 +10,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-class OutboxEventSerializerTest {
+class JacksonOutboxEventSerializerTest {
 
-  private OutboxEventSerializer serializer;
+  private JacksonOutboxEventSerializer serializer;
 
   @BeforeEach
   void setUp() {
-    /*
-     * 현재 프로젝트는 Spring Boot 4와 Jackson 3을 사용합니다.
-     * 따라서 tools.jackson.databind.ObjectMapper를 사용합니다.
-     */
     ObjectMapper objectMapper = new ObjectMapper();
-
-    serializer = new OutboxEventSerializer(objectMapper);
+    serializer = new JacksonOutboxEventSerializer(objectMapper);
   }
 
   @Test
   void Dish_이벤트를_Outbox_payload로_직렬화한다() {
-    // given
     DishStateChangedPayload eventPayload = new DishStateChangedPayload(false, 5L);
 
     DishStateChangedEvent source =
@@ -39,10 +33,8 @@ class OutboxEventSerializerTest {
             eventPayload,
             Instant.now());
 
-    // when
     String payload = serializer.serialize(source.payload());
 
-    // then
     assertThat(payload)
         .contains("\"available\":false")
         .contains("\"stockQuantity\":5")

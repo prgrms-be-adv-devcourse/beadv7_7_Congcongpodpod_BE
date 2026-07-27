@@ -42,7 +42,7 @@ class GatewayJwtConfigTests {
 
   @Test
   void acceptsValidJwt() throws Exception {
-    String token = createToken(keyPair, ISSUER, Instant.now().plusSeconds(300));
+    String token = createToken(keyPair, ISSUER, Instant.now().plusSeconds(300), "access");
 
     StepVerifier.create(jwtDecoder.decode(token))
         .assertNext(jwt -> assertThat(jwt.getSubject()).isEqualTo("1"))
@@ -50,8 +50,26 @@ class GatewayJwtConfigTests {
   }
 
   @Test
+  void rejectsRefreshToken() throws Exception {
+    String token = createToken(keyPair, ISSUER, Instant.now().plusSeconds(300), "refresh");
+
+    StepVerifier.create(jwtDecoder.decode(token))
+        .expectError(JwtValidationException.class)
+        .verify();
+  }
+
+  @Test
+  void rejectsJwtWithoutTokenType() throws Exception {
+    String token = createToken(keyPair, ISSUER, Instant.now().plusSeconds(300), null);
+
+    StepVerifier.create(jwtDecoder.decode(token))
+        .expectError(JwtValidationException.class)
+        .verify();
+  }
+
+  @Test
   void rejectsExpiredJwt() throws Exception {
-    String token = createToken(keyPair, ISSUER, Instant.now().minusSeconds(120));
+    String token = createToken(keyPair, ISSUER, Instant.now().minusSeconds(120), "access");
 
     StepVerifier.create(jwtDecoder.decode(token))
         .expectError(JwtValidationException.class)
@@ -61,7 +79,7 @@ class GatewayJwtConfigTests {
   @Test
   void rejectsJwtWithInvalidIssuerOrSignature() throws Exception {
     String invalidIssuerToken =
-        createToken(keyPair, "another-service", Instant.now().plusSeconds(300));
+        createToken(keyPair, "another-service", Instant.now().plusSeconds(300), "access");
 
     StepVerifier.create(jwtDecoder.decode(invalidIssuerToken))
         .expectError(JwtValidationException.class)
@@ -69,7 +87,7 @@ class GatewayJwtConfigTests {
 
     KeyPair anotherKeyPair = generateKeyPair();
     String invalidSignatureToken =
-        createToken(anotherKeyPair, ISSUER, Instant.now().plusSeconds(300));
+        createToken(anotherKeyPair, ISSUER, Instant.now().plusSeconds(300), "access");
 
     StepVerifier.create(jwtDecoder.decode(invalidSignatureToken))
         .expectError(JwtException.class)
@@ -91,15 +109,18 @@ class GatewayJwtConfigTests {
     return new ByteArrayResource(pem.getBytes(UTF_8));
   }
 
-  private String createToken(KeyPair signingKeyPair, String issuer, Instant expiresAt)
-      throws Exception {
-    JWTClaimsSet claims =
+  private String createToken(
+      KeyPair signingKeyPair, String issuer, Instant expiresAt, String tokenType) throws Exception {
+    JWTClaimsSet.Builder claimsBuilder =
         new JWTClaimsSet.Builder()
             .issuer(issuer)
             .subject("1")
             .issueTime(Date.from(Instant.now().minusSeconds(600)))
-            .expirationTime(Date.from(expiresAt))
-            .build();
+            .expirationTime(Date.from(expiresAt));
+    if (tokenType != null) {
+      claimsBuilder.claim("token_type", tokenType);
+    }
+    JWTClaimsSet claims = claimsBuilder.build();
 
     SignedJWT signedJwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
 
