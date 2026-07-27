@@ -13,9 +13,8 @@ String _$apiBaseUrlHash() => r'd8fe879d8a591d43a560e467f52a065844c6ab69';
 final apiBaseUrlProvider = Provider<String>.internal(
   apiBaseUrl,
   name: r'apiBaseUrlProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$apiBaseUrlHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$apiBaseUrlHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
