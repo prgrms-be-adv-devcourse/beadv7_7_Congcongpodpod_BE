@@ -55,6 +55,9 @@ public class GatewaySecurityConfig {
                     .pathMatchers(
                         "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/openapi/**")
                     .permitAll()
+                    // Seller 본인 매장/상품 조회는 공개 조회 규칙보다 먼저 판단해 SELLER 인증을 요구한다.
+                    .pathMatchers(GET, "/api/v1/stores/me", "/api/v1/stores/*/dish")
+                    .hasRole("SELLER")
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()

@@ -68,6 +68,63 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void publicStoreRouteAllowsGetRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/stores/1").exchange().expectStatus().isOk();
+  }
+
+  @Test
+  void myStoreRouteRejectsRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/stores/me").exchange().expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void myDishRouteRejectsRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/stores/1/dish").exchange().expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void memberCannotAccessMyStoreRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .get()
+        .uri("/api/v1/stores/me")
+        .exchange()
+        .expectStatus()
+        .isForbidden();
+  }
+
+  @Test
+  void sellerCanAccessMyStoreRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("2"))
+                .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
+        .get()
+        .uri("/api/v1/stores/me")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
+  void sellerCanAccessMyDishRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("2"))
+                .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
+        .get()
+        .uri("/api/v1/stores/1/dish")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
   void unknownPublicRouteUsesGatewayErrorResponse() {
     webTestClient
         .get()
@@ -219,6 +276,9 @@ class GatewaySecurityConfigTests {
       return route(POST("/api/v1/auth/login"), request -> ok().build())
           .andRoute(GET("/openapi/member-service"), request -> ok().build())
           .andRoute(GET("/api/v1/dishes/1"), request -> ok().build())
+          .andRoute(GET("/api/v1/stores/1"), request -> ok().build())
+          .andRoute(GET("/api/v1/stores/me"), request -> ok().build())
+          .andRoute(GET("/api/v1/stores/1/dish"), request -> ok().build())
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
           .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
