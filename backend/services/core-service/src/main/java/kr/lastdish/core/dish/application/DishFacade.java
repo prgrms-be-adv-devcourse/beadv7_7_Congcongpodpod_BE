@@ -1,10 +1,12 @@
 package kr.lastdish.core.dish.application;
 
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -51,5 +53,9 @@ public class DishFacade {
 
   public void increaseStock(Long dishId, Long quantity) {
     dishService.increaseStock(dishId, quantity);
+  }
+
+  public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
+    return dishService.getOnSaleDishesByStoreId(storeId);
   }
 }

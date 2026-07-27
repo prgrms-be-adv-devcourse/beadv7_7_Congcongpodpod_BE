@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
+import kr.lastdish.core.store.domain.Category;
 
 public record RegisterStoreCommand(
     Long memberId,
@@ -15,4 +16,5 @@ public record RegisterStoreCommand(
     LocalTime closeTime,
     BigDecimal latitude,
     BigDecimal longitude,
+    Category category,
     List<DayOfWeek> holidays) {}

@@ -1,6 +1,7 @@
 package kr.lastdish.core.dish.presentation;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
@@ -42,5 +43,10 @@ public class DishController {
   public ApiResponse<DishResponse> updateDishStatus(
       @PathVariable Long dishId, @Valid @RequestBody DishStatusRequest request) {
     return ApiResponse.ok(dishService.updateDishStatus(dishId, request));
+  }
+
+  @GetMapping()
+  public ApiResponse<List<DishResponse>> getEachStoreDishes(@RequestParam Long storeId) {
+    return ApiResponse.ok(dishService.getOnSaleDishesByStoreId(storeId));
   }
 }

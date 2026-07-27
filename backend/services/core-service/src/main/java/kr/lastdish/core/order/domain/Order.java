@@ -18,6 +18,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity
 @Table(
     name = "orders",
+    indexes = {
+      @Index(
+          name = "idx_orders_member_deleted_created_at",
+          columnList = "member_id, is_deleted, created_at"),
+      @Index(
+          name = "idx_orders_store_deleted_created_at",
+          columnList = "store_id, is_deleted, created_at")
+    },
     uniqueConstraints = {
       @UniqueConstraint(
           name = "uk_orders_store_pickup_code",
@@ -43,6 +51,9 @@ public class Order {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private OrderStatus status;
+
+  @Enumerated(EnumType.STRING)
+  private OrderRejectReason rejectReason;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -136,12 +147,12 @@ public class Order {
   }
 
   // 매장 주문 반려
-  public void rejectOrder() {
-    if (this.status != OrderStatus.RESERVED) {
+  public void rejectOrder(OrderRejectReason reason) {
+    if (!this.status.canTransitionTo(OrderStatus.REJECTED)) {
       throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     this.status = OrderStatus.REJECTED;
-    refundPayment();
+    this.rejectReason = Objects.requireNonNull(reason);
   }
 
   public void delete() {
@@ -149,16 +160,12 @@ public class Order {
   }
 
   // 주문 취소
-  public boolean cancel(Long memberId) {
+  public void cancel(Long memberId) {
     validateOwner(memberId);
-    if (this.status == OrderStatus.CANCELLED) {
-      return false;
-    }
     validateCancelable();
 
     this.status = OrderStatus.CANCELLED;
-    refundPayment();
-    return true;
+    this.paymentStatus = PaymentStatus.REFUNDED;
   }
 
   private void validateCancelable() {
@@ -167,17 +174,25 @@ public class Order {
     }
   }
 
-  private void refundPayment() {
-    if (this.paymentStatus != PaymentStatus.COMPLETED) {
-      throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
-    }
-    this.paymentStatus = PaymentStatus.REFUNDED;
-  }
-
-  private void validateOwner(Long memberId) {
+  public void validateOwner(Long memberId) {
     if (!Objects.equals(this.memberId, memberId)) {
       throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
     }
+  }
+
+  public void completePickup() {
+    transitionTo(OrderStatus.PICKED_UP);
+  }
+
+  public void markNoShow() {
+    transitionTo(OrderStatus.NO_SHOW);
+  }
+
+  private void transitionTo(OrderStatus nextStatus) {
+    if (!this.status.canTransitionTo(nextStatus)) {
+      throw new BusinessException(CommonErrorCode.INVALID_STATE);
+    }
+    this.status = nextStatus;
   }
 
   // 픽업 상태 변경

@@ -21,14 +21,14 @@ class OrderTest {
   }
 
   @Test
-  void cancellationIsIdempotentAndRefundsOnlyOnce() {
+  void cancellationRefundsAndDuplicateCancellationIsRejected() {
     Order order = createOrder();
     order.paymentSuccess();
 
-    assertThat(order.cancel(1L)).isTrue();
+    order.cancel(1L);
     assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
     assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
-    assertThat(order.cancel(1L)).isFalse();
+    assertThatThrownBy(() -> order.cancel(1L)).isInstanceOf(BusinessException.class);
   }
 
   @Test

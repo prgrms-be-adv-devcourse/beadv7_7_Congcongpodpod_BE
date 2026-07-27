@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorCode implements ErrorCodeSpec {
-  SOLD_OUT(HttpStatus.CONFLICT, "C004", "재고가 소진되었습니다."),
+  SOLD_OUT(HttpStatus.CONFLICT, "CT004", "재고가 소진되었습니다."),
   DISH_NOT_ON_SALE(HttpStatus.CONFLICT, "D001", "판매중인 상품이 아닙니다."),
   DISH_NOT_FOUND(HttpStatus.NOT_FOUND, "D002", "상품을 찾을 수 없습니다."),
   INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "D003", "재고가 부족합니다."),
