@@ -14,3 +14,6 @@ swagger:
 toss:
   client-key: "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm"
   secret-key: "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6"
+
+encryption:
+  secret-key: "aB3xK9mQ2vN7wR1tY6bZ4cL0dF5hG8sV"
