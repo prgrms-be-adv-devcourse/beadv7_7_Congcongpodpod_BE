@@ -3,6 +3,7 @@ package kr.lastdish.core.cart.application;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.cart.domain.Cart;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
@@ -41,9 +42,12 @@ public class CartService {
                 existing -> {
                   existing.replace(
                       dish.dishId(),
+                      dish.storeId(),
                       dish.dishName(),
                       dish.unitPrice(),
                       quantity,
+                      dish.pickupStartAt(),
+                      dish.pickupEndAt(),
                       dish.aggregateVersion());
                   return existing;
                 })
@@ -53,9 +57,12 @@ public class CartService {
                         CartItem.create(
                             cart.getId(),
                             dish.dishId(),
+                            dish.storeId(),
                             dish.dishName(),
                             dish.unitPrice(),
                             quantity,
+                            dish.pickupStartAt(),
+                            dish.pickupEndAt(),
                             dish.aggregateVersion())));
 
     return CartItemResponse.from(cartItem);
@@ -98,6 +105,27 @@ public class CartService {
   public void clearCart(Long cartId) {
     Cart cart = getCartOrThrow(cartId);
     cartItemRepository.deleteByCartId(cart.getId());
+  }
+
+  @Transactional(readOnly = true)
+  public CartOrderSnapshot getOrderSnapshot(Long memberId, Long cartItemId) {
+    CartItem cartItem =
+        cartItemRepository
+            .findById(cartItemId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
+    Cart cart =
+        cartRepository
+            .findById(cartItem.getCartId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+    if (!cart.getMemberId().equals(memberId)) {
+      throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
+    }
+    if (!cartItem.isOrderable()) {
+      throw new BusinessException(ErrorCode.CART_ITEM_NOT_ORDERABLE);
+    }
+
+    return CartOrderSnapshot.from(cartItem);
   }
 
   // 상품이 존재/판매중인지, 요청 수량이 재고 이내인지 확인한다. addItem/updateItemQuantity 공통.
