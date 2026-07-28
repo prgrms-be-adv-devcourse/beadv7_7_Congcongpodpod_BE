@@ -6,6 +6,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -100,6 +101,23 @@ public class StoreService {
     }
 
     return store;
+  }
+
+  // Seller 본인 매장 조회 — 지금은 회원당 매장 1개 제약이라 0~1건이지만, 나중에 여러 개로 늘어나도
+  // API 모양이 바뀌지 않도록 목록으로 반환한다.
+  public List<StoreResult> getMyStores(Long memberId) {
+    return storeRepository
+        .findByMemberId(memberId)
+        .map(StoreResult::from)
+        .map(List::of)
+        .orElseGet(List::of);
+  }
+
+  // Seller 상품관리용 조회 — 판매 상태와 무관하게 본인 매장의 상품을 조회한다.
+  public DishResponse getMyDish(Long storeId, Long memberId) {
+    getOwnedStore(storeId, memberId);
+
+    return dishFacade.getDishByStoreId(storeId);
   }
 
   // 매장 상세 조회
