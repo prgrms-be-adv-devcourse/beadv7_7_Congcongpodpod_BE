@@ -19,6 +19,8 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
 
   Optional<Store> findByMemberIdAndDeletedFalse(Long memberId);
 
+  Optional<Store> findByMemberId(Long memberId);
+
   boolean existsByBusinessNumber(String businessNumber);
 
   @Query(
