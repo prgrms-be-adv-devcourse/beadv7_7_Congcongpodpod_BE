@@ -19,7 +19,9 @@ public enum ErrorCode implements ErrorCodeSpec {
   ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "주문을 취소할 권한이 없습니다."),
   PICKUP_CODE_EXISTS(HttpStatus.CONFLICT, "ORD003", "사용중인 픽업 코드입니다."),
   ORDER_NOT_SELLER(HttpStatus.FORBIDDEN, "ORD004", "주문을 접수할 권한이 없습니다."),
-  PICKUP_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ORD005", "픽업 코드 생성에 실패했습니다.");
+  PICKUP_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ORD005", "픽업 코드 생성에 실패했습니다."),
+  CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD006", "주문할 장바구니 상품을 찾을 수 없습니다."),
+  CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다.");
 
   private final HttpStatus status;
   private final String code;

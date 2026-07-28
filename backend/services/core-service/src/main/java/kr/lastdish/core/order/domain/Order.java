@@ -85,6 +85,8 @@ public class Order {
   @Column(nullable = false)
   private Long quantity;
 
+  private String cancelReason;
+
   @Column(nullable = false)
   private Boolean isDeleted;
 
@@ -120,6 +122,9 @@ public class Order {
 
   // 결제 완료
   public void paymentSuccess() {
+    if (this.paymentStatus != PaymentStatus.PENDING) {
+      throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+    }
     this.paymentStatus = PaymentStatus.COMPLETED;
   }
 
@@ -140,7 +145,7 @@ public class Order {
   // 매장 주문 반려
   public void rejectOrder(OrderRejectReason reason) {
     transitionTo(OrderStatus.REJECTED);
-    this.rejectReason = reason;
+    this.rejectReason = Objects.requireNonNull(reason);
   }
 
   public void delete() {
@@ -159,12 +164,10 @@ public class Order {
     }
   }
 
-  // 픽업 완료
   public void completePickup() {
     transitionTo(OrderStatus.PICKED_UP);
   }
 
-  // 노쇼 처리
   public void markNoShow() {
     transitionTo(OrderStatus.NO_SHOW);
   }
