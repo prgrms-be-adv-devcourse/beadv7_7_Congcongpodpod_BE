@@ -6,7 +6,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../presentation/auth/login/login_screen.dart';
 import '../../presentation/auth/signup/signup_screen.dart';
 import '../../presentation/cart/cart_screen.dart';
+import '../../presentation/deposit/charge/deposit_charge_fail_screen.dart';
 import '../../presentation/deposit/charge/deposit_charge_screen.dart';
+import '../../presentation/deposit/charge/deposit_charge_success_screen.dart';
 import '../../presentation/deposit/deposit_screen.dart';
 import '../../presentation/dev/screen_index_screen.dart';
 import '../../presentation/member/mypage_screen.dart';
@@ -113,23 +115,20 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: RoutePaths.orderDetail,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => OrderDetailScreen(
-          orderId: state.pathParameters['orderId']!,
-        ),
+        builder: (context, state) =>
+            OrderDetailScreen(orderId: state.pathParameters['orderId']!),
       ),
       GoRoute(
         path: RoutePaths.orderCancel,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => OrderCancelScreen(
-          orderId: state.pathParameters['orderId']!,
-        ),
+        builder: (context, state) =>
+            OrderCancelScreen(orderId: state.pathParameters['orderId']!),
       ),
       GoRoute(
         path: RoutePaths.orderPickup,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => OrderPickupScreen(
-          orderId: state.pathParameters['orderId']!,
-        ),
+        builder: (context, state) =>
+            OrderPickupScreen(orderId: state.pathParameters['orderId']!),
       ),
       GoRoute(
         path: RoutePaths.deposits,
@@ -140,6 +139,16 @@ GoRouter router(Ref ref) {
         path: RoutePaths.depositCharge,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const DepositChargeScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.depositChargeSuccess,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DepositChargeSuccessScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.depositChargeFail,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DepositChargeFailScreen(),
       ),
       GoRoute(
         path: RoutePaths.sellerVerify,
