@@ -3,6 +3,7 @@ package kr.lastdish.core.cart.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,8 @@ public class CartItem {
   @Column(nullable = false)
   private Long dishId;
 
+  @Column private Long storeId;
+
   @Column(nullable = false)
   private String dishName;
 
@@ -31,6 +34,10 @@ public class CartItem {
 
   @Column(nullable = false)
   private Long quantity;
+
+  private LocalTime pickupStartAt;
+
+  private LocalTime pickupEndAt;
 
   @Column(nullable = false, updatable = false)
   private LocalDateTime createdAt;
@@ -51,15 +58,21 @@ public class CartItem {
   private CartItem(
       Long cartId,
       Long dishId,
+      Long storeId,
       String dishName,
       BigDecimal unitPrice,
       Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
       long dishVersion) {
     this.cartId = cartId;
     this.dishId = dishId;
+    this.storeId = storeId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+    this.pickupStartAt = pickupStartAt;
+    this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
     this.lastAppliedDishPriceVersion = dishVersion;
 
@@ -73,7 +86,7 @@ public class CartItem {
 
   public static CartItem create(
       Long cartId, Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
-    return create(cartId, dishId, dishName, unitPrice, quantity, 0L);
+    return create(cartId, dishId, null, dishName, unitPrice, quantity, null, null, 0L);
   }
 
   public static CartItem create(
@@ -83,7 +96,30 @@ public class CartItem {
       BigDecimal unitPrice,
       Long quantity,
       long dishVersion) {
-    return new CartItem(cartId, dishId, dishName, unitPrice, quantity, dishVersion);
+    return new CartItem(
+        cartId, dishId, null, dishName, unitPrice, quantity, null, null, dishVersion);
+  }
+
+  public static CartItem create(
+      Long cartId,
+      Long dishId,
+      Long storeId,
+      String dishName,
+      BigDecimal unitPrice,
+      Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
+      long dishVersion) {
+    return new CartItem(
+        cartId,
+        dishId,
+        storeId,
+        dishName,
+        unitPrice,
+        quantity,
+        pickupStartAt,
+        pickupEndAt,
+        dishVersion);
   }
 
   public void replace(Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
@@ -92,11 +128,25 @@ public class CartItem {
 
   public void replace(
       Long dishId, String dishName, BigDecimal unitPrice, Long quantity, long dishVersion) {
+    replace(dishId, null, dishName, unitPrice, quantity, null, null, dishVersion);
+  }
 
+  public void replace(
+      Long dishId,
+      Long storeId,
+      String dishName,
+      BigDecimal unitPrice,
+      Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
+      long dishVersion) {
     this.dishId = dishId;
+    this.storeId = storeId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+    this.pickupStartAt = pickupStartAt;
+    this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
     this.lastAppliedDishPriceVersion = dishVersion;
 
