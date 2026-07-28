@@ -17,6 +17,8 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
 
   boolean existsByMemberId(Long memberId);
 
+  Optional<Store> findByMemberIdAndDeletedFalse(Long memberId);
+
   boolean existsByBusinessNumber(String businessNumber);
 
   @Query(
@@ -61,6 +63,4 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
         WHERE store.deleted IS false
         """)
   List<Long> findAllActiveStoreIds();
-
-  Optional<Store> findByMemberId(Long memberId);
 }

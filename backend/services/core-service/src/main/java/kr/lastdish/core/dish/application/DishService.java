@@ -228,4 +228,14 @@ public class DishService {
   public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
     return dishRepository.findOnSaleByStoreId(storeId).stream().map(DishResponse::from).toList();
   }
+
+  // Seller 상품관리용 조회 — 판매 상태와 무관하게 매장의 상품을 반환한다.
+  public DishResponse getDishByStoreId(Long storeId) {
+    Dish dish =
+        dishRepository
+            .findByStoreIdAndIsDeletedFalse(storeId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_FOUND));
+
+    return DishResponse.from(dish);
+  }
 }
