@@ -52,13 +52,9 @@ public class Dish {
   @Column(nullable = false)
   private Boolean isDeleted;
 
-  /**
-   * Dish 상태 변경 이벤트의 순서입니다.
-   *
-   * <p>Cart 주문 가능 상태에 영향을 주는 이벤트가 생성될 때마다 증가합니다.
-   */
+  /** Dish Aggregate에서 생성되는 도메인 이벤트의 순서입니다. */
   @Column(name = "event_version", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
-  private long eventVersion;
+  private long aggregateVersion;
 
   public static Dish create(
       Long storeId,
@@ -80,7 +76,7 @@ public class Dish {
     dish.dishPrice = dishPrice;
     dish.discountPrice = discountPrice;
     dish.isDeleted = false;
-    dish.eventVersion = 0L;
+    dish.aggregateVersion = 0L;
     return dish;
   }
 
@@ -179,7 +175,7 @@ public class Dish {
    *
    * @return 증가된 이벤트 version
    */
-  public long nextEventVersion() {
-    return ++this.eventVersion;
+  public long nextAggregateVersion() {
+    return ++this.aggregateVersion;
   }
 }
