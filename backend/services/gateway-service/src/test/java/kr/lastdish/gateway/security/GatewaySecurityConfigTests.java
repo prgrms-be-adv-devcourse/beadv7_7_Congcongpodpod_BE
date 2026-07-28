@@ -151,6 +151,20 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void memberCanRegisterStore() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .post()
+        .uri("/api/v1/stores")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
   void sellerCanAccessSellerRoute() {
     webTestClient
         .mutateWith(
@@ -206,6 +220,7 @@ class GatewaySecurityConfigTests {
           .andRoute(GET("/openapi/member-service"), request -> ok().build())
           .andRoute(GET("/api/v1/dishes/1"), request -> ok().build())
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
+          .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }
