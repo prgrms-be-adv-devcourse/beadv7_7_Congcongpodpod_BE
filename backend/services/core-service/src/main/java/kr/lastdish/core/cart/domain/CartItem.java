@@ -3,6 +3,7 @@ package kr.lastdish.core.cart.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,8 @@ public class CartItem {
   @Column(nullable = false)
   private Long dishId;
 
+  @Column private Long storeId;
+
   @Column(nullable = false)
   private String dishName;
 
@@ -31,6 +34,10 @@ public class CartItem {
 
   @Column(nullable = false)
   private Long quantity;
+
+  private LocalTime pickupStartAt;
+
+  private LocalTime pickupEndAt;
 
   @Column(nullable = false, updatable = false)
   private LocalDateTime createdAt;
@@ -45,19 +52,29 @@ public class CartItem {
   @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
   private long lastAppliedDishVersion;
 
+  @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+  private long lastAppliedDishPriceVersion;
+
   private CartItem(
       Long cartId,
       Long dishId,
+      Long storeId,
       String dishName,
       BigDecimal unitPrice,
       Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
       long dishVersion) {
     this.cartId = cartId;
     this.dishId = dishId;
+    this.storeId = storeId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+    this.pickupStartAt = pickupStartAt;
+    this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
+    this.lastAppliedDishPriceVersion = dishVersion;
 
     // 초기값이 AVAILABLE인 이유는 Cart에 추가할 때 DishFacade를 통해 Dish 존재 여부와 재고를 확인하는걸로 확인했습니다.
     this.status = CartItemStatus.AVAILABLE;
@@ -69,7 +86,7 @@ public class CartItem {
 
   public static CartItem create(
       Long cartId, Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
-    return create(cartId, dishId, dishName, unitPrice, quantity, 0L);
+    return create(cartId, dishId, null, dishName, unitPrice, quantity, null, null, 0L);
   }
 
   public static CartItem create(
@@ -79,7 +96,30 @@ public class CartItem {
       BigDecimal unitPrice,
       Long quantity,
       long dishVersion) {
-    return new CartItem(cartId, dishId, dishName, unitPrice, quantity, dishVersion);
+    return new CartItem(
+        cartId, dishId, null, dishName, unitPrice, quantity, null, null, dishVersion);
+  }
+
+  public static CartItem create(
+      Long cartId,
+      Long dishId,
+      Long storeId,
+      String dishName,
+      BigDecimal unitPrice,
+      Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
+      long dishVersion) {
+    return new CartItem(
+        cartId,
+        dishId,
+        storeId,
+        dishName,
+        unitPrice,
+        quantity,
+        pickupStartAt,
+        pickupEndAt,
+        dishVersion);
   }
 
   public void replace(Long dishId, String dishName, BigDecimal unitPrice, Long quantity) {
@@ -88,12 +128,27 @@ public class CartItem {
 
   public void replace(
       Long dishId, String dishName, BigDecimal unitPrice, Long quantity, long dishVersion) {
+    replace(dishId, null, dishName, unitPrice, quantity, null, null, dishVersion);
+  }
 
+  public void replace(
+      Long dishId,
+      Long storeId,
+      String dishName,
+      BigDecimal unitPrice,
+      Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
+      long dishVersion) {
     this.dishId = dishId;
+    this.storeId = storeId;
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
+    this.pickupStartAt = pickupStartAt;
+    this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
+    this.lastAppliedDishPriceVersion = dishVersion;
 
     /*
      * CartService에서 교체할 Dish의 판매 여부와 재고를 검증한 뒤 호출하므로
@@ -151,6 +206,27 @@ public class CartItem {
     }
 
     this.lastAppliedDishVersion = aggregateVersion;
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  /**
+   * 최신 Dish 가격 이벤트를 CartItem 단가에 반영합니다.
+   *
+   * @param unitPrice Dish의 현재 판매 가격
+   * @param aggregateVersion Dish 가격 변경 이벤트 순서
+   */
+  public void synchronizeDishPrice(BigDecimal unitPrice, long aggregateVersion) {
+
+    if (aggregateVersion <= this.lastAppliedDishPriceVersion) {
+      return;
+    }
+
+    if (unitPrice == null || unitPrice.signum() < 0) {
+      throw new IllegalArgumentException("Dish 판매 가격은 0 이상이어야 합니다.");
+    }
+
+    this.unitPrice = unitPrice;
+    this.lastAppliedDishPriceVersion = aggregateVersion;
     this.updatedAt = LocalDateTime.now();
   }
 

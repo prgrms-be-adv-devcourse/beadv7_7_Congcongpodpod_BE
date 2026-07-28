@@ -2,7 +2,10 @@ package kr.lastdish.core.store.presentation;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.PayoutAccountResult;
 import kr.lastdish.core.store.application.dto.StorePageResult;
@@ -18,12 +21,13 @@ import org.springframework.web.bind.annotation.*;
 public class StoreController {
 
   private final StoreService storeService;
+  private final StoreFacade storeFacade;
 
   @PostMapping
   public ApiResponse<StoreResponse> registerStore(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @Valid @RequestBody StoreCreateRequest request) {
-    StoreResult result = storeService.register(request.toCommand(memberId));
+    StoreResult result = storeFacade.register(request.toCommand(memberId));
 
     return ApiResponse.ok(StoreResponse.from(result));
   }
@@ -63,6 +67,21 @@ public class StoreController {
     return ApiResponse.ok(StoreResponse.from(result));
   }
 
+  @GetMapping("/mine")
+  public ApiResponse<List<StoreResponse>> getMyStores(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    List<StoreResponse> result =
+        storeService.getMyStores(memberId).stream().map(StoreResponse::from).toList();
+
+    return ApiResponse.ok(result);
+  }
+
+  @GetMapping("/{storeId}/dish")
+  public ApiResponse<DishResponse> getMyDish(
+      @PathVariable Long storeId, @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    return ApiResponse.ok(storeService.getMyDish(storeId, memberId));
+  }
+
   @GetMapping("/nearby")
   public ApiResponse<StoreSearchResponse> getNearbyStores(
       @RequestParam BigDecimal latitude,
@@ -86,7 +105,11 @@ public class StoreController {
       @Valid @RequestBody StoreAccountRequest request) {
     PayoutAccountResult result =
         storeService.registerPayoutAccount(
-            storeId, memberId, request.accountNumber(), request.accountHolder());
+            storeId,
+            memberId,
+            request.bankName(),
+            request.accountNumber(),
+            request.accountHolder());
 
     return ApiResponse.ok(StoreAccountResponse.from(result));
   }
@@ -98,7 +121,11 @@ public class StoreController {
       @Valid @RequestBody StoreAccountRequest request) {
     PayoutAccountResult result =
         storeService.updatePayoutAccount(
-            storeId, memberId, request.accountNumber(), request.accountHolder());
+            storeId,
+            memberId,
+            request.bankName(),
+            request.accountNumber(),
+            request.accountHolder());
 
     return ApiResponse.ok(StoreAccountResponse.from(result));
   }

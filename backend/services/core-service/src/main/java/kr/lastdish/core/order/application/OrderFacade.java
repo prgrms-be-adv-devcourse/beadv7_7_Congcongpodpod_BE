@@ -3,14 +3,18 @@ package kr.lastdish.core.order.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.cart.application.CartFacade;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.*;
-import kr.lastdish.core.payment.application.DepositFacade;
+import kr.lastdish.core.payment.application.deposit.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,15 +28,21 @@ public class OrderFacade {
 
   private final OrderRepository orderRepository;
   private final OrderService orderService;
+  private final CartFacade cartFacade;
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
   private final StoreFacade storeFacade;
+  private final OrderMemberQueryPort orderMemberQueryPort;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResponse payAndCreateOrder(Long memberId, OrderCreateRequest request) {
+  public OrderResponse payAndCreateOrder(Long memberId, Long cartItemId) {
+    // 외부 회원 서비스 호출을 먼저 완료해 CartItem DB 잠금 시간을 최소화한다.
+    OrderMemberInfo memberInfo = orderMemberQueryPort.getOrderMemberInfo(memberId);
+    CartOrderSnapshot cartItem = cartFacade.getOrderSnapshot(memberId, cartItemId);
+
     // 주문 생성 및 저장
-    Order order = orderService.createOrder(memberId, request);
+    Order order = orderService.createOrder(memberId, memberInfo, cartItem);
 
     // 재고 차감
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
@@ -41,7 +51,12 @@ public class OrderFacade {
     depositFacade.use(memberId, order.getId(), order.getTotalPrice());
 
     // 결제 완료 처리
-    return orderService.completePayment(order.getId());
+    OrderResponse response = orderService.completePayment(order.getId());
+
+    // 주문이 완료된 상품을 장바구니에서 제거
+    cartFacade.removeOrderedItem(memberId, cartItemId);
+
+    return response;
   }
 
   // 주문 취소 - 재고 복구 - 결제 환불
@@ -86,11 +101,11 @@ public class OrderFacade {
   @Transactional
   public OrderRejectResponse rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
+    // 재고 복구
+    dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     order.rejectOrder(reason);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
-    // 재고 복구
-    dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     return OrderRejectResponse.from(order);
   }
 
