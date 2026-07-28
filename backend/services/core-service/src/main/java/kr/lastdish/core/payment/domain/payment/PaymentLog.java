@@ -2,6 +2,7 @@ package kr.lastdish.core.payment.domain.payment;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import kr.lastdish.core.common.crypto.EncryptConverter;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,7 @@ public class PaymentLog {
   @Column(name = "pg_provider", nullable = false)
   private PgProvider pgProvider;
 
+  @Convert(converter = EncryptConverter.class)
   @Column(name = "raw_payload", nullable = false, columnDefinition = "TEXT")
   private String rawPayload;
 
