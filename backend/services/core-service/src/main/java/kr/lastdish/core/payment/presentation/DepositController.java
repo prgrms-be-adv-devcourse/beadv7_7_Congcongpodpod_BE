@@ -1,9 +1,9 @@
 package kr.lastdish.core.payment.presentation;
 
-import kr.lastdish.core.payment.application.DepositHistoryService;
-import kr.lastdish.core.payment.application.DepositService;
-import kr.lastdish.core.payment.application.dto.DepositBalanceResponse;
-import kr.lastdish.core.payment.application.dto.DepositHistoryResponse;
+import kr.lastdish.core.payment.application.deposit.DepositHistoryService;
+import kr.lastdish.core.payment.application.deposit.DepositService;
+import kr.lastdish.core.payment.application.deposit.dto.DepositBalanceResponse;
+import kr.lastdish.core.payment.application.deposit.dto.DepositHistoryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

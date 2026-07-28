@@ -56,6 +56,13 @@ public class Deposit {
     this.updatedAt = LocalDateTime.now();
   }
 
+  // 결제 승인 성공 시 예치금 충전
+  public void charge(BigDecimal amount) {
+    validatePositiveAmount(amount);
+    this.balance = this.balance.add(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
   private void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new IllegalArgumentException("금액은 0보다 커야 합니다. amount=" + amount);

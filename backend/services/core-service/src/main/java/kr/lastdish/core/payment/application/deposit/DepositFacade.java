@@ -1,7 +1,7 @@
-package kr.lastdish.core.payment.application;
+package kr.lastdish.core.payment.application.deposit;
 
 import java.math.BigDecimal;
-import kr.lastdish.core.payment.application.dto.DepositTransactionResult;
+import kr.lastdish.core.payment.application.deposit.dto.DepositTransactionResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,5 +16,9 @@ public class DepositFacade {
 
   public DepositTransactionResult refund(Long memberId, Long orderId, BigDecimal amount) {
     return depositService.refund(memberId, orderId, amount);
+  }
+
+  public DepositTransactionResult charge(Long memberId, Long paymentId, BigDecimal amount) {
+    return depositService.charge(memberId, paymentId, amount);
   }
 }
