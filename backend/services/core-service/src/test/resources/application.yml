@@ -4,6 +4,8 @@ spring:
   cloud:
     config:
       enabled: false
+  flyway:
+    enabled: false
 
 services:
   member:
