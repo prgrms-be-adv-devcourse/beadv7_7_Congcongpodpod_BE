@@ -9,7 +9,9 @@ import 'package:lastdish_app/main.dart';
 
 void main() {
   testWidgets('로그인 화면이 뜬다', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: LastDishApp()));
+    await tester.pumpWidget(
+      const ProviderScope(child: LastDishApp()),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('LastDish'), findsOneWidget);

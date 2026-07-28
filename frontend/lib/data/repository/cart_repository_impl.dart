@@ -5,23 +5,27 @@ import '../../core/network/api_error_mapper.dart';
 import '../../domain/error/cart_exception.dart';
 import '../../domain/model/cart.dart';
 import '../../domain/repository/cart_repository.dart';
+import '../../domain/repository/member_repository.dart';
 
 /// CartRepository 실제 구현. dio로 core-service(Cart)를 호출한다.
 /// (store_repository_impl.dart와 같은 구조 — dio 직접 호출 + mapCoreServiceError로 에러 정규화.)
 class CartRepositoryImpl implements CartRepository {
-  CartRepositoryImpl({required Dio dio}) : _dio = dio;
+  CartRepositoryImpl({required Dio dio, required MemberRepository memberRepository})
+    : _dio = dio,
+      _memberRepository = memberRepository;
 
   final Dio _dio;
+  final MemberRepository _memberRepository;
 
   @override
   Future<Cart> getMyCart() async {
     try {
-      // ⚠️ 가정한 경로다. 지금 실제로 구현된 API는 `GET /carts/members/{memberId}`라서
-      // memberId를 URL에 직접 넣어야 하는데, 프론트는 아직 memberId를 알 방법이 없다
-      // (`/members/me` 미구현). Order 계열처럼 Gateway가 `X-Authenticated-Member-Id`
-      // 헤더로 회원을 식별해주는 방식으로 바뀔 것을 가정하고 `/carts/me`로 미리 짜둔 것 —
-      // 실제로 이 경로가 없으면 404가 날 수 있다.
-      final response = await _dio.get('/carts/me');
+      // 실제 API는 `GET /carts/members/{memberId}` — memberId를 URL에 직접 넣어야 한다.
+      // Order 계열처럼 Gateway 헤더(`X-Authenticated-Member-Id`) 기반으로 통일하는 작업이
+      // 백엔드에서 진행 중이지만 아직 완료 전이라, 그때까지는 로그인 후 `/members/me`를
+      // 호출해 얻은 memberId를 직접 넘긴다(2026-07-27 임시 우회, cart_repository.dart 참고).
+      final member = await _memberRepository.getMyInfo();
+      final response = await _dio.get('/carts/members/${member.id}');
 
       final body = response.data as Map<String, dynamic>;
       final data = body['data'] as Map<String, dynamic>;

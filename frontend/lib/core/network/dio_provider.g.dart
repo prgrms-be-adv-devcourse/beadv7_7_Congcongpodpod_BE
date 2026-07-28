@@ -6,7 +6,7 @@ part of 'dio_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dioHash() => r'8f717e0da1a7bd1b93d934db6157582c44c7e75d';
+String _$dioHash() => r'c827dc43249dc6887e0b8d0972a812eb3da2e186';
 
 /// Gateway 진입점 하나만 호출한다 —
 /// Member/Core 서비스 포트로 직접 호출 금지.
@@ -18,9 +18,8 @@ String _$dioHash() => r'8f717e0da1a7bd1b93d934db6157582c44c7e75d';
 final dioProvider = Provider<Dio>.internal(
   dio,
   name: r'dioProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$dioHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$dioHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
