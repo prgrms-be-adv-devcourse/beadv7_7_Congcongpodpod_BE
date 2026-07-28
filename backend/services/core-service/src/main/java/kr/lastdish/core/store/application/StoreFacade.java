@@ -52,7 +52,7 @@ public class StoreFacade {
 
   public Long findStoreIdByMemberId(Long memberId) {
     return storeRepository
-        .findByMemberId(memberId)
+        .findByMemberIdForSettlement(memberId)
         .map(Store::getId)
         .orElseThrow(
             () ->
