@@ -80,9 +80,4 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   public List<Long> findAllActiveStoreIds() {
     return storeJpaRepository.findAllActiveStoreIds();
   }
-
-  @Override
-  public Optional<Store> findByMemberId(Long memberId) {
-    return storeJpaRepository.findByMemberId(memberId);
-  }
 }
