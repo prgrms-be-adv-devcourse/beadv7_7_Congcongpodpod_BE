@@ -6,7 +6,7 @@ part of 'cart_view_model.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$cartViewModelHash() => r'30ef02b4bb320c303c0f9caafa5f4a89221f26ae';
+String _$cartViewModelHash() => r'78702e6c32d252ade92958f5b46e9baba1bfc8ce';
 
 /// 장바구니 화면의 상태. store_list_view_model.dart와 같은 이유로 `AsyncNotifier<Cart>` —
 /// 화면에 데이터(Cart) 자체가 필요해서 build()가 조회 결과를 그대로 상태로 들고 있는다.
@@ -20,14 +20,14 @@ String _$cartViewModelHash() => r'30ef02b4bb320c303c0f9caafa5f4a89221f26ae';
 @ProviderFor(CartViewModel)
 final cartViewModelProvider =
     AutoDisposeAsyncNotifierProvider<CartViewModel, Cart>.internal(
-      CartViewModel.new,
-      name: r'cartViewModelProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$cartViewModelHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  CartViewModel.new,
+  name: r'cartViewModelProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$cartViewModelHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$CartViewModel = AutoDisposeAsyncNotifier<Cart>;
 // ignore_for_file: type=lint

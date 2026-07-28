@@ -113,20 +113,23 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: RoutePaths.orderDetail,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) =>
-            OrderDetailScreen(orderId: state.pathParameters['orderId']!),
+        builder: (context, state) => OrderDetailScreen(
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.orderCancel,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) =>
-            OrderCancelScreen(orderId: state.pathParameters['orderId']!),
+        builder: (context, state) => OrderCancelScreen(
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.orderPickup,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) =>
-            OrderPickupScreen(orderId: state.pathParameters['orderId']!),
+        builder: (context, state) => OrderPickupScreen(
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.deposits,

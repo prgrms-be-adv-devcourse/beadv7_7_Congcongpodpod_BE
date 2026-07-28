@@ -104,7 +104,9 @@ class _InfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.textBody),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textBody,
+              ),
             ),
           ),
         ],
