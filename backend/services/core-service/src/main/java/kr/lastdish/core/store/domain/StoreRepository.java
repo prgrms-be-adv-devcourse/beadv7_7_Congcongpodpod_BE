@@ -14,6 +14,8 @@ public interface StoreRepository {
 
   Optional<Store> findByMemberId(Long memberId);
 
+  Optional<Store> findByMemberIdForSettlement(Long memberId);
+
   boolean existsByBusinessNumber(String businessNumber);
 
   List<Store> findOpenStoresByLocationRange(
