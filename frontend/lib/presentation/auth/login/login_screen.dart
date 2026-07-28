@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,6 +56,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // hasValue=true라서, 그 뒤에 로그인이 실패해도 next.hasValue가 계속 true로 남는다
       // — 그래서 hasError를 먼저 확인해서 갈라야 한다.
       if (next.hasError) {
+        // 스낵바엔 메시지 한 줄만 보이고 스택트레이스는 안 남아서, 예상 못 한 타입의
+        // 예외(AppException이 아닌 raw TypeError 등)가 나오면 원인 위치를 알 방법이
+        // 없었다 — 디버그 빌드에서만 콘솔에 전체 스택트레이스를 남긴다.
+        if (kDebugMode) {
+          debugPrint('[login] ${next.error}\n${next.stackTrace}');
+        }
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(next.error.toString())));

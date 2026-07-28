@@ -12,8 +12,7 @@ part of 'token_response.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 TokenResponse _$TokenResponseFromJson(Map<String, dynamic> json) {
   return _TokenResponse.fromJson(json);
@@ -33,9 +32,8 @@ mixin _$TokenResponse {
 /// @nodoc
 abstract class $TokenResponseCopyWith<$Res> {
   factory $TokenResponseCopyWith(
-    TokenResponse value,
-    $Res Function(TokenResponse) then,
-  ) = _$TokenResponseCopyWithImpl<$Res, TokenResponse>;
+          TokenResponse value, $Res Function(TokenResponse) then) =
+      _$TokenResponseCopyWithImpl<$Res, TokenResponse>;
   @useResult
   $Res call({String accessToken, String refreshToken});
 }
@@ -52,20 +50,20 @@ class _$TokenResponseCopyWithImpl<$Res, $Val extends TokenResponse>
 
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? accessToken = null, Object? refreshToken = null}) {
-    return _then(
-      _value.copyWith(
-            accessToken: null == accessToken
-                ? _value.accessToken
-                : accessToken // ignore: cast_nullable_to_non_nullable
-                      as String,
-            refreshToken: null == refreshToken
-                ? _value.refreshToken
-                : refreshToken // ignore: cast_nullable_to_non_nullable
-                      as String,
-          )
-          as $Val,
-    );
+  $Res call({
+    Object? accessToken = null,
+    Object? refreshToken = null,
+  }) {
+    return _then(_value.copyWith(
+      accessToken: null == accessToken
+          ? _value.accessToken
+          : accessToken // ignore: cast_nullable_to_non_nullable
+              as String,
+      refreshToken: null == refreshToken
+          ? _value.refreshToken
+          : refreshToken // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
   }
 }
 
@@ -73,9 +71,8 @@ class _$TokenResponseCopyWithImpl<$Res, $Val extends TokenResponse>
 abstract class _$$TokenResponseImplCopyWith<$Res>
     implements $TokenResponseCopyWith<$Res> {
   factory _$$TokenResponseImplCopyWith(
-    _$TokenResponseImpl value,
-    $Res Function(_$TokenResponseImpl) then,
-  ) = __$$TokenResponseImplCopyWithImpl<$Res>;
+          _$TokenResponseImpl value, $Res Function(_$TokenResponseImpl) then) =
+      __$$TokenResponseImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({String accessToken, String refreshToken});
@@ -86,35 +83,33 @@ class __$$TokenResponseImplCopyWithImpl<$Res>
     extends _$TokenResponseCopyWithImpl<$Res, _$TokenResponseImpl>
     implements _$$TokenResponseImplCopyWith<$Res> {
   __$$TokenResponseImplCopyWithImpl(
-    _$TokenResponseImpl _value,
-    $Res Function(_$TokenResponseImpl) _then,
-  ) : super(_value, _then);
+      _$TokenResponseImpl _value, $Res Function(_$TokenResponseImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? accessToken = null, Object? refreshToken = null}) {
-    return _then(
-      _$TokenResponseImpl(
-        accessToken: null == accessToken
-            ? _value.accessToken
-            : accessToken // ignore: cast_nullable_to_non_nullable
-                  as String,
-        refreshToken: null == refreshToken
-            ? _value.refreshToken
-            : refreshToken // ignore: cast_nullable_to_non_nullable
-                  as String,
-      ),
-    );
+  $Res call({
+    Object? accessToken = null,
+    Object? refreshToken = null,
+  }) {
+    return _then(_$TokenResponseImpl(
+      accessToken: null == accessToken
+          ? _value.accessToken
+          : accessToken // ignore: cast_nullable_to_non_nullable
+              as String,
+      refreshToken: null == refreshToken
+          ? _value.refreshToken
+          : refreshToken // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$TokenResponseImpl implements _TokenResponse {
-  const _$TokenResponseImpl({
-    required this.accessToken,
-    required this.refreshToken,
-  });
+  const _$TokenResponseImpl(
+      {required this.accessToken, required this.refreshToken});
 
   factory _$TokenResponseImpl.fromJson(Map<String, dynamic> json) =>
       _$$TokenResponseImplFromJson(json);
@@ -152,15 +147,16 @@ class _$TokenResponseImpl implements _TokenResponse {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$TokenResponseImplToJson(this);
+    return _$$TokenResponseImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _TokenResponse implements TokenResponse {
-  const factory _TokenResponse({
-    required final String accessToken,
-    required final String refreshToken,
-  }) = _$TokenResponseImpl;
+  const factory _TokenResponse(
+      {required final String accessToken,
+      required final String refreshToken}) = _$TokenResponseImpl;
 
   factory _TokenResponse.fromJson(Map<String, dynamic> json) =
       _$TokenResponseImpl.fromJson;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lastdish_app/domain/model/dish.dart';
 import 'package:lastdish_app/domain/model/store.dart';
 import 'package:lastdish_app/domain/repository/store_repository.dart';
 import 'package:lastdish_app/presentation/store/detail/store_detail_screen.dart';
@@ -19,6 +20,7 @@ class _FakeStoreRepository implements StoreRepository {
     double radiusKm = 3,
     int page = 0,
     int size = 10,
+    String? category,
   }) async => [];
 
   @override
@@ -26,6 +28,38 @@ class _FakeStoreRepository implements StoreRepository {
     if (error != null) throw error!;
     return detail!;
   }
+
+  @override
+  Future<Store> registerStore({
+    required String storeName,
+    required String businessNumber,
+    required String storeAddress,
+    required String storePhone,
+    required String openTime,
+    required String closeTime,
+    required double latitude,
+    required double longitude,
+    required String category,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<Store> updateStore({
+    required int storeId,
+    required String storeName,
+    required String storeAddress,
+    required String storePhone,
+    required String openTime,
+    required String closeTime,
+    required double latitude,
+    required double longitude,
+    required String category,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<List<Store>> getMyStores() async => throw UnimplementedError();
+
+  @override
+  Future<Dish?> getMyDish(int storeId) async => throw UnimplementedError();
 }
 
 void main() {
@@ -42,6 +76,7 @@ void main() {
         longitude: 127.0276,
         holidays: ['MONDAY'],
         status: 'OPEN',
+        category: 'KOREAN',
       ),
     );
 
@@ -73,6 +108,7 @@ void main() {
         latitude: 37.4979,
         longitude: 127.0276,
         status: 'OPEN',
+        category: 'KOREAN',
       ),
     );
 

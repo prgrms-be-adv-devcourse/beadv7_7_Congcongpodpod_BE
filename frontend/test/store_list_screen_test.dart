@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lastdish_app/core/routing/route_paths.dart';
+import 'package:lastdish_app/domain/model/dish.dart';
 import 'package:lastdish_app/domain/model/store.dart';
 import 'package:lastdish_app/domain/repository/store_repository.dart';
 import 'package:lastdish_app/presentation/store/list/store_list_screen.dart';
@@ -18,6 +19,7 @@ Store _store(int id, String name) => Store(
   latitude: 37.4979,
   longitude: 127.0276,
   status: 'OPEN',
+  category: 'KOREAN',
 );
 
 class _FakeStoreRepository implements StoreRepository {
@@ -26,6 +28,7 @@ class _FakeStoreRepository implements StoreRepository {
   List<Store>? stores;
   Object? error;
   int callCount = 0;
+  String? lastCategory;
 
   @override
   Future<List<Store>> getNearbyStores({
@@ -34,8 +37,10 @@ class _FakeStoreRepository implements StoreRepository {
     double radiusKm = 3,
     int page = 0,
     int size = 10,
+    String? category,
   }) async {
     callCount++;
+    lastCategory = category;
     if (error != null) throw error!;
     return stores ?? [];
   }
@@ -44,6 +49,38 @@ class _FakeStoreRepository implements StoreRepository {
   Future<Store> getStoreDetail(int storeId) async {
     return _store(storeId, '매장 $storeId');
   }
+
+  @override
+  Future<Store> registerStore({
+    required String storeName,
+    required String businessNumber,
+    required String storeAddress,
+    required String storePhone,
+    required String openTime,
+    required String closeTime,
+    required double latitude,
+    required double longitude,
+    required String category,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<Store> updateStore({
+    required int storeId,
+    required String storeName,
+    required String storeAddress,
+    required String storePhone,
+    required String openTime,
+    required String closeTime,
+    required double latitude,
+    required double longitude,
+    required String category,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<List<Store>> getMyStores() async => throw UnimplementedError();
+
+  @override
+  Future<Dish?> getMyDish(int storeId) async => throw UnimplementedError();
 }
 
 GoRouter _router() {
@@ -68,7 +105,9 @@ GoRouter _router() {
 }
 
 void main() {
-  testWidgets('매장이 있으면 목록으로 보여주고, 탭하면 상세로 이동한다', (tester) async {
+  testWidgets('매장이 있으면 목록으로 보여준다 (B4 폐기 — 카드 탭해도 상세로 안 넘어감)', (
+    tester,
+  ) async {
     final repo = _FakeStoreRepository(
       stores: [_store(1, '김밥천국'), _store(2, '국밥집')],
     );
@@ -83,11 +122,6 @@ void main() {
 
     expect(find.text('김밥천국'), findsOneWidget);
     expect(find.text('국밥집'), findsOneWidget);
-
-    await tester.tap(find.text('김밥천국'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('STORE_DETAIL_1'), findsOneWidget);
   });
 
   testWidgets('매장이 없으면 빈 안내 문구를 보여준다', (tester) async {
