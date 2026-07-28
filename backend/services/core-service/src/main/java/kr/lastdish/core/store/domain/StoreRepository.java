@@ -12,6 +12,8 @@ public interface StoreRepository {
 
   boolean existsByMemberId(Long memberId);
 
+  Optional<Store> findByMemberId(Long memberId);
+
   boolean existsByBusinessNumber(String businessNumber);
 
   List<Store> findOpenStoresByLocationRange(
@@ -31,6 +33,4 @@ public interface StoreRepository {
       Category category);
 
   List<Long> findAllActiveStoreIds();
-
-  Optional<Store> findByMemberId(Long memberId);
 }
