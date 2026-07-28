@@ -6,6 +6,8 @@ import kr.lastdish.core.settlement.domain.Settlement;
 import kr.lastdish.core.settlement.domain.SettlementRepository;
 import kr.lastdish.core.settlement.domain.SettlementStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -39,5 +41,15 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
       Long storeId, YearMonth settlementMonth, SettlementStatus settlementStatus) {
     return jpaSettlementRepository.existsByStoreIdAndSettlementMonthAndSettlementStatus(
         storeId, settlementMonth, settlementStatus);
+  }
+
+  @Override
+  public Page<Settlement> findAllByStoreId(Long storeId, Pageable pageable) {
+    return jpaSettlementRepository.findAllByStoreIdOrderBySettlementMonthDesc(storeId, pageable);
+  }
+
+  @Override
+  public Optional<Settlement> findByIdAndStoreId(Long settlementId, Long storeId) {
+    return jpaSettlementRepository.findByIdAndStoreId(settlementId, storeId);
   }
 }

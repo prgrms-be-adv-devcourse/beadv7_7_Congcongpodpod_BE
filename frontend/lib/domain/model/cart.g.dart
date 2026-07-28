@@ -11,9 +11,9 @@ _$CartItemImpl _$$CartItemImplFromJson(Map<String, dynamic> json) =>
       cartItemId: (json['cartItemId'] as num).toInt(),
       dishId: (json['dishId'] as num).toInt(),
       dishName: json['dishName'] as String,
-      unitPrice: (json['unitPrice'] as num).toInt(),
+      unitPrice: json['unitPrice'] as num,
       quantity: (json['quantity'] as num).toInt(),
-      subtotalPrice: (json['subtotalPrice'] as num).toInt(),
+      subtotalPrice: json['subtotalPrice'] as num,
     );
 
 Map<String, dynamic> _$$CartItemImplToJson(_$CartItemImpl instance) =>
@@ -27,13 +27,13 @@ Map<String, dynamic> _$$CartItemImplToJson(_$CartItemImpl instance) =>
     };
 
 _$CartImpl _$$CartImplFromJson(Map<String, dynamic> json) => _$CartImpl(
-  cartId: (json['cartId'] as num).toInt(),
-  memberId: (json['memberId'] as num).toInt(),
-  items: (json['items'] as List<dynamic>)
-      .map((e) => CartItem.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  totalPrice: (json['totalPrice'] as num).toInt(),
-);
+      cartId: (json['cartId'] as num).toInt(),
+      memberId: (json['memberId'] as num).toInt(),
+      items: (json['items'] as List<dynamic>)
+          .map((e) => CartItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      totalPrice: json['totalPrice'] as num,
+    );
 
 Map<String, dynamic> _$$CartImplToJson(_$CartImpl instance) =>
     <String, dynamic>{

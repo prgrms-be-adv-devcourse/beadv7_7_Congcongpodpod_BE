@@ -6,7 +6,6 @@
 **/build/
 /out/
 /backend/out/
-backend/workspace/
 
 # Local AI assistant settings, instructions, sessions, and memory
 **/.codex/
@@ -50,6 +49,7 @@ backend/workspace/
 /frontend/.pub-cache/
 /frontend/.pub/
 /frontend/devtools_options.yaml
+/frontend/skills-lock.json
 /frontend/coverage/
 /frontend/doc/api/
 /frontend/.build/

@@ -17,4 +17,6 @@ public interface JpaSettlementDetailRepository extends JpaRepository<SettlementD
             WHERE detail.orderId IN :orderIds
             """)
   List<Long> findSettledOrderIds(@Param("orderIds") Collection<Long> orderIds);
+
+  List<SettlementDetail> findAllBySettlementIdOrderByIdAsc(Long settlementId);
 }
