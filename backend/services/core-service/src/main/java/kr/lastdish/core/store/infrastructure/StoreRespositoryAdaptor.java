@@ -38,6 +38,11 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
+  public Optional<Store> findByMemberIdForSettlement(Long memberId) {
+    return storeJpaRepository.findByMemberId(memberId);
+  }
+
+  @Override
   public boolean existsByBusinessNumber(String businessNumber) {
     return storeJpaRepository.existsByBusinessNumber(businessNumber);
   }
