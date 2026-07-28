@@ -13,30 +13,9 @@ class OrderRepositoryImpl implements OrderRepository {
   final Dio _dio;
 
   @override
-  Future<Order> createOrder({
-    required int storeId,
-    required int dishId,
-    required String phone,
-    required String dishName,
-    required int quantity,
-    required num unitPrice,
-    required String pickupStartAt,
-    required String pickupEndAt,
-  }) async {
+  Future<Order> createOrder({required int cartItemId}) async {
     try {
-      final response = await _dio.post(
-        '/orders',
-        data: {
-          'storeId': storeId,
-          'dishId': dishId,
-          'phone': phone,
-          'dishName': dishName,
-          'quantity': quantity,
-          'unitPrice': unitPrice,
-          'pickupStartAt': pickupStartAt,
-          'pickupEndAt': pickupEndAt,
-        },
-      );
+      final response = await _dio.post('/orders/cartItems/$cartItemId');
       return Order.fromJson(_unwrap(response.data));
     } on DioException catch (e) {
       throw mapCoreServiceError(e);
@@ -95,7 +74,10 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<List<Order>> getStoreOrders({required int storeId, String? status}) async {
+  Future<List<Order>> getStoreOrders({
+    required int storeId,
+    String? status,
+  }) async {
     try {
       final response = await _dio.get(
         '/orders/stores/$storeId',
@@ -121,7 +103,10 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<void> rejectOrder({required int orderId, required String reason}) async {
+  Future<void> rejectOrder({
+    required int orderId,
+    required String reason,
+  }) async {
     try {
       await _dio.post('/orders/$orderId/reject', data: {'reason': reason});
     } on DioException catch (e) {
@@ -130,7 +115,10 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<void> updatePickupStatus({required int orderId, required String status}) async {
+  Future<void> updatePickupStatus({
+    required int orderId,
+    required String status,
+  }) async {
     try {
       await _dio.patch('/orders/$orderId/pickup', data: {'status': status});
     } on DioException catch (e) {
