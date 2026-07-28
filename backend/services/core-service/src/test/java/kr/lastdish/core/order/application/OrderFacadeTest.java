@@ -86,10 +86,11 @@ class OrderFacadeTest {
     // then
     assertThat(response).isSameAs(expectedResponse);
 
-    InOrder inOrder = inOrder(cartFacade, orderService, dishFacade, depositFacade);
+    InOrder inOrder =
+        inOrder(orderMemberQueryPort, cartFacade, orderService, dishFacade, depositFacade);
 
+    inOrder.verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
     inOrder.verify(cartFacade).getOrderSnapshot(memberId, cartItemId);
-    verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
     inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
