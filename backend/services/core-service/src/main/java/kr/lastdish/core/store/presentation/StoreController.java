@@ -2,7 +2,9 @@ package kr.lastdish.core.store.presentation;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.PayoutAccountResult;
@@ -63,6 +65,21 @@ public class StoreController {
     StoreResult result = storeService.getStore(storeId);
 
     return ApiResponse.ok(StoreResponse.from(result));
+  }
+
+  @GetMapping("/mine")
+  public ApiResponse<List<StoreResponse>> getMyStores(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    List<StoreResponse> result =
+        storeService.getMyStores(memberId).stream().map(StoreResponse::from).toList();
+
+    return ApiResponse.ok(result);
+  }
+
+  @GetMapping("/{storeId}/dish")
+  public ApiResponse<DishResponse> getMyDish(
+      @PathVariable Long storeId, @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    return ApiResponse.ok(storeService.getMyDish(storeId, memberId));
   }
 
   @GetMapping("/nearby")
