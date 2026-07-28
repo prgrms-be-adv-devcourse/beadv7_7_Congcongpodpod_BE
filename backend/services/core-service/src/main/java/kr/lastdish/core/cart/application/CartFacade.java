@@ -12,4 +12,8 @@ public class CartFacade {
   public CartOrderSnapshot getOrderSnapshot(Long memberId, Long cartItemId) {
     return cartService.getOrderSnapshot(memberId, cartItemId);
   }
+
+  public void removeOrderedItem(Long memberId, Long cartItemId) {
+    cartService.removeOrderedItem(memberId, cartItemId);
+  }
 }

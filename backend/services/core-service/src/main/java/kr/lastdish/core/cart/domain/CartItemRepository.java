@@ -8,6 +8,8 @@ public interface CartItemRepository {
 
   Optional<CartItem> findById(Long id);
 
+  Optional<CartItem> findWithLockById(Long id);
+
   Optional<CartItem> findByCartId(Long cartId);
 
   List<CartItem> findAllByDishId(Long dishId);
