@@ -33,8 +33,13 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
-  public Optional<Store> findByMemberId(Long memberId) {
+  public Optional<Store> findByMemberIdActive(Long memberId) {
     return storeJpaRepository.findByMemberIdAndDeletedFalse(memberId);
+  }
+
+  @Override
+  public Optional<Store> findByMemberId(Long memberId) {
+    return storeJpaRepository.findByMemberId(memberId);
   }
 
   @Override

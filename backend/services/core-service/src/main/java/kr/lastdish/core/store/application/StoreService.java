@@ -107,7 +107,7 @@ public class StoreService {
   // API 모양이 바뀌지 않도록 목록으로 반환한다.
   public List<StoreResult> getMyStores(Long memberId) {
     return storeRepository
-        .findByMemberId(memberId)
+        .findByMemberIdActive(memberId)
         .map(StoreResult::from)
         .map(List::of)
         .orElseGet(List::of);

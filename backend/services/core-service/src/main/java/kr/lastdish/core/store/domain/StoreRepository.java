@@ -12,6 +12,8 @@ public interface StoreRepository {
 
   boolean existsByMemberId(Long memberId);
 
+  Optional<Store> findByMemberIdActive(Long memberId);
+
   Optional<Store> findByMemberId(Long memberId);
 
   boolean existsByBusinessNumber(String businessNumber);
