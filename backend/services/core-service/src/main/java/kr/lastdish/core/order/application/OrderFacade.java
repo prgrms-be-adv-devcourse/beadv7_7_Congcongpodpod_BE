@@ -7,6 +7,8 @@ import kr.lastdish.core.cart.application.CartFacade;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -30,15 +32,16 @@ public class OrderFacade {
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
   private final StoreFacade storeFacade;
+  private final OrderMemberQueryPort orderMemberQueryPort;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResponse payAndCreateOrder(
-      Long memberId, Long cartItemId, OrderCreateRequest request) {
+  public OrderResponse payAndCreateOrder(Long memberId, Long cartItemId) {
     CartOrderSnapshot cartItem = cartFacade.getOrderSnapshot(memberId, cartItemId);
+    OrderMemberInfo memberInfo = orderMemberQueryPort.getOrderMemberInfo(memberId);
 
     // 주문 생성 및 저장
-    Order order = orderService.createOrder(memberId, request.phone(), cartItem);
+    Order order = orderService.createOrder(memberId, memberInfo, cartItem);
 
     // 재고 차감
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
@@ -47,7 +50,12 @@ public class OrderFacade {
     depositFacade.use(memberId, order.getId(), order.getTotalPrice());
 
     // 결제 완료 처리
-    return orderService.completePayment(order.getId());
+    OrderResponse response = orderService.completePayment(order.getId());
+
+    // 주문이 완료된 상품을 장바구니에서 제거
+    cartFacade.removeOrderedItem(memberId, cartItemId);
+
+    return response;
   }
 
   // 주문 취소 - 재고 복구 - 결제 환불

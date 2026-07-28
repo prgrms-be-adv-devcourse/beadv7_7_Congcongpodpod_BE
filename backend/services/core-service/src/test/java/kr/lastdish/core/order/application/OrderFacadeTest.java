@@ -10,11 +10,12 @@ import java.util.List;
 import kr.lastdish.core.cart.application.CartFacade;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
@@ -50,6 +51,8 @@ class OrderFacadeTest {
 
   @Mock private StoreFacade storeFacade;
 
+  @Mock private OrderMemberQueryPort orderMemberQueryPort;
+
   @InjectMocks private OrderFacade orderFacade;
 
   @Test
@@ -59,7 +62,6 @@ class OrderFacadeTest {
     Long memberId = 1L;
     Long cartItemId = 1L;
 
-    OrderCreateRequest request = createRequest();
     CartOrderSnapshot cartItem = createCartOrderSnapshot();
 
     Order order = mock(Order.class);
@@ -70,14 +72,16 @@ class OrderFacadeTest {
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
     when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
-    when(orderService.createOrder(memberId, request.phone(), cartItem)).thenReturn(order);
+    OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
+    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
 
     OrderResponse expectedResponse = mock(OrderResponse.class);
 
     when(orderService.completePayment(10L)).thenReturn(expectedResponse);
 
     // when
-    OrderResponse response = orderFacade.payAndCreateOrder(memberId, cartItemId, request);
+    OrderResponse response = orderFacade.payAndCreateOrder(memberId, cartItemId);
 
     // then
     assertThat(response).isSameAs(expectedResponse);
@@ -85,17 +89,15 @@ class OrderFacadeTest {
     InOrder inOrder = inOrder(cartFacade, orderService, dishFacade, depositFacade);
 
     inOrder.verify(cartFacade).getOrderSnapshot(memberId, cartItemId);
-    inOrder.verify(orderService).createOrder(memberId, request.phone(), cartItem);
+    verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
+    inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
 
     inOrder.verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
 
     inOrder.verify(orderService).completePayment(10L);
-  }
-
-  private OrderCreateRequest createRequest() {
-    return new OrderCreateRequest("010-1234-5678");
+    inOrder.verify(cartFacade).removeOrderedItem(memberId, cartItemId);
   }
 
   private CartOrderSnapshot createCartOrderSnapshot() {
@@ -109,7 +111,6 @@ class OrderFacadeTest {
     // given
     Long memberId = 1L;
     Long cartItemId = 1L;
-    OrderCreateRequest request = createRequest();
     CartOrderSnapshot cartItem = createCartOrderSnapshot();
 
     Order order = mock(Order.class);
@@ -120,20 +121,23 @@ class OrderFacadeTest {
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
     when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
-    when(orderService.createOrder(memberId, request.phone(), cartItem)).thenReturn(order);
+    OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
+    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
 
     doThrow(new RuntimeException("예치금 잔액이 부족합니다."))
         .when(depositFacade)
         .use(memberId, 10L, BigDecimal.valueOf(10_000));
 
     // when & then
-    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, request))
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("예치금 잔액이 부족합니다.");
 
     verify(dishFacade).decreaseStock(100L, 2L);
 
     verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
+    verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
 
   @Test
