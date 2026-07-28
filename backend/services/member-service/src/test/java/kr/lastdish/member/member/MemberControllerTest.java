@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
+import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,26 +46,11 @@ class MemberControllerTest {
                 .content(objectMapper.writeValueAsString(signUpRequest)))
         .andExpect(status().isOk());
 
-    // given: 2. 로그인 요청 시 올바른 이메일 형식 전달
-    LoginRequest loginRequest = new LoginRequest("lookup@example.com", "password123!");
-    String loginResponseBody =
-        mockMvc
-            .perform(
-                post("/api/v1/auth/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(loginRequest)))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    Member member = memberRepository.findByEmail("lookup@example.com").orElseThrow();
 
-    // 3. 로그인 응답(ApiResponse)의 data 내부에서 accessToken 필드 추출
-    String accessToken =
-        objectMapper.readTree(loginResponseBody).path("data").path("accessToken").asText();
-
-    // when & then: 4. 토큰을 담아 내 프로필 조회 API 호출
+    // when & then: Gateway가 생성한 인증 헤더로 내 프로필 조회 API 호출
     mockMvc
-        .perform(get("/api/v1/members/me").header("Authorization", "Bearer " + accessToken))
+        .perform(get("/api/v1/members/me").header("X-Authenticated-Member-Id", member.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.userName").value("lookupuser"))
         .andExpect(jsonPath("$.data.name").value("조회테스터"))
