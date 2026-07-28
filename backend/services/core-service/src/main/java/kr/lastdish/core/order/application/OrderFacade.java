@@ -101,11 +101,11 @@ public class OrderFacade {
   @Transactional
   public OrderRejectResponse rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
+    // 재고 복구
+    dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     order.rejectOrder(reason);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
-    // 재고 복구
-    dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     return OrderRejectResponse.from(order);
   }
 
