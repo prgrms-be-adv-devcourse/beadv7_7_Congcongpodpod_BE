@@ -23,6 +23,11 @@ public class CartItemRepositoryImpl implements CartItemRepository {
   }
 
   @Override
+  public Optional<CartItem> findWithLockById(Long id) {
+    return cartItemJpaRepository.findWithLockById(id);
+  }
+
+  @Override
   public Optional<CartItem> findByCartId(Long cartId) {
     return cartItemJpaRepository.findByCartId(cartId);
   }

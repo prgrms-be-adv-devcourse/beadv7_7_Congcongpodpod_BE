@@ -20,11 +20,10 @@ public class OrderController {
   private final OrderFacade orderFacade;
   private final OrderService orderService;
 
-  @PostMapping
+  @PostMapping("/cartItems/{cartItemId}")
   public ApiResponse<OrderResponse> createOrder(
-      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-      @RequestBody @Valid OrderCreateRequest request) {
-    return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, request));
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long cartItemId) {
+    return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, cartItemId));
   }
 
   @PatchMapping("/{orderId}/cancel")

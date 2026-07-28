@@ -1,8 +1,6 @@
 package kr.lastdish.gateway.security;
 
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.OPTIONS;
-import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.*;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,9 +55,15 @@ public class GatewaySecurityConfig {
                     .pathMatchers(
                         "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/openapi/**")
                     .permitAll()
+                    // Seller 본인 매장/상품 조회는 공개 조회 규칙보다 먼저 판단해 SELLER 인증을 요구한다.
+                    .pathMatchers(GET, "/api/v1/stores/mine", "/api/v1/stores/*/dish")
+                    .hasRole("SELLER")
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()
+                    // 일반 회원이 최초 매장을 등록해 SELLER로 전환할 수 있도록 허용한다.
+                    .pathMatchers(POST, "/api/v1/stores")
+                    .hasAnyRole("MEMBER", "SELLER")
                     // 가게·상품 변경과 정산 기능은 판매자만 이용한다.
                     .pathMatchers(
                         "/api/v1/stores/**", "/api/v1/dishes/**", "/api/v1/settlements/**")

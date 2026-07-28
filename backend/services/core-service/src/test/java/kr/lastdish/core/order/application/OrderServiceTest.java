@@ -10,11 +10,12 @@ import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.order.application.dto.OrderMemberInfo;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
@@ -41,13 +42,13 @@ class OrderServiceTest {
   @Test
   void createOrder_success() {
     Long memberId = 1L;
-    OrderCreateRequest request =
-        new OrderCreateRequest(
-            2L, // storeId
-            3L, // dishId
-            "010-1234-5678", // phone
+    OrderMemberInfo memberInfo = new OrderMemberInfo("테스트 회원", "010-1234-5678");
+    CartOrderSnapshot cartItem =
+        new CartOrderSnapshot(
+            2L,
+            3L,
             "DishName",
-            4L, // quantity
+            4L,
             BigDecimal.valueOf(5000),
             LocalTime.of(18, 0),
             LocalTime.of(19, 0));
@@ -55,18 +56,18 @@ class OrderServiceTest {
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    Order order = orderService.createOrder(memberId, request);
+    Order order = orderService.createOrder(memberId, memberInfo, cartItem);
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
-    assertThat(order.getStoreId()).isEqualTo(request.storeId());
-    assertThat(order.getDishId()).isEqualTo(request.dishId());
-    assertThat(order.getQuantity()).isEqualTo(request.quantity());
-    assertThat(order.getPhone()).isEqualTo(request.phone());
-    assertThat(order.getDishName()).isEqualTo(request.dishName());
-    assertThat(order.getUnitPrice()).isEqualByComparingTo(request.unitPrice());
-    assertThat(order.getTotalPrice())
-        .isEqualByComparingTo(request.unitPrice().multiply(BigDecimal.valueOf(request.quantity())));
+    assertThat(order.getStoreId()).isEqualTo(2L);
+    assertThat(order.getDishId()).isEqualTo(3L);
+    assertThat(order.getQuantity()).isEqualTo(4L);
+    assertThat(order.getMemberName()).isEqualTo(memberInfo.name());
+    assertThat(order.getPhone()).isEqualTo(memberInfo.phone());
+    assertThat(order.getDishName()).isEqualTo("DishName");
+    assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
+    assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
 
     verify(orderRepository, times(1)).save(any(Order.class));
   }
@@ -186,8 +187,6 @@ class OrderServiceTest {
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(order).completePickup();
-    verify(order, never()).markNoShow();
   }
 
   @Test

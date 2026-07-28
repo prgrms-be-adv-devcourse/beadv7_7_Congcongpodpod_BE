@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
 public interface CartItemJpaRepository extends JpaRepository<CartItem, Long> {
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<CartItem> findWithLockById(Long id);
+
   Optional<CartItem> findByCartId(Long cartId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)

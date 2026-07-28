@@ -33,6 +33,16 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
+  public Optional<Store> findByMemberId(Long memberId) {
+    return storeJpaRepository.findByMemberIdAndDeletedFalse(memberId);
+  }
+
+  @Override
+  public Optional<Store> findByMemberIdForSettlement(Long memberId) {
+    return storeJpaRepository.findByMemberId(memberId);
+  }
+
+  @Override
   public boolean existsByBusinessNumber(String businessNumber) {
     return storeJpaRepository.existsByBusinessNumber(businessNumber);
   }
@@ -69,5 +79,10 @@ public class StoreRespositoryAdaptor implements StoreRepository {
       Category category) {
     return storeJpaRepository.countOpenStoresByLocationRange(
         minLatitude, maxLatitude, minLongitude, maxLongitude, StoreStatus.OPEN, category);
+  }
+
+  @Override
+  public List<Long> findAllActiveStoreIds() {
+    return storeJpaRepository.findAllActiveStoreIds();
   }
 }

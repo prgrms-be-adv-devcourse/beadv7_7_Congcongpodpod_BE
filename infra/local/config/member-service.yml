@@ -8,3 +8,7 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+    clean-disabled: true
