@@ -115,7 +115,7 @@ public class CartService {
 
   @Transactional(readOnly = true)
   public CartOrderSnapshot getOrderSnapshot(Long memberId, Long cartItemId) {
-    CartItem cartItem = getOwnedOrderCartItem(memberId, cartItemId);
+    CartItem cartItem = getOwnedOrderCartItemWithLock(memberId, cartItemId);
 
     if (!cartItem.isOrderable()) {
       throw new BusinessException(ErrorCode.CART_ITEM_NOT_ORDERABLE);
@@ -124,11 +124,25 @@ public class CartService {
     return CartOrderSnapshot.from(cartItem);
   }
 
+  private CartItem getOwnedOrderCartItemWithLock(Long memberId, Long cartItemId) {
+    CartItem cartItem =
+        cartItemRepository
+            .findWithLockById(cartItemId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+    return validateOrderCartItemOwner(memberId, cartItem);
+  }
+
   private CartItem getOwnedOrderCartItem(Long memberId, Long cartItemId) {
     CartItem cartItem =
         cartItemRepository
             .findById(cartItemId)
             .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+    return validateOrderCartItemOwner(memberId, cartItem);
+  }
+
+  private CartItem validateOrderCartItemOwner(Long memberId, CartItem cartItem) {
     Cart cart =
         cartRepository
             .findById(cartItem.getCartId())
