@@ -6,5 +6,9 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+    clean-disabled: true
