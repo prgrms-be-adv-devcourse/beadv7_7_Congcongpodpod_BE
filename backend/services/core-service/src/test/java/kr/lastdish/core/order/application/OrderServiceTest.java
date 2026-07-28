@@ -12,6 +12,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.order.application.dto.OrderMemberInfo;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
@@ -41,7 +42,7 @@ class OrderServiceTest {
   @Test
   void createOrder_success() {
     Long memberId = 1L;
-    String phone = "010-1234-5678";
+    OrderMemberInfo memberInfo = new OrderMemberInfo("테스트 회원", "010-1234-5678");
     CartOrderSnapshot cartItem =
         new CartOrderSnapshot(
             2L,
@@ -55,14 +56,15 @@ class OrderServiceTest {
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    Order order = orderService.createOrder(memberId, phone, cartItem);
+    Order order = orderService.createOrder(memberId, memberInfo, cartItem);
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
     assertThat(order.getStoreId()).isEqualTo(2L);
     assertThat(order.getDishId()).isEqualTo(3L);
     assertThat(order.getQuantity()).isEqualTo(4L);
-    assertThat(order.getPhone()).isEqualTo(phone);
+    assertThat(order.getMemberName()).isEqualTo(memberInfo.name());
+    assertThat(order.getPhone()).isEqualTo(memberInfo.phone());
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");

@@ -6,6 +6,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.order.application.dto.OrderMemberInfo;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
@@ -23,13 +24,14 @@ public class OrderService {
   private final PickupCodeGenerator pickupCodeGenerator;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
 
-  public Order createOrder(Long memberId, String phone, CartOrderSnapshot cartItem) {
+  public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
     Order order =
         Order.create(
             memberId,
             cartItem.storeId(),
             cartItem.dishId(),
-            phone,
+            memberInfo.name(),
+            memberInfo.phone(),
             cartItem.dishName(),
             cartItem.quantity(),
             cartItem.unitPrice(),
