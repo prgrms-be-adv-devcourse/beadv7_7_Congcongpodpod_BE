@@ -1,4 +1,4 @@
-package kr.lastdish.core.payment.application.dto;
+package kr.lastdish.core.payment.application.deposit.dto;
 
 import java.math.BigDecimal;
 import kr.lastdish.core.payment.domain.deposit.Deposit;

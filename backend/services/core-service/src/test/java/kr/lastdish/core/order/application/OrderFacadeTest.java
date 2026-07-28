@@ -21,7 +21,7 @@ import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.OrderResponse;
 import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
 import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
-import kr.lastdish.core.payment.application.DepositFacade;
+import kr.lastdish.core.payment.application.deposit.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
