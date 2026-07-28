@@ -110,10 +110,6 @@ void main() {
     await tester.tap(find.text('입장하기'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('HOME_SENTINEL'),
-      findsOneWidget,
-      reason: '로그인 성공인데 홈으로 안 넘어갔다',
-    );
+    expect(find.text('HOME_SENTINEL'), findsOneWidget, reason: '로그인 성공인데 홈으로 안 넘어갔다');
   });
 }

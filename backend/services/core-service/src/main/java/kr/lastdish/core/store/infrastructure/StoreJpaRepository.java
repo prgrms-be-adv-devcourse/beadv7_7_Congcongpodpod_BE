@@ -63,4 +63,6 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
         WHERE store.deleted IS false
         """)
   List<Long> findAllActiveStoreIds();
+
+  Optional<Store> findByMemberId(Long memberId);
 }

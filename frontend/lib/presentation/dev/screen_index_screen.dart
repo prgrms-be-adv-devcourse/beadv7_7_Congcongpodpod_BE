@@ -101,10 +101,7 @@ class _ScreenTile extends StatelessWidget {
           child: Text(code, style: const TextStyle(fontSize: 12)),
         ),
         title: Text(title),
-        subtitle: Text(
-          route,
-          style: const TextStyle(color: AppColors.textHint),
-        ),
+        subtitle: Text(route, style: const TextStyle(color: AppColors.textHint)),
         onTap: () => context.push(route),
       ),
     );

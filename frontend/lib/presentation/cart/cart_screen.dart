@@ -6,6 +6,7 @@ import '../../core/routing/route_paths.dart';
 import '../../domain/model/cart.dart';
 import '../../ui/app_colors.dart';
 import '../../ui/app_spacing.dart';
+import '../dish/dish_providers.dart';
 import 'cart_view_model.dart';
 
 /// 장바구니 화면 (B6, `/cart`). 장바구니는 상품 1개 단위로 단순화돼 있어,
@@ -55,10 +56,25 @@ class _CartBodyState extends ConsumerState<_CartBody> {
   // "버튼을 잠깐 막는다"는 순전히 이 화면만의 관심사는 로컬 상태로 따로 관리한다.
   bool _isMutating = false;
 
+  /// 재고 조회가 이미 끝나 있고, 담긴 수량이 그 재고 이상이면 true.
+  /// 아직 로딩 중이거나 조회에 실패했으면 모른다는 뜻이라 false(=버튼 그대로 활성).
+  bool _isAtStockLimit(CartItem item) {
+    final dish = ref.watch(dishProvider(item.dishId)).valueOrNull;
+    if (dish == null) return false;
+    return item.quantity >= dish.stockQuantity;
+  }
+
   Future<void> _run(Future<void> Function() action) async {
     setState(() => _isMutating = true);
     try {
       await action();
+    } catch (error) {
+      // cart_view_model.dart의 _mutate 주석 참고 — 실패해도 카트 상태는 안 바뀌니,
+      // 여기서 스낵바 하나로 사유(재고 부족 등)만 알려주면 된다.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _isMutating = false);
     }
@@ -69,7 +85,10 @@ class _CartBodyState extends ConsumerState<_CartBody> {
     final cart = widget.cart;
     if (cart.items.isEmpty) {
       return const Center(
-        child: Text('장바구니가 비어있어요', style: TextStyle(color: AppColors.textHint)),
+        child: Text(
+          '장바구니가 비어있어요',
+          style: TextStyle(color: AppColors.textHint),
+        ),
       );
     }
 
@@ -113,11 +132,29 @@ class _CartBodyState extends ConsumerState<_CartBody> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '개당 ${item.unitPrice}원',
+                    // 백엔드가 BigDecimal(예: 10000.00)로 내려줘서 num 타입인데, 원 단위는
+                    // 소수점이 없으니 표시할 땐 정수로 잘라서 보여준다.
+                    '개당 ${item.unitPrice.toInt()}원',
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.textHint,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                  // CartItemResponse엔 재고 정보가 없어서(dishId만 있음), 상품 단건
+                  // 조회(GET /dishes/{dishId})로 따로 가져온다 — dish_providers.dart 참고.
+                  // 로딩/실패 중엔 그냥 재고 표시를 생략한다(수량 버튼 자체는 그대로 동작).
+                  ref
+                      .watch(dishProvider(item.dishId))
+                      .when(
+                        data: (dish) => Text(
+                          '재고 ${dish.stockQuantity}개',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                        error: (_, _) => const SizedBox.shrink(),
+                        loading: () => const SizedBox.shrink(),
+                      ),
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -133,7 +170,10 @@ class _CartBodyState extends ConsumerState<_CartBody> {
                                 ),
                               )
                             : null,
-                        onIncrement: isBusy
+                        // 재고 조회에 성공했고 이미 재고만큼 담았으면 +를 눌러도 어차피
+                        // 서버가 거절할 걸 미리 막는다 — 재고를 아직 모르면(로딩/실패)
+                        // 일단 누르게 두고 서버 응답(재고 부족 스낵바)에 맡긴다.
+                        onIncrement: isBusy || _isAtStockLimit(item)
                             ? null
                             : () => _run(
                                 () => notifier.updateQuantity(
@@ -143,7 +183,7 @@ class _CartBodyState extends ConsumerState<_CartBody> {
                               ),
                       ),
                       Text(
-                        '${item.subtotalPrice}원',
+                        '${item.subtotalPrice.toInt()}원',
                         style: textTheme.titleMedium?.copyWith(
                           color: AppColors.textStrong,
                           fontWeight: FontWeight.w800,
@@ -161,7 +201,7 @@ class _CartBodyState extends ConsumerState<_CartBody> {
             children: [
               Text('합계', style: textTheme.titleMedium),
               Text(
-                '${cart.totalPrice}원',
+                '${cart.totalPrice.toInt()}원',
                 style: textTheme.titleLarge?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w800,
@@ -172,7 +212,9 @@ class _CartBodyState extends ConsumerState<_CartBody> {
           const SizedBox(height: AppSpacing.md),
           ElevatedButton(
             // 체크아웃(B7)은 아직 API 연동 없는 뼈대 — 전체 플로우 확인용 진입점.
-            onPressed: isBusy ? null : () => context.push(RoutePaths.checkout),
+            onPressed: isBusy
+                ? null
+                : () => context.push(RoutePaths.checkout),
             child: const Text('주문하기'),
           ),
           const SizedBox(height: AppSpacing.sm),

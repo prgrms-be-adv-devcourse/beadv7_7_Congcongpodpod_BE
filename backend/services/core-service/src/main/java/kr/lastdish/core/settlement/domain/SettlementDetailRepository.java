@@ -12,4 +12,6 @@ public interface SettlementDetailRepository {
   boolean existsByOrderId(Long orderId);
 
   Set<Long> findSettledOrderIds(Collection<Long> orderIds);
+
+  List<SettlementDetail> findAllBySettlementId(Long settlementId);
 }

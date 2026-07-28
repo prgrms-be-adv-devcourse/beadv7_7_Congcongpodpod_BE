@@ -14,11 +14,11 @@ class CartItem with _$CartItem {
     required int cartItemId,
     required int dishId,
     required String dishName,
-    // 원 단위 정수로 가정(금액은 원 단위, 소수점 없음).
-    // 백엔드가 소수점 있는 값을 내려주면(BigDecimal이라 이론상 가능) 이 타입을 num으로 바꿔야 한다.
-    required int unitPrice,
+    // 2026-07-27 실제 로컬 연동 테스트로 확인: 백엔드가 `BigDecimal`이라 실제로
+    // "10000.00"처럼 소수점을 붙여 내려온다(int로 받으면 파싱 시 캐스팅 에러) — num으로 수정.
+    required num unitPrice,
     required int quantity,
-    required int subtotalPrice,
+    required num subtotalPrice,
   }) = _CartItem;
 
   factory CartItem.fromJson(Map<String, Object?> json) =>
@@ -32,7 +32,7 @@ class Cart with _$Cart {
     required int cartId,
     required int memberId,
     required List<CartItem> items,
-    required int totalPrice,
+    required num totalPrice,
   }) = _Cart;
 
   factory Cart.fromJson(Map<String, Object?> json) => _$CartFromJson(json);
