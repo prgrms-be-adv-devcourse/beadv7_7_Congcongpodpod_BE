@@ -48,7 +48,7 @@ public class CartService {
                       quantity,
                       dish.pickupStartAt(),
                       dish.pickupEndAt(),
-                      dish.eventVersion());
+                      dish.aggregateVersion());
                   return existing;
                 })
             .orElseGet(
@@ -63,7 +63,7 @@ public class CartService {
                             quantity,
                             dish.pickupStartAt(),
                             dish.pickupEndAt(),
-                            dish.eventVersion())));
+                            dish.aggregateVersion())));
 
     return CartItemResponse.from(cartItem);
   }
@@ -87,7 +87,7 @@ public class CartService {
     CartItem cartItem = getCartItemOrThrow(cartId, itemId);
     DishSnapshot dish = getAvailableDishOrThrow(cartItem.getDishId(), request.quantity());
 
-    cartItem.changeQuantity(request.quantity(), dish.eventVersion());
+    cartItem.changeQuantity(request.quantity(), dish.aggregateVersion());
 
     return CartItemResponse.from(cartItem);
   }
