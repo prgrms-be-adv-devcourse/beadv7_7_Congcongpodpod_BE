@@ -95,7 +95,7 @@ class OrderConcurrencyIntegrationTest {
                           quantity,
                           LocalTime.of(18, 0),
                           LocalTime.of(19, 0),
-                          dish.getEventVersion()));
+                          dish.getAggregateVersion()));
               depositRepository.save(new Deposit(memberId, BigDecimal.valueOf(10_000)));
               return cartItem.getId();
             });
