@@ -74,6 +74,7 @@ class OrderConcurrencyIntegrationTest {
                       memberId,
                       dish.getStoreId(),
                       dish.getId(),
+                      "테스트 회원",
                       "010-1234-5678",
                       dish.getDishName(),
                       quantity,
