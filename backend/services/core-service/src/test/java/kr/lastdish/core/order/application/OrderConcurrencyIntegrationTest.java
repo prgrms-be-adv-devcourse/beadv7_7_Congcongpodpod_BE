@@ -1,18 +1,5 @@
 package kr.lastdish.core.order.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.domain.Cart;
 import kr.lastdish.core.cart.domain.CartItem;
@@ -36,6 +23,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 class OrderConcurrencyIntegrationTest {
@@ -95,7 +96,7 @@ class OrderConcurrencyIntegrationTest {
                           quantity,
                           LocalTime.of(18, 0),
                           LocalTime.of(19, 0),
-                          dish.getEventVersion()));
+                          dish.getAggregateVersion()));
               depositRepository.save(new Deposit(memberId, BigDecimal.valueOf(10_000)));
               return cartItem.getId();
             });
