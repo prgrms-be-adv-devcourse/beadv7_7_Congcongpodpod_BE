@@ -44,7 +44,7 @@ public class DishFacade {
         dish.getStockQuantity(),
         dish.getPickupStartTime(),
         dish.getPickupEndTime(),
-        dish.getEventVersion());
+        dish.getAggregateVersion());
   }
 
   public void decreaseStock(Long dishId, Long quantity) {
