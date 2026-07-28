@@ -8,7 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import kr.lastdish.common.outbox.infrastructure.OutboxClaimRepository;
+import kr.lastdish.common.outbox.domain.OutboxClaimRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

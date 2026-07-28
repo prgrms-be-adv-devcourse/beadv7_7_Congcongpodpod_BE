@@ -41,12 +41,7 @@ class MemberServiceApplicationTests {
   void signUpIntegrationTest() throws Exception {
     SignUpRequest request =
         new SignUpRequest(
-            "testuser123",
-            "securePassword123!",
-            "테스트유저",
-            "010-1234-5678",
-            "testuser@gmail.com",
-            "MEMBER");
+            "testuser123", "securePassword123!", "테스트유저", "010-1234-5678", "testuser@gmail.com");
 
     String requestJson = objectMapper.writeValueAsString(request);
 
@@ -72,12 +67,7 @@ class MemberServiceApplicationTests {
     // given (로그인을 위한 회원가입 사전 작업)
     SignUpRequest signUpRequest =
         new SignUpRequest(
-            "loginuser123",
-            "securePassword123!",
-            "로그인유저",
-            "010-9876-5432",
-            "loginuser@gmail.com",
-            "MEMBER");
+            "loginuser123", "securePassword123!", "로그인유저", "010-9876-5432", "loginuser@gmail.com");
 
     String signUpJson = objectMapper.writeValueAsString(signUpRequest);
 

@@ -3,6 +3,7 @@ package kr.lastdish.core.store.presentation;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.PayoutAccountResult;
 import kr.lastdish.core.store.application.dto.StorePageResult;
@@ -18,12 +19,13 @@ import org.springframework.web.bind.annotation.*;
 public class StoreController {
 
   private final StoreService storeService;
+  private final StoreFacade storeFacade;
 
   @PostMapping
   public ApiResponse<StoreResponse> registerStore(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @Valid @RequestBody StoreCreateRequest request) {
-    StoreResult result = storeService.register(request.toCommand(memberId));
+    StoreResult result = storeFacade.register(request.toCommand(memberId));
 
     return ApiResponse.ok(StoreResponse.from(result));
   }
