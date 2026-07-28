@@ -12,6 +12,7 @@ import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,6 +97,43 @@ class DishServiceTest {
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().available()).isTrue();
     assertThat(event.payload().stockQuantity()).isEqualTo(5L);
+  }
+
+  @Test
+  void 할인_가격만_변경되면_Dish_가격_이벤트를_기록한다() {
+    // given
+    Dish dish = createDish(10L);
+    ReflectionTestUtils.setField(dish, "id", 10L);
+
+    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+
+    DishUpdateRequest request =
+        new DishUpdateRequest(
+            10L,
+            "김치찌개",
+            LocalDateTime.now(),
+            "상품 설명",
+            null,
+            10L,
+            BigDecimal.valueOf(10_000),
+            BigDecimal.valueOf(7_000));
+
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    // when
+    dishService.updateDish(10L, request);
+
+    // then
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    assertThat(eventCaptor.getValue()).isInstanceOf(DishPriceChangedEvent.class);
+
+    DishPriceChangedEvent event = (DishPriceChangedEvent) eventCaptor.getValue();
+
+    assertThat(event.dishId()).isEqualTo(10L);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
+    assertThat(event.payload().unitPrice()).isEqualByComparingTo("7000");
+    assertThat(event.schemaVersion()).isEqualTo(DishPriceChangedEvent.SCHEMA_VERSION);
   }
 
   @Test
