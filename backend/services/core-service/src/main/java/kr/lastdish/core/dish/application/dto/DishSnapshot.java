@@ -11,4 +11,4 @@ public record DishSnapshot(
     Long stockQuantity,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt,
-    long eventVersion) {}
+    long aggregateVersion) {}

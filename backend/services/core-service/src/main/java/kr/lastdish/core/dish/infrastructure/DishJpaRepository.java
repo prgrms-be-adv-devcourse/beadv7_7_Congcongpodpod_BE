@@ -18,6 +18,8 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
 
   boolean existsByStoreIdAndIsDeletedFalse(Long storeId);
 
+  Optional<Dish> findByStoreIdAndIsDeletedFalse(Long storeId);
+
   @Query(
       """
     SELECT d

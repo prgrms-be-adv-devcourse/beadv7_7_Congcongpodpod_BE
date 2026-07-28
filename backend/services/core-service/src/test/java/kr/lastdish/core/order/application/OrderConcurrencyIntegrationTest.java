@@ -28,8 +28,8 @@ import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.infrastructure.OrderJpaRepository;
 import kr.lastdish.core.payment.domain.deposit.Deposit;
 import kr.lastdish.core.payment.domain.deposit.DepositHistory;
-import kr.lastdish.core.payment.infrastructure.DepositHistoryRepository;
-import kr.lastdish.core.payment.infrastructure.DepositRepository;
+import kr.lastdish.core.payment.domain.deposit.DepositHistoryRepository;
+import kr.lastdish.core.payment.domain.deposit.DepositRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,7 +95,7 @@ class OrderConcurrencyIntegrationTest {
                           quantity,
                           LocalTime.of(18, 0),
                           LocalTime.of(19, 0),
-                          dish.getEventVersion()));
+                          dish.getAggregateVersion()));
               depositRepository.save(new Deposit(memberId, BigDecimal.valueOf(10_000)));
               return cartItem.getId();
             });

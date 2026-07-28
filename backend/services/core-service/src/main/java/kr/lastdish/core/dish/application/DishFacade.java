@@ -44,7 +44,7 @@ public class DishFacade {
         dish.getStockQuantity(),
         dish.getPickupStartTime(),
         dish.getPickupEndTime(),
-        dish.getEventVersion());
+        dish.getAggregateVersion());
   }
 
   public void decreaseStock(Long dishId, Long quantity) {
@@ -57,5 +57,10 @@ public class DishFacade {
 
   public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
     return dishService.getOnSaleDishesByStoreId(storeId);
+  }
+
+  // Seller 상품관리용 조회 — 소유권 검증은 호출자(Store 컨텍스트)의 책임이다.
+  public DishResponse getDishByStoreId(Long storeId) {
+    return dishService.getDishByStoreId(storeId);
   }
 }
