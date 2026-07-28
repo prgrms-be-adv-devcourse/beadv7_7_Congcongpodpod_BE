@@ -31,4 +31,6 @@ public interface StoreRepository {
       Category category);
 
   List<Long> findAllActiveStoreIds();
+
+  Optional<Store> findByMemberId(Long memberId);
 }
