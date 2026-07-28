@@ -3,6 +3,8 @@ package kr.lastdish.core.order.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.cart.application.CartFacade;
+import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.domain.Order;
@@ -24,15 +26,19 @@ public class OrderFacade {
 
   private final OrderRepository orderRepository;
   private final OrderService orderService;
+  private final CartFacade cartFacade;
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
   private final StoreFacade storeFacade;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResponse payAndCreateOrder(Long memberId, OrderCreateRequest request) {
+  public OrderResponse payAndCreateOrder(
+      Long memberId, Long cartItemId, OrderCreateRequest request) {
+    CartOrderSnapshot cartItem = cartFacade.getOrderSnapshot(memberId, cartItemId);
+
     // 주문 생성 및 저장
-    Order order = orderService.createOrder(memberId, request);
+    Order order = orderService.createOrder(memberId, request.phone(), cartItem);
 
     // 재고 차감
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());

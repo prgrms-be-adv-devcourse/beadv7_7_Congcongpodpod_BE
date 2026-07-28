@@ -15,6 +15,7 @@ backend/workspace/
 **/.claude/
 **/.claude.json
 **/.claude.json.backup
+**/skills-lock.json
 **/.cursor/
 **/.windsurf/
 **/.continue/
