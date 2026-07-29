@@ -25,6 +25,10 @@ spec:
             - name: http
               containerPort: 8888
           env:
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              value: -Duser.timezone=Asia/Seoul
             - name: CONFIG_GIT_URI
               value: https://github.com/oxxultus/devcos-team03-spring-config.git
             - name: CONFIG_GIT_USERNAME
