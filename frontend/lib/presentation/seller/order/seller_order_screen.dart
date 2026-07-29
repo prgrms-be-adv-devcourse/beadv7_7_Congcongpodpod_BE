@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/presentation/components/order_status_badge.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
 import '../../../domain/model/order_reject_reason.dart';
@@ -35,7 +36,10 @@ class SellerOrderScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('먼저 매장을 등록해야 주문을 받을 수 있어요', textAlign: TextAlign.center),
+                      const Text(
+                        '먼저 매장을 등록해야 주문을 받을 수 있어요',
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
                         onPressed: () => context.push(RoutePaths.sellerStore),
@@ -68,7 +72,8 @@ class _OrderQueue extends ConsumerWidget {
       if (!wasLoading || next.isLoading) return;
 
       if (next.hasError) {
-        if (kDebugMode) debugPrint('[seller_order] ${next.error}\n${next.stackTrace}');
+        if (kDebugMode)
+          debugPrint('[seller_order] ${next.error}\n${next.stackTrace}');
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(next.error.toString())));
@@ -109,7 +114,8 @@ class _OrderQueue extends ConsumerWidget {
               child: Row(
                 children: [
                   chip(null, '전체'),
-                  for (final value in orderStatusValues) chip(value, orderStatusLabel(value)),
+                  for (final value in orderStatusValues)
+                    chip(value, orderStatusLabel(value)),
                 ],
               ),
             ),
@@ -122,8 +128,10 @@ class _OrderQueue extends ConsumerWidget {
                 : ListView.separated(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     itemCount: orders.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, index) => _SellerOrderCard(order: orders[index]),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) =>
+                        _SellerOrderCard(order: orders[index]),
                   ),
             error: (error, _) => Center(child: Text('$error')),
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -174,12 +182,12 @@ class _SellerOrderCard extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('주문 #${order.orderId} · ${order.dishName}', style: textTheme.titleMedium),
+                  child: Text(
+                    '주문 #${order.orderId} · ${order.dishName}',
+                    style: textTheme.titleMedium,
+                  ),
                 ),
-                Chip(
-                  label: Text(orderStatusLabel(order.status)),
-                  visualDensity: VisualDensity.compact,
-                ),
+                OrderStatusBadge(status: order.status),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
