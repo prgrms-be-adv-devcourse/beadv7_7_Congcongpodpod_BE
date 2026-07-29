@@ -22,10 +22,17 @@ Dio dio(Ref ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final tokenStorage = await ref.read(tokenStorageProvider.future);
-        final accessToken = await tokenStorage.getAccessToken();
-        if (accessToken != null) {
-          options.headers['Authorization'] = 'Bearer $accessToken';
+        // 로그인/회원가입/재발급은 토큰 없이 요청해야 하는 공개 엔드포인트다.
+        // 이전 세션의 만료된 토큰이 저장소에 남아있으면 여기 붙어 나가서,
+        // Gateway의 JWT 검증 필터가 permitAll 판단보다 먼저 401로 걸러버리고
+        // 그 응답엔 CORS 헤더도 안 붙는다(troubleshooting 문서 참고) — 그래서
+        // 이 경로들은 저장된 토큰 여부와 무관하게 헤더 자체를 안 붙인다.
+        if (!_isPublicAuthPath(options.path)) {
+          final tokenStorage = await ref.read(tokenStorageProvider.future);
+          final accessToken = await tokenStorage.getAccessToken();
+          if (accessToken != null) {
+            options.headers['Authorization'] = 'Bearer $accessToken';
+          }
         }
         handler.next(options);
       },
@@ -47,3 +54,9 @@ Dio dio(Ref ref) {
 
   return dio;
 }
+
+// Gateway의 permitAll 경로(GatewaySecurityConfig)와 동일하게 맞춘다.
+const _publicAuthPaths = ['/auth/login', '/auth/signup', '/auth/refresh'];
+
+bool _isPublicAuthPath(String path) =>
+    _publicAuthPaths.any((publicPath) => path.endsWith(publicPath));
