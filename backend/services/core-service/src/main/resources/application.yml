@@ -6,39 +6,3 @@ spring:
     name: core-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
-  batch:
-    job:
-      enabled: false
-#    jdbc:
-#      initialize-schema: always
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,refresh
-  endpoint:
-    health:
-      probes:
-        enabled: true
-
-springdoc:
-  api-docs:
-    enabled: false
-  swagger-ui:
-    enabled: false
-
-services:
-  member:
-    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
-
-event:
-  publisher: ${EVENT_PUBLISHER:spring}
-
-outbox:
-  scheduler:
-    enabled: ${OUTBOX_SCHEDULER_ENABLED:true}
-  polling-delay-ms: ${OUTBOX_POLLING_DELAY_MS:1000}
-  batch-size: ${OUTBOX_BATCH_SIZE:100}
-  max-retries: ${OUTBOX_MAX_RETRIES:5}
-  lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
