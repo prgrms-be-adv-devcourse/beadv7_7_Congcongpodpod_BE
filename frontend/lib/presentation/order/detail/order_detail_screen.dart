@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/presentation/components/order_status_badge.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
-import '../../../domain/model/order_status.dart';
 import '../../../ui/app_colors.dart';
 import '../../../ui/app_spacing.dart';
 import 'order_detail_view_model.dart';
@@ -70,11 +70,7 @@ class _OrderDetailBody extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Chip(
-                        label: Text(orderStatusLabel(order.status)),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                      ),
+                      OrderStatusBadge(status: order.status),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -88,17 +84,22 @@ class _OrderDetailBody extends StatelessWidget {
                   _InfoRow('연락처', order.phone),
                   // CANCELLED(구매자 취소)는 사유 자체가 없다 — REJECTED(매장 거절)만
                   // rejectReason이 있다. 둘을 같은 문구로 뭉뚱그리지 않는다.
-                  if (order.status == 'REJECTED' && order.rejectReason != null) ...[
+                  if (order.status == 'REJECTED' &&
+                      order.rejectReason != null) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       '매장 안내: ${order.rejectReason}',
-                      style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.error,
+                      ),
                     ),
                   ] else if (order.status == 'CANCELLED') ...[
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       '취소된 주문이에요',
-                      style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textHint,
+                      ),
                     ),
                   ],
                 ],
@@ -108,14 +109,16 @@ class _OrderDetailBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           if (order.status == 'RESERVED')
             ElevatedButton(
-              onPressed: () =>
-                  context.push(RoutePaths.orderCancelOf(order.orderId.toString())),
+              onPressed: () => context.push(
+                RoutePaths.orderCancelOf(order.orderId.toString()),
+              ),
               child: const Text('주문 취소'),
             ),
           if (order.status == 'PICKUP_READY')
             ElevatedButton(
-              onPressed: () =>
-                  context.push(RoutePaths.orderPickupOf(order.orderId.toString())),
+              onPressed: () => context.push(
+                RoutePaths.orderPickupOf(order.orderId.toString()),
+              ),
               child: const Text('픽업 확인'),
             ),
         ],
@@ -139,7 +142,10 @@ class _InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 72,
-            child: Text(label, style: textTheme.bodySmall?.copyWith(color: AppColors.textHint)),
+            child: Text(
+              label,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+            ),
           ),
           Expanded(child: Text(value, style: textTheme.bodyMedium)),
         ],
