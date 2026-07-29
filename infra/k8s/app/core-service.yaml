@@ -25,6 +25,10 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              value: -Duser.timezone=Asia/Seoul
             - name: CONFIG_SERVER_URL
               value: http://config-server.platform.svc.cluster.local:8888
             - name: CORE_DB_URL
