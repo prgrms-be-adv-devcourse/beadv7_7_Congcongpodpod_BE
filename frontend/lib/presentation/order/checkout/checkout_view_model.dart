@@ -12,30 +12,11 @@ class CheckoutViewModel extends _$CheckoutViewModel {
   @override
   FutureOr<Order?> build() => null; // 아직 아무 시도도 안 함.
 
-  Future<void> submit({
-    required int storeId,
-    required int dishId,
-    required String phone,
-    required String dishName,
-    required int quantity,
-    required num unitPrice,
-    required String pickupStartAt,
-    required String pickupEndAt,
-  }) async {
+  Future<void> submit({required int cartItemId}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref
-          .read(orderRepositoryProvider)
-          .createOrder(
-            storeId: storeId,
-            dishId: dishId,
-            phone: phone,
-            dishName: dishName,
-            quantity: quantity,
-            unitPrice: unitPrice,
-            pickupStartAt: pickupStartAt,
-            pickupEndAt: pickupEndAt,
-          ),
+      () =>
+          ref.read(orderRepositoryProvider).createOrder(cartItemId: cartItemId),
     );
   }
 }

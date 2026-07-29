@@ -6,7 +6,7 @@ part of 'router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$routerHash() => r'970ab964da2500311f59b336051dfc6018010c04';
+String _$routerHash() => r'23f6137470dff597c4ca40831af1574015e75e97';
 
 /// go_router 설정. 경로 문자열은 RoutePaths 상수에서 가져와 오타를 막는다.
 /// 워킹 스켈레톤 — 전체 17개 화면(screens.md 기준) 네비게이션만 연결돼 있고
@@ -17,8 +17,9 @@ String _$routerHash() => r'970ab964da2500311f59b336051dfc6018010c04';
 final routerProvider = AutoDisposeProvider<GoRouter>.internal(
   router,
   name: r'routerProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$routerHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$routerHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
