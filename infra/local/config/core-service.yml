@@ -12,3 +12,21 @@ spring:
     enabled: true
     validate-on-migrate: true
     clean-disabled: true
+  batch:
+    job:
+      enabled: false
+
+services:
+  member:
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
+
+event:
+  publisher: ${EVENT_PUBLISHER:spring}
+
+outbox:
+  scheduler:
+    enabled: ${OUTBOX_SCHEDULER_ENABLED:true}
+  polling-delay-ms: ${OUTBOX_POLLING_DELAY_MS:1000}
+  batch-size: ${OUTBOX_BATCH_SIZE:100}
+  max-retries: ${OUTBOX_MAX_RETRIES:5}
+  lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
