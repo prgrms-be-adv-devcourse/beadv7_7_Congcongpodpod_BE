@@ -6,15 +6,16 @@ part of 'api_base_url_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$apiBaseUrlHash() => r'd8fe879d8a591d43a560e467f52a065844c6ab69';
+String _$apiBaseUrlHash() => r'a80fd4c7ada12092687c889b686e459782043989';
 
 /// See also [apiBaseUrl].
 @ProviderFor(apiBaseUrl)
 final apiBaseUrlProvider = Provider<String>.internal(
   apiBaseUrl,
   name: r'apiBaseUrlProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$apiBaseUrlHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$apiBaseUrlHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
