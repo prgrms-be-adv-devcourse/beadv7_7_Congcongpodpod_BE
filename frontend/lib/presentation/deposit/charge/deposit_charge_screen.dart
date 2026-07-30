@@ -62,6 +62,21 @@ class _DepositChargeScreenState extends ConsumerState<DepositChargeScreen> {
               ),
               onChanged: (_) => setState(() {}),
             ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.xs,
+              children: [
+                for (final quickAmount in const [10000, 30000, 50000, 100000])
+                  ActionChip(
+                    label: Text('${quickAmount ~/ 10000}만원'),
+                    onPressed: state.isLoading
+                        ? null
+                        : () => setState(
+                            () => _amountController.text = '$quickAmount',
+                          ),
+                  ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
               onPressed: state.isLoading || _amount == null || _amount! <= 0

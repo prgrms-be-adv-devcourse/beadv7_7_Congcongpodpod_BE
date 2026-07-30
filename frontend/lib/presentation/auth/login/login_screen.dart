@@ -198,20 +198,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xs),
                           // 개발용 — 전체 17개 화면을 API 연동 전에 눌러볼 수 있는
-                          // IA 지도.
-                          GestureDetector(
-                            onTap: () =>
-                                context.push(RoutePaths.devScreenIndex),
-                            child: Text(
-                              '🗂 전체 화면 보기 (개발용)',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: AppColors.textMeta,
-                                letterSpacing: 1.0,
+                          // IA 지도. 데모/운영 빌드(release)에서는 안 보이게 한다.
+                          if (kDebugMode) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            GestureDetector(
+                              onTap: () =>
+                                  context.push(RoutePaths.devScreenIndex),
+                              child: Text(
+                                '🗂 전체 화면 보기 (개발용)',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: AppColors.textMeta,
+                                  letterSpacing: 1.0,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

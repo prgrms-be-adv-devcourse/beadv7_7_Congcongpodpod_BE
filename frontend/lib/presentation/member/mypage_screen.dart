@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/network/token_storage_provider.dart';
+import '../../core/presentation/phone_format.dart';
 import '../../core/routing/route_paths.dart';
 import '../../domain/model/member.dart';
 import '../../ui/app_colors.dart';
 import '../../ui/app_spacing.dart';
+import '../deposit/deposit_providers.dart';
 import 'member_repository_provider.dart';
 
 const _roleLabels = {'MEMBER': '구매자', 'SELLER': '판매자'};
@@ -34,6 +36,7 @@ class MyPageScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final memberAsync = ref.watch(myInfoProvider);
+    final balanceAsync = ref.watch(depositBalanceProvider);
     final isSeller = memberAsync.valueOrNull?.role == 'SELLER';
     final textTheme = Theme.of(context).textTheme;
 
@@ -45,8 +48,11 @@ class MyPageScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             memberAsync.when(
-              data: (member) =>
-                  _ProfileCard(member: member, textTheme: textTheme),
+              data: (member) => _ProfileCard(
+                member: member,
+                balance: balanceAsync.valueOrNull?.balance,
+                textTheme: textTheme,
+              ),
               error: (error, _) => Card(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
@@ -60,7 +66,7 @@ class MyPageScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             _MenuButton(
-              label: '예치금 잔액/내역(B11)',
+              label: '예치금 잔액/내역',
               onTap: () => context.push(RoutePaths.deposits),
             ),
             if (!isSeller)
@@ -76,19 +82,24 @@ class MyPageScreen extends ConsumerWidget {
               ),
             if (isSeller) ...[
               _MenuButton(
-                label: '매장 등록/수정(S1)',
+                label: '매장 등록/수정',
                 onTap: () => context.push(RoutePaths.sellerStore),
               ),
               _MenuButton(
-                label: '상품 등록/관리(S2)',
+                label: '상품 등록/관리',
                 onTap: () => context.push(RoutePaths.sellerDishes),
               ),
               _MenuButton(
-                label: '주문 접수/픽업 처리(S3)',
+                label: '주문 접수/픽업 처리',
                 onTap: () => context.push(RoutePaths.sellerOrders),
               ),
             ],
-            _MenuButton(label: '로그아웃', onTap: () => _logout(context, ref)),
+            Center(
+              child: TextButton(
+                onPressed: () => _logout(context, ref),
+                child: const Text('로그아웃'),
+              ),
+            ),
           ],
         ),
       ),
@@ -97,9 +108,17 @@ class MyPageScreen extends ConsumerWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.member, required this.textTheme});
+  const _ProfileCard({
+    required this.member,
+    required this.balance,
+    required this.textTheme,
+  });
 
   final Member member;
+  // 예치금 잔액 — 아직 로딩 중이거나 조회에 실패했으면 null. 이 카드는 회원정보
+  // 조회 실패와 별개로 그려지므로(memberAsync만 error 분기함), null이면 그냥 그
+  // 줄을 생략한다(cart_screen.dart의 재고 표시와 같은 방식).
+  final num? balance;
   final TextTheme textTheme;
 
   @override
@@ -141,8 +160,10 @@ class _ProfileCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             _InfoRow(label: '아이디', value: member.userName),
             _InfoRow(label: '이메일', value: member.email),
-            _InfoRow(label: '전화번호', value: member.phone),
+            _InfoRow(label: '전화번호', value: formatPhone(member.phone)),
             _InfoRow(label: '가입일', value: member.createdAt.split('T').first),
+            if (balance != null)
+              _InfoRow(label: '예치금', value: '${balance!.toInt()}원'),
           ],
         ),
       ),
