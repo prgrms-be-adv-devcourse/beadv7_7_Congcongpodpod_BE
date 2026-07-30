@@ -35,10 +35,11 @@ public class PaymentFacade {
 
     // Toss 결제 거절 -> 실패 반영 후 종료
     if (!pgResult.success()) {
+      log.warn(
+          "Toss 승인 거절: code={}, message={}", pgResult.failureCode(), pgResult.failureMessage());
       Payment failedPayment = paymentService.failPayment(readyPayment.getId(), pgResult);
       return PaymentApproveResponse.of(failedPayment, null);
     }
-
     Payment approvedPayment;
 
     try {
