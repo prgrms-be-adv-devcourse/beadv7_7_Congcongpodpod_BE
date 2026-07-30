@@ -13,7 +13,7 @@ public record DishCreateRequest(
     @NotNull Long storeId,
     @NotBlank String dishName,
     @NotNull LocalDateTime registeredAt,
-    String description,
+    @NotBlank String description,
     String thumbnailUrl,
     @NotNull @Positive Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,
