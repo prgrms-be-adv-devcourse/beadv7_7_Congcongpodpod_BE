@@ -18,6 +18,8 @@ abstract final class RoutePaths {
   static const me = '/me';
   static const orderPickup = '/orders/:orderId/pickup';
   static const depositCharge = '/deposits/charge';
+  static const depositChargeSuccess = '/deposits/charge/success';
+  static const depositChargeFail = '/deposits/charge/fail';
   static const sellerVerify = '/seller/verify';
   static const sellerDishes = '/seller/dishes';
   static const sellerStore = '/seller/store';

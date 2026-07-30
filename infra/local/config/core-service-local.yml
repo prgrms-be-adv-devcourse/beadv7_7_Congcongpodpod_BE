@@ -12,8 +12,8 @@ swagger:
     allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
 
 toss:
-  client-key: "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm"
-  secret-key: "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6"
+  client-key: ${TOSS_CLIENT_KEY}
+  secret-key: ${TOSS_SECRET_KEY}
 
 encryption:
-  secret-key: "aB3xK9mQ2vN7wR1tY6bZ4cL0dF5hG8sV"
+  secret-key: ${ENCRYPTION_SECRET_KEY}

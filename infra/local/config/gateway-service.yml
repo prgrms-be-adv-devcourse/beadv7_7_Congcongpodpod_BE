@@ -6,6 +6,16 @@ spring:
           httpclient:
             connect-timeout: 3000
             response-timeout: 10s
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              "[/api/**]":
+                allowed-origins:
+                  - ${GATEWAY_CORS_ORIGIN:https://lastdish.kr}
+                  - ${GATEWAY_CORS_WWW_ORIGIN:https://www.lastdish.kr}
+                allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowed-headers: [Authorization, Content-Type]
+                max-age: 3600
           routes:
             - id: core-service
               uri: http://core-service:8080
@@ -33,3 +43,12 @@ gateway:
     jwt:
       issuer: lastdish-member-service
       public-key-location: ${JWT_PUBLIC_KEY_LOCATION}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,refresh
+  endpoint:
+    gateway:
+      access: unrestricted
