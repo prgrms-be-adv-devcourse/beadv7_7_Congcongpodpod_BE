@@ -82,7 +82,9 @@ class OrderConcurrencyIntegrationTest {
                           null,
                           10L,
                           BigDecimal.valueOf(2_000),
-                          unitPrice));
+                          unitPrice,
+                          null,
+                          null));
               Cart cart = cartJpaRepository.save(Cart.create(memberId));
               CartItem cartItem =
                   cartItemJpaRepository.save(
@@ -152,7 +154,9 @@ class OrderConcurrencyIntegrationTest {
                           null,
                           3L,
                           BigDecimal.valueOf(2_000),
-                          unitPrice));
+                          unitPrice,
+                          null,
+                          null));
 
               depositRepository.save(new Deposit(memberId, BigDecimal.valueOf(8_000)));
 

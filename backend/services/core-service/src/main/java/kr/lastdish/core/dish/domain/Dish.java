@@ -64,7 +64,9 @@ public class Dish {
       String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
-      BigDecimal discountPrice) {
+      BigDecimal discountPrice,
+      LocalTime pickupStartTime,
+      LocalTime pickupEndTime) {
     Dish dish = new Dish();
     dish.storeId = storeId;
     dish.dishName = dishName;
@@ -75,6 +77,8 @@ public class Dish {
     dish.dishStatus = DishStatus.ON_SALE;
     dish.dishPrice = dishPrice;
     dish.discountPrice = discountPrice;
+    dish.pickupStartTime = pickupStartTime;
+    dish.pickupEndTime = pickupEndTime;
     dish.isDeleted = false;
     dish.aggregateVersion = 0L;
     return dish;

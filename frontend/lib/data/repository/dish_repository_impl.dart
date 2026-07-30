@@ -52,6 +52,8 @@ class DishRepositoryImpl implements DishRepository {
     required int stockQuantity,
     required num dishPrice,
     required num discountPrice,
+    String? pickupStartTime,
+    String? pickupEndTime,
   }) async {
     try {
       final response = await _dio.post(
@@ -65,6 +67,12 @@ class DishRepositoryImpl implements DishRepository {
           'stockQuantity': stockQuantity,
           'dishPrice': dishPrice,
           'discountPrice': discountPrice,
+          // 서버가 "HH:mm" 형식만 파싱한다(DishCreateRequest의 @JsonFormat) — 매장의
+          // openTime/closeTime은 시드데이터처럼 "09:00:00"(초 포함)로 올 수도 있어서
+          // 앞 5자리만 잘라 보낸다(store_list_screen.dart의 표시 로직과 같은 이유).
+          if (pickupStartTime != null)
+            'pickupStartTime': _hhmm(pickupStartTime),
+          if (pickupEndTime != null) 'pickupEndTime': _hhmm(pickupEndTime),
         },
       );
       return Dish.fromJson(_unwrap(response.data));
@@ -72,6 +80,8 @@ class DishRepositoryImpl implements DishRepository {
       throw mapCoreServiceError(e);
     }
   }
+
+  String _hhmm(String time) => time.length > 5 ? time.substring(0, 5) : time;
 
   @override
   Future<Dish> updateDish({
