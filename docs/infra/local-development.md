@@ -1,6 +1,8 @@
 # 로컬 통합 환경
 
-Config Server, Gateway, Member, Core와 서비스별 PostgreSQL을 Docker Compose로 함께 실행한다. 운영 Config 저장소나 PAT를 사용하지 않는다.
+저장소 루트의 `compose.yaml`은 로컬 통합 개발용 진입점이다. Config Server, Gateway,
+Member, Core와 서비스별 PostgreSQL을 Docker Compose로 함께 실행한다. 운영 Config
+저장소나 PAT를 사용하지 않는다.
 
 | 소유 서비스 | Compose 호스트 | 로컬 포트 | 데이터베이스 | 사용자 |
 |---|---|---:|---|---|
