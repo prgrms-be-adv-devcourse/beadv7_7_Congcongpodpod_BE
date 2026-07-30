@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/presentation/pickup_time_format.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
 import '../../../ui/app_colors.dart';
@@ -91,8 +92,7 @@ class CheckoutScreen extends ConsumerWidget {
         ),
         content: Text(
           '${order.dishName} ${order.quantity}개\n'
-          '픽업 시간: ${order.pickupStartAt.substring(0, 5)} ~ '
-          '${order.pickupEndAt.substring(0, 5)}\n'
+          '픽업 시간: ${formatPickupWindow(order.pickupStartAt, order.pickupEndAt)}\n'
           '결제 금액: ${order.totalPrice.toInt()}원',
           textAlign: TextAlign.center,
         ),

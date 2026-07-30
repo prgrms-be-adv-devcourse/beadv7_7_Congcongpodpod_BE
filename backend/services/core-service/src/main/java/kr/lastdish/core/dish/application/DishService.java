@@ -48,7 +48,9 @@ public class DishService {
             request.thumbnailUrl(),
             request.stockQuantity(),
             request.dishPrice(),
-            request.discountPrice());
+            request.discountPrice(),
+            request.pickupStartTime(),
+            request.pickupEndTime());
 
     Dish savedDish = dishRepository.save(dish);
     return DishResponse.from(savedDish);

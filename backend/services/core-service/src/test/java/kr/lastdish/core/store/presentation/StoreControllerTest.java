@@ -147,6 +147,8 @@ class StoreControllerTest {
             null,
             10L,
             BigDecimal.valueOf(10_000),
-            BigDecimal.valueOf(7_000)));
+            BigDecimal.valueOf(7_000),
+            null,
+            null));
   }
 }

@@ -11,8 +11,8 @@ _$PickupCodeImpl _$$PickupCodeImplFromJson(Map<String, dynamic> json) =>
       orderId: (json['orderId'] as num).toInt(),
       dishName: json['dishName'] as String,
       pickupCode: json['pickupCode'] as String,
-      pickupStartAt: json['pickupStartAt'] as String,
-      pickupEndAt: json['pickupEndAt'] as String,
+      pickupStartAt: json['pickupStartAt'] as String?,
+      pickupEndAt: json['pickupEndAt'] as String?,
     );
 
 Map<String, dynamic> _$$PickupCodeImplToJson(_$PickupCodeImpl instance) =>

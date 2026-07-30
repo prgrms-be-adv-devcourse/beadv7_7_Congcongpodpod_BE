@@ -6,7 +6,7 @@ part of 'dio_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dioHash() => r'c827dc43249dc6887e0b8d0972a812eb3da2e186';
+String _$dioHash() => r'54f79f41d668d201acb59e991f9c616cd4b128df';
 
 /// Gateway 진입점 하나만 호출한다 —
 /// Member/Core 서비스 포트로 직접 호출 금지.
