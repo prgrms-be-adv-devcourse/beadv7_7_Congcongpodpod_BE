@@ -39,6 +39,17 @@ abstract final class AppTheme {
         ),
       ),
     ),
+    // OutlinedButton은 색만 다를 뿐 ElevatedButton과 같은 "각진 버튼" 계열이라
+    // 모서리(shape)는 맞춘다 — 크기(minimumSize)는 안 건드린다. 화면마다 작게
+    // 쓰는 outlined 버튼(예: 예치금 화면의 "충전하기")이 있어서, 크기까지 강제하면
+    // 그 화면들 레이아웃이 깨진다.
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.sharp),
+        ),
+      ),
+    ),
     // 인풋: 밑줄형 — 박스/필 없이 라벨은 위에 별도로 두고 인풋 자체는 최소한으로.
     inputDecorationTheme: InputDecorationTheme(
       isDense: true,

@@ -3,16 +3,19 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../network/jwt.dart';
+import '../network/token_storage_provider.dart';
 import '../../presentation/auth/login/login_screen.dart';
 import '../../presentation/auth/signup/signup_screen.dart';
 import '../../presentation/cart/cart_screen.dart';
+import '../../presentation/deposit/charge/deposit_charge_fail_screen.dart';
 import '../../presentation/deposit/charge/deposit_charge_screen.dart';
+import '../../presentation/deposit/charge/deposit_charge_success_screen.dart';
 import '../../presentation/deposit/deposit_screen.dart';
 import '../../presentation/dev/screen_index_screen.dart';
 import '../../presentation/member/mypage_screen.dart';
 import '../../presentation/order/cancel/order_cancel_screen.dart';
 import '../../presentation/order/checkout/checkout_screen.dart';
-import '../../presentation/order/detail/order_detail_screen.dart';
 import '../../presentation/order/list/order_list_screen.dart';
 import '../../presentation/order/pickup/order_pickup_screen.dart';
 import '../../presentation/seller/dish/seller_dish_screen.dart';
@@ -41,6 +44,24 @@ GoRouter router(Ref ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: RoutePaths.login,
+    // 새로고침(웹의 전체 페이지 리로드) 때마다 이 redirect가 다시 평가된다 —
+    // 저장된 액세스 토큰이 있고 아직 만료 전이면 로그인 화면을 건너뛰고 홈으로
+    // 보낸다. 토큰 없음/만료면 반대로 로그인으로 되돌린다. 리프레시 토큰으로
+    // 재발급하는 로직은 없다(dio_provider.dart의 TODO와 같은 이유로 범위 밖) —
+    // 여기서는 로컬에 이미 있는 액세스 토큰의 `exp` 클레임만 본다.
+    redirect: (context, state) async {
+      final loggingIn =
+          state.matchedLocation == RoutePaths.login ||
+          state.matchedLocation == RoutePaths.signup;
+      final tokenStorage = await ref.read(tokenStorageProvider.future);
+      final accessToken = await tokenStorage.getAccessToken();
+      final isLoggedIn = accessToken != null && !isJwtExpired(accessToken);
+
+      if (!isLoggedIn) {
+        return loggingIn ? null : RoutePaths.login;
+      }
+      return loggingIn ? RoutePaths.home : null;
+    },
     routes: [
       GoRoute(
         path: RoutePaths.login,
@@ -111,25 +132,16 @@ GoRouter router(Ref ref) {
         builder: (context, state) => const CheckoutScreen(),
       ),
       GoRoute(
-        path: RoutePaths.orderDetail,
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => OrderDetailScreen(
-          orderId: state.pathParameters['orderId']!,
-        ),
-      ),
-      GoRoute(
         path: RoutePaths.orderCancel,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => OrderCancelScreen(
-          orderId: state.pathParameters['orderId']!,
-        ),
+        builder: (context, state) =>
+            OrderCancelScreen(orderId: state.pathParameters['orderId']!),
       ),
       GoRoute(
         path: RoutePaths.orderPickup,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => OrderPickupScreen(
-          orderId: state.pathParameters['orderId']!,
-        ),
+        builder: (context, state) =>
+            OrderPickupScreen(orderId: state.pathParameters['orderId']!),
       ),
       GoRoute(
         path: RoutePaths.deposits,
@@ -140,6 +152,16 @@ GoRouter router(Ref ref) {
         path: RoutePaths.depositCharge,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const DepositChargeScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.depositChargeSuccess,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DepositChargeSuccessScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.depositChargeFail,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DepositChargeFailScreen(),
       ),
       GoRoute(
         path: RoutePaths.sellerVerify,

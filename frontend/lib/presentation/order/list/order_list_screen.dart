@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/presentation/components/filter_chip_pill.dart';
+import '../../../core/presentation/components/horizontal_fade_scroll.dart';
+import '../../../core/presentation/components/info_row.dart';
+import '../../../core/presentation/components/order_status_badge.dart';
+import '../../../core/presentation/phone_format.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
 import '../../../domain/model/order_status.dart';
@@ -39,7 +44,8 @@ class OrderListScreen extends ConsumerWidget {
                       Text(error.toString(), textAlign: TextAlign.center),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
-                        onPressed: () => ref.invalidate(orderListViewModelProvider),
+                        onPressed: () =>
+                            ref.invalidate(orderListViewModelProvider),
                         child: const Text('다시 시도'),
                       ),
                     ],
@@ -66,10 +72,10 @@ class _StatusFilterBar extends ConsumerWidget {
       final isSelected = selected == value;
       return Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs),
-        child: ChoiceChip(
-          label: Text(label),
+        child: FilterChipPill(
+          label: label,
           selected: isSelected,
-          onSelected: (_) => ref
+          onTap: () => ref
               .read(selectedOrderStatusProvider.notifier)
               .select(isSelected ? null : value),
         ),
@@ -83,13 +89,16 @@ class _StatusFilterBar extends ConsumerWidget {
       ),
       child: SizedBox(
         height: 40,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              chip(null, '전체'),
-              for (final value in orderStatusValues) chip(value, orderStatusLabel(value)),
-            ],
+        child: HorizontalFadeScroll(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                chip(null, '전체'),
+                for (final value in orderStatusValues)
+                  chip(value, orderStatusLabel(value)),
+              ],
+            ),
           ),
         ),
       ),
@@ -136,6 +145,10 @@ class _OrderListView extends ConsumerWidget {
   }
 }
 
+// 예전엔 카드를 눌러야 주문상세(B9) 화면으로 넘어가서 연락처/거절사유/취소버튼
+// 등을 봤는데, 별도 화면일 필요가 없다는 판단(2026-07-30)으로 그 내용을 전부
+// 이 카드 안에 합쳤다 — 목록 API가 이미 상세와 같은 Order 모델을 그대로 주기
+// 때문에(order_detail_view_model.dart와 필드가 동일) 추가 조회 없이 가능했다.
 class _OrderCard extends StatelessWidget {
   const _OrderCard({required this.order});
 
@@ -144,20 +157,88 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    // CANCELLED(구매자 취소)는 사유 자체가 없다 — REJECTED(매장 거절)만
+    // rejectReason이 있다. 둘을 같은 문구로 뭉뚱그리지 않는다.
+    final noteText = order.status == 'REJECTED' && order.rejectReason != null
+        ? '매장 안내: ${order.rejectReason}'
+        : order.status == 'CANCELLED'
+        ? '취소된 주문이에요'
+        : null;
+
     return Card(
-      child: ListTile(
-        onTap: () =>
-            context.push(RoutePaths.orderDetailOf(order.orderId.toString())),
-        title: Text(order.dishName),
-        subtitle: Text(
-          '${order.quantity}개 · ${order.totalPrice.toInt()}원 · '
-          '픽업 ${order.pickupStartAt.substring(0, 5)}~${order.pickupEndAt.substring(0, 5)}',
-        ),
-        trailing: Chip(
-          label: Text(orderStatusLabel(order.status)),
-          visualDensity: VisualDensity.compact,
-          padding: EdgeInsets.zero,
-          labelStyle: textTheme.labelSmall,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    order.dishName,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.textStrong,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                OrderStatusBadge(status: order.status),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.sm),
+            InfoRow(label: '수량', value: '${order.quantity}개'),
+            InfoRow(label: '결제 금액', value: '${order.totalPrice.toInt()}원'),
+            InfoRow(
+              label: '픽업 시간',
+              value:
+                  '${order.pickupStartAt.substring(0, 5)} ~ '
+                  '${order.pickupEndAt.substring(0, 5)}',
+            ),
+            InfoRow(label: '연락처', value: formatPhone(order.phone)),
+            if (noteText != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: order.status == 'REJECTED'
+                      ? AppColors.errorLight
+                      : AppColors.surface,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  noteText,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: order.status == 'REJECTED'
+                        ? AppColors.error
+                        : AppColors.textHint,
+                  ),
+                ),
+              ),
+            ],
+            if (order.status == 'RESERVED') ...[
+              const SizedBox(height: AppSpacing.sm),
+              ElevatedButton(
+                onPressed: () => context.push(
+                  RoutePaths.orderCancelOf(order.orderId.toString()),
+                ),
+                child: const Text('주문 취소'),
+              ),
+            ] else if (order.status == 'PICKUP_READY') ...[
+              const SizedBox(height: AppSpacing.sm),
+              ElevatedButton(
+                onPressed: () => context.push(
+                  RoutePaths.orderPickupOf(order.orderId.toString()),
+                ),
+                child: const Text('픽업 확인'),
+              ),
+            ],
+          ],
         ),
       ),
     );

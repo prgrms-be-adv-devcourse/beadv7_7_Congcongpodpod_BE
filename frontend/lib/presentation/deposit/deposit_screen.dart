@@ -97,6 +97,16 @@ class DepositScreen extends ConsumerWidget {
   }
 }
 
+// 서버가 마이크로초까지 실어 보내는 ISO 문자열(예: "2026-07-29T17:45:46.377216")을
+// 초 단위까지만 잘라 사람이 읽기 편한 "7월 29일 17:45"로 바꾼다.
+String _formatHistoryDate(String isoString) {
+  final parsed = DateTime.tryParse(isoString);
+  if (parsed == null) return isoString;
+  final local = parsed.toLocal();
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '${local.month}월 ${local.day}일 ${local.hour}:$minute';
+}
+
 class _HistoryTile extends StatelessWidget {
   const _HistoryTile({required this.entry});
 
@@ -109,7 +119,7 @@ class _HistoryTile extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text(_depositTypeLabels[entry.type] ?? entry.type),
-        subtitle: Text(entry.createdAt.replaceFirst('T', ' ')),
+        subtitle: Text(_formatHistoryDate(entry.createdAt)),
         trailing: Text(
           '$sign${entry.amount.toInt()}원',
           style: TextStyle(
