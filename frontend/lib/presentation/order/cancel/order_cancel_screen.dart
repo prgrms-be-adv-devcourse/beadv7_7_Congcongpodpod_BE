@@ -67,6 +67,7 @@ class _OrderCancelScreenState extends ConsumerState<OrderCancelScreen> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('주문 #${widget.orderId}을(를) 취소할까요?', textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.sm),
