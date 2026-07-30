@@ -28,6 +28,7 @@ class CheckoutScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cartAsync = ref.watch(cartViewModelProvider);
     final checkoutState = ref.watch(checkoutViewModelProvider);
+    final balanceAsync = ref.watch(depositBalanceProvider);
     final textTheme = Theme.of(context).textTheme;
 
     ref.listen(checkoutViewModelProvider, (previous, next) {
@@ -61,6 +62,7 @@ class CheckoutScreen extends ConsumerWidget {
             dishName: item.dishName,
             quantity: item.quantity,
             totalPrice: item.subtotalPrice,
+            currentBalance: balanceAsync.valueOrNull?.balance,
             isSubmitting: checkoutState.isLoading,
             onSubmit: () => ref
                 .read(checkoutViewModelProvider.notifier)
@@ -79,35 +81,47 @@ class CheckoutScreen extends ConsumerWidget {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('주문 완료!'),
+        title: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, size: 48, color: Colors.green),
+            SizedBox(height: AppSpacing.sm),
+            Text('주문 완료!'),
+          ],
+        ),
         content: Text(
           '${order.dishName} ${order.quantity}개\n'
           '픽업 시간: ${order.pickupStartAt.substring(0, 5)} ~ '
           '${order.pickupEndAt.substring(0, 5)}\n'
           '결제 금액: ${order.totalPrice.toInt()}원',
+          textAlign: TextAlign.center,
         ),
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              // 홈/주문내역 탭은 go_router의 StatefulShellRoute(IndexedStack)가 화면을
-              // 계속 살려두기 때문에, 여기서 무효화 안 해두면 탭을 다시 봐도 주문 전
-              // 캐시가 그대로 남아있는다(2026-07-27 발견 — 주문 후 주문내역 탭이 빈
-              // 목록으로 보이다가 필터를 눌러야만 그제서야 새로 불러와졌던 버그).
-              // 주문으로 실제 바뀌는 것들을 전부 무효화한다: 장바구니(서버가 비움),
-              // 주문 목록(새 주문 추가됨), 예치금(차감됨), 이 상품의 재고(줄어듦).
-              ref.invalidate(cartViewModelProvider);
-              ref.invalidate(orderListViewModelProvider);
-              ref.invalidate(depositBalanceProvider);
-              ref.invalidate(depositHistoryProvider);
-              ref.invalidate(dishProvider(order.dishId));
-              // 홈 화면 카드는 dishProvider가 아니라 nearby 목록 자체(Store.dishes)에서
-              // 재고를 보여주므로, 그 목록도 같이 무효화해야 홈으로 돌아갔을 때 줄어든
-              // 재고가 바로 반영된다.
-              ref.invalidate(storeListViewModelProvider);
-              context.go(RoutePaths.home);
-            },
-            child: const Text('확인'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                // 홈/주문내역 탭은 go_router의 StatefulShellRoute(IndexedStack)가 화면을
+                // 계속 살려두기 때문에, 여기서 무효화 안 해두면 탭을 다시 봐도 주문 전
+                // 캐시가 그대로 남아있는다(2026-07-27 발견 — 주문 후 주문내역 탭이 빈
+                // 목록으로 보이다가 필터를 눌러야만 그제서야 새로 불러와졌던 버그).
+                // 주문으로 실제 바뀌는 것들을 전부 무효화한다: 장바구니(서버가 비움),
+                // 주문 목록(새 주문 추가됨), 예치금(차감됨), 이 상품의 재고(줄어듦).
+                ref.invalidate(cartViewModelProvider);
+                ref.invalidate(orderListViewModelProvider);
+                ref.invalidate(depositBalanceProvider);
+                ref.invalidate(depositHistoryProvider);
+                ref.invalidate(dishProvider(order.dishId));
+                // 홈 화면 카드는 dishProvider가 아니라 nearby 목록 자체(Store.dishes)에서
+                // 재고를 보여주므로, 그 목록도 같이 무효화해야 홈으로 돌아갔을 때 줄어든
+                // 재고가 바로 반영된다.
+                ref.invalidate(storeListViewModelProvider);
+                context.go(RoutePaths.home);
+              },
+              child: const Text('확인'),
+            ),
           ),
         ],
       ),
@@ -120,6 +134,7 @@ class _CheckoutSummary extends StatelessWidget {
     required this.dishName,
     required this.quantity,
     required this.totalPrice,
+    required this.currentBalance,
     required this.isSubmitting,
     required this.onSubmit,
     required this.textTheme,
@@ -128,12 +143,14 @@ class _CheckoutSummary extends StatelessWidget {
   final String dishName;
   final int quantity;
   final num totalPrice;
+  final num? currentBalance;
   final bool isSubmitting;
   final VoidCallback onSubmit;
   final TextTheme textTheme;
 
   @override
   Widget build(BuildContext context) {
+    final balance = currentBalance;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -158,6 +175,16 @@ class _CheckoutSummary extends StatelessWidget {
                       color: AppColors.textHint,
                     ),
                   ),
+                  if (balance != null) ...[
+                    const Divider(height: AppSpacing.lg),
+                    _BalanceRow(label: '현재 잔액', amount: balance),
+                    const SizedBox(height: AppSpacing.xs),
+                    _BalanceRow(
+                      label: '결제 후 잔액',
+                      amount: balance - totalPrice,
+                      emphasize: true,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -175,6 +202,39 @@ class _CheckoutSummary extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BalanceRow extends StatelessWidget {
+  const _BalanceRow({
+    required this.label,
+    required this.amount,
+    this.emphasize = false,
+  });
+
+  final String label;
+  final num amount;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+        ),
+        Text(
+          '${amount.toInt()}원',
+          style: textTheme.bodyMedium?.copyWith(
+            color: emphasize ? AppColors.primary : AppColors.textBody,
+            fontWeight: emphasize ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+      ],
     );
   }
 }

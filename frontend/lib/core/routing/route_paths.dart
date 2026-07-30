@@ -12,7 +12,6 @@ abstract final class RoutePaths {
 
   // 기능 동결(7/28)까지 순연 — screens.md B8~B13
   static const orders = '/orders';
-  static const orderDetail = '/orders/:orderId';
   static const orderCancel = '/orders/:orderId/cancel';
   static const deposits = '/deposits';
   static const me = '/me';
@@ -31,7 +30,6 @@ abstract final class RoutePaths {
 
   static String storeDetailOf(String storeId) => '/stores/$storeId';
   static String dishDetailOf(String dishId) => '/dishes/$dishId';
-  static String orderDetailOf(String orderId) => '/orders/$orderId';
   static String orderCancelOf(String orderId) => '/orders/$orderId/cancel';
   static String orderPickupOf(String orderId) => '/orders/$orderId/pickup';
 }

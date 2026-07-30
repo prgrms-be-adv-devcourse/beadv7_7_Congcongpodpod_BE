@@ -86,7 +86,7 @@ class StoreRepositoryImpl implements StoreRepository {
           'storeName': storeName,
           'businessNumber': businessNumber,
           'storeAddress': storeAddress,
-          'storePhone': storePhone,
+          'storePhone': _digitsOnly(storePhone),
           'openTime': openTime,
           'closeTime': closeTime,
           'latitude': latitude,
@@ -118,7 +118,7 @@ class StoreRepositoryImpl implements StoreRepository {
         data: {
           'storeName': storeName,
           'storeAddress': storeAddress,
-          'storePhone': storePhone,
+          'storePhone': _digitsOnly(storePhone),
           'openTime': openTime,
           'closeTime': closeTime,
           'latitude': latitude,
@@ -160,4 +160,9 @@ class StoreRepositoryImpl implements StoreRepository {
     final body = responseData as Map<String, dynamic>;
     return body['data'] as Map<String, dynamic>;
   }
+
+  // DB엔 숫자만 저장하기로 함(하이픈은 화면 표시 전용) — 백엔드가 아직 저장 시점에
+  // 정규화를 안 해서, 우선 프론트가 보내는 시점에 하이픈을 뺀다(2026-07-30).
+  // 백엔드가 저장 시점 정규화를 갖추면 이 처리는 지워도 된다.
+  String _digitsOnly(String value) => value.replaceAll(RegExp(r'[^0-9]'), '');
 }
