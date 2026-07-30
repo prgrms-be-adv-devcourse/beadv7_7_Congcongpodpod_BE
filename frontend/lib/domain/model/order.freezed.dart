@@ -35,8 +35,13 @@ mixin _$Order {
   num get unitPrice => throw _privateConstructorUsedError;
   num get totalPrice =>
       throw _privateConstructorUsedError; // "HH:mm:ss" 문자열 그대로 — store.dart의 openTime/closeTime과 같은 이유.
-  String get pickupStartAt => throw _privateConstructorUsedError;
-  String get pickupEndAt => throw _privateConstructorUsedError;
+// null 허용: 백엔드 Dish.create()가 pickupStartTime/pickupEndTime을 저장하는
+// 코드 경로 자체가 없어서(2026-07-30 발견), 지금 생성되는 모든 주문의 이 값이
+// 항상 null로 내려온다. required로 두면 Order.fromJson() 자체가 TypeError를
+// 던져서 주문 성공 다이얼로그·주문목록이 통째로 깨진다 — 근본 수정(Dish 등록 시
+// 픽업시간 저장)은 범위가 커서 일단 null을 그대로 받아들이게 완화한다.
+  String? get pickupStartAt => throw _privateConstructorUsedError;
+  String? get pickupEndAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -61,8 +66,8 @@ abstract class $OrderCopyWith<$Res> {
       int quantity,
       num unitPrice,
       num totalPrice,
-      String pickupStartAt,
-      String pickupEndAt});
+      String? pickupStartAt,
+      String? pickupEndAt});
 }
 
 /// @nodoc
@@ -90,8 +95,8 @@ class _$OrderCopyWithImpl<$Res, $Val extends Order>
     Object? quantity = null,
     Object? unitPrice = null,
     Object? totalPrice = null,
-    Object? pickupStartAt = null,
-    Object? pickupEndAt = null,
+    Object? pickupStartAt = freezed,
+    Object? pickupEndAt = freezed,
   }) {
     return _then(_value.copyWith(
       orderId: null == orderId
@@ -142,14 +147,14 @@ class _$OrderCopyWithImpl<$Res, $Val extends Order>
           ? _value.totalPrice
           : totalPrice // ignore: cast_nullable_to_non_nullable
               as num,
-      pickupStartAt: null == pickupStartAt
+      pickupStartAt: freezed == pickupStartAt
           ? _value.pickupStartAt
           : pickupStartAt // ignore: cast_nullable_to_non_nullable
-              as String,
-      pickupEndAt: null == pickupEndAt
+              as String?,
+      pickupEndAt: freezed == pickupEndAt
           ? _value.pickupEndAt
           : pickupEndAt // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
     ) as $Val);
   }
 }
@@ -174,8 +179,8 @@ abstract class _$$OrderImplCopyWith<$Res> implements $OrderCopyWith<$Res> {
       int quantity,
       num unitPrice,
       num totalPrice,
-      String pickupStartAt,
-      String pickupEndAt});
+      String? pickupStartAt,
+      String? pickupEndAt});
 }
 
 /// @nodoc
@@ -201,8 +206,8 @@ class __$$OrderImplCopyWithImpl<$Res>
     Object? quantity = null,
     Object? unitPrice = null,
     Object? totalPrice = null,
-    Object? pickupStartAt = null,
-    Object? pickupEndAt = null,
+    Object? pickupStartAt = freezed,
+    Object? pickupEndAt = freezed,
   }) {
     return _then(_$OrderImpl(
       orderId: null == orderId
@@ -253,14 +258,14 @@ class __$$OrderImplCopyWithImpl<$Res>
           ? _value.totalPrice
           : totalPrice // ignore: cast_nullable_to_non_nullable
               as num,
-      pickupStartAt: null == pickupStartAt
+      pickupStartAt: freezed == pickupStartAt
           ? _value.pickupStartAt
           : pickupStartAt // ignore: cast_nullable_to_non_nullable
-              as String,
-      pickupEndAt: null == pickupEndAt
+              as String?,
+      pickupEndAt: freezed == pickupEndAt
           ? _value.pickupEndAt
           : pickupEndAt // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
     ));
   }
 }
@@ -281,8 +286,8 @@ class _$OrderImpl implements _Order {
       required this.quantity,
       required this.unitPrice,
       required this.totalPrice,
-      required this.pickupStartAt,
-      required this.pickupEndAt});
+      this.pickupStartAt,
+      this.pickupEndAt});
 
   factory _$OrderImpl.fromJson(Map<String, dynamic> json) =>
       _$$OrderImplFromJson(json);
@@ -314,10 +319,15 @@ class _$OrderImpl implements _Order {
   @override
   final num totalPrice;
 // "HH:mm:ss" 문자열 그대로 — store.dart의 openTime/closeTime과 같은 이유.
+// null 허용: 백엔드 Dish.create()가 pickupStartTime/pickupEndTime을 저장하는
+// 코드 경로 자체가 없어서(2026-07-30 발견), 지금 생성되는 모든 주문의 이 값이
+// 항상 null로 내려온다. required로 두면 Order.fromJson() 자체가 TypeError를
+// 던져서 주문 성공 다이얼로그·주문목록이 통째로 깨진다 — 근본 수정(Dish 등록 시
+// 픽업시간 저장)은 범위가 커서 일단 null을 그대로 받아들이게 완화한다.
   @override
-  final String pickupStartAt;
+  final String? pickupStartAt;
   @override
-  final String pickupEndAt;
+  final String? pickupEndAt;
 
   @override
   String toString() {
@@ -401,8 +411,8 @@ abstract class _Order implements Order {
       required final int quantity,
       required final num unitPrice,
       required final num totalPrice,
-      required final String pickupStartAt,
-      required final String pickupEndAt}) = _$OrderImpl;
+      final String? pickupStartAt,
+      final String? pickupEndAt}) = _$OrderImpl;
 
   factory _Order.fromJson(Map<String, dynamic> json) = _$OrderImpl.fromJson;
 
@@ -432,9 +442,14 @@ abstract class _Order implements Order {
   @override
   num get totalPrice;
   @override // "HH:mm:ss" 문자열 그대로 — store.dart의 openTime/closeTime과 같은 이유.
-  String get pickupStartAt;
+// null 허용: 백엔드 Dish.create()가 pickupStartTime/pickupEndTime을 저장하는
+// 코드 경로 자체가 없어서(2026-07-30 발견), 지금 생성되는 모든 주문의 이 값이
+// 항상 null로 내려온다. required로 두면 Order.fromJson() 자체가 TypeError를
+// 던져서 주문 성공 다이얼로그·주문목록이 통째로 깨진다 — 근본 수정(Dish 등록 시
+// 픽업시간 저장)은 범위가 커서 일단 null을 그대로 받아들이게 완화한다.
+  String? get pickupStartAt;
   @override
-  String get pickupEndAt;
+  String? get pickupEndAt;
   @override
   @JsonKey(ignore: true)
   _$$OrderImplCopyWith<_$OrderImpl> get copyWith =>
