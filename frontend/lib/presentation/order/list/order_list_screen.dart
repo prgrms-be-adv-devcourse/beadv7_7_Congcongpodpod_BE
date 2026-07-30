@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/presentation/components/order_status_badge.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
 import '../../../domain/model/order_status.dart';
@@ -39,7 +40,8 @@ class OrderListScreen extends ConsumerWidget {
                       Text(error.toString(), textAlign: TextAlign.center),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
-                        onPressed: () => ref.invalidate(orderListViewModelProvider),
+                        onPressed: () =>
+                            ref.invalidate(orderListViewModelProvider),
                         child: const Text('다시 시도'),
                       ),
                     ],
@@ -88,7 +90,8 @@ class _StatusFilterBar extends ConsumerWidget {
           child: Row(
             children: [
               chip(null, '전체'),
-              for (final value in orderStatusValues) chip(value, orderStatusLabel(value)),
+              for (final value in orderStatusValues)
+                chip(value, orderStatusLabel(value)),
             ],
           ),
         ),
@@ -143,7 +146,6 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return Card(
       child: ListTile(
         onTap: () =>
@@ -153,12 +155,7 @@ class _OrderCard extends StatelessWidget {
           '${order.quantity}개 · ${order.totalPrice.toInt()}원 · '
           '픽업 ${order.pickupStartAt.substring(0, 5)}~${order.pickupEndAt.substring(0, 5)}',
         ),
-        trailing: Chip(
-          label: Text(orderStatusLabel(order.status)),
-          visualDensity: VisualDensity.compact,
-          padding: EdgeInsets.zero,
-          labelStyle: textTheme.labelSmall,
-        ),
+        trailing: OrderStatusBadge(status: order.status),
       ),
     );
   }
