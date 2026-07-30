@@ -31,6 +31,12 @@
 
   <title>lastdish_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Toss Payments 일반결제 SDK v2 — 예치금 충전(B14) 결제창 연동용.
+       위젯(tosspayments_widget_sdk_flutter)은 Android/iOS만 지원해서 Flutter Web엔
+       못 쓰고, 이 JS SDK를 dart:js_interop으로 직접 호출한다
+       (lib/core/payment/toss_payments_js.dart). -->
+  <script src="https://js.tosspayments.com/v2/standard"></script>
 </head>
 <body>
   <!--
