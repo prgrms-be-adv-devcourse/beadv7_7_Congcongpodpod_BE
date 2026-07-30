@@ -19,14 +19,14 @@ String _$depositChargeViewModelHash() =>
 @ProviderFor(DepositChargeViewModel)
 final depositChargeViewModelProvider =
     AutoDisposeAsyncNotifierProvider<DepositChargeViewModel, void>.internal(
-      DepositChargeViewModel.new,
-      name: r'depositChargeViewModelProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$depositChargeViewModelHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  DepositChargeViewModel.new,
+  name: r'depositChargeViewModelProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$depositChargeViewModelHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$DepositChargeViewModel = AutoDisposeAsyncNotifier<void>;
 // ignore_for_file: type=lint

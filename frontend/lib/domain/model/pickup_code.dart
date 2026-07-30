@@ -13,8 +13,10 @@ class PickupCode with _$PickupCode {
     required int orderId,
     required String dishName,
     required String pickupCode,
-    required String pickupStartAt,
-    required String pickupEndAt,
+    // order.dart와 같은 이유(2026-07-30) — 백엔드가 Dish 등록 시 픽업시간을 저장하지
+    // 않아 항상 null로 내려온다. null 허용으로 완화.
+    String? pickupStartAt,
+    String? pickupEndAt,
   }) = _PickupCode;
 
   factory PickupCode.fromJson(Map<String, Object?> json) =>
