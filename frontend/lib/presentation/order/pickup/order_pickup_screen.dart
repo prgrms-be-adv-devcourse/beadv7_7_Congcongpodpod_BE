@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/presentation/pickup_time_format.dart';
 import '../../../ui/app_colors.dart';
 import '../../../ui/app_spacing.dart';
 import 'order_pickup_view_model.dart';
@@ -46,8 +47,7 @@ class OrderPickupScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  '픽업 시간 ${pickup.pickupStartAt.substring(0, 5)} ~ '
-                  '${pickup.pickupEndAt.substring(0, 5)}',
+                  '픽업 시간 ${formatPickupWindow(pickup.pickupStartAt, pickup.pickupEndAt)}',
                   style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
                 ),
               ],

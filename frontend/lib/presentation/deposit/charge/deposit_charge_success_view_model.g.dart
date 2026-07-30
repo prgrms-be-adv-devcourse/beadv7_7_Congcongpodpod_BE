@@ -14,21 +14,18 @@ String _$depositChargeSuccessViewModelHash() =>
 ///
 /// Copied from [DepositChargeSuccessViewModel].
 @ProviderFor(DepositChargeSuccessViewModel)
-final depositChargeSuccessViewModelProvider =
-    AutoDisposeAsyncNotifierProvider<
-      DepositChargeSuccessViewModel,
-      PaymentApprove?
-    >.internal(
-      DepositChargeSuccessViewModel.new,
-      name: r'depositChargeSuccessViewModelProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$depositChargeSuccessViewModelHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final depositChargeSuccessViewModelProvider = AutoDisposeAsyncNotifierProvider<
+    DepositChargeSuccessViewModel, PaymentApprove?>.internal(
+  DepositChargeSuccessViewModel.new,
+  name: r'depositChargeSuccessViewModelProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$depositChargeSuccessViewModelHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
-typedef _$DepositChargeSuccessViewModel =
-    AutoDisposeAsyncNotifier<PaymentApprove?>;
+typedef _$DepositChargeSuccessViewModel
+    = AutoDisposeAsyncNotifier<PaymentApprove?>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
