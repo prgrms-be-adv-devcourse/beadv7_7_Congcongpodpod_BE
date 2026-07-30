@@ -96,6 +96,28 @@ class GatewaySecurityConfigTests {
         .isForbidden();
   }
 
+  /**
+   * 신규 MEMBER가 SELLER 전용 조회(예: 매장 등록 전 `GET /stores/mine`)를 호출하면 브라우저에서 온 요청이므로 Origin 헤더가 붙는다. 이
+   * 403 응답에 Access-Control-Allow-Origin이 없으면 브라우저가 응답을 CORS 에러로 가로채 실제 403 대신 원인 불명의 네트워크 에러로
+   * 보여준다(2026-07-30 발견, troubleshooting-draft 참고).
+   */
+  @Test
+  void memberDeniedMyStoreRouteStillGetsCorsHeaderForBrowserOrigin() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .get()
+        .uri("/api/v1/stores/mine")
+        .header(HttpHeaders.ORIGIN, "https://www.lastdish.kr")
+        .exchange()
+        .expectStatus()
+        .isForbidden()
+        .expectHeader()
+        .valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://www.lastdish.kr");
+  }
+
   @Test
   void sellerCanAccessMyStoreRoute() {
     webTestClient
