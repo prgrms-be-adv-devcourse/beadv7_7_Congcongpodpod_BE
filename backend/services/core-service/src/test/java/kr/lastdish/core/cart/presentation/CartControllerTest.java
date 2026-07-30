@@ -42,7 +42,7 @@ class CartControllerTest {
                 null,
                 10L,
                 BigDecimal.valueOf(8000),
-                BigDecimal.valueOf(5000)));
+                BigDecimal.valueOf(5000), null, null));
     Long memberId = 100L;
 
     // 1) 장바구니 조회 -> 없으면 생성됨 (별도 생성 API 없음)
@@ -133,7 +133,7 @@ class CartControllerTest {
                 null,
                 10L,
                 BigDecimal.valueOf(8000),
-                BigDecimal.valueOf(5000)));
+                BigDecimal.valueOf(5000), null, null));
     Dish dishB =
         dishRepository.save(
             Dish.create(
@@ -144,7 +144,7 @@ class CartControllerTest {
                 null,
                 10L,
                 BigDecimal.valueOf(9000),
-                BigDecimal.valueOf(6000)));
+                BigDecimal.valueOf(6000), null, null));
     Long memberId = 200L;
 
     String getOrCreateResponse =
@@ -195,7 +195,7 @@ class CartControllerTest {
                 null,
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
-                BigDecimal.valueOf(5000)));
+                BigDecimal.valueOf(5000), null, null));
     Long memberId = 300L;
 
     String getOrCreateResponse =
@@ -227,7 +227,7 @@ class CartControllerTest {
                 null,
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
-                BigDecimal.valueOf(5000)));
+                BigDecimal.valueOf(5000), null, null));
     Long memberId = 400L;
 
     String getOrCreateResponse =

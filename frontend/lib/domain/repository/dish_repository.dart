@@ -17,6 +17,11 @@ abstract interface class DishRepository {
 
   /// 상품 등록 (`POST /dishes`, SELLER 전용). `registeredAt`은 "yyyy-MM-ddTHH:mm:ss"
   /// (백엔드 `LocalDateTime`, `@JsonFormat` 없이 기본 ISO 포맷을 그대로 받음).
+  ///
+  /// `pickupStartTime`/`pickupEndTime`("HH:mm")은 그 매장의 영업시간을 그대로 넘긴다 —
+  /// 백엔드가 Dish 등록 시 픽업시간을 채우는 로직이 없어서(troubleshooting 참고,
+  /// 2026-07-30) 프론트가 매장 조회로 얻은 값을 실어 보낸다. 서버 쪽에서 Store를 직접
+  /// 조회하면 store↔dish 컨텍스트 순환 의존이 생기는 걸 피하려는 선택.
   Future<Dish> createDish({
     required int storeId,
     required String dishName,
@@ -26,6 +31,8 @@ abstract interface class DishRepository {
     required int stockQuantity,
     required num dishPrice,
     required num discountPrice,
+    String? pickupStartTime,
+    String? pickupEndTime,
   });
 
   /// 상품 수정 (`PUT /dishes/{dishId}`, SELLER 전용).
