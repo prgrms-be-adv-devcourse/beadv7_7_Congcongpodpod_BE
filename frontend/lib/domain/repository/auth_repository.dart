@@ -12,4 +12,9 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+
+  /// 저장된 refresh token으로 access/refresh token을 재발급받아 저장소를 갱신한다.
+  /// role처럼 서버 DB 상태가 바뀌었는데 기존 access token엔 아직 반영 안 된 값을
+  /// 다시 읽어와야 할 때 쓴다(예: 매장 등록 직후 MEMBER→SELLER 승격).
+  Future<void> refresh();
 }

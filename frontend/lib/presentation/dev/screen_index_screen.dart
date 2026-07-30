@@ -5,9 +5,9 @@ import '../../core/routing/route_paths.dart';
 import '../../ui/app_colors.dart';
 import '../../ui/app_spacing.dart';
 
-/// 개발용 IA(전체 화면) 지도 (`/dev/screens`). 순서대로 안 눌러도 17개 화면을
+/// 개발용 IA(전체 화면) 지도 (`/dev/screens`). 순서대로 안 눌러도 16개 화면을
 /// 전부 훑어볼 수 있는 진입점 — 화면 목록을 그대로 코드로 옮긴 것. 로그인 화면 footer에서 진입.
-/// (B4/B5는 2026-07-26 PO 확정으로 폐기돼 목록에 없음 — 총 17개)
+/// (B4/B5는 2026-07-26, B9는 2026-07-30 PO 확정으로 폐기돼 목록에 없음 — 총 16개)
 class ScreenIndexScreen extends StatelessWidget {
   const ScreenIndexScreen({super.key});
 
@@ -17,8 +17,9 @@ class ScreenIndexScreen extends StatelessWidget {
     (code: 'B3', title: '홈(매장목록)', route: RoutePaths.home),
     (code: 'B6', title: '장바구니', route: RoutePaths.cart),
     (code: 'B7', title: '주문 확인(체크아웃)', route: RoutePaths.checkout),
+    // B9(주문 상세)는 2026-07-30 PO 결정으로 폐기 — 내용을 B8(내 주문목록)
+    // 카드 안으로 합쳤다.
     (code: 'B8', title: '내 주문목록', route: RoutePaths.orders),
-    (code: 'B9', title: '주문 상세', route: '/orders/1'),
     (code: 'B10', title: '주문 취소 확인', route: '/orders/1/cancel'),
     (code: 'B11', title: '예치금 잔액/내역', route: RoutePaths.deposits),
     (code: 'B12', title: '마이페이지', route: RoutePaths.me),
