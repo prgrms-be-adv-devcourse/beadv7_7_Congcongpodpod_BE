@@ -8,6 +8,7 @@ import '../../../core/presentation/components/horizontal_fade_scroll.dart';
 import '../../../core/presentation/components/info_row.dart';
 import '../../../core/presentation/components/order_status_badge.dart';
 import '../../../core/presentation/phone_format.dart';
+import '../../../core/presentation/pickup_time_format.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
 import '../../../domain/model/order_reject_reason.dart';
@@ -207,9 +208,7 @@ class _SellerOrderCard extends ConsumerWidget {
             InfoRow(label: '결제 금액', value: '${order.totalPrice.toInt()}원'),
             InfoRow(
               label: '픽업 시간',
-              value:
-                  '${order.pickupStartAt.substring(0, 5)} ~ '
-                  '${order.pickupEndAt.substring(0, 5)}',
+              value: formatPickupWindow(order.pickupStartAt, order.pickupEndAt),
             ),
             InfoRow(label: '연락처', value: formatPhone(order.phone)),
             const SizedBox(height: AppSpacing.sm),

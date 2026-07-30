@@ -14,14 +14,14 @@ String _$paymentRepositoryHash() => r'e1d5165586dceab06ce8f6cd72055e454a7d671f';
 @ProviderFor(paymentRepository)
 final paymentRepositoryProvider =
     AutoDisposeProvider<PaymentRepository>.internal(
-      paymentRepository,
-      name: r'paymentRepositoryProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$paymentRepositoryHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  paymentRepository,
+  name: r'paymentRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paymentRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef PaymentRepositoryRef = AutoDisposeProviderRef<PaymentRepository>;
 // ignore_for_file: type=lint
