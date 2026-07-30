@@ -19,8 +19,8 @@ _$OrderImpl _$$OrderImplFromJson(Map<String, dynamic> json) => _$OrderImpl(
       quantity: (json['quantity'] as num).toInt(),
       unitPrice: json['unitPrice'] as num,
       totalPrice: json['totalPrice'] as num,
-      pickupStartAt: json['pickupStartAt'] as String,
-      pickupEndAt: json['pickupEndAt'] as String,
+      pickupStartAt: json['pickupStartAt'] as String?,
+      pickupEndAt: json['pickupEndAt'] as String?,
     );
 
 Map<String, dynamic> _$$OrderImplToJson(_$OrderImpl instance) =>

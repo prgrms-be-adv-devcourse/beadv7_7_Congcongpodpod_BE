@@ -15,14 +15,14 @@ String _$checkoutViewModelHash() => r'67d11026d667b806e23d7146b3c54276904483f5';
 @ProviderFor(CheckoutViewModel)
 final checkoutViewModelProvider =
     AutoDisposeAsyncNotifierProvider<CheckoutViewModel, Order?>.internal(
-      CheckoutViewModel.new,
-      name: r'checkoutViewModelProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$checkoutViewModelHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  CheckoutViewModel.new,
+  name: r'checkoutViewModelProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$checkoutViewModelHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$CheckoutViewModel = AutoDisposeAsyncNotifier<Order?>;
 // ignore_for_file: type=lint
