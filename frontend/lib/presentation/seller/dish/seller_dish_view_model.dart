@@ -31,6 +31,8 @@ class SellerDishActionViewModel extends _$SellerDishActionViewModel {
     required int stockQuantity,
     required num dishPrice,
     required num discountPrice,
+    String? pickupStartTime,
+    String? pickupEndTime,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
@@ -44,6 +46,8 @@ class SellerDishActionViewModel extends _$SellerDishActionViewModel {
             stockQuantity: stockQuantity,
             dishPrice: dishPrice,
             discountPrice: discountPrice,
+            pickupStartTime: pickupStartTime,
+            pickupEndTime: pickupEndTime,
           ),
     );
   }
