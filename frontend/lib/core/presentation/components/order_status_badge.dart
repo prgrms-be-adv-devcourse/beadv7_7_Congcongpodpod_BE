@@ -22,6 +22,7 @@ class OrderStatusBadge extends StatelessWidget {
       case 'PICKED_UP':
         return (AppColors.success, AppColors.successLight);
       case 'NO_SHOW':
+        return (AppColors.noShow, AppColors.noShowLight);
       case 'REJECTED':
         return (AppColors.error, AppColors.errorLight);
       case 'CANCELLED':

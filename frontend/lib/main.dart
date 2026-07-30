@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/presentation/components/mobile_width_constraint.dart';
 import 'core/routing/router.dart';
+import 'ui/app_scroll_behavior.dart';
 import 'ui/app_theme.dart';
 
 void main() {
@@ -22,6 +23,7 @@ class LastDishApp extends ConsumerWidget {
       title: 'LastDish',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      scrollBehavior: AppScrollBehavior(),
       routerConfig: router,
       // 웹/데스크톱에서 화면 전체를 안 채우고 모바일 폭으로 가운데 고정.
       // 여기 한 곳만 감싸면 모든 화면(go_router가 만드는 Navigator)에 자동 적용.
