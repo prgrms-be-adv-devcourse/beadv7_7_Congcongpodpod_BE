@@ -305,14 +305,19 @@ class _DishFormState extends ConsumerState<_DishForm> {
   }
 
   void _submit() {
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('설명을 입력해주세요')));
+      return;
+    }
+
     final notifier = ref.read(sellerDishActionViewModelProvider.notifier);
     final stock = int.tryParse(_stockController.text.trim()) ?? 0;
     final price = num.tryParse(_priceController.text.trim()) ?? 0;
     final discountPrice =
         num.tryParse(_discountPriceController.text.trim()) ?? 0;
-    final description = _descriptionController.text.trim().isEmpty
-        ? null
-        : _descriptionController.text.trim();
 
     if (_isEdit) {
       notifier.updateDish(
@@ -368,7 +373,7 @@ class _DishFormState extends ConsumerState<_DishForm> {
           const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: _descriptionController,
-            decoration: const InputDecoration(labelText: '설명(선택)'),
+            decoration: const InputDecoration(labelText: '설명'),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
