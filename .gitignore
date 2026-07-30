@@ -126,3 +126,6 @@
 !/frontend/**/default.mode2v3
 !/frontend/**/default.pbxuser
 !/frontend/**/default.perspectivev3
+
+# Local infrastructure backups
+/infra/k8s/tools/

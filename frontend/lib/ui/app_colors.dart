@@ -32,7 +32,7 @@ abstract final class AppColors {
   static const textOnPrimary = Colors.white;
   static const textOnCardboard = Colors.white;
 
-  // ── 시맨틱 (기능색 — 주문 상태 5종 구분, 브랜드 액센트와 분리) ─
+  // ── 시맨틱 (기능색 — 주문 상태 6종 구분, 브랜드 액센트와 분리) ─
   static const error = Color(0xFFE64A4A);
   static const errorLight = Color(0xFFFCEAEA);
   static const success = Color(0xFF2E7D4F);
@@ -41,4 +41,6 @@ abstract final class AppColors {
   static const warningLight = Color(0xFFFCF1E1);
   static const waiting = Color(0xFF45607A); // 예약중(대기) 상태
   static const waitingLight = Color(0xFFE7EDF2);
+  static const noShow = Color(0xFF8D5B4C); // 노쇼 — REJECTED(error)와 구분되는 별도 색
+  static const noShowLight = Color(0xFFF3E7E3);
 }

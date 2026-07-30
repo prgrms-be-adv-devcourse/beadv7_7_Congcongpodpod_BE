@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/presentation/components/filter_chip_pill.dart';
+import '../../../core/presentation/components/horizontal_fade_scroll.dart';
+import '../../../core/presentation/components/info_row.dart';
+import '../../../core/presentation/components/order_status_badge.dart';
+import '../../../core/presentation/phone_format.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/order.dart';
 import '../../../domain/model/order_reject_reason.dart';
@@ -26,7 +31,7 @@ class SellerOrderScreen extends ConsumerWidget {
     final storeIdAsync = ref.watch(sellerStoreIdProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('S3 · 주문 접수/픽업 처리')),
+      appBar: AppBar(title: const Text('주문 접수/픽업 처리')),
       body: storeIdAsync.when(
         data: (storeId) => storeId == null
             ? Center(
@@ -35,7 +40,10 @@ class SellerOrderScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('먼저 매장을 등록해야 주문을 받을 수 있어요', textAlign: TextAlign.center),
+                      const Text(
+                        '먼저 매장을 등록해야 주문을 받을 수 있어요',
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
                         onPressed: () => context.push(RoutePaths.sellerStore),
@@ -68,7 +76,8 @@ class _OrderQueue extends ConsumerWidget {
       if (!wasLoading || next.isLoading) return;
 
       if (next.hasError) {
-        if (kDebugMode) debugPrint('[seller_order] ${next.error}\n${next.stackTrace}');
+        if (kDebugMode)
+          debugPrint('[seller_order] ${next.error}\n${next.stackTrace}');
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(next.error.toString())));
@@ -85,10 +94,10 @@ class _OrderQueue extends ConsumerWidget {
       final isSelected = selected == value;
       return Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs),
-        child: ChoiceChip(
-          label: Text(label),
+        child: FilterChipPill(
+          label: label,
           selected: isSelected,
-          onSelected: (_) => ref
+          onTap: () => ref
               .read(selectedSellerOrderStatusProvider.notifier)
               .select(isSelected ? null : value),
         ),
@@ -104,13 +113,16 @@ class _OrderQueue extends ConsumerWidget {
           ),
           child: SizedBox(
             height: 40,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  chip(null, '전체'),
-                  for (final value in orderStatusValues) chip(value, orderStatusLabel(value)),
-                ],
+            child: HorizontalFadeScroll(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    chip(null, '전체'),
+                    for (final value in orderStatusValues)
+                      chip(value, orderStatusLabel(value)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -122,8 +134,10 @@ class _OrderQueue extends ConsumerWidget {
                 : ListView.separated(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     itemCount: orders.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, index) => _SellerOrderCard(order: orders[index]),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) =>
+                        _SellerOrderCard(order: orders[index]),
                   ),
             error: (error, _) => Center(child: Text('$error')),
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -174,60 +188,94 @@ class _SellerOrderCard extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('주문 #${order.orderId} · ${order.dishName}', style: textTheme.titleMedium),
+                  child: Text(
+                    order.dishName,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.textStrong,
+                    ),
+                  ),
                 ),
-                Chip(
-                  label: Text(orderStatusLabel(order.status)),
-                  visualDensity: VisualDensity.compact,
-                ),
+                const SizedBox(width: AppSpacing.sm),
+                OrderStatusBadge(status: order.status),
               ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              '${order.quantity}개 · ${order.totalPrice.toInt()}원 · '
-              '픽업 ${order.pickupStartAt.substring(0, 5)}~${order.pickupEndAt.substring(0, 5)} · '
-              '연락처 ${order.phone}',
-              style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                if (order.status == 'RESERVED') ...[
-                  ElevatedButton(
-                    onPressed: actionState.isLoading
-                        ? null
-                        : () => notifier.accept(order.orderId),
-                    child: const Text('접수'),
-                  ),
-                  OutlinedButton(
-                    onPressed: actionState.isLoading
-                        ? null
-                        : () => _pickRejectReason(context, ref),
-                    child: const Text('거절'),
-                  ),
-                ] else if (order.status == 'PICKUP_READY') ...[
-                  ElevatedButton(
-                    onPressed: actionState.isLoading
-                        ? null
-                        : () => notifier.updatePickupStatus(
-                            orderId: order.orderId,
-                            status: 'PICKED_UP',
-                          ),
-                    child: const Text('픽업완료'),
-                  ),
-                  OutlinedButton(
-                    onPressed: actionState.isLoading
-                        ? null
-                        : () => notifier.updatePickupStatus(
-                            orderId: order.orderId,
-                            status: 'NO_SHOW',
-                          ),
-                    child: const Text('노쇼 처리'),
-                  ),
-                ],
-              ],
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.sm),
+            InfoRow(label: '주문번호', value: '#${order.orderId}'),
+            InfoRow(label: '수량', value: '${order.quantity}개'),
+            InfoRow(label: '결제 금액', value: '${order.totalPrice.toInt()}원'),
+            InfoRow(
+              label: '픽업 시간',
+              value:
+                  '${order.pickupStartAt.substring(0, 5)} ~ '
+                  '${order.pickupEndAt.substring(0, 5)}',
             ),
+            InfoRow(label: '연락처', value: formatPhone(order.phone)),
+            const SizedBox(height: AppSpacing.sm),
+            // 두 버튼이 나란히 있는데 ElevatedButton만 전역 테마로 높이/가로폭이
+            // 강제돼서(app_theme.dart) OutlinedButton과 크기가 안 맞았다 —
+            // Row + Expanded + stretch로 폭·높이를 둘 다 맞춘다. Row의 stretch는
+            // 부모가 높이를 정해줘야 동작하므로(안 그러면 무한 높이로 레이아웃이
+            // 깨진다) SizedBox로 Row 자체 높이를 48로 고정한다.
+            if (order.status == 'RESERVED')
+              SizedBox(
+                height: 48,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: actionState.isLoading
+                            ? null
+                            : () => notifier.accept(order.orderId),
+                        child: const Text('접수'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: actionState.isLoading
+                            ? null
+                            : () => _pickRejectReason(context, ref),
+                        child: const Text('거절'),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (order.status == 'PICKUP_READY')
+              SizedBox(
+                height: 48,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: actionState.isLoading
+                            ? null
+                            : () => notifier.updatePickupStatus(
+                                orderId: order.orderId,
+                                status: 'PICKED_UP',
+                              ),
+                        child: const Text('픽업완료'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: actionState.isLoading
+                            ? null
+                            : () => notifier.updatePickupStatus(
+                                orderId: order.orderId,
+                                status: 'NO_SHOW',
+                              ),
+                        child: const Text('노쇼 처리'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
