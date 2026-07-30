@@ -11,7 +11,7 @@ public record DishUpdateRequest(
     @NotNull Long dishId,
     @NotBlank String dishName,
     @NotNull LocalDateTime registeredAt,
-    String description,
+    @NotBlank String description,
     String thumbnailUrl,
     @NotNull @PositiveOrZero Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,

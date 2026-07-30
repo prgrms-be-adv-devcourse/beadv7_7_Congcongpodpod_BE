@@ -22,9 +22,11 @@ PickupCode _$PickupCodeFromJson(Map<String, dynamic> json) {
 mixin _$PickupCode {
   int get orderId => throw _privateConstructorUsedError;
   String get dishName => throw _privateConstructorUsedError;
-  String get pickupCode => throw _privateConstructorUsedError;
-  String get pickupStartAt => throw _privateConstructorUsedError;
-  String get pickupEndAt => throw _privateConstructorUsedError;
+  String get pickupCode =>
+      throw _privateConstructorUsedError; // order.dart와 같은 이유(2026-07-30) — 백엔드가 Dish 등록 시 픽업시간을 저장하지
+// 않아 항상 null로 내려온다. null 허용으로 완화.
+  String? get pickupStartAt => throw _privateConstructorUsedError;
+  String? get pickupEndAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -42,8 +44,8 @@ abstract class $PickupCodeCopyWith<$Res> {
       {int orderId,
       String dishName,
       String pickupCode,
-      String pickupStartAt,
-      String pickupEndAt});
+      String? pickupStartAt,
+      String? pickupEndAt});
 }
 
 /// @nodoc
@@ -62,8 +64,8 @@ class _$PickupCodeCopyWithImpl<$Res, $Val extends PickupCode>
     Object? orderId = null,
     Object? dishName = null,
     Object? pickupCode = null,
-    Object? pickupStartAt = null,
-    Object? pickupEndAt = null,
+    Object? pickupStartAt = freezed,
+    Object? pickupEndAt = freezed,
   }) {
     return _then(_value.copyWith(
       orderId: null == orderId
@@ -78,14 +80,14 @@ class _$PickupCodeCopyWithImpl<$Res, $Val extends PickupCode>
           ? _value.pickupCode
           : pickupCode // ignore: cast_nullable_to_non_nullable
               as String,
-      pickupStartAt: null == pickupStartAt
+      pickupStartAt: freezed == pickupStartAt
           ? _value.pickupStartAt
           : pickupStartAt // ignore: cast_nullable_to_non_nullable
-              as String,
-      pickupEndAt: null == pickupEndAt
+              as String?,
+      pickupEndAt: freezed == pickupEndAt
           ? _value.pickupEndAt
           : pickupEndAt // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
     ) as $Val);
   }
 }
@@ -102,8 +104,8 @@ abstract class _$$PickupCodeImplCopyWith<$Res>
       {int orderId,
       String dishName,
       String pickupCode,
-      String pickupStartAt,
-      String pickupEndAt});
+      String? pickupStartAt,
+      String? pickupEndAt});
 }
 
 /// @nodoc
@@ -120,8 +122,8 @@ class __$$PickupCodeImplCopyWithImpl<$Res>
     Object? orderId = null,
     Object? dishName = null,
     Object? pickupCode = null,
-    Object? pickupStartAt = null,
-    Object? pickupEndAt = null,
+    Object? pickupStartAt = freezed,
+    Object? pickupEndAt = freezed,
   }) {
     return _then(_$PickupCodeImpl(
       orderId: null == orderId
@@ -136,14 +138,14 @@ class __$$PickupCodeImplCopyWithImpl<$Res>
           ? _value.pickupCode
           : pickupCode // ignore: cast_nullable_to_non_nullable
               as String,
-      pickupStartAt: null == pickupStartAt
+      pickupStartAt: freezed == pickupStartAt
           ? _value.pickupStartAt
           : pickupStartAt // ignore: cast_nullable_to_non_nullable
-              as String,
-      pickupEndAt: null == pickupEndAt
+              as String?,
+      pickupEndAt: freezed == pickupEndAt
           ? _value.pickupEndAt
           : pickupEndAt // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
     ));
   }
 }
@@ -155,8 +157,8 @@ class _$PickupCodeImpl implements _PickupCode {
       {required this.orderId,
       required this.dishName,
       required this.pickupCode,
-      required this.pickupStartAt,
-      required this.pickupEndAt});
+      this.pickupStartAt,
+      this.pickupEndAt});
 
   factory _$PickupCodeImpl.fromJson(Map<String, dynamic> json) =>
       _$$PickupCodeImplFromJson(json);
@@ -167,10 +169,12 @@ class _$PickupCodeImpl implements _PickupCode {
   final String dishName;
   @override
   final String pickupCode;
+// order.dart와 같은 이유(2026-07-30) — 백엔드가 Dish 등록 시 픽업시간을 저장하지
+// 않아 항상 null로 내려온다. null 허용으로 완화.
   @override
-  final String pickupStartAt;
+  final String? pickupStartAt;
   @override
-  final String pickupEndAt;
+  final String? pickupEndAt;
 
   @override
   String toString() {
@@ -217,8 +221,8 @@ abstract class _PickupCode implements PickupCode {
       {required final int orderId,
       required final String dishName,
       required final String pickupCode,
-      required final String pickupStartAt,
-      required final String pickupEndAt}) = _$PickupCodeImpl;
+      final String? pickupStartAt,
+      final String? pickupEndAt}) = _$PickupCodeImpl;
 
   factory _PickupCode.fromJson(Map<String, dynamic> json) =
       _$PickupCodeImpl.fromJson;
@@ -229,10 +233,11 @@ abstract class _PickupCode implements PickupCode {
   String get dishName;
   @override
   String get pickupCode;
+  @override // order.dart와 같은 이유(2026-07-30) — 백엔드가 Dish 등록 시 픽업시간을 저장하지
+// 않아 항상 null로 내려온다. null 허용으로 완화.
+  String? get pickupStartAt;
   @override
-  String get pickupStartAt;
-  @override
-  String get pickupEndAt;
+  String? get pickupEndAt;
   @override
   @JsonKey(ignore: true)
   _$$PickupCodeImplCopyWith<_$PickupCodeImpl> get copyWith =>

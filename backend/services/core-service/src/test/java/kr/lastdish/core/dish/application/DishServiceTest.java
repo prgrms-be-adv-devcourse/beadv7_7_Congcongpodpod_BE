@@ -168,7 +168,9 @@ class DishServiceTest {
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),
-        BigDecimal.ZERO);
+        BigDecimal.ZERO,
+        null,
+        null);
   }
 
   private DishUpdateRequest createUpdateRequest(Long stockQuantity) {

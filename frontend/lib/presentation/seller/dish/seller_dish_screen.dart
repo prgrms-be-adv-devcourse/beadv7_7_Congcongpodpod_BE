@@ -12,6 +12,7 @@ import '../../../ui/app_spacing.dart';
 import '../../dish/dish_providers.dart';
 import '../../store/list/store_list_view_model.dart';
 import '../seller_store_id_provider.dart';
+import '../store/seller_store_view_model.dart';
 import 'seller_dish_view_model.dart';
 
 /// 상품 등록/관리 화면 (S2, `/seller/dishes`). 매장:상품이 1:1(ADR 004)이라 목록이
@@ -304,14 +305,19 @@ class _DishFormState extends ConsumerState<_DishForm> {
   }
 
   void _submit() {
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('설명을 입력해주세요')));
+      return;
+    }
+
     final notifier = ref.read(sellerDishActionViewModelProvider.notifier);
     final stock = int.tryParse(_stockController.text.trim()) ?? 0;
     final price = num.tryParse(_priceController.text.trim()) ?? 0;
     final discountPrice =
         num.tryParse(_discountPriceController.text.trim()) ?? 0;
-    final description = _descriptionController.text.trim().isEmpty
-        ? null
-        : _descriptionController.text.trim();
 
     if (_isEdit) {
       notifier.updateDish(
@@ -324,6 +330,14 @@ class _DishFormState extends ConsumerState<_DishForm> {
         discountPrice: discountPrice,
       );
     } else {
+      // Dish 등록 API가 픽업시간을 서버에서 채워주지 않아서(백엔드가 Store를
+      // 직접 조회하면 store↔dish 순환 의존이 생김, 2026-07-30) 여기서 매장
+      // 영업시간을 그대로 실어 보낸다. build()에서 이미 watch해둔 값이라
+      // 보통 준비돼 있고, 혹시 아직 로딩 중이면 null로 보내 기존처럼
+      // "픽업 시간 미정" 처리로 안전하게 빠진다.
+      final store = ref
+          .read(sellerStoreDetailProvider(widget.storeId))
+          .valueOrNull;
       notifier.create(
         storeId: widget.storeId,
         dishName: _dishNameController.text.trim(),
@@ -332,6 +346,8 @@ class _DishFormState extends ConsumerState<_DishForm> {
         stockQuantity: stock,
         dishPrice: price,
         discountPrice: discountPrice,
+        pickupStartTime: store?.openTime,
+        pickupEndTime: store?.closeTime,
       );
     }
   }
@@ -339,6 +355,8 @@ class _DishFormState extends ConsumerState<_DishForm> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(sellerDishActionViewModelProvider);
+    // 매장 영업시간을 미리 조회해둔다 — _submit()에서 그대로 실어 보낸다.
+    ref.watch(sellerStoreDetailProvider(widget.storeId));
     final textTheme = Theme.of(context).textTheme;
 
     return SingleChildScrollView(
@@ -355,7 +373,7 @@ class _DishFormState extends ConsumerState<_DishForm> {
           const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: _descriptionController,
-            decoration: const InputDecoration(labelText: '설명(선택)'),
+            decoration: const InputDecoration(labelText: '설명'),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
