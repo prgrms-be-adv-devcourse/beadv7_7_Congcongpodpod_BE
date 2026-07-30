@@ -61,6 +61,8 @@ class DishTest {
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),
-        BigDecimal.ZERO);
+        BigDecimal.ZERO,
+        null,
+        null);
   }
 }
