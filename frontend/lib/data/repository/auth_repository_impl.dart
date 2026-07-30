@@ -102,7 +102,7 @@ class AuthRepositoryImpl implements AuthRepository {
           'userName': userName,
           'password': password,
           'name': name,
-          'phone': phone,
+          'phone': _digitsOnly(phone),
           'email': email,
         },
       );
@@ -127,4 +127,37 @@ class AuthRepositoryImpl implements AuthRepository {
     // 자동 로그인시킨다(의도된 동작 — 사용자 확인 완료).
     await login(email: email, password: password);
   }
+
+  @override
+  Future<void> refresh() async {
+    final refreshToken = await _tokenStorage.getRefreshToken();
+    if (refreshToken == null) {
+      throw const InvalidCredentialsException('로그인이 필요합니다');
+    }
+
+    try {
+      final response = await _dio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      final body = response.data as Map<String, dynamic>;
+      final data = body['data'] as Map<String, dynamic>;
+      final tokens = TokenResponse.fromJson(data);
+
+      await _tokenStorage.saveTokens(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == null) {
+        throw const NetworkException();
+      }
+      throw ServerException('세션 갱신에 실패했습니다', code: status.toString());
+    }
+  }
+
+  // store_repository_impl.dart와 같은 이유(2026-07-30) — DB엔 숫자만 저장하기로
+  // 했고, 백엔드가 저장 시점 정규화를 갖추기 전까지 프론트가 보내는 시점에 뺀다.
+  String _digitsOnly(String value) => value.replaceAll(RegExp(r'[^0-9]'), '');
 }

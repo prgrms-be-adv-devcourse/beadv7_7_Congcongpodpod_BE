@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/presentation/phone_format.dart';
 import '../../../ui/app_colors.dart';
 import '../../../ui/app_spacing.dart';
 import 'store_detail_view_model.dart';
@@ -37,10 +38,10 @@ class StoreDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               _InfoRow(label: '주소', value: store.storeAddress),
-              _InfoRow(label: '전화', value: store.storePhone),
+              _InfoRow(label: '전화', value: formatPhone(store.storePhone)),
               _InfoRow(
                 label: '영업시간',
-                value: '${store.openTime} ~ ${store.closeTime}',
+                value: '${store.openTime.substring(0, 5)} ~ ${store.closeTime.substring(0, 5)}',
               ),
               if (store.holidays != null && store.holidays!.isNotEmpty)
                 _InfoRow(label: '휴무일', value: store.holidays!.join(', ')),

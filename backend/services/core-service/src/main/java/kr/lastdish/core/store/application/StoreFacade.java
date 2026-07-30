@@ -24,6 +24,7 @@ public class StoreFacade {
   private final SellerRoleGrantPort sellerRoleGrantPort;
   private final StoreRepository storeRepository;
 
+  @Transactional
   public StoreResult register(RegisterStoreCommand command) {
     StoreResult result = storeService.register(command);
 
