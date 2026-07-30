@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/network/token_storage_provider.dart';
 import '../../core/routing/route_paths.dart';
 import '../../domain/model/cart.dart';
 import '../../ui/app_colors.dart';
 import '../../ui/app_spacing.dart';
+import '../deposit/charge/return_to_cart_flag.dart';
+import '../deposit/deposit_providers.dart';
 import '../dish/dish_providers.dart';
 import 'cart_view_model.dart';
 
@@ -78,6 +81,17 @@ class _CartBodyState extends ConsumerState<_CartBody> {
     } finally {
       if (mounted) setState(() => _isMutating = false);
     }
+  }
+
+  /// 예치금이 모자랄 때 "충전하러 가기"를 누르면 탄다. 충전은 Toss 결제창이
+  /// 브라우저를 통째로 리다이렉트하는 방식이라 돌아왔을 때 이 화면(카트) 인메모리
+  /// 상태가 안 남는다 — 그래서 "충전 끝나면 카트로 돌아가야 한다"는 의도를
+  /// SharedPreferences에 남겨두고(return_to_cart_flag.dart), 충전 성공 화면
+  /// (deposit_charge_success_screen.dart)이 그 플래그를 보고 카트로 돌려보낸다.
+  Future<void> _goChargeDeposit(BuildContext context) async {
+    final prefs = await ref.read(sharedPreferencesProvider.future);
+    await markReturnToCartAfterCharge(prefs);
+    if (context.mounted) context.push(RoutePaths.depositCharge);
   }
 
   @override
@@ -209,14 +223,59 @@ class _CartBodyState extends ConsumerState<_CartBody> {
               ),
             ],
           ),
+          // 예치금은 별도 조회(GET /deposits/balance)라 로딩/실패 중엔 잔액 부족
+          // 여부를 판단할 수 없다 — 그동안은 "주문하기"를 그냥 눌러보게 두고
+          // 실제 부족하면 체크아웃(checkout_screen.dart)이 서버 응답으로 알려준다.
+          ref
+              .watch(depositBalanceProvider)
+              .when(
+                data: (deposit) {
+                  final balance = deposit.balance;
+                  final shortage = cart.totalPrice - balance;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '내 예치금',
+                            style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+                          ),
+                          Text(
+                            '${balance.toInt()}원',
+                            style: textTheme.bodyMedium?.copyWith(color: AppColors.textBody),
+                          ),
+                        ],
+                      ),
+                      if (shortage > 0) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${shortage.toInt()}원 부족해요',
+                          style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+                error: (_, _) => const SizedBox.shrink(),
+                loading: () => const SizedBox.shrink(),
+              ),
           const SizedBox(height: AppSpacing.md),
-          ElevatedButton(
-            // 체크아웃(B7)은 아직 API 연동 없는 뼈대 — 전체 플로우 확인용 진입점.
-            onPressed: isBusy
-                ? null
-                : () => context.push(RoutePaths.checkout),
-            child: const Text('주문하기'),
-          ),
+          if ((ref.watch(depositBalanceProvider).valueOrNull?.balance ?? cart.totalPrice) <
+              cart.totalPrice)
+            ElevatedButton(
+              onPressed: isBusy ? null : () => _goChargeDeposit(context),
+              child: const Text('충전하러 가기'),
+            )
+          else
+            ElevatedButton(
+              onPressed: isBusy
+                  ? null
+                  : () => context.push(RoutePaths.checkout),
+              child: const Text('주문하기'),
+            ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
             onPressed: isBusy ? null : () => _run(notifier.clear),

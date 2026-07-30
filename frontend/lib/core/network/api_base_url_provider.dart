@@ -9,7 +9,7 @@ part 'api_base_url_provider.g.dart';
 // 로 덮어씀. 값 없으면(로컬 flutter run) 기존 localhost 게이트웨이로 폴백.
 const _apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:8010/proxy/api/v1/',
+  defaultValue: 'http://localhost:8080/api/v1/',
 );
 
 @Riverpod(keepAlive: true)

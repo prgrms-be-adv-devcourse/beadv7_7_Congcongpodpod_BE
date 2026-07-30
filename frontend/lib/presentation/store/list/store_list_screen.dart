@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/error/app_exception.dart';
 import '../../../core/network/token_storage_provider.dart';
+import '../../../core/presentation/components/filter_chip_pill.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../domain/model/category.dart';
 import '../../../domain/model/dish.dart';
@@ -83,12 +84,12 @@ class _CategoryFilterBar extends ConsumerWidget {
       final isSelected = selected == value;
       return Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs),
-        child: ChoiceChip(
-          label: Text(label),
+        child: FilterChipPill(
+          label: label,
           selected: isSelected,
           // 이미 선택된 칩을 다시 누르면 "전체"로 돌아간다 — 매번 다른 칩을
           // 눌러 해제해야 하는 것보다 자연스럽다.
-          onSelected: (_) => ref
+          onTap: () => ref
               .read(selectedStoreCategoryProvider.notifier)
               .select(isSelected ? null : value),
         ),
@@ -188,10 +189,22 @@ class _StoreCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Chip(
-                  label: Text(categoryLabel(store.category)),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
+                // Material Chip 계열은 Flutter Web에서 한글 라벨 끝글자를 잘라먹는
+                // 렌더링 버그가 있다(troubleshooting 010 — ChoiceChip에서 먼저 발견돼
+                // FilterChipPill로 교체했던 것과 같은 문제, 여기 카드 배지는 그때
+                // 빠뜨렸다가 2026-07-30에 재발견). Chip 자체를 안 쓰고 Container+Text로
+                // 직접 그린다.
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    categoryLabel(store.category),
+                    softWrap: false,
+                    style: textTheme.labelSmall?.copyWith(color: AppColors.primaryDark),
+                  ),
                 ),
               ],
             ),
@@ -202,7 +215,9 @@ class _StoreCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              '영업시간 ${store.openTime} ~ ${store.closeTime}',
+              // 서버는 "09:00:00"(초 포함)으로 내려준다 — order_list_screen.dart의
+              // 픽업 시간 표시와 같은 이유로 앞 5자리(HH:mm)만 보여준다.
+              '영업시간 ${store.openTime.substring(0, 5)} ~ ${store.closeTime.substring(0, 5)}',
               style: textTheme.bodySmall?.copyWith(color: AppColors.textHint),
             ),
             const Divider(height: AppSpacing.lg),
@@ -251,9 +266,10 @@ class _DishRowState extends ConsumerState<_DishRow> {
         quantity: 1,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${widget.dish.dishName} 담았어요')),
-      );
+      // 장바구니는 상품 1개 단위(ADR 004)라 "담기"가 곧 "장바구니 전체를
+      // 정한다"는 뜻이다 — 담고 나서 홈에 머물 이유가 없어서 바로 장바구니로
+      // 넘긴다.
+      context.push(RoutePaths.cart);
     } on AppException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
