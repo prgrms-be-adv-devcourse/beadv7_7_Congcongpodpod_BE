@@ -1,0 +1,127 @@
+# 캐시 전용 단일 Redis입니다. 원본 데이터는 PostgreSQL에 있으므로 영속화하지 않습니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: data
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+
+    # 컨테이너 384Mi 중 Redis 데이터에는 256Mi만 사용하고 나머지는 프로세스 오버헤드로 남깁니다.
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+
+    # 캐시 데이터는 재생성할 수 있으므로 RDB와 AOF 디스크 저장을 비활성화합니다.
+    save ""
+    appendonly no
+
+    # 비밀번호가 포함된 ACL 파일은 ConfigMap이 아니라 redis-auth Secret에서 마운트합니다.
+    aclfile /etc/redis-auth/users.acl
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: data
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      securityContext:
+        # emptyDir /data를 비-root Redis 사용자(GID 999)가 사용할 수 있게 합니다.
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: redis
+          image: redis:8.8.1-alpine
+          imagePullPolicy: IfNotPresent
+          args:
+            - redis-server
+            - /etc/redis/redis.conf
+          ports:
+            - name: redis
+              containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: password
+          volumeMounts:
+            - name: config
+              mountPath: /etc/redis
+              readOnly: true
+            - name: auth
+              mountPath: /etc/redis-auth
+              readOnly: true
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: redis-config
+        - name: auth
+          secret:
+            secretName: redis-auth
+        - name: data
+          emptyDir: {}
+---
+# 애플리케이션은 같은 클러스터에서 redis.data.svc.cluster.local:6379로 접근합니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: data
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

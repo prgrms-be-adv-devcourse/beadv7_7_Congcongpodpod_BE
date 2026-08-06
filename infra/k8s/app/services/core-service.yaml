@@ -1,0 +1,172 @@
+# 핵심 비즈니스 기능을 담당하며 외부 Core PostgreSQL과 Member Service를 사용합니다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-service
+  namespace: app
+  labels:
+    app: core-service
+spec:
+  # 현재 단일 노드·소규모 트래픽 기준 1개 Pod를 운영합니다.
+  replicas: 1
+  # 신규 Pod가 Ready 상태가 되기 전에는 기존 Pod를 종료하지 않습니다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # 신규 Pod가 10초간 Ready 상태를 유지해야 배포 성공으로 판단합니다.
+  minReadySeconds: 10
+  revisionHistoryLimit: 5
+  # 아래 Pod template의 app label과 일치해야 Deployment가 Pod를 관리할 수 있습니다.
+  selector:
+    matchLabels:
+      app: core-service
+  template:
+    metadata:
+      labels:
+        app: core-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: core-service
+          image: ghcr.io/prgrms-be-adv-devcourse/lastdish-core-service:dev
+          # dev 태그가 갱신될 수 있으므로 새 Pod 생성 시 항상 이미지를 확인합니다.
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              value: -Duser.timezone=Asia/Seoul
+            - name: CONFIG_SERVER_URL
+              # Core가 시작할 때 원격 Spring 설정을 가져오는 Config Server 주소입니다.
+              value: http://config-server.platform.svc.cluster.local:8888
+            - name: CORE_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  # database-config.yaml의 비밀이 아닌 외부 DB 주소입니다.
+                  name: core-db-config
+                  key: url
+            - name: MEMBER_SERVICE_BASE_URL
+              # 같은 app 네임스페이스라 Service 이름만으로 접근할 수 있습니다.
+              value: http://member-service
+            - name: CORE_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  # 실제 DB 계정과 비밀번호는 app 네임스페이스 Secret에서 가져옵니다.
+                  name: core-db-credentials
+                  key: username
+            - name: CORE_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: core-db-credentials
+                  # 같은 Secret의 password 값을 CORE_DB_PASSWORD로 주입합니다.
+                  key: password
+            - name: TOSS_CLIENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  # Toss 결제 연동 키와 암호화 키를 한 Secret에서 관리합니다.
+                  name: core-external-credentials
+                  key: toss-client-key
+            - name: TOSS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: core-external-credentials
+                  key: toss-secret-key
+            - name: ENCRYPTION_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: core-external-credentials
+                  key: encryption-secret-key
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  # data 네임스페이스 Redis Service의 Kubernetes DNS입니다.
+                  name: redis-client-config
+                  key: host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-client-config
+                  key: port
+            - name: REDIS_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-client-config
+                  key: username
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # Secret은 네임스페이스를 넘을 수 없어 app에도 동일 자격증명을 둡니다.
+                  name: redis-auth
+                  key: password
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  # data 네임스페이스 Kafka의 내부 접속 주소입니다.
+                  name: kafka-client-config
+                  key: bootstrap-servers
+          readinessProbe:
+            # 준비된 Pod만 Service 트래픽을 받습니다.
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            # 5초 간격으로 최대 12회 실패를 허용합니다.
+            periodSeconds: 5
+            failureThreshold: 12
+          startupProbe:
+            # Spring 초기 기동이 끝날 때까지 liveness 판단을 유예합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            # 약 5분 동안 Spring 및 DB 초기화를 기다립니다.
+            failureThreshold: 30
+          livenessProbe:
+            # 기동 후 응답 불능 상태가 지속되면 컨테이너를 재시작합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            # requests는 스케줄링 기준, limits는 컨테이너 메모리 상한입니다.
+            requests:
+              # Pod 배치 시 보장받을 최소 자원입니다.
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              # 프로세스가 사용할 수 있는 메모리 상한입니다.
+              memory: 512Mi
+          securityContext:
+            # root 실행과 불필요한 Linux capability를 차단합니다.
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            # 이미지 내부 비-root 애플리케이션 계정으로 실행합니다.
+            runAsGroup: 101
+            capabilities:
+              drop:
+                - ALL
+---
+# 클러스터 내부에서 Core Pod를 core-service:80이라는 고정 주소로 노출합니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: core-service
+  namespace: app
+spec:
+  type: ClusterIP
+  # Deployment Pod의 app=core-service label과 연결됩니다.
+  selector:
+    app: core-service
+  ports:
+    - name: http
+      port: 80
+      # Service 80 → 컨테이너의 이름 있는 http 포트(8080)로 전달합니다.
+      targetPort: http

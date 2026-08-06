@@ -1,0 +1,40 @@
+name: lastdish-database
+
+services:
+  member-postgresql:
+    image: postgres:17
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: ${MEMBER_DB_NAME:?MEMBER_DB_NAME is required}
+      POSTGRES_USER: ${MEMBER_DB_USERNAME:?MEMBER_DB_USERNAME is required}
+      POSTGRES_PASSWORD: ${MEMBER_DB_PASSWORD:?MEMBER_DB_PASSWORD is required}
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/lastdish/postgresql/member:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  core-postgresql:
+    image: postgres:17
+    restart: unless-stopped
+    mem_limit: 640m
+    environment:
+      POSTGRES_DB: ${CORE_DB_NAME:?CORE_DB_NAME is required}
+      POSTGRES_USER: ${CORE_DB_USERNAME:?CORE_DB_USERNAME is required}
+      POSTGRES_PASSWORD: ${CORE_DB_PASSWORD:?CORE_DB_PASSWORD is required}
+    ports:
+      - "5433:5432"
+    volumes:
+      - /var/lib/lastdish/postgresql/core:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s

@@ -1,3 +1,5 @@
+# 인증서 발급 흐름을 시험할 때 사용합니다. 브라우저가 신뢰하는 인증서는 발급되지 않습니다.
+# ClusterIssuer는 Namespace에 속하지 않는 클러스터 전역 리소스입니다.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -5,14 +7,19 @@ metadata:
 spec:
   acme:
     email: oxxultus@gmail.com
+    # Staging 서버는 발급 횟수 제한에 덜 민감하므로 설정 검증에 적합합니다.
     server: https://acme-staging-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
+      # ACME 계정 개인키는 cert-manager가 이 Secret에 자동 저장합니다.
       name: letsencrypt-staging-account-key
     solvers:
+      # NGINX Ingress를 통해 Let's Encrypt의 HTTP-01 소유권 검증을 처리합니다.
       - http01:
           ingress:
             ingressClassName: nginx
 ---
+# 실제 api.lastdish.kr 인증서를 발급하는 운영용 ClusterIssuer입니다.
+# 도메인의 DNS가 EC2 공인 IP를 가리키고 외부 80 포트가 열려 있어야 HTTP-01 검증에 성공합니다.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -20,8 +27,10 @@ metadata:
 spec:
   acme:
     email: oxxultus@gmail.com
+    # 운영 서버는 브라우저가 신뢰하는 인증서를 발급하며 발급 횟수 제한이 적용됩니다.
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
+      # TLS 인증서 Secret과 별개인 Let's Encrypt 계정 키입니다.
       name: letsencrypt-production-account-key
     solvers:
       - http01:

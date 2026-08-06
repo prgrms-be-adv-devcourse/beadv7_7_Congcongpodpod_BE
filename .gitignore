@@ -129,3 +129,4 @@
 
 # Local infrastructure backups
 /infra/k8s/tools/
+/infra/database/.env
