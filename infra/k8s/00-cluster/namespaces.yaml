@@ -29,3 +29,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: data
+---
+# Prometheus와 Grafana 같은 관측 도구를 애플리케이션과 분리해 관리합니다.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring

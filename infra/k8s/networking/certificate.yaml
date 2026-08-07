@@ -14,3 +14,18 @@ spec:
   dnsNames:
     # 인증서는 이 호스트명에만 유효합니다. 새 도메인은 여기에 추가해야 합니다.
     - api.lastdish.kr
+---
+# cert-manager가 grafana.lastdish.kr 운영 TLS 인증서를 발급하고 자동 갱신합니다.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-lastdish-kr
+  namespace: monitoring
+spec:
+  # 발급된 인증서와 개인키가 저장되며 Grafana Ingress가 같은 Secret을 참조합니다.
+  secretName: grafana-lastdish-kr-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - grafana.lastdish.kr

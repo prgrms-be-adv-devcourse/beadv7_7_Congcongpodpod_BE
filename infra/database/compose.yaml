@@ -38,3 +38,80 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  elasticsearch:
+    # Private EC2에 오프라인 반입해 둔 이미지와 정확히 같은 태그를 사용한다.
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.6-amd64
+    restart: unless-stopped
+    mem_limit: 1152m
+    environment:
+      node.name: lastdish-data-es01
+      cluster.name: lastdish-search
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      xpack.security.enabled: "true"
+      # 같은 VPC 내부 통신만 허용하므로 HTTP/TLS는 사용하지 않고 비밀번호 인증만 적용한다.
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+    ports:
+      # EC2 사설 IP에만 바인딩한다. 보안 그룹에서도 Kubernetes 서버만 허용해야 한다.
+      - "${ELASTICSEARCH_BIND_ADDRESS:-10.30.2.93}:9200:9200"
+    volumes:
+      - /var/lib/lastdish/elasticsearch:/usr/share/elasticsearch/data
+      - ./elasticsearch/heap.options:/usr/share/elasticsearch/config/jvm.options.d/heap.options:ro
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --user \"elastic:$${ELASTIC_PASSWORD}\" \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s\" >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  member-postgresql-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    restart: unless-stopped
+    mem_limit: 32m
+    environment:
+      DATA_SOURCE_URI: member-postgresql:5432/${MEMBER_DB_NAME}?sslmode=disable
+      DATA_SOURCE_USER: ${MEMBER_DB_USERNAME}
+      DATA_SOURCE_PASS: ${MEMBER_DB_PASSWORD}
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9187:9187"
+    depends_on:
+      member-postgresql:
+        condition: service_healthy
+
+  core-postgresql-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    restart: unless-stopped
+    mem_limit: 32m
+    environment:
+      DATA_SOURCE_URI: core-postgresql:5432/${CORE_DB_NAME}?sslmode=disable
+      DATA_SOURCE_USER: ${CORE_DB_USERNAME}
+      DATA_SOURCE_PASS: ${CORE_DB_PASSWORD}
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9188:9187"
+    depends_on:
+      core-postgresql:
+        condition: service_healthy
+
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.11.0
+    restart: unless-stopped
+    mem_limit: 32m
+    command:
+      - --es.uri=http://elasticsearch:9200
+      - --es.all
+      - --es.indices
+    environment:
+      ES_USERNAME: elastic
+      ES_PASSWORD: ${ELASTIC_PASSWORD}
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9114:9114"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy

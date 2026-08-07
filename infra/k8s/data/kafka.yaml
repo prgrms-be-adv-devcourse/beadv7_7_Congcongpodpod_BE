@@ -207,9 +207,9 @@ spec:
               # 스케줄러가 Kafka에 최소한으로 예약할 CPU와 메모리입니다.
               cpu: 250m
               memory: 768Mi
-            limits:
-              # heap 외 native/page cache를 포함한 컨테이너 전체 메모리 상한입니다.
+            limits:              # heap 외 native/page cache를 포함한 컨테이너 전체 메모리 상한입니다.
               memory: 1280Mi
+
           securityContext:
             # 공식 이미지의 appuser로 실행하고 root 권한 상승을 차단합니다.
             allowPrivilegeEscalation: false

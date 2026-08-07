@@ -29,3 +29,31 @@ spec:
                 name: gateway-service
                 port:
                   number: 80
+---
+# grafana.lastdish.kr 요청을 Gateway를 거치지 않고 Grafana Service로 직접 전달합니다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  annotations:
+    # HTTP 요청을 HTTPS로 강제 전환합니다.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - grafana.lastdish.kr
+      # certificate.yaml에서 cert-manager가 자동 생성·갱신하는 TLS Secret입니다.
+      secretName: grafana-lastdish-kr-tls
+  rules:
+    - host: grafana.lastdish.kr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
