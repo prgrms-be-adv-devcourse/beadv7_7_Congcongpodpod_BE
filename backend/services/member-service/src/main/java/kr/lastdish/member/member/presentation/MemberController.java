@@ -23,13 +23,6 @@ public class MemberController {
     return ApiResponse.ok(MemberProfileResponse.from(result));
   }
 
-  @PatchMapping("/me")
-  public ApiResponse<Void> withdrawMember(
-      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
-    memberService.withdrawMember(memberId);
-    return ApiResponse.ok(null);
-  }
-
   @PutMapping("/me")
   public ApiResponse<Void> updateMember(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,

@@ -51,4 +51,18 @@ public class AuthController {
     authService.logout(accessToken, request.toCommand());
     return ApiResponse.ok();
   }
+
+  @PatchMapping("/withdraw")
+  public ApiResponse<Void> withdraw(
+      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+
+    String accessToken = null;
+    if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+      accessToken = authorizationHeader.substring(7);
+    }
+
+    authService.withdraw(accessToken, memberId);
+    return ApiResponse.ok();
+  }
 }

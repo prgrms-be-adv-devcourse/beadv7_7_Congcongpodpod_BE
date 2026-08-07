@@ -139,6 +139,46 @@ class AuthServiceTest {
   }
 
   @Test
+  @DisplayName("회원 탈퇴 성공")
+  void withdrawSuccess() {
+    // given
+    SignUpCommand signUpCommand =
+        new SignUpCommand(
+            "withdrawuser", "password123!", "탈퇴테스터", "010-9876-5432", "withdraw@example.com");
+    authService.signUp(signUpCommand);
+    TokenResult tokenResult =
+        authService.login(new LoginCommand("withdraw@example.com", "password123!"));
+
+    Member member = memberRepository.findByEmail("withdraw@example.com").orElseThrow();
+
+    // when
+    authService.withdraw(tokenResult.accessToken(), member.getId());
+
+    // then
+    Member withdrawnMember = memberRepository.findById(member.getId()).orElseThrow();
+    assertThat(withdrawnMember.getIsDeleted()).isTrue();
+    assertThat(withdrawnMember.getDeletedAt()).isNotNull();
+
+    // Refresh Token이 삭제되었으므로 재발급 시 예외 발생 확인
+    assertThatThrownBy(
+            () -> authService.refresh(new RefreshTokenCommand(tokenResult.refreshToken())))
+        .isInstanceOf(BusinessException.class);
+  }
+
+  @Test
+  @DisplayName("회원 탈퇴 실패 - 존재하지 않는 회원")
+  void withdrawFailWithNotFoundMember() {
+    // given
+    Long nonExistentMemberId = 99999L;
+
+    // when & then
+    assertThatThrownBy(() -> authService.withdraw(null, nonExistentMemberId))
+        .isInstanceOf(BusinessException.class)
+        .hasFieldOrPropertyWithValue(
+            "errorCode", kr.lastdish.member.auth.exception.AuthErrorCode.MEMBER_NOT_FOUND);
+  }
+
+  @Test
   @DisplayName("로그아웃을 요청하면 Access Token이 Redis 블랙리스트에 등록된다.")
   void logoutAddsAccessTokenToBlacklist() {
     // given

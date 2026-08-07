@@ -16,6 +16,7 @@ import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
 import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class AuthService {
 
   private final MemberRepository memberRepository;
@@ -104,31 +106,43 @@ public class AuthService {
   public void logout(String accessToken, RefreshTokenCommand command) {
     String refreshToken = command.refreshToken();
 
-    // 1. Access Token이 존재하고 유효하다면 Redis 블랙리스트에 등록
-    if (accessToken != null && tokenProvider.validateToken(accessToken)) {
-      long expiration = tokenProvider.getExpiration(accessToken); // 토큰의 남은 유효시간(ms) 추출
-      if (expiration > 0) { // 남은 유효시간이 음수일 경우 방지
-        redisTemplate
-            .opsForValue()
-            .set(
-                accessToken, "blacklisted", expiration, java.util.concurrent.TimeUnit.MILLISECONDS);
-      }
-    }
-
-    // 2. Refresh Token 토큰 유효성 검증
+    // 1. Refresh Token 유효성 검증
     if (!tokenProvider.validateToken(refreshToken)) {
       throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
 
-    // 3. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 일치하는 토큰 조회
+    // 2. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 일치하는 토큰 조회
     String hashedRefreshToken = encryptSha256(refreshToken);
     RefreshToken savedToken =
         refreshTokenRepository
             .findByToken(hashedRefreshToken)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 
-    // 4. 토큰 삭제
+    // 3. 통합 무효화 로직 사용 (Access Token 블랙리스트 + DB Refresh Token 삭제)
+    invalidateTokens(accessToken, savedToken.getEmail());
+
+    // 4. 리프레시 토큰 엔티티 삭제
     refreshTokenRepository.delete(savedToken);
+  }
+
+  @Transactional
+  public void withdraw(String accessToken, Long memberId) {
+    // 1. 회원 조회
+    Member member =
+        memberRepository
+            .findById(memberId)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+
+    // 2. 이미 탈퇴한 회원인지 체크
+    if (Boolean.TRUE.equals(member.getIsDeleted())) {
+      throw new BusinessException(AuthErrorCode.ALREADY_WITHDRAWN_MEMBER);
+    }
+
+    // 3. 토큰 무효화
+    invalidateTokens(accessToken, member.getEmail());
+
+    // 4. 회원 탈퇴 처리
+    member.withdraw();
   }
 
   @Transactional
@@ -194,5 +208,29 @@ public class AuthService {
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("SHA-256 암호화 실패", e);
     }
+  }
+
+  private void invalidateTokens(String accessToken, String email) {
+    // 1. Access Token 블랙리스트 처리 (Redis)
+    if (accessToken != null && tokenProvider.validateToken(accessToken)) {
+      long expiration = tokenProvider.getExpiration(accessToken);
+      if (expiration > 0) {
+        try {
+          redisTemplate
+              .opsForValue()
+              .set(
+                  accessToken,
+                  "blacklisted",
+                  expiration,
+                  java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+          // Redis가 다운되거나 네트워크가 끊겼을 경우 사용자가 로그아웃이나 회원 탈퇴를 할 수 없게 되기 때문에 log.error 사용
+          log.error("Failed to add access token to Redis blacklist: {}", e.getMessage());
+        }
+      }
+    }
+
+    // 2. DB에서 Refresh Token 삭제
+    refreshTokenRepository.deleteByEmail(email);
   }
 }
