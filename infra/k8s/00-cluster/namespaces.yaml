@@ -1,24 +1,37 @@
+# 적용 순서: 다른 리소스보다 먼저 `kubectl apply -f 00-cluster/namespaces.yaml`을 실행합니다.
+# Namespace를 삭제하면 내부 리소스도 함께 삭제되므로 서비스 정리 목적으로 섣불리 삭제하지 않습니다.
+# 외부 HTTP(S) 요청을 클러스터 서비스로 전달하는 Ingress Controller 전용 영역입니다.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ingress-nginx
 ---
+# TLS 인증서를 발급·갱신하는 cert-manager 전용 영역입니다.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: cert-manager
 ---
+# Config Server처럼 여러 애플리케이션이 공통으로 사용하는 플랫폼 영역입니다.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: platform
 ---
+# Gateway, Member, Core 등 비즈니스 애플리케이션이 실행되는 영역입니다.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: app
 ---
+# PostgreSQL은 외부화했지만 향후 Kafka와 Redis를 배치할 데이터 인프라 영역입니다.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: data
+---
+# Prometheus와 Grafana 같은 관측 도구를 애플리케이션과 분리해 관리합니다.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring

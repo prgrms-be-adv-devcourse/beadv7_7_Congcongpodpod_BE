@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-client-config
+  namespace: app
+data:
+  # Redis는 data 네임스페이스에 있으므로 Kubernetes 전체 Service DNS를 사용합니다.
+  host: redis.data.svc.cluster.local
+  port: "6379"
+  # 현재 Redis ACL의 기본 사용자를 사용합니다. 비밀번호만 Secret으로 분리합니다.
+  username: default

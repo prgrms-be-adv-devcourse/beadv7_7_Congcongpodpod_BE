@@ -1,3 +1,4 @@
+# 각 서비스가 시작할 때 운영 설정을 가져가는 Spring Cloud Config Server입니다.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,61 +7,99 @@ metadata:
     app: config-server
   namespace: platform
 spec:
+  # 단일 EC2 환경이므로 1개만 실행합니다. 고가용성 구성 시 replicas와 노드 수를 함께 검토합니다.
   replicas: 1
+  # 신규 Pod가 Ready 상태가 되기 전에는 기존 Pod를 종료하지 않습니다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # 신규 Pod가 10초간 Ready 상태를 유지해야 배포 성공으로 판단합니다.
+  minReadySeconds: 10
+  revisionHistoryLimit: 5
+  # Deployment가 관리할 Pod를 app=config-server label로 식별합니다.
   selector:
     matchLabels:
       app: config-server
   template:
+    # selector.matchLabels와 반드시 일치해야 하며 변경 시 Deployment 재생성이 필요할 수 있습니다.
     metadata:
       labels:
         app: config-server
+      annotations:
+        # Config Server는 애플리케이션과 다른 8888 포트에서 메트릭을 제공합니다.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8888"
     spec:
+      # 비공개 GHCR 이미지를 받기 위한 Docker Registry Secret입니다.
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
         - name: config-server
           image: ghcr.io/prgrms-be-adv-devcourse/lastdish-config-server:dev
+          # dev 태그가 같은 이름으로 갱신되므로 Pod 생성 때마다 Registry를 확인합니다.
           imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8888
           env:
+            # 컨테이너와 JVM의 로그·시간 계산 기준을 한국 시간으로 통일합니다.
             - name: TZ
               value: Asia/Seoul
             - name: JAVA_TOOL_OPTIONS
               value: -Duser.timezone=Asia/Seoul
             - name: CONFIG_GIT_URI
+              # 실제 서비스 설정 YAML이 저장된 Git 저장소입니다.
               value: https://github.com/oxxultus/devcos-team03-spring-config.git
             - name: CONFIG_GIT_USERNAME
               valueFrom:
                 secretKeyRef:
+                  # Secret 리소스 이름입니다.
                   name: config-git-credentials
+                  # 위 Secret의 data/stringData 중 username 값을 환경변수에 주입합니다.
                   key: username
             - name: CONFIG_GIT_TOKEN
               valueFrom:
                 secretKeyRef:
+                  # config-git-credentials Secret 내부 token 값을 CONFIG_GIT_TOKEN에 주입합니다.
                   name: config-git-credentials
                   key: token
           readinessProbe:
+            # 성공한 Pod만 Service 트래픽을 받습니다.
             httpGet:
               path: /actuator/health/readiness
               port: http
             initialDelaySeconds: 10
+            # 5초마다 검사하며 12회 실패해야 준비되지 않은 Pod로 판단합니다.
             periodSeconds: 5
             failureThreshold: 12
+          startupProbe:
+            # 초기 기동 중에는 liveness 재시작 판단을 유예합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            # 최대 약 5분(10초 × 30회) 동안 애플리케이션 초기 기동을 기다립니다.
+            failureThreshold: 30
           livenessProbe:
+            # 기동 후 응답 불능 상태가 지속되면 컨테이너를 재시작합니다.
             httpGet:
               path: /actuator/health/liveness
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
           resources:
+            # requests는 스케줄링 기준, limits는 컨테이너 메모리 상한입니다.
             requests:
               cpu: 100m
               memory: 256Mi
             limits:
-              memory: 512Mi
+              # 평시 약 214Mi이므로 설계 초안 256Mi 대신 최소 JVM 여유를 둡니다.
+              memory: 320Mi
           securityContext:
+            # root 실행과 Linux capability를 차단해 컨테이너 권한을 최소화합니다.
             allowPrivilegeEscalation: false
             runAsNonRoot: true
             runAsUser: 100
@@ -69,16 +108,20 @@ spec:
               drop:
                 - ALL
 ---
+# app 네임스페이스에서 config-server.platform.svc.cluster.local:8888로 접근합니다.
 apiVersion: v1
 kind: Service
 metadata:
   name: config-server
   namespace: platform
 spec:
+  # ClusterIP는 클러스터 내부에서만 접근할 수 있는 가상 IP입니다.
   type: ClusterIP
+  # app=config-server label을 가진 Pod로 요청을 전달합니다.
   selector:
     app: config-server
   ports:
     - name: http
       port: 8888
+      # targetPort의 http는 컨테이너 ports.name=http를 가리킵니다.
       targetPort: http

@@ -28,7 +28,7 @@ subprojects {
         java {
             target 'src/**/*.java'
             googleJavaFormat('1.35.0')
-            removeUnusedImports()
+            removeUnusedImports('cleanthat-javaparser-unnecessaryimport')
             trimTrailingWhitespace()
             endWithNewline()
         }

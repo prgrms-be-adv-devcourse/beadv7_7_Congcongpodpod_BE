@@ -1,4 +1,12 @@
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:redis_local_password}
+      connect-timeout: 1s
+      timeout: 1s
   cloud:
     gateway:
       server:
@@ -48,7 +56,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,refresh
+        include: health,info,gateway,refresh,prometheus
   endpoint:
     gateway:
       access: unrestricted

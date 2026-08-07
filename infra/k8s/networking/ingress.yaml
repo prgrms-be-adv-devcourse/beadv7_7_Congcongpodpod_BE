@@ -1,0 +1,59 @@
+# api.lastdish.kr의 HTTPS 요청을 Gateway Service로 전달하는 외부 라우팅 규칙입니다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway
+  namespace: app
+  annotations:
+    # HTTP 요청을 HTTPS로 강제 전환합니다.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  # ingress-nginx Controller만 이 리소스를 처리합니다.
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.lastdish.kr
+      # certificate.yaml에서 cert-manager가 생성하는 TLS Secret입니다.
+      secretName: api-lastdish-kr-tls
+  rules:
+    # Host 헤더가 api.lastdish.kr인 요청에만 아래 라우팅 규칙을 적용합니다.
+    - host: api.lastdish.kr
+      http:
+        paths:
+          - path: /api
+            # /api와 그 하위 경로를 모두 Gateway로 전달합니다.
+            pathType: Prefix
+            backend:
+              service:
+                # Ingress → gateway-service:80 → Gateway Pod:8080 순서로 전달됩니다.
+                name: gateway-service
+                port:
+                  number: 80
+---
+# grafana.lastdish.kr 요청을 Gateway를 거치지 않고 Grafana Service로 직접 전달합니다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  annotations:
+    # HTTP 요청을 HTTPS로 강제 전환합니다.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - grafana.lastdish.kr
+      # certificate.yaml에서 cert-manager가 자동 생성·갱신하는 TLS Secret입니다.
+      secretName: grafana-lastdish-kr-tls
+  rules:
+    - host: grafana.lastdish.kr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000

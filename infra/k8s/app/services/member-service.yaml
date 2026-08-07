@@ -1,0 +1,173 @@
+# 회원, 인증, JWT 발급을 담당하는 Member Service입니다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: member-service
+  namespace: app
+  labels:
+    app: member-service
+spec:
+  # 현재 단일 노드·소규모 트래픽 기준 1개 Pod를 운영합니다.
+  replicas: 1
+  # 신규 Pod가 Ready 상태가 되기 전에는 기존 Pod를 종료하지 않습니다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # 신규 Pod가 10초간 Ready 상태를 유지해야 배포 성공으로 판단합니다.
+  minReadySeconds: 10
+  revisionHistoryLimit: 5
+  # 아래 Pod template의 app label과 일치해야 Deployment가 Pod를 관리할 수 있습니다.
+  selector:
+    matchLabels:
+      app: member-service
+  template:
+    metadata:
+      labels:
+        app: member-service
+      annotations:
+        # Prometheus가 Pod IP의 Spring Actuator endpoint를 자동 발견해 수집합니다.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: member-service
+          image: ghcr.io/prgrms-be-adv-devcourse/lastdish-member-service:dev
+          # dev 태그가 갱신될 수 있으므로 새 Pod 생성 시 항상 이미지를 확인합니다.
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              value: -Duser.timezone=Asia/Seoul
+            - name: CONFIG_SERVER_URL
+              # Member가 시작할 때 원격 Spring 설정을 가져오는 Config Server 주소입니다.
+              value: http://config-server.platform.svc.cluster.local:8888
+            - name: MEMBER_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  # database-config.yaml의 비밀이 아닌 외부 DB 주소입니다.
+                  name: member-db-config
+                  key: url
+            - name: MEMBER_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  # 실제 계정 값은 저장소에 두지 않고 app 네임스페이스 Secret에 저장합니다.
+                  name: member-db-credentials
+                  # Secret 내부 username 값을 MEMBER_DB_USERNAME으로 주입합니다.
+                  key: username
+            - name: MEMBER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: member-db-credentials
+                  # 같은 Secret의 password 값을 MEMBER_DB_PASSWORD로 주입합니다.
+                  key: password
+            - name: JWT_ACCESS_PRIVATE_KEY_LOCATION
+              value: file:/etc/lastdish/jwt/access-private-key.pem
+            - name: JWT_ACCESS_PUBLIC_KEY_LOCATION
+              value: file:/etc/lastdish/jwt/access-public-key.pem
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  # data 네임스페이스 Redis Service의 Kubernetes DNS입니다.
+                  name: redis-client-config
+                  key: host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-client-config
+                  key: port
+            - name: REDIS_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-client-config
+                  key: username
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # Secret은 네임스페이스를 넘을 수 없어 app에도 동일 자격증명을 둡니다.
+                  name: redis-auth
+                  key: password
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  # data 네임스페이스 Kafka의 내부 접속 주소입니다.
+                  name: kafka-client-config
+                  key: bootstrap-servers
+          volumeMounts:
+            # JWT 개인키가 포함되므로 읽기 전용으로 마운트합니다.
+            - name: member-jwt-keys
+              mountPath: /etc/lastdish/jwt
+              readOnly: true
+          readinessProbe:
+            # 준비된 Pod만 Service 트래픽을 받습니다.
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            # 5초 간격으로 최대 12회 실패를 허용합니다.
+            periodSeconds: 5
+            failureThreshold: 12
+          startupProbe:
+            # Spring 초기 기동이 끝날 때까지 liveness 판단을 유예합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            # 약 5분 동안 Spring 및 DB 초기화를 기다립니다.
+            failureThreshold: 30
+          livenessProbe:
+            # 기동 후 응답 불능 상태가 지속되면 컨테이너를 재시작합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            # requests는 스케줄링 기준, limits는 컨테이너 메모리 상한입니다.
+            requests:
+              # Pod 배치 시 보장받을 최소 자원입니다.
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              # 평시 약 274Mi 사용량에 JWT·DB 처리의 순간 증가 여유를 포함한 상한입니다.
+              memory: 448Mi
+          securityContext:
+            # root 실행과 불필요한 Linux capability를 차단합니다.
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            # 이미지 내부 비-root 애플리케이션 계정으로 실행합니다.
+            runAsGroup: 101
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: member-jwt-keys
+          secret:
+            # Access Token 서명용 개인키와 검증용 공개키를 담은 Secret입니다.
+            secretName: member-jwt-keys
+---
+# Core/Gateway가 Member Pod를 직접 찾지 않고 member-service:80으로 호출합니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: member-service
+  namespace: app
+spec:
+  type: ClusterIP
+  # Deployment Pod의 app=member-service label과 연결됩니다.
+  selector:
+    app: member-service
+  ports:
+    - name: http
+      port: 80
+      # Service 80 → 컨테이너의 이름 있는 http 포트(8080)로 전달합니다.
+      targetPort: http

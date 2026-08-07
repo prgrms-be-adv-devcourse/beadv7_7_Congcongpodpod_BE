@@ -1,5 +1,6 @@
 .DS_Store
 .idea/
+.cmux/
 *.iml
 
 **/.gradle/
@@ -129,3 +130,4 @@
 
 # Local infrastructure backups
 /infra/k8s/tools/
+/infra/database/.env

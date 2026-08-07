@@ -1,23 +1,33 @@
 controller:
+  # 이 파일은 `kubectl apply`용 리소스가 아니라 ingress-nginx Helm Chart의 입력값입니다.
+  # 적용: helm upgrade --install ... --values ingress-nginx/values.yaml
+  # 단일 EC2 노드의 80/443 포트를 직접 사용하기 위해 각 노드에 하나씩 실행합니다.
   kind: DaemonSet
 
+  # 별도 LoadBalancer 없이 EC2 호스트 네트워크로 요청을 받습니다.
   hostNetwork: true
+  # hostNetwork Pod도 cluster.local 서비스 이름을 해석할 수 있게 합니다.
   dnsPolicy: ClusterFirstWithHostNet
 
   hostPort:
+    # hostNetwork를 사용하므로 별도 hostPort 바인딩은 중복되어 비활성화합니다.
     enabled: false
 
   service:
+    # Controller 검색용 Service이며 외부 공개는 hostNetwork가 담당합니다.
     enabled: true
     type: ClusterIP
 
+  # Ingress status에 외부 IP 대신 노드 내부 IP를 기록합니다.
   reportNodeInternalIp: true
 
   config:
+    # 앞단 프록시가 전달한 실제 클라이언트 IP 헤더를 신뢰하고 누적합니다.
     use-forwarded-headers: "true"
     compute-full-forwarded-for: "true"
 
   resources:
+    # CPU는 압축·TLS 처리의 최소 예약량만 두고, 메모리는 512MiB를 넘지 못하게 합니다.
     requests:
       cpu: 100m
       memory: 128Mi
