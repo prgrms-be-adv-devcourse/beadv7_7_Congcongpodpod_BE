@@ -118,7 +118,8 @@ spec:
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /livez
+              # v2.19.1 telemetry 서버는 /livez를 제공하지 않고 루트에서 생존 상태를 반환합니다.
+              path: /
               port: telemetry
             initialDelaySeconds: 15
             periodSeconds: 20
