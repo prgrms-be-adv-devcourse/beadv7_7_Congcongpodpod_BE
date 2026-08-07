@@ -13,18 +13,24 @@ import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
 import kr.lastdish.member.member.exception.MemberErrorCode;
+import kr.lastdish.member.member.presentation.dto.MemberUpdateRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class MemberServiceTest {
 
   @Mock private MemberRepository memberRepository;
+
   @Mock private RefreshTokenRepository refreshTokenRepository;
+
+  @Mock private PasswordEncoder passwordEncoder;
 
   @InjectMocks private MemberService memberService;
 
@@ -66,5 +72,75 @@ class MemberServiceTest {
     assertThatThrownBy(() -> memberService.withdrawMember(memberId))
         .isInstanceOf(BusinessException.class)
         .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("회원 정보 수정 성공")
+  void updateMember_success() {
+    // given
+    Long memberId = 1L;
+    Member member =
+        Member.builder()
+            .userName("oldUserName")
+            .password("oldPassword")
+            .name("oldName")
+            .phone("010-1111-2222")
+            .email("old@email.com")
+            .build();
+
+    ReflectionTestUtils.setField(member, "id", memberId);
+
+    MemberUpdateRequest request = new MemberUpdateRequest();
+    ReflectionTestUtils.setField(request, "userName", "newUserName");
+    ReflectionTestUtils.setField(request, "password", "newPassword123");
+    ReflectionTestUtils.setField(request, "name", "newName");
+    ReflectionTestUtils.setField(request, "phone", "010-3333-4444");
+    ReflectionTestUtils.setField(request, "email", "new@email.com");
+
+    given(memberRepository.findActiveById(memberId)).willReturn(Optional.of(member));
+    given(memberRepository.existsByUserName("newUserName")).willReturn(false);
+    given(memberRepository.existsByEmail("new@email.com")).willReturn(false);
+    given(passwordEncoder.encode("newPassword123")).willReturn("encodedNewPassword");
+
+    // when
+    memberService.updateMember(memberId, request);
+
+    // then
+    assertThat(member.getUserName()).isEqualTo("newUserName");
+    assertThat(member.getPassword()).isEqualTo("encodedNewPassword");
+    assertThat(member.getName()).isEqualTo("newName");
+    assertThat(member.getPhone()).isEqualTo("010-3333-4444");
+    assertThat(member.getEmail()).isEqualTo("new@email.com");
+  }
+
+  @Test
+  @DisplayName("회원 정보 수정 실패 - 중복된 유저네임")
+  void updateMember_fail_duplicate_username() {
+    // given
+    Long memberId = 1L;
+    Member member =
+        Member.builder()
+            .userName("oldUserName")
+            .password("oldPassword")
+            .name("oldName")
+            .phone("010-1111-2222")
+            .email("old@email.com")
+            .build();
+
+    MemberUpdateRequest request = new MemberUpdateRequest();
+    ReflectionTestUtils.setField(request, "userName", "duplicateUserName");
+    ReflectionTestUtils.setField(request, "password", "newPassword123");
+    ReflectionTestUtils.setField(request, "name", "newName");
+    ReflectionTestUtils.setField(request, "phone", "010-3333-4444");
+    ReflectionTestUtils.setField(request, "email", "old@email.com");
+
+    given(memberRepository.findActiveById(memberId)).willReturn(Optional.of(member));
+    given(memberRepository.existsByUserName("duplicateUserName")).willReturn(true);
+
+    // when & then
+    assertThatThrownBy(() -> memberService.updateMember(memberId, request))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(MemberErrorCode.DUPLICATE_USERNAME);
   }
 }

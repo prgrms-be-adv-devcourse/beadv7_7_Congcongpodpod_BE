@@ -1,15 +1,13 @@
 package kr.lastdish.member.member.presentation;
 
+import jakarta.validation.Valid;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.member.member.application.MemberService;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import kr.lastdish.member.member.presentation.dto.MemberProfileResponse;
+import kr.lastdish.member.member.presentation.dto.MemberUpdateRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/members")
@@ -29,6 +27,14 @@ public class MemberController {
   public ApiResponse<Void> withdrawMember(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
     memberService.withdrawMember(memberId);
+    return ApiResponse.ok(null);
+  }
+
+  @PutMapping("/me")
+  public ApiResponse<Void> updateMember(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @RequestBody @Valid MemberUpdateRequest requestDto) {
+    memberService.updateMember(memberId, requestDto);
     return ApiResponse.ok(null);
   }
 }
