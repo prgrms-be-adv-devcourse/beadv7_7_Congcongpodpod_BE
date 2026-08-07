@@ -26,6 +26,11 @@ spec:
     metadata:
       labels:
         app: member-service
+      annotations:
+        # Prometheus가 Pod IP의 Spring Actuator endpoint를 자동 발견해 수집합니다.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
     spec:
       imagePullSecrets:
         - name: ghcr-pull-secret

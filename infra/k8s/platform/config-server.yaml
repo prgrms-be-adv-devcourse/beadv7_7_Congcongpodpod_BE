@@ -27,6 +27,11 @@ spec:
     metadata:
       labels:
         app: config-server
+      annotations:
+        # Config Server는 애플리케이션과 다른 8888 포트에서 메트릭을 제공합니다.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8888"
     spec:
       # 비공개 GHCR 이미지를 받기 위한 Docker Registry Secret입니다.
       imagePullSecrets:

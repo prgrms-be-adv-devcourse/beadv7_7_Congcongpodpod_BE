@@ -56,7 +56,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,refresh
+        include: health,info,gateway,refresh,prometheus
   endpoint:
     gateway:
       access: unrestricted

@@ -53,6 +53,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
 
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
 }
 
 tasks.named('test') {

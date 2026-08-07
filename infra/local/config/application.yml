@@ -2,11 +2,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,refresh
+        include: health,info,refresh,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+  metrics:
+    tags:
+      # 모든 JVM·HTTP 메트릭에 서비스명을 붙여 Grafana에서 서비스별로 구분합니다.
+      application: ${spring.application.name}
 
 springdoc:
   api-docs:
