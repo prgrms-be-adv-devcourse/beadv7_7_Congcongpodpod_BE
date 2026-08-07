@@ -32,31 +32,41 @@ public class MemberService {
 
   @Transactional
   public void updateMember(Long memberId, MemberUpdateRequest requestDto) {
+
+    // 1. 활성화된 회원(탈퇴 제외) 조회
     Member member =
         memberRepository
             .findActiveById(memberId)
             .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-    if (!member.getUserName().equals(requestDto.getUserName())) {
+    // 2. 아이디 변경 시 중복 검사 수행(값이 들어왔을 때만)
+    if (requestDto.getUserName() != null
+        && !member.getUserName().equals(requestDto.getUserName())) {
       if (memberRepository.existsByUserName(requestDto.getUserName())) {
         throw new BusinessException(MemberErrorCode.DUPLICATE_USERNAME);
       }
     }
 
-    if (!member.getEmail().equals(requestDto.getEmail())) {
+    // 3. 이메일 변경 시 중복 검사 수행(값이 들어왔을 때만)
+    if (requestDto.getEmail() != null && !member.getEmail().equals(requestDto.getEmail())) {
       if (memberRepository.existsByEmail(requestDto.getEmail())) {
         throw new BusinessException(MemberErrorCode.DUPLICATE_EMAIL);
       }
     }
 
-    String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
+    // 4. 비밀번호 변경 (값이 들어왔을 때만)
+    String encodedPassword = null;
+    if (requestDto.getPassword() != null && !requestDto.getPassword().isBlank()) {
+      encodedPassword = passwordEncoder.encode(requestDto.getPassword());
+    }
 
+    // 5. 회원 정보 업데이트(null 체크를 통해 기존 값 유지 보장)
     member.updateMember(
-        requestDto.getUserName(),
-        encodedPassword,
-        requestDto.getName(),
-        requestDto.getPhone(),
-        requestDto.getEmail());
+        requestDto.getUserName() != null ? requestDto.getUserName() : member.getUserName(),
+        encodedPassword != null ? encodedPassword : member.getPassword(),
+        requestDto.getName() != null ? requestDto.getName() : member.getName(),
+        requestDto.getPhone() != null ? requestDto.getPhone() : member.getPhone(),
+        requestDto.getEmail() != null ? requestDto.getEmail() : member.getEmail());
   }
 
   // 회원 탈퇴
