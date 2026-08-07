@@ -114,6 +114,8 @@ flutter run -d chrome --web-port 3000
 - Flutter Web: `http://localhost:3000`
 - Gateway: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Redis: `localhost:6379` (`REDIS_PASSWORD` 미지정 시 개발 전용 비밀번호 사용)
+- Kafka: `localhost:9092` (단일 KRaft broker, PLAINTEXT)
 
 환경 준비, 개별 서비스 실행, DB 초기화 방법은 [로컬 통합 환경](docs/infra/local-development.md),
 Flutter 설치와 빌드는 [프론트엔드 가이드](frontend/README.md)를 참고합니다.

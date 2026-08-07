@@ -1,0 +1,223 @@
+name: Backend Services
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'backend/services/**'
+      - 'backend/modules/**'
+      - 'backend/build.gradle'
+      - 'backend/settings.gradle'
+      - 'backend/gradle.properties'
+      - 'backend/gradlew'
+      - 'backend/gradlew.bat'
+      - 'backend/gradle/**'
+      - '.github/workflows/backend-services.yml'
+      - '.github/workflows/build-service-image.yml'
+      - '.github/workflows/deploy-service.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/services/**'
+      - 'backend/modules/**'
+      - 'backend/build.gradle'
+      - 'backend/settings.gradle'
+      - 'backend/gradle.properties'
+      - 'backend/gradlew'
+      - 'backend/gradlew.bat'
+      - 'backend/gradle/**'
+      - '.github/workflows/backend-services.yml'
+      - '.github/workflows/build-service-image.yml'
+      - '.github/workflows/deploy-service.yml'
+  workflow_dispatch:
+
+# 동일 브랜치의 새 실행이 와도 진행 중이거나 대기 중인 배포를 취소하지 않습니다.
+concurrency:
+  group: backend-services-${{ github.ref }}
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      config: ${{ steps.filter.outputs.config }}
+      member: ${{ steps.filter.outputs.member }}
+      core: ${{ steps.filter.outputs.core }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed services
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            for service in config member core gateway; do
+              echo "$service=true" >> "$GITHUB_OUTPUT"
+            done
+            exit 0
+          fi
+
+          base_sha=$BEFORE_SHA
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha=$PR_BASE_SHA
+          fi
+
+          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
+            base_sha=$(git rev-parse HEAD^)
+          fi
+
+          changed_files=$(git diff --name-only "$base_sha" "$GITHUB_SHA")
+          common_changed=false
+
+          if grep -Eq '^(backend/modules/|backend/(build.gradle|settings.gradle|gradle.properties|gradlew|gradlew.bat|gradle/)|\.github/workflows/)' <<< "$changed_files"; then
+            common_changed=true
+          fi
+
+          for service in config member core gateway; do
+            service_path=$service-service
+            if [[ "$service" == "config" ]]; then
+              service_path=config-server
+            fi
+            changed=$common_changed
+            if grep -q "^backend/services/$service_path/" <<< "$changed_files"; then
+              changed=true
+            fi
+            echo "$service=$changed" >> "$GITHUB_OUTPUT"
+          done
+
+  # 서비스 테스트와 이미지 빌드는 서로 의존하지 않으므로 병렬로 수행합니다.
+  build-config:
+    needs: changes
+    if: needs.changes.outputs.config == 'true'
+    uses: ./.github/workflows/build-service-image.yml
+    with:
+      service-name: config-server
+      publish: ${{ github.event_name != 'pull_request' }}
+
+  build-member:
+    needs: changes
+    if: needs.changes.outputs.member == 'true'
+    uses: ./.github/workflows/build-service-image.yml
+    with:
+      service-name: member-service
+      publish: ${{ github.event_name != 'pull_request' }}
+
+  build-core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
+    uses: ./.github/workflows/build-service-image.yml
+    with:
+      service-name: core-service
+      publish: ${{ github.event_name != 'pull_request' }}
+
+  build-gateway:
+    needs: changes
+    if: needs.changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/build-service-image.yml
+    with:
+      service-name: gateway-service
+      publish: ${{ github.event_name != 'pull_request' }}
+
+  # main push에서만 배포하며 needs 체인으로 rollout 순서를 보장합니다.
+  deploy-config:
+    needs:
+      - changes
+      - build-config
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.config == 'true' &&
+      needs.build-config.result == 'success'
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: config-server
+      namespace: platform
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}
+
+  deploy-member:
+    needs:
+      - changes
+      - build-member
+      - deploy-config
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.member == 'true' &&
+      needs.build-member.result == 'success' &&
+      (needs.deploy-config.result == 'success' || needs.deploy-config.result == 'skipped')
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: member-service
+      namespace: app
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}
+
+  deploy-core:
+    needs:
+      - changes
+      - build-core
+      - deploy-config
+      - deploy-member
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.core == 'true' &&
+      needs.build-core.result == 'success' &&
+      (needs.deploy-config.result == 'success' || needs.deploy-config.result == 'skipped') &&
+      (needs.deploy-member.result == 'success' || needs.deploy-member.result == 'skipped')
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: core-service
+      namespace: app
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}
+
+  deploy-gateway:
+    needs:
+      - changes
+      - build-gateway
+      - deploy-config
+      - deploy-member
+      - deploy-core
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.gateway == 'true' &&
+      needs.build-gateway.result == 'success' &&
+      (needs.deploy-config.result == 'success' || needs.deploy-config.result == 'skipped') &&
+      (needs.deploy-member.result == 'success' || needs.deploy-member.result == 'skipped') &&
+      (needs.deploy-core.result == 'success' || needs.deploy-core.result == 'skipped')
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: gateway-service
+      namespace: app
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}

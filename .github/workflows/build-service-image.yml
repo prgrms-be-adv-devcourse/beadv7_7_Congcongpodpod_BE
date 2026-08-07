@@ -1,0 +1,64 @@
+name: Build Service Image
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: Gradle service module and image name
+        required: true
+        type: string
+      publish:
+        description: Push the built image to GHCR
+        required: true
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: backend/**/*.gradle*
+
+      - name: Test service
+        working-directory: backend
+        run: ./gradlew ":services:${{ inputs.service-name }}:test" --no-daemon
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: inputs.publish
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: metadata
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/lastdish-${{ inputs.service-name }}
+          tags: |
+            type=raw,value=dev,enable=${{ inputs.publish }}
+            type=sha,prefix=sha-
+
+      - name: Build and optionally push image
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/services/${{ inputs.service-name }}/Dockerfile
+          platforms: linux/amd64
+          push: ${{ inputs.publish }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha,scope=${{ inputs.service-name }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.service-name }}
