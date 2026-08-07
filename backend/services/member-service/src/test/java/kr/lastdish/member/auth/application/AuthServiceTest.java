@@ -27,10 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 class AuthServiceTest {
 
   @Autowired private AuthService authService;
-
   @Autowired private MemberRepository memberRepository;
-
   @Autowired private RefreshTokenRepository refreshTokenRepository;
+  @Autowired private JwtTokenProvider jwtTokenProvider;
+
+  @Autowired
+  private org.springframework.data.redis.core.RedisTemplate<String, String> redisTemplate;
 
   @Test
   @DisplayName("로그인 시 리프레시 토큰이 평문이 아니라 SHA-256 해시값으로 DB에 저장된다.")
@@ -94,8 +96,6 @@ class AuthServiceTest {
         .hasMessageContaining("유효하지 않은 Refresh Token입니다.");
   }
 
-  @Autowired private JwtTokenProvider jwtTokenProvider;
-
   @Test
   @DisplayName("만료된 리프레시 토큰으로 재발급을 요청하면 예외가 발생한다.")
   void reissueFailWithExpiredToken() {
@@ -130,11 +130,34 @@ class AuthServiceTest {
         authService.login(new LoginCommand("logout@example.com", "password123!"));
 
     // when
-    authService.logout(new RefreshTokenCommand(tokenResult.refreshToken()));
+    authService.logout(null, new RefreshTokenCommand(tokenResult.refreshToken()));
 
     // then
     assertThatThrownBy(
             () -> authService.refresh(new RefreshTokenCommand(tokenResult.refreshToken())))
         .isInstanceOf(BusinessException.class);
+  }
+
+  @Test
+  @DisplayName("로그아웃을 요청하면 Access Token이 Redis 블랙리스트에 등록된다.")
+  void logoutAddsAccessTokenToBlacklist() {
+    // given
+    SignUpCommand signUpCommand =
+        new SignUpCommand(
+            "blacklistuser", "password123!", "블랙리스트테스터", "010-1234-5678", "blacklist@example.com");
+    authService.signUp(signUpCommand);
+    TokenResult tokenResult =
+        authService.login(new LoginCommand("blacklist@example.com", "password123!"));
+
+    String accessToken = tokenResult.accessToken();
+    String refreshToken = tokenResult.refreshToken();
+
+    // when
+    authService.logout(accessToken, new RefreshTokenCommand(refreshToken));
+
+    // then
+    String blacklistedValue = redisTemplate.opsForValue().get(accessToken);
+    assertThat(blacklistedValue).isNotNull();
+    assertThat(blacklistedValue).isEqualTo("blacklisted");
   }
 }

@@ -16,6 +16,7 @@ import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
 import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ public class AuthService {
   private final RefreshTokenRepository refreshTokenRepository;
   private final TokenProvider tokenProvider;
   private final PasswordEncoder passwordEncoder;
+  private final RedisTemplate<String, String> redisTemplate;
 
   @Transactional
   public SignUpResult signUp(SignUpCommand command) {
@@ -99,22 +101,33 @@ public class AuthService {
   }
 
   @Transactional
-  public void logout(RefreshTokenCommand command) {
+  public void logout(String accessToken, RefreshTokenCommand command) {
     String refreshToken = command.refreshToken();
 
-    // 1. 토큰 유효성 검증
+    // 1. Access Token이 존재하고 유효하다면 Redis 블랙리스트에 등록
+    if (accessToken != null && tokenProvider.validateToken(accessToken)) {
+      long expiration = tokenProvider.getExpiration(accessToken); // 토큰의 남은 유효시간(ms) 추출
+      if (expiration > 0) { // 남은 유효시간이 음수일 경우 방지
+        redisTemplate
+            .opsForValue()
+            .set(
+                accessToken, "blacklisted", expiration, java.util.concurrent.TimeUnit.MILLISECONDS);
+      }
+    }
+
+    // 2. Refresh Token 토큰 유효성 검증
     if (!tokenProvider.validateToken(refreshToken)) {
       throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
 
-    // 2. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 일치하는 토큰 조회
+    // 3. 요청받은 토큰을 해시화하여 DB에 저장된 해시값과 일치하는 토큰 조회
     String hashedRefreshToken = encryptSha256(refreshToken);
     RefreshToken savedToken =
         refreshTokenRepository
             .findByToken(hashedRefreshToken)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 
-    // 3. 토큰 삭제
+    // 4. 토큰 삭제
     refreshTokenRepository.delete(savedToken);
   }
 
