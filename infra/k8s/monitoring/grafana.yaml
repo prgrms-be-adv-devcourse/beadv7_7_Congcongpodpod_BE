@@ -72,7 +72,7 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 50m
+              # 단일 노드 RollingUpdate가 새 서비스 Pod를 배치할 CPU 여유를 남깁니다.
               memory: 128Mi
             limits:
               memory: 256Mi
