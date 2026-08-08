@@ -71,12 +71,16 @@ jobs:
           cache: gradle
           cache-dependency-path: backend/**/*.gradle*
 
+      - name: Wait for Redis
+        run: |
+          timeout 30s bash -c 'until nc -z localhost 6379; do sleep 1; done'
+
       - name: Test Member Service
         working-directory: backend
         run: ./gradlew :services:member-service:test --no-daemon
         env:
           SPRING_DATA_REDIS_HOST: redis
-          
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
