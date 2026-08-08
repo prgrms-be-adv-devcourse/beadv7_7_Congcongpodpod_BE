@@ -47,6 +47,18 @@ jobs:
       contents: read
       packages: write
 
+    # GitHub Actions 러너 내부에 Redis 서비스 컨테이너 구동
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -62,7 +74,9 @@ jobs:
       - name: Test Member Service
         working-directory: backend
         run: ./gradlew :services:member-service:test --no-daemon
-
+        env:
+          SPRING_DATA_REDIS_HOST: redis
+          
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
