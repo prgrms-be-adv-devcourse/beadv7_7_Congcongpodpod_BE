@@ -77,7 +77,7 @@ jobs:
 
       - name: Test Member Service
         working-directory: backend
-        run: ./gradlew :services:member-service:test --no-daemon -Dspring.data.redis.host=redis
+        run: SPRING_DATA_REDIS_HOST=redis ./gradlew :services:member-service:test --no-daemon
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
