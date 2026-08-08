@@ -51,6 +51,8 @@ jobs:
       config: ${{ steps.filter.outputs.config }}
       member: ${{ steps.filter.outputs.member }}
       core: ${{ steps.filter.outputs.core }}
+      payment: ${{ steps.filter.outputs.payment }}
+      ai: ${{ steps.filter.outputs.ai }}
       gateway: ${{ steps.filter.outputs.gateway }}
     steps:
       - name: Checkout repository
@@ -66,7 +68,7 @@ jobs:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            for service in config member core gateway; do
+            for service in config member core payment ai gateway; do
               echo "$service=true" >> "$GITHUB_OUTPUT"
             done
             exit 0
@@ -88,7 +90,7 @@ jobs:
             common_changed=true
           fi
 
-          for service in config member core gateway; do
+          for service in config member core payment ai gateway; do
             service_path=$service-service
             if [[ "$service" == "config" ]]; then
               service_path=config-server
@@ -123,6 +125,22 @@ jobs:
     uses: ./.github/workflows/build-service-image.yml
     with:
       service-name: core-service
+      publish: ${{ github.event_name != 'pull_request' }}
+
+  build-payment:
+    needs: changes
+    if: needs.changes.outputs.payment == 'true'
+    uses: ./.github/workflows/build-service-image.yml
+    with:
+      service-name: payment-service
+      publish: ${{ github.event_name != 'pull_request' }}
+
+  build-ai:
+    needs: changes
+    if: needs.changes.outputs.ai == 'true'
+    uses: ./.github/workflows/build-service-image.yml
+    with:
+      service-name: ai-service
       publish: ${{ github.event_name != 'pull_request' }}
 
   build-gateway:
