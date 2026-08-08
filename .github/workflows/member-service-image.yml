@@ -77,8 +77,11 @@ jobs:
 
       - name: Test Member Service
         working-directory: backend
-        run: SPRING_DATA_REDIS_HOST=localhost ./gradlew :services:member-service:test --no-daemon
-
+        env:
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+        run: ./gradlew :services:member-service:test --no-daemon
+      -
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
