@@ -9,6 +9,8 @@ COPY services/config-server/build.gradle services/config-server/build.gradle
 COPY services/gateway-service/build.gradle services/gateway-service/build.gradle
 COPY services/core-service/build.gradle services/core-service/build.gradle
 COPY services/member-service/build.gradle services/member-service/build.gradle
+COPY services/payment-service/build.gradle services/payment-service/build.gradle
+COPY services/ai-service/build.gradle services/ai-service/build.gradle
 COPY modules/api-common/build.gradle modules/api-common/build.gradle
 COPY modules/mvc-common/build.gradle modules/mvc-common/build.gradle
 COPY modules/event-common/build.gradle modules/event-common/build.gradle
