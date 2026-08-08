@@ -18,15 +18,15 @@ COPY modules/outbox/build.gradle modules/outbox/build.gradle
 
 RUN sed -i 's/\r$//' gradlew \
     && chmod +x gradlew \
-    && ./gradlew :services:core-service:dependencies --no-daemon
+    && ./gradlew :services:payment-service:dependencies --no-daemon
 
 COPY modules/api-common/src modules/api-common/src
 COPY modules/mvc-common/src modules/mvc-common/src
 COPY modules/event-common/src modules/event-common/src
 COPY modules/outbox/src modules/outbox/src
-COPY services/core-service/src services/core-service/src
+COPY services/payment-service/src services/payment-service/src
 
-RUN ./gradlew :services:core-service:bootJar --no-daemon
+RUN ./gradlew :services:payment-service:bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
 
@@ -36,7 +36,7 @@ RUN addgroup -S spring \
 WORKDIR /app
 
 COPY --from=builder --chown=spring:spring \
-    /workspace/services/core-service/build/libs/core-service-*.jar app.jar
+    /workspace/services/payment-service/build/libs/payment-service-*.jar app.jar
 
 USER spring:spring
 
