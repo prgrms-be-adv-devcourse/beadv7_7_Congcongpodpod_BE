@@ -10,28 +10,28 @@
 
 ## 1. 로컬 JWT 키 생성
 
-최초 실행 전에 Access/Refresh RSA 키를 생성합니다.
+최초 실행 전에 Access Token RSA 키를 생성합니다.
 
 ```bash
-./infra/local/generate-jwt-keys.sh
+./dev/local/member-service/generate-jwt-keys.sh
 ```
 
-키는 `infra/local/keys`에 생성되며 Git에 포함하지 않습니다. 기존 키를 의도적으로 교체할 때만 다음 명령을 사용합니다.
+Member 키는 `dev/local/member-service/keys`, Gateway 공개키는 `dev/local/gateway-service/keys`에 생성되며 Git에 포함하지 않습니다. 기존 키를 의도적으로 교체할 때만 다음 명령을 사용합니다.
 
 ```bash
-./infra/local/generate-jwt-keys.sh --force
+./dev/local/member-service/generate-jwt-keys.sh --force
 ```
 
 Windows PowerShell에서는 저장소 루트에서 다음 명령을 실행합니다. `openssl`이 `PATH`에 등록되어 있어야 합니다.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1
+powershell -ExecutionPolicy Bypass -File .\dev\local\member-service\generate-jwt-keys.ps1
 ```
 
 기존 키를 교체할 때만 `-Force`를 사용합니다.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1 -Force
+powershell -ExecutionPolicy Bypass -File .\dev\local\member-service\generate-jwt-keys.ps1 -Force
 ```
 
 ## 2. 의존 서비스 실행
@@ -39,8 +39,8 @@ powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1 -Fo
 Member DB와 Config Server만 실행합니다.
 
 ```bash
-docker compose up -d member-db config-server
-docker compose ps
+docker compose --env-file dev/.env --file dev/compose.yaml up -d member-db config-server
+docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
 
 Config Server가 `healthy`가 된 후 Member Service를 실행합니다.
@@ -52,6 +52,8 @@ Config Server가 `healthy`가 된 후 Member Service를 실행합니다.
 ```bash
 cd backend
 SPRING_PROFILES_ACTIVE=local SERVER_PORT=8081 \
+JWT_ACCESS_PRIVATE_KEY_LOCATION=file:../../../dev/local/member-service/keys/access-private-key.pem \
+JWT_ACCESS_PUBLIC_KEY_LOCATION=file:../../../dev/local/member-service/keys/access-public-key.pem \
   ./gradlew :services:member-service:bootRun
 ```
 
@@ -61,10 +63,12 @@ Windows PowerShell:
 cd backend
 $env:SPRING_PROFILES_ACTIVE = "local"
 $env:SERVER_PORT = "8081"
+$env:JWT_ACCESS_PRIVATE_KEY_LOCATION = "file:../../../dev/local/member-service/keys/access-private-key.pem"
+$env:JWT_ACCESS_PUBLIC_KEY_LOCATION = "file:../../../dev/local/member-service/keys/access-public-key.pem"
 .\gradlew.bat :services:member-service:bootRun
 ```
 
-Gradle이 애플리케이션 작업 디렉터리를 `backend/services/member-service`로 설정하므로, `application-local.yml`의 기본 JWT 키 경로는 해당 디렉터리를 기준으로 `../../../infra/local/keys`를 참조합니다.
+Member를 Compose 밖에서 실행할 때는 `dev/local/member-service/keys`의 Access Token 키 위치를 환경변수로 전달합니다.
 
 다른 위치의 키를 사용할 경우 환경변수로 경로를 지정합니다.
 
@@ -109,15 +113,15 @@ cd backend
 저장소 루트에서 실행합니다.
 
 ```bash
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env --file dev/compose.yaml up --build -d
+docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
 
 Windows PowerShell에서도 저장소 루트에서 같은 Docker Compose 명령을 사용합니다.
 
 ```powershell
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env --file dev/compose.yaml up --build -d
+docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
 
 Compose는 Member Service에 Access 개인키와 공개키를 `/run/secrets`로 마운트합니다. Gateway는 동일한 Access 공개키로 토큰 서명을 검증합니다.
@@ -197,7 +201,7 @@ $tokens.refreshToken
 
 ### `RSA 키페어 초기화 실패`
 
-- `infra/local/keys/access-private-key.pem`과 `access-public-key.pem`이 존재하는지 확인합니다.
+- `dev/local/member-service/keys/access-private-key.pem`과 `access-public-key.pem`이 존재하는지 확인합니다.
 - Gradle 명령을 `backend`에서 실행했는지 확인합니다.
 - IntelliJ에서 직접 실행한다면 Working directory와 JWT 키 환경변수를 확인합니다.
 
@@ -210,5 +214,5 @@ $tokens.refreshToken
 터미널의 Member Service는 `Ctrl+C`로 종료합니다. 로컬 인프라는 저장소 루트에서 종료합니다.
 
 ```bash
-docker compose stop member-db config-server
+docker compose --env-file dev/.env --file dev/compose.yaml stop member-db config-server
 ```

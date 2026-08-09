@@ -1,0 +1,74 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:redis_local_password}
+      connect-timeout: 1s
+      timeout: 1s
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 10s
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              "[/api/**]":
+                allowed-origins:
+                  - ${GATEWAY_CORS_ORIGIN:https://lastdish.kr}
+                  - ${GATEWAY_CORS_WWW_ORIGIN:https://www.lastdish.kr}
+                allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowed-headers: [Authorization, Content-Type]
+                max-age: 3600
+          routes:
+            - id: core-service
+              uri: http://core-service:8080
+              predicates:
+                - Path=/api/v1/carts/**,/api/v1/orders/**,/api/v1/stores/**,/api/v1/dishes/**,/api/v1/payments/**,/api/v1/settlements/**,/api/v1/deposits/**
+            - id: member-service
+              uri: http://member-service:8080
+              predicates:
+                - Path=/api/v1/auth/**,/api/v1/members/**
+            - id: member-openapi
+              uri: http://member-service:8080
+              predicates:
+                - Path=/openapi/member-service
+              filters:
+                - SetPath=/v3/api-docs
+            - id: core-openapi
+              uri: http://core-service:8080
+              predicates:
+                - Path=/openapi/core-service
+              filters:
+                - SetPath=/v3/api-docs
+            - id: payment-openapi
+              uri: http://payment-service:8080
+              predicates:
+                - Path=/openapi/payment-service
+              filters:
+                - SetPath=/v3/api-docs
+            - id: ai-openapi
+              uri: http://ai-service:8080
+              predicates:
+                - Path=/openapi/ai-service
+              filters:
+                - SetPath=/v3/api-docs
+
+gateway:
+  security:
+    jwt:
+      issuer: lastdish-member-service
+      public-key-location: ${JWT_PUBLIC_KEY_LOCATION}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,refresh,prometheus
+  endpoint:
+    gateway:
+      access: unrestricted

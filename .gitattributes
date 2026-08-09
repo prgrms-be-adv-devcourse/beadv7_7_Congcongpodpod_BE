@@ -12,6 +12,10 @@
 *.yaml text eol=lf
 *.md text eol=lf
 *.sh text eol=lf
+*.alloy text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+.env.example text eol=lf
 Dockerfile text eol=lf
 gradlew text eol=lf
 
@@ -27,3 +31,4 @@ gradlew text eol=lf
 *.gif binary
 *.ico binary
 *.pdf binary
+*.drawio text eol=lf

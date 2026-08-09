@@ -2,7 +2,9 @@ name: lastdish-local
 
 services:
   member-db:
-    image: postgres:17-alpine
+    # 운영 Data EC2와 동일한 PostgreSQL 이미지 계열을 사용해 확장·도구 차이를 줄입니다.
+    image: postgres:17
+    mem_limit: 512m
     environment:
       POSTGRES_DB: member_db
       POSTGRES_USER: member
@@ -18,7 +20,8 @@ services:
       retries: 10
 
   core-db:
-    image: postgres:17-alpine
+    image: postgres:17
+    mem_limit: 640m
     environment:
       POSTGRES_DB: core_db
       POSTGRES_USER: core
@@ -33,8 +36,52 @@ services:
       timeout: 3s
       retries: 10
 
+  database-initializer:
+    # 로컬에서도 별도 파일 없이 Payment·AI 논리 DB와 계정을 자동 생성합니다.
+    image: postgres:17
+    restart: "no"
+    environment:
+      CORE_DB_NAME: core_db
+      CORE_DB_USERNAME: core
+      CORE_DB_PASSWORD: core_local_password
+      PAYMENT_DB_NAME: payment_db
+      PAYMENT_DB_USERNAME: payment
+      PAYMENT_DB_PASSWORD: payment_local_password
+      AI_DB_NAME: ai_db
+      AI_DB_USERNAME: ai
+      AI_DB_PASSWORD: ai_local_password
+    depends_on:
+      core-db:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        export PGPASSWORD="$$CORE_DB_PASSWORD"
+        create_database() {
+          database_name=$$1
+          database_user=$$2
+          database_password=$$3
+          psql --set=ON_ERROR_STOP=1 \
+            --host=core-db \
+            --username="$$CORE_DB_USERNAME" \
+            --dbname="$$CORE_DB_NAME" \
+            --set=database_name="$$database_name" \
+            --set=database_user="$$database_user" \
+            --set=database_password="$$database_password" <<'SQL'
+        SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'database_user', :'database_password')
+        WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'database_user') \gexec
+        SELECT format('CREATE DATABASE %I OWNER %I', :'database_name', :'database_user')
+        WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'database_name') \gexec
+        SQL
+        }
+        create_database "$$PAYMENT_DB_NAME" "$$PAYMENT_DB_USERNAME" "$$PAYMENT_DB_PASSWORD"
+        create_database "$$AI_DB_NAME" "$$AI_DB_USERNAME" "$$AI_DB_PASSWORD"
+
   redis:
     image: redis:8.8.1-alpine
+    # Kubernetes Redis Pod의 메모리 상한과 동일합니다.
+    mem_limit: 384m
     environment:
       # 로컬 기본값이며, 실행 전에 REDIS_PASSWORD 환경변수로 재정의할 수 있습니다.
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
@@ -107,15 +154,38 @@ services:
       retries: 30
       start_period: 20s
 
+  elasticsearch:
+    # 멀티 아키텍처 태그를 사용해 Intel EC2와 Apple Silicon 로컬 환경을 모두 지원합니다.
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.6
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic_local_password}
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    mem_limit: 1152m
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --user elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
   config-server:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/config-server/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: native
       CONFIG_NATIVE_SEARCH_LOCATIONS: file:/config
     volumes:
-      - ./infra/local/config:/config:ro
+      - ./local/config-server/config:/config:ro
+    # Main EC2 Deployment의 메모리 상한과 동일합니다.
+    mem_limit: 320m
     ports:
       - "8888:8888"
     healthcheck:
@@ -127,7 +197,7 @@ services:
 
   member-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/member-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -143,9 +213,9 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
     secrets:
-      - source: access-private-key
+      - source: member-access-private-key
         target: access-private-key.pem
-      - source: access-public-key
+      - source: member-access-public-key
         target: access-public-key.pem
     depends_on:
       config-server:
@@ -158,10 +228,11 @@ services:
         condition: service_healthy
     ports:
       - "8081:8080"
+    mem_limit: 448m
 
   core-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/core-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -175,6 +246,11 @@ services:
       REDIS_USERNAME: default
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # dev/.env에서 읽는다. 누락 시 잘못된 설정으로 기동하지 않도록 즉시 실패시킨다.
+      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:?TOSS_CLIENT_KEY is required in dev/.env}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:?TOSS_SECRET_KEY is required in dev/.env}
+      # AES 키는 애플리케이션이 요구하는 길이에 맞는 값을 dev/.env에 설정한다.
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:?ENCRYPTION_SECRET_KEY is required in dev/.env}
     depends_on:
       config-server:
         condition: service_healthy
@@ -186,10 +262,78 @@ services:
         condition: service_healthy
     ports:
       - "8082:8080"
+    mem_limit: 512m
+
+  payment-service:
+    build:
+      context: ../backend
+      dockerfile: services/payment-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      CONFIG_SERVER_URL: http://config-server:8888
+      PAYMENT_DB_URL: jdbc:postgresql://core-db:5432/payment_db
+      PAYMENT_DB_USERNAME: payment
+      PAYMENT_DB_PASSWORD: payment_local_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: default
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:?TOSS_CLIENT_KEY is required in dev/.env}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:?TOSS_SECRET_KEY is required in dev/.env}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      core-db:
+        condition: service_healthy
+      database-initializer:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8083:8080"
+    mem_limit: 384m
+
+  ai-service:
+    build:
+      context: ../backend
+      dockerfile: services/ai-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      CONFIG_SERVER_URL: http://config-server:8888
+      AI_DB_URL: jdbc:postgresql://core-db:5432/ai_db
+      AI_DB_USERNAME: ai
+      AI_DB_PASSWORD: ai_local_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: default
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic_local_password}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      core-db:
+        condition: service_healthy
+      database-initializer:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "8084:8080"
+    mem_limit: 512m
 
   gateway-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/gateway-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -201,7 +345,7 @@ services:
       REDIS_USERNAME: default
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
     secrets:
-      - source: access-public-key
+      - source: gateway-access-public-key
         target: access-public-key.pem
     depends_on:
       config-server:
@@ -210,19 +354,27 @@ services:
         condition: service_started
       core-service:
         condition: service_started
+      payment-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
       redis:
         condition: service_healthy
     ports:
       - "8080:8080"
+    mem_limit: 320m
 
 secrets:
-  access-private-key:
-    file: ./infra/local/keys/access-private-key.pem
-  access-public-key:
-    file: ./infra/local/keys/access-public-key.pem
+  member-access-private-key:
+    file: ./local/member-service/keys/access-private-key.pem
+  member-access-public-key:
+    file: ./local/member-service/keys/access-public-key.pem
+  gateway-access-public-key:
+    file: ./local/gateway-service/keys/access-public-key.pem
 
 volumes:
   member-db-data:
   core-db-data:
   # Kafka 메시지와 KRaft metadata를 보존하는 Docker named volume입니다.
   kafka-data:
+  elasticsearch-data:
