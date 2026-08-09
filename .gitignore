@@ -136,5 +136,7 @@
 
 # Local infrastructure tools and runtime secrets
 /dev/.env
+/dev/k6/.env
+/dev/k6/results/
 /infra/ec2-main/tools/
 /infra/ec2-data/.env
