@@ -1,0 +1,22 @@
+name: lastdish-local-kibana
+
+services:
+  kibana:
+    # 서버 Elasticsearch와 호환되도록 같은 버전으로 고정합니다.
+    image: docker.elastic.co/kibana/kibana:9.3.6
+    environment:
+      SERVER_NAME: localhost
+      SERVER_HOST: 0.0.0.0
+      SERVER_PUBLICBASEURL: http://localhost:5601
+      # Kibana 컨테이너는 호스트에 열린 SSH 터널을 통해 Data EC2 Elasticsearch에 접근합니다.
+      ELASTICSEARCH_HOSTS: http://host.docker.internal:19200
+      # Git에서 제외된 로컬 .env의 Kibana 전용 service account token입니다.
+      ELASTICSEARCH_SERVICEACCOUNTTOKEN: ${KIBANA_SERVICE_ACCOUNT_TOKEN:?KIBANA_SERVICE_ACCOUNT_TOKEN is required}
+      # 로컬에서는 인덱스·문서 조회만 사용하므로 Elastic Agent 관리 기능을 비활성화합니다.
+      XPACK_FLEET_AGENTS_ENABLED: "false"
+    ports:
+      - "127.0.0.1:5601:5601"
+    extra_hosts:
+      # Linux Docker에서도 host.docker.internal로 호스트에 접근할 수 있게 합니다.
+      - "host.docker.internal:host-gateway"
+    mem_limit: 1g

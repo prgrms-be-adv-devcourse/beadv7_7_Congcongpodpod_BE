@@ -1,10 +1,10 @@
 $ErrorActionPreference = "Stop"
 
-# 어느 디렉터리에서 호출해도 저장소 루트의 compose.yaml과 dev/.env를 사용합니다.
+# 어느 디렉터리에서 호출해도 dev/compose.yaml과 dev/.env를 사용합니다.
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Split-Path -Parent $scriptDirectory
 $environmentFile = Join-Path $scriptDirectory ".env"
-$composeFile = Join-Path $projectRoot "compose.yaml"
+$composeFile = Join-Path $scriptDirectory "compose.yaml"
 
 if (-not (Test-Path $environmentFile)) {
     throw "dev/.env가 없습니다. dev/.env.example을 복사해 값을 설정하세요."
@@ -12,7 +12,7 @@ if (-not (Test-Path $environmentFile)) {
 
 $composeArgs = @(
     "--env-file", $environmentFile,
-    "--project-directory", $projectRoot,
+    "--project-directory", $scriptDirectory,
     "--file", $composeFile
 )
 

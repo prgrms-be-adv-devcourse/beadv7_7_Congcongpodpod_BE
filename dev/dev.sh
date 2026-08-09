@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# 어느 디렉터리에서 호출해도 저장소 루트의 compose.yaml과 dev/.env를 사용합니다.
+# 어느 디렉터리에서 호출해도 dev/compose.yaml과 dev/.env를 사용합니다.
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd -- "$script_dir/.." && pwd)"
 env_file="$script_dir/.env"
@@ -15,8 +15,8 @@ fi
 compose() {
   command docker compose \
     --env-file "$env_file" \
-    --project-directory "$project_root" \
-    --file "$project_root/compose.yaml" \
+    --project-directory "$script_dir" \
+    --file "$script_dir/compose.yaml" \
     "$@"
 }
 

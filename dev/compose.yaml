@@ -177,13 +177,13 @@ services:
 
   config-server:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/config-server/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: native
       CONFIG_NATIVE_SEARCH_LOCATIONS: file:/config
     volumes:
-      - ./infra/local/config-server/config:/config:ro
+      - ./local/config-server/config:/config:ro
     # Main EC2 Deployment의 메모리 상한과 동일합니다.
     mem_limit: 320m
     ports:
@@ -197,7 +197,7 @@ services:
 
   member-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/member-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -232,7 +232,7 @@ services:
 
   core-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/core-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -266,7 +266,7 @@ services:
 
   payment-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/payment-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -298,7 +298,7 @@ services:
 
   ai-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/ai-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -333,7 +333,7 @@ services:
 
   gateway-service:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: services/gateway-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: local
@@ -366,11 +366,11 @@ services:
 
 secrets:
   member-access-private-key:
-    file: ./infra/local/member-service/keys/access-private-key.pem
+    file: ./local/member-service/keys/access-private-key.pem
   member-access-public-key:
-    file: ./infra/local/member-service/keys/access-public-key.pem
+    file: ./local/member-service/keys/access-public-key.pem
   gateway-access-public-key:
-    file: ./infra/local/gateway-service/keys/access-public-key.pem
+    file: ./local/gateway-service/keys/access-public-key.pem
 
 volumes:
   member-db-data:

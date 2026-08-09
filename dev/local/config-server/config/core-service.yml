@@ -1,0 +1,67 @@
+spring:
+  kafka:
+    # Compose에서는 kafka:19092, IDE 단독 실행에서는 localhost:9092를 사용합니다.
+    # 실제 producer/consumer 적용 전까지 기존 Spring Event 동작에는 영향을 주지 않습니다.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # 단일 broker에서도 leader가 메시지를 기록한 뒤 성공 응답하도록 합니다.
+      acks: all
+      properties:
+        # Producer 재시도로 같은 메시지가 broker에 중복 기록되는 것을 줄입니다.
+        enable.idempotence: true
+    consumer:
+      # Member와 분리된 group이므로 Core가 구독한 이벤트를 독립적으로 처리합니다.
+      group-id: core-service
+      # 메시지 처리 전에 offset이 자동 커밋되는 것을 막습니다.
+      enable-auto-commit: false
+      # 저장된 offset이 없는 Consumer는 topic의 처음부터 읽습니다.
+      auto-offset-reset: earliest
+    listener:
+      # Listener가 메시지 한 건을 정상 처리한 뒤 해당 offset을 커밋합니다.
+      ack-mode: record
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:redis_local_password}
+      connect-timeout: 1s
+      timeout: 1s
+  cache:
+    type: redis
+    redis:
+      time-to-live: 10m
+      cache-null-values: false
+      key-prefix: "core-service:"
+  datasource:
+    # Core는 core_db의 public 스키마만 소유합니다. Payment 데이터는 별도 payment_db에 있습니다.
+    url: ${CORE_DB_URL:jdbc:postgresql://localhost:54322/core_db}
+    username: ${CORE_DB_USERNAME:core}
+    password: ${CORE_DB_PASSWORD:core_local_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+    clean-disabled: true
+  batch:
+    job:
+      enabled: false
+
+services:
+  member:
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
+
+event:
+  publisher: ${EVENT_PUBLISHER:spring}
+
+outbox:
+  scheduler:
+    enabled: ${OUTBOX_SCHEDULER_ENABLED:true}
+  polling-delay-ms: ${OUTBOX_POLLING_DELAY_MS:1000}
+  batch-size: ${OUTBOX_BATCH_SIZE:100}
+  max-retries: ${OUTBOX_MAX_RETRIES:5}
+  lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
