@@ -7,7 +7,7 @@ $TunnelProcess = $null
 $KibanaStarted = $false
 
 if (-not (Test-Path $EnvironmentFile)) {
-    throw "$EnvironmentFile 파일이 없습니다. infra/local/kibana/.env.example을 .env로 복사한 뒤 실제 토큰을 입력하세요."
+    throw "$EnvironmentFile 파일이 없습니다. dev/local/kibana/.env.example을 .env로 복사한 뒤 실제 토큰을 입력하세요."
 }
 
 # 토큰 누락·빈 값은 SSH 연결 전에 Compose 설정 검증 단계에서 차단합니다.

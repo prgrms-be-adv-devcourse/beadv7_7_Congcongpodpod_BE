@@ -1,6 +1,8 @@
 # 로컬 빌드 및 실행 도구
 
-`dev.sh`와 `dev.ps1`은 저장소 루트의 `compose.yaml`을 사용해 서비스를 빌드·실행·중지하고 로컬 데이터를 초기화합니다. 어느 디렉터리에서 실행해도 `dev/.env`를 사용합니다.
+`dev.sh`와 `dev.ps1`은 `dev/compose.yaml`을 사용해 서비스를 빌드·실행·중지하고 로컬 데이터를 초기화합니다. 어느 디렉터리에서 실행해도 `dev/.env`를 사용합니다.
+
+로컬 Config Server 설정, JWT 키 생성기와 Kibana 도구는 [`dev/local/README.md`](local/README.md)에 정리되어 있습니다.
 
 ## 1. 환경변수 준비
 
@@ -51,7 +53,7 @@ Windows에서는 `./dev/dev.sh`를 `.\dev\dev.ps1`로 바꿉니다. 초기화는
 스크립트 없이 실행할 때도 환경변수 파일을 명시합니다.
 
 ```bash
-docker compose --env-file dev/.env up -d --build
-docker compose --env-file dev/.env ps
-docker compose --env-file dev/.env down
+docker compose --env-file dev/.env --file dev/compose.yaml up -d --build
+docker compose --env-file dev/.env --file dev/compose.yaml ps
+docker compose --env-file dev/.env --file dev/compose.yaml down
 ```
