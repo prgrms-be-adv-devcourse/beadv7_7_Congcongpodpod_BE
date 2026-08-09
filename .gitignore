@@ -138,7 +138,5 @@
 /dev/.env
 /dev/k6/.env
 /dev/k6/results/
-/infra/ec2-main/tools/
-/infra/ec2-data/.env
-# Grafana UI와 운영 서버에서 관리하는 대시보드 내보내기 산출물은 PR에 포함하지 않습니다.
-/infra/ec2-main/namespaces/monitoring/grafana/dashboards.yaml
+# 운영 인프라는 개인 로컬에서 관리하며 Git 저장소에 포함하지 않습니다.
+/infra/
