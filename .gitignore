@@ -46,7 +46,7 @@
 /dev/local/member-service/keys/*.pem
 /dev/local/gateway-service/keys/*.pem
 /dev/local/.DS_Store
-/dev/local/kibana/.env
+/dev/kibana/.env
 
 # Flutter frontend
 /frontend/.dart_tool/

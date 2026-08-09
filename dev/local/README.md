@@ -26,7 +26,7 @@ dev/local/
 로컬 Kibana는 `kibana/.env`의 service account token을 사용해 다음 명령으로 실행합니다.
 
 ```bash
-./dev/local/kibana/start-kibana.sh
+./dev/kibana/start-kibana.sh
 ```
 
 상세 사용법은 팀 Notion 문서를 기준으로 합니다.
