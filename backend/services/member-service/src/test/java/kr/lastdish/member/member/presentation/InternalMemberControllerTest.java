@@ -7,17 +7,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
 import kr.lastdish.member.member.application.MemberService;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(InternalMemberController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
 class InternalMemberControllerTest {
 
   @Autowired MockMvc mockMvc;
