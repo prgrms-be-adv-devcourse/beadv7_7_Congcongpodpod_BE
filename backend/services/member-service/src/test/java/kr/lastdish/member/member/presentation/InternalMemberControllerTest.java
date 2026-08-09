@@ -7,21 +7,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
 import kr.lastdish.member.member.application.MemberService;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
+@WebMvcTest(InternalMemberController.class)
+@ImportAutoConfiguration(exclude = OAuth2ClientWebSecurityAutoConfiguration.class)
 class InternalMemberControllerTest {
 
   @Autowired MockMvc mockMvc;
@@ -29,6 +29,8 @@ class InternalMemberControllerTest {
   @MockitoBean MemberService memberService;
 
   @MockitoBean JwtTokenProvider jwtTokenProvider;
+
+  @MockitoBean CacheManager cacheManager;
 
   @Test
   void 판매자_승급을_요청한다() throws Exception {

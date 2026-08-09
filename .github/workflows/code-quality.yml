@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  spotless-and-build:
-    name: Spotless and Build
+  spotless:
+    name: Spotless Check
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,9 +38,8 @@ jobs:
           cache: gradle
           cache-dependency-path: backend/**/*.gradle*
 
-      - name: Verify formatting and build
+      # 서비스 테스트와 JAR·이미지 빌드는 backend-services 워크플로우에서 변경 서비스별로 수행합니다.
+      # 이 워크플로우는 동일 테스트의 중복 실행을 피하고 코드 포맷만 빠르게 검증합니다.
+      - name: Verify formatting
         working-directory: backend
-        env:
-          SPRING_DATA_REDIS_HOST: localhost
-          SPRING_DATA_REDIS_PORT: 6379
-        run: ./gradlew spotlessCheck build --no-daemon
+        run: ./gradlew spotlessCheck --no-daemon

@@ -36,7 +36,7 @@
 
 ## 인프라·운영 문서
 
-- [로컬 통합 환경](infra/local-development.md): 루트 `compose.yaml` 기반 전체 백엔드 실행
+- [로컬 통합 환경](infra/local-development.md): `dev/compose.yaml` 기반 전체 백엔드 실행
 - [Kubernetes 매니페스트](infra/kubernetes.md): 배포 구성과 적용 순서
 
 ## 문서 작성 원칙
