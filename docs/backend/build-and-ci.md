@@ -7,19 +7,19 @@ Java 21, Spring Boot 4.1.0, Spring Cloud 2025.1.2 기반 Gradle 멀티 프로젝
 저장소 루트에서 Config Server, Gateway, Member, Core를 한 번에 실행합니다.
 
 ```bash
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env --file dev/compose.yaml up --build -d
+docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
 
 ```bash
 curl -fsS http://localhost:8080/actuator/health
 ```
 
-포트는 Gateway `8080`, Member `8081`, Core `8082`, Config Server `8888`입니다. 로컬 Config는 `infra/local/config`을 사용하며 운영 Config 저장소와 인증정보가 필요하지 않습니다.
+포트는 Gateway `8080`, Member `8081`, Core `8082`, Config Server `8888`입니다. 로컬 Config는 `dev/local/config-server/config`을 사용하며 운영 Config 저장소와 인증정보가 필요하지 않습니다.
 
 ```bash
-docker compose logs -f
-docker compose down
+docker compose --env-file dev/.env --file dev/compose.yaml logs -f
+docker compose --env-file dev/.env --file dev/compose.yaml down
 ```
 
 ## 로컬에서 서비스 단위로 빌드하기

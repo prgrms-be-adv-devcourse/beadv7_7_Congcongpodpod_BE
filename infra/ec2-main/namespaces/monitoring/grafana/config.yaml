@@ -1,0 +1,24 @@
+# Grafana가 기동될 때 Prometheus와 Data EC2 Loki를 데이터 소스로 자동 등록합니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://10.30.2.93:3100
+        isDefault: false
+        editable: false

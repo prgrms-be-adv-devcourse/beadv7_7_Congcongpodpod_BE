@@ -47,6 +47,14 @@ dependencies {
 
     testImplementation 'org.springframework.security:spring-security-test'
 
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
 }
 
 tasks.named('test') {

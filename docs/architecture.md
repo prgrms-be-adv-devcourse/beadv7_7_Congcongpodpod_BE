@@ -162,7 +162,7 @@ sequenceDiagram
 ## 설정과 실행 환경
 
 - 공통 애플리케이션 설정은 Config Server에서 제공합니다.
-- 로컬 Config는 `infra/local/config`에 있으며 Docker Compose가 읽기 전용으로
+- 로컬 Config는 `dev/local/config-server/config`에 있으며 Docker Compose가 읽기 전용으로
   마운트합니다.
 - `local` 프로필에서 Swagger UI와 통합 OpenAPI 문서를 제공합니다.
 - Member/Core의 Outbox 스케줄러는 환경변수로 활성화 여부와 polling/retry 정책을

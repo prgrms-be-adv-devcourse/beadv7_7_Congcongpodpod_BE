@@ -1,0 +1,306 @@
+name: lastdish-database
+
+services:
+  member-postgresql:
+    image: postgres:17
+    restart: unless-stopped
+    mem_limit: 512m
+    command:
+      # Loki가 동일 PostgreSQL 인스턴스 안의 논리 DB를 구분할 수 있도록 DB명과 계정명을 로그 접두사에 기록한다.
+      - postgres
+      - -c
+      - "log_line_prefix=%m [%p] db=%d user=%u "
+      - -c
+      # Exporter와 애플리케이션의 정상 접속이 10초마다 쌓이지 않도록 성공한 접속·종료 로그를 끈다.
+      # 인증 실패와 ERROR·FATAL·PANIC 로그는 이 설정과 무관하게 계속 기록된다.
+      - "log_connections=off"
+      - -c
+      - "log_disconnections=off"
+    environment:
+      POSTGRES_DB: ${MEMBER_DB_NAME:?MEMBER_DB_NAME is required}
+      POSTGRES_USER: ${MEMBER_DB_USERNAME:?MEMBER_DB_USERNAME is required}
+      POSTGRES_PASSWORD: ${MEMBER_DB_PASSWORD:?MEMBER_DB_PASSWORD is required}
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/lastdish/postgresql/member:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  core-postgresql:
+    image: postgres:17
+    restart: unless-stopped
+    mem_limit: 640m
+    command:
+      # core_db·payment_db·ai_db 로그를 application 라벨로 분리하기 위한 접두사다.
+      - postgres
+      - -c
+      - "log_line_prefix=%m [%p] db=%d user=%u "
+      - -c
+      # core_db·payment_db·ai_db Exporter의 반복 정상 접속 로그만 억제한다.
+      # DB명·계정 로그 접두사는 오류 발생 시 원인을 구분할 수 있도록 유지한다.
+      - "log_connections=off"
+      - -c
+      - "log_disconnections=off"
+    environment:
+      POSTGRES_DB: ${CORE_DB_NAME:?CORE_DB_NAME is required}
+      POSTGRES_USER: ${CORE_DB_USERNAME:?CORE_DB_USERNAME is required}
+      POSTGRES_PASSWORD: ${CORE_DB_PASSWORD:?CORE_DB_PASSWORD is required}
+    ports:
+      - "5433:5432"
+    volumes:
+      - /var/lib/lastdish/postgresql/core:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  database-initializer:
+    # 별도 파일 없이 .env 값으로 Payment·AI 논리 DB와 계정을 멱등 생성합니다.
+    image: postgres:17
+    restart: "no"
+    environment:
+      CORE_DB_NAME: ${CORE_DB_NAME:?CORE_DB_NAME is required}
+      CORE_DB_USERNAME: ${CORE_DB_USERNAME:?CORE_DB_USERNAME is required}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?CORE_DB_PASSWORD is required}
+      PAYMENT_DB_NAME: ${PAYMENT_DB_NAME:?PAYMENT_DB_NAME is required}
+      PAYMENT_DB_USERNAME: ${PAYMENT_DB_USERNAME:?PAYMENT_DB_USERNAME is required}
+      PAYMENT_DB_PASSWORD: ${PAYMENT_DB_PASSWORD:?PAYMENT_DB_PASSWORD is required}
+      AI_DB_NAME: ${AI_DB_NAME:?AI_DB_NAME is required}
+      AI_DB_USERNAME: ${AI_DB_USERNAME:?AI_DB_USERNAME is required}
+      AI_DB_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD is required}
+    depends_on:
+      core-postgresql:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        export PGPASSWORD="$$CORE_DB_PASSWORD"
+        create_database() {
+          database_name=$$1
+          database_user=$$2
+          database_password=$$3
+          psql --set=ON_ERROR_STOP=1 \
+            --host=core-postgresql \
+            --username="$$CORE_DB_USERNAME" \
+            --dbname="$$CORE_DB_NAME" \
+            --set=database_name="$$database_name" \
+            --set=database_user="$$database_user" \
+            --set=database_password="$$database_password" <<'SQL'
+        SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'database_user', :'database_password')
+        WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'database_user') \gexec
+        SELECT format('CREATE DATABASE %I OWNER %I', :'database_name', :'database_user')
+        WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'database_name') \gexec
+        SQL
+        }
+        create_database "$$PAYMENT_DB_NAME" "$$PAYMENT_DB_USERNAME" "$$PAYMENT_DB_PASSWORD"
+        create_database "$$AI_DB_NAME" "$$AI_DB_USERNAME" "$$AI_DB_PASSWORD"
+
+  elasticsearch:
+    # Private EC2에 오프라인 반입해 둔 이미지와 정확히 같은 태그를 사용한다.
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.6-amd64
+    restart: unless-stopped
+    mem_limit: 1152m
+    environment:
+      node.name: lastdish-data-es01
+      cluster.name: lastdish-search
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      xpack.security.enabled: "true"
+      # 같은 VPC 내부 통신만 허용하므로 HTTP/TLS는 사용하지 않고 비밀번호 인증만 적용한다.
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+    ports:
+      # EC2 사설 IP에만 바인딩한다. 보안 그룹에서도 Kubernetes 서버만 허용해야 한다.
+      - "${ELASTICSEARCH_BIND_ADDRESS:-10.30.2.93}:9200:9200"
+    volumes:
+      - /var/lib/lastdish/elasticsearch:/usr/share/elasticsearch/data
+      - ./elasticsearch/heap.options:/usr/share/elasticsearch/config/jvm.options.d/heap.options:ro
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --user \"elastic:$${ELASTIC_PASSWORD}\" \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s\" >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  member-postgresql-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    restart: unless-stopped
+    mem_limit: 32m
+    command:
+      # 서비스 DB 계정에는 서버 전체 WAL 디렉터리 조회 권한을 부여하지 않는다.
+      # 현재 대시보드에서 WAL 파일 지표를 사용하지 않으므로 권한 오류를 만드는 collector만 비활성화한다.
+      - --no-collector.wal
+      - --extend.query-path=/etc/postgres-exporter/queries.yaml
+    environment:
+      DATA_SOURCE_URI: member-postgresql:5432/${MEMBER_DB_NAME}?sslmode=disable
+      DATA_SOURCE_USER: ${MEMBER_DB_USERNAME}
+      DATA_SOURCE_PASS: ${MEMBER_DB_PASSWORD}
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9187:9187"
+    depends_on:
+      member-postgresql:
+        condition: service_healthy
+
+  core-postgresql-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    restart: unless-stopped
+    mem_limit: 32m
+    command:
+      # pg_ls_waldir()는 높은 권한이 필요한 서버 단위 정보이므로 수집하지 않는다.
+      - --no-collector.wal
+      - --extend.query-path=/etc/postgres-exporter/queries.yaml
+    environment:
+      DATA_SOURCE_URI: core-postgresql:5432/${CORE_DB_NAME}?sslmode=disable
+      DATA_SOURCE_USER: ${CORE_DB_USERNAME}
+      DATA_SOURCE_PASS: ${CORE_DB_PASSWORD}
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9188:9187"
+    depends_on:
+      core-postgresql:
+        condition: service_healthy
+
+  payment-postgresql-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    restart: unless-stopped
+    mem_limit: 32m
+    command:
+      # 논리 DB 전용 계정에 WAL 조회 권한을 추가하지 않고 collector를 비활성화한다.
+      - --no-collector.wal
+      - --extend.query-path=/etc/postgres-exporter/queries.yaml
+    environment:
+      DATA_SOURCE_URI: core-postgresql:5432/${PAYMENT_DB_NAME}?sslmode=disable
+      DATA_SOURCE_USER: ${PAYMENT_DB_USERNAME}
+      DATA_SOURCE_PASS: ${PAYMENT_DB_PASSWORD}
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9189:9187"
+    depends_on:
+      core-postgresql:
+        condition: service_healthy
+      database-initializer:
+        condition: service_completed_successfully
+
+  ai-postgresql-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    restart: unless-stopped
+    mem_limit: 32m
+    command:
+      # 논리 DB 전용 계정에 WAL 조회 권한을 추가하지 않고 collector를 비활성화한다.
+      - --no-collector.wal
+      - --extend.query-path=/etc/postgres-exporter/queries.yaml
+    environment:
+      DATA_SOURCE_URI: core-postgresql:5432/${AI_DB_NAME}?sslmode=disable
+      DATA_SOURCE_USER: ${AI_DB_USERNAME}
+      DATA_SOURCE_PASS: ${AI_DB_PASSWORD}
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9190:9187"
+    depends_on:
+      core-postgresql:
+        condition: service_healthy
+      database-initializer:
+        condition: service_completed_successfully
+
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.11.0
+    restart: unless-stopped
+    mem_limit: 32m
+    command:
+      - --es.uri=http://elasticsearch:9200
+      - --es.all
+      - --es.indices
+    environment:
+      ES_USERNAME: elastic
+      ES_PASSWORD: ${ELASTIC_PASSWORD}
+    ports:
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9114:9114"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.11.1
+    restart: unless-stopped
+    mem_limit: 64m
+    pid: host
+    read_only: true
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/containers/storage/.+)($|/)
+    ports:
+      # Kubernetes Main EC2에서만 접근하도록 EC2 보안 그룹도 동일하게 제한한다.
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:9100:9100"
+    volumes:
+      # Data EC2 호스트의 CPU·RAM·디스크·I/O 지표를 읽기 전용으로 수집한다.
+      - /:/host:ro,rslave
+
+  cadvisor:
+    # Data EC2 Docker 컨테이너별 CPU·메모리 사용량을 Prometheus 형식으로 제공합니다.
+    image: ghcr.io/google/cadvisor:v0.60.5
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.20
+    privileged: true
+    ports:
+      # Main EC2만 접근하도록 Data EC2 보안 그룹에서도 TCP 8080을 제한합니다.
+      - "${EXPORTER_BIND_ADDRESS:-10.30.2.93}:8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+
+  loki:
+    # Kubernetes의 Alloy가 전달하는 서비스 로그를 저장·검색하는 단일 Loki 인스턴스다.
+    image: grafana/loki:3.7.0
+    restart: unless-stopped
+    mem_limit: 512m
+    command:
+      - -config.file=/etc/loki/loki-config.yaml
+    ports:
+      # Main EC2에서만 접근하도록 사설 IP에 바인딩하고 보안 그룹도 동일하게 제한한다.
+      - "${LOKI_BIND_ADDRESS:-10.30.2.93}:3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - /var/lib/lastdish/loki:/loki
+
+  alloy:
+    # Data EC2의 PostgreSQL·Elasticsearch 컨테이너 stdout/stderr를 로컬 Loki로 전달한다.
+    image: grafana/alloy:v1.18.0
+    restart: unless-stopped
+    mem_limit: 128m
+    user: "0:0"
+    command:
+      - run
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      # Docker 소켓은 컨테이너 탐색과 로그 스트림 읽기에 사용한다.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/lib/lastdish/alloy:/var/lib/alloy/data
+    depends_on:
+      loki:
+        condition: service_started

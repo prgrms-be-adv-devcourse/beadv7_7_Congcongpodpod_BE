@@ -1,0 +1,45 @@
+# Prometheus가 Kubernetes API에서 Pod를 발견하고 kubelet cAdvisor를 조회할 때 사용하는 계정입니다.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+  # Pod 자동 발견과 노드별 cAdvisor endpoint 생성에 필요한 읽기 권한입니다.
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/proxy
+      - pods
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring

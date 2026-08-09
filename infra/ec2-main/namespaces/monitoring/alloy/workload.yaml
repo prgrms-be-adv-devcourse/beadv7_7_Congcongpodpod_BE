@@ -1,0 +1,152 @@
+# Kubernetes API로 app/platform/data Pod 로그를 읽어 Data EC2 Loki로 전달합니다.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy-pod-logs
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy-pod-logs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alloy-pod-logs
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: monitoring
+data:
+  config.alloy: |
+    logging {
+      level  = "info"
+      format = "logfmt"
+    }
+
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    discovery.relabel "service_pod_logs" {
+      targets = discovery.kubernetes.pods.targets
+
+      // 애플리케이션, 플랫폼, Redis·Kafka 로그만 수집합니다.
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        regex         = "app|platform|data"
+        action        = "keep"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "namespace"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app"]
+        target_label  = "application"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        target_label  = "container"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_label_app"]
+        separator     = "/"
+        target_label  = "job"
+      }
+    }
+
+    loki.source.kubernetes "service_pods" {
+      targets    = discovery.relabel.service_pod_logs.output
+      forward_to = [loki.write.data_ec2.receiver]
+    }
+
+    loki.write "data_ec2" {
+      endpoint {
+        url = "http://10.30.2.93:3100/loki/api/v1/push"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+  namespace: monitoring
+  labels:
+    app: alloy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      serviceAccountName: alloy
+      securityContext:
+        runAsUser: 473
+        runAsGroup: 473
+        fsGroup: 473
+        runAsNonRoot: true
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.18.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - run
+            - --storage.path=/var/lib/alloy/data
+            - --server.http.listen-addr=0.0.0.0:12345
+            - /etc/alloy/config.alloy
+          ports:
+            - name: http
+              containerPort: 12345
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+              readOnly: true
+            - name: storage
+              mountPath: /var/lib/alloy/data
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-config
+        - name: storage
+          emptyDir: {}

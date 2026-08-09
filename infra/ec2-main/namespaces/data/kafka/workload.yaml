@@ -1,0 +1,226 @@
+# 단일 노드 KRaft Kafka의 로그를 EC2 로컬 디스크에 보존합니다.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kafka-data-pv
+spec:
+  # Kubernetes가 관리하는 논리 용량입니다. 실제 공간은 EC2 루트 디스크에서 사용합니다.
+  capacity:
+    storage: 10Gi
+  # 현재 Kafka Pod 하나만 이 볼륨을 읽고 씁니다.
+  accessModes:
+    - ReadWriteOnce
+  # PVC나 매니페스트를 삭제해도 Kafka 로그 디렉터리는 자동 삭제하지 않습니다.
+  persistentVolumeReclaimPolicy: Retain
+  # 동적 프로비저닝이 아닌 단일 노드의 Local PV용 StorageClass입니다.
+  storageClassName: local-storage
+  local:
+    # 적용 전에 노드에서 UID/GID 1000 소유로 생성해야 하는 실제 경로입니다.
+    path: /var/lib/lastdish/kafka
+  nodeAffinity:
+    # Local PV는 다른 노드로 이동할 수 없으므로 Kafka를 이 노드에만 배치합니다.
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - team03-k8s
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data
+  namespace: data
+spec:
+  # kafka-data-pv와 동일한 접근 모드와 StorageClass를 지정해 정확히 바인딩합니다.
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 10Gi
+  # 자동 선택에 의존하지 않고 위에서 선언한 PV에 명시적으로 연결합니다.
+  volumeName: kafka-data-pv
+---
+# StatefulSet의 고정 DNS를 제공하는 KRaft controller용 Headless Service입니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  namespace: data
+spec:
+  # ClusterIP가 없는 Service로 kafka-0.kafka-headless... 형태의 고정 Pod DNS를 만듭니다.
+  clusterIP: None
+  # controller quorum은 Pod가 Ready 되기 전에도 고정 DNS를 해석해야 기동할 수 있습니다.
+  publishNotReadyAddresses: true
+  selector:
+    app: kafka
+  ports:
+    - name: controller
+      # KRaft 메타데이터 합의를 위한 controller 전용 포트이며 앱은 사용하지 않습니다.
+      port: 9093
+      targetPort: controller
+---
+# 애플리케이션이 kafka.data.svc.cluster.local:9092로 접속하는 내부 전용 Service입니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: data
+spec:
+  # NodePort/LoadBalancer가 아니므로 Kubernetes 클러스터 밖에서는 접근할 수 없습니다.
+  type: ClusterIP
+  selector:
+    app: kafka
+  ports:
+    - name: client
+      # Member/Core producer·consumer가 사용하는 Kafka protocol 포트입니다.
+      port: 9092
+      targetPort: client
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: data
+spec:
+  # StatefulSet이 kafka-0이라는 고정 이름과 동일 PVC 연결을 유지하게 합니다.
+  serviceName: kafka-headless
+  # 단일 EC2 예산에 맞춘 1 broker 구성입니다. 장애 복제는 제공하지 않습니다.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      securityContext:
+        # PV 파일을 공식 이미지의 appuser(1000)가 읽고 쓸 수 있게 그룹 소유권을 맞춥니다.
+        fsGroup: 1000
+        # 볼륨 마운트마다 전체 파일을 재귀 변경하는 비용을 피합니다.
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: kafka
+          image: apache/kafka:4.2.1
+          # 버전 태그가 고정되어 있으므로 노드에 이미지가 있으면 재사용합니다.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: client
+              containerPort: 9092
+            - name: controller
+              containerPort: 9093
+          env:
+            # KRaft 저장소에 기록되는 클러스터 식별자입니다. 기존 PV를 유지하는 동안 바꾸면 안 됩니다.
+            - name: CLUSTER_ID
+              value: MkU3OEVBNTcwNTJENDM2Qk
+            # 이 broker/controller의 고유 ID이며 quorum voter의 앞 숫자와 같아야 합니다.
+            - name: KAFKA_NODE_ID
+              value: "1"
+            # ZooKeeper 없이 한 프로세스가 메시지 broker와 metadata controller를 겸합니다.
+            - name: KAFKA_PROCESS_ROLES
+              value: broker,controller
+            # 9092는 앱 통신, 9093은 KRaft controller 내부 통신을 수신합니다.
+            - name: KAFKA_LISTENERS
+              value: PLAINTEXT://:9092,CONTROLLER://:9093
+            # bootstrap 이후 Kafka가 클라이언트에 돌려주는 실제 broker 주소입니다.
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: PLAINTEXT://kafka.data.svc.cluster.local:9092
+            # listener 이름을 암호화·인증 없는 PLAINTEXT 프로토콜에 연결합니다.
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+            # controller 역할이 사용할 listener 이름을 지정합니다.
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            # broker 간 통신 listener입니다. 현재 broker가 하나여도 필수 설정입니다.
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: PLAINTEXT
+            # `nodeId@고정DNS:controllerPort` 형식의 KRaft 투표자 목록입니다.
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: 1@kafka-0.kafka-headless.data.svc.cluster.local:9093
+            # Consumer group offset 내부 topic을 단일 broker에서도 생성할 수 있게 합니다.
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            # Transaction 상태 내부 topic도 broker 수에 맞춰 복제 계수를 1로 둡니다.
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            # 단일 복제본만 동기화돼도 Transaction 상태 기록을 허용합니다.
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            # 개발·소규모 환경에서 첫 Consumer group 시작 지연을 제거합니다.
+            - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+              value: "0"
+            # 새 topic을 명시적으로 만들 때 별도 지정이 없으면 partition 3개를 사용합니다.
+            - name: KAFKA_NUM_PARTITIONS
+              value: "3"
+            # 오타 난 topic이 자동 생성되는 것을 막고 topic을 매니페스트/명령으로 관리합니다.
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "false"
+            # 검증용 또는 폐기된 topic을 관리자가 삭제할 수 있게 합니다.
+            - name: KAFKA_DELETE_TOPIC_ENABLE
+              value: "true"
+            # segment가 72시간을 넘으면 정리 대상이 됩니다.
+            - name: KAFKA_LOG_RETENTION_HOURS
+              value: "72"
+            # broker 로그 전체가 아니라 각 partition 로그 디렉터리의 최대 크기입니다.
+            - name: KAFKA_LOG_RETENTION_BYTES
+              value: "5368709120"
+            # 로그를 256Mi segment로 잘라 오래된 segment 단위로 삭제합니다.
+            - name: KAFKA_LOG_SEGMENT_BYTES
+              value: "268435456"
+            # Kafka 로그와 KRaft metadata를 PVC 마운트 경로에 저장합니다.
+            - name: KAFKA_LOG_DIRS
+              value: /var/lib/kafka/data
+            # JVM heap을 512Mi로 고정하고 나머지 메모리를 page cache/native 영역에 남깁니다.
+            - name: KAFKA_HEAP_OPTS
+              value: -Xms512m -Xmx512m
+          volumeMounts:
+            # kafka-data PVC를 위 KAFKA_LOG_DIRS와 같은 경로에 마운트합니다.
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+          startupProbe:
+            # CLI Probe는 매번 JVM을 띄우므로 저사양 노드에서는 TCP Probe를 사용합니다.
+            tcpSocket:
+              port: client
+            periodSeconds: 10
+            # 최대 약 5분 동안 이미지 초기화와 KRaft 복구를 기다립니다.
+            failureThreshold: 30
+            timeoutSeconds: 3
+          readinessProbe:
+            # 9092가 열리지 않은 Pod는 Service endpoint에서 제외해 앱 트래픽을 보내지 않습니다.
+            tcpSocket:
+              port: client
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+          livenessProbe:
+            # 기동 후 9092가 연속 3회 닫히면 kubelet이 컨테이너를 재시작합니다.
+            tcpSocket:
+              port: client
+            periodSeconds: 20
+            failureThreshold: 3
+            timeoutSeconds: 3
+          resources:
+            requests:
+              # 스케줄러가 Kafka에 최소한으로 예약할 CPU와 메모리입니다.
+              cpu: 250m
+              memory: 768Mi
+            limits:              # heap 외 native/page cache를 포함한 컨테이너 전체 메모리 상한입니다.
+              memory: 1280Mi
+
+          securityContext:
+            # 공식 이미지의 appuser로 실행하고 root 권한 상승을 차단합니다.
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: kafka-data
+          persistentVolumeClaim:
+            # 위에서 선언한 data/kafka-data PVC를 사용합니다.
+            claimName: kafka-data

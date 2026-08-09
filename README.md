@@ -93,17 +93,41 @@ Gateway가 외부 요청의 단일 진입점이며, Member와 Core Service는 �
 - `backend/`: Spring Boot 멀티 서비스와 공통 모듈
 - `infra/`: 로컬 Docker Compose 설정과 Kubernetes 매니페스트
 - `docs/`: 아키텍처, 개발, 운영 문서
-- `compose.yaml`: 전체 백엔드 로컬 통합 개발 진입점
+- `dev/`: 로컬 Compose, 환경변수 예시, 실행 스크립트와 개발 보조 설정
 
 ## 로컬 실행
 
-백엔드 전체 환경은 저장소 루트의 `compose.yaml`로 실행합니다.
+백엔드 전체 환경은 `dev/compose.yaml`로 실행합니다.
 
 ```bash
-./infra/local/generate-jwt-keys.sh
-docker compose up -d --build
-docker compose ps
+cp dev/.env.example dev/.env
+./dev/local/member-service/generate-jwt-keys.sh
+./dev/dev.sh
+docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
+
+세부 명령과 Windows 사용법은 [`dev/README.md`](dev/README.md)를 참고합니다. `dev.sh`는 빌드와 컨테이너 교체가 성공한 뒤 이번 빌드로 교체된 이전 LastDish 이미지만 삭제합니다. 현재 컨테이너나 다른 컨테이너가 사용하는 이미지는 강제로 삭제하지 않습니다.
+
+특정 서비스만 다시 빌드할 수도 있습니다.
+
+```bash
+./dev/dev.sh config-server payment-service ai-service gateway-service
+```
+
+초기화할 로컬 데이터 저장소를 하나씩 선택할 수 있습니다. PostgreSQL은 선택한 논리 DB만 재생성하고 해당 서비스의 Flyway를 다시 실행합니다.
+
+```bash
+./dev/dev.sh reset member-db
+./dev/dev.sh reset core-db
+./dev/dev.sh reset payment-db
+./dev/dev.sh reset ai-db
+./dev/dev.sh reset kafka
+./dev/dev.sh reset redis
+./dev/dev.sh reset elasticsearch
+./dev/dev.sh reset all
+```
+
+`all`은 PostgreSQL 네 개 논리 DB, Kafka 메시지·KRaft 데이터, Redis 데이터, Elasticsearch 인덱스를 모두 삭제하고 전체 환경을 다시 빌드·실행합니다.
 
 ```bash
 cd frontend
@@ -114,8 +138,10 @@ flutter run -d chrome --web-port 3000
 - Flutter Web: `http://localhost:3000`
 - Gateway: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Redis: `localhost:6379` (`REDIS_PASSWORD` 미지정 시 개발 전용 비밀번호 사용)
+- Kafka: `localhost:9092` (단일 KRaft broker, PLAINTEXT)
 
-환경 준비, 개별 서비스 실행, DB 초기화 방법은 [로컬 통합 환경](docs/infra/local-development.md),
+환경 준비, 개별 서비스 실행, DB 초기화 방법은 [로컬 통합 환경](docs/dev/local-development.md),
 Flutter 설치와 빌드는 [프론트엔드 가이드](frontend/README.md)를 참고합니다.
 
 ## 문서

@@ -1,0 +1,24 @@
+# Redis 프로세스의 비밀이 아닌 메모리·영속화 정책을 정의합니다.
+# 인증정보는 redis-auth Secret의 users.acl로 별도 마운트하며 이 파일에는 비밀번호를 넣지 않습니다.
+# 설정 변경 후에는 Redis Deployment를 rollout해야 새 프로세스가 값을 읽습니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: data
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+
+    # 컨테이너 384Mi 중 Redis 데이터에는 256Mi만 사용하고 나머지는 프로세스 오버헤드로 남깁니다.
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+
+    # 캐시 데이터는 재생성할 수 있으므로 RDB와 AOF 디스크 저장을 비활성화합니다.
+    save ""
+    appendonly no
+
+    # 비밀번호가 포함된 ACL 파일은 ConfigMap이 아니라 redis-auth Secret에서 마운트합니다.
+    aclfile /etc/redis-auth/users.acl
