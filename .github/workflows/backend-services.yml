@@ -17,9 +17,6 @@ on:
       - '.github/workflows/backend-services.yml'
       - '.github/workflows/build-service-image.yml'
       - '.github/workflows/deploy-service.yml'
-      - 'infra/ec2-main/namespaces/app/workloads/**'
-      - 'infra/ec2-main/namespaces/app/configmaps/**'
-      - 'infra/ec2-main/namespaces/platform/workloads/config-server.yaml'
   push:
     branches:
       - main
@@ -35,9 +32,6 @@ on:
       - '.github/workflows/backend-services.yml'
       - '.github/workflows/build-service-image.yml'
       - '.github/workflows/deploy-service.yml'
-      - 'infra/ec2-main/namespaces/app/workloads/**'
-      - 'infra/ec2-main/namespaces/app/configmaps/**'
-      - 'infra/ec2-main/namespaces/platform/workloads/config-server.yaml'
   workflow_dispatch:
 
 # 동일 브랜치의 새 실행이 와도 진행 중이거나 대기 중인 배포를 취소하지 않습니다.
@@ -89,6 +83,14 @@ jobs:
             base_sha=$(git rev-parse HEAD^)
           fi
 
+          # 강제 이력 재작성 등으로 이전 SHA를 조회할 수 없으면 안전하게 전체 서비스를 배포합니다.
+          if ! git cat-file -e "$base_sha^{commit}" 2>/dev/null; then
+            for service in config member core payment ai gateway; do
+              echo "$service=true" >> "$GITHUB_OUTPUT"
+            done
+            exit 0
+          fi
+
           changed_files=$(git diff --name-only "$base_sha" "$GITHUB_SHA")
           common_changed=false
 
@@ -103,15 +105,6 @@ jobs:
             fi
             changed=$common_changed
             if grep -q "^backend/services/$service_path/" <<< "$changed_files"; then
-              changed=true
-            fi
-            if grep -q "^infra/ec2-main/namespaces/app/workloads/$service_path.yaml$" <<< "$changed_files"; then
-              changed=true
-            fi
-            if [[ "$service" == "config" ]] && grep -q '^infra/ec2-main/namespaces/platform/workloads/config-server.yaml$' <<< "$changed_files"; then
-              changed=true
-            fi
-            if [[ "$service" != "config" ]] && grep -q '^infra/ec2-main/namespaces/app/configmaps/' <<< "$changed_files"; then
               changed=true
             fi
             echo "$service=$changed" >> "$GITHUB_OUTPUT"
@@ -181,7 +174,6 @@ jobs:
     with:
       deployment: config-server
       namespace: platform
-      manifest: infra/ec2-main/namespaces/platform/workloads/config-server.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -203,7 +195,6 @@ jobs:
     with:
       deployment: member-service
       namespace: app
-      manifest: infra/ec2-main/namespaces/app/workloads/member-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -227,7 +218,6 @@ jobs:
     with:
       deployment: core-service
       namespace: app
-      manifest: infra/ec2-main/namespaces/app/workloads/core-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -257,7 +247,6 @@ jobs:
     with:
       deployment: gateway-service
       namespace: app
-      manifest: infra/ec2-main/namespaces/app/workloads/gateway-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -283,7 +272,6 @@ jobs:
     with:
       deployment: payment-service
       namespace: app
-      manifest: infra/ec2-main/namespaces/app/workloads/payment-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -311,7 +299,6 @@ jobs:
     with:
       deployment: ai-service
       namespace: app
-      manifest: infra/ec2-main/namespaces/app/workloads/ai-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
