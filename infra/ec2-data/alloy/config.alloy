@@ -1,0 +1,88 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// Data EC2 Docker daemon에서 실행 중인 컨테이너를 탐색합니다.
+discovery.docker "data_services" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "data_service_logs" {
+  targets = discovery.docker.data_services.targets
+
+  // Exporter·Loki·Alloy는 제외하고 PostgreSQL 로그만 수집합니다.
+  // Kubernetes의 Redis·Kafka 로그는 Main EC2 Alloy가 별도로 전송합니다.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "member-postgresql|core-postgresql"
+    action        = "keep"
+  }
+
+  // 로그 접두사를 파싱할 수 없는 시작 메시지에도 직관적인 기본 이름을 부여합니다.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "member-postgresql"
+    replacement   = "member_db"
+    target_label  = "application"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "core-postgresql"
+    replacement   = "core_db"
+    target_label  = "application"
+  }
+
+  rule {
+    replacement  = "data"
+    target_label = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "pod"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    replacement   = "data/$1"
+    target_label  = "job"
+  }
+}
+
+loki.source.docker "data_services" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.data_service_logs.output
+  labels        = { source = "docker" }
+  forward_to    = [loki.process.postgresql_database.receiver]
+}
+
+// PostgreSQL의 여러 줄 SQL 로그를 한 이벤트로 합치고 db= 값을 application 라벨로 승격합니다.
+// core-postgresql 컨테이너 하나에서도 core_db·payment_db·ai_db를 개별 필터링할 수 있습니다.
+loki.process "postgresql_database" {
+  forward_to = [loki.write.local.receiver]
+
+  stage.multiline {
+    firstline     = "^\\d{4}-\\d{2}-\\d{2} "
+    max_wait_time = "3s"
+  }
+
+  stage.regex {
+    expression         = "db=(?P<application>member_db|core_db|payment_db|ai_db)"
+    labels_from_groups = true
+  }
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

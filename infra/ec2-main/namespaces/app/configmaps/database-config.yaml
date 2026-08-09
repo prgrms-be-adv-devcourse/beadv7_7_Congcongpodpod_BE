@@ -1,0 +1,40 @@
+# 비밀이 아닌 DB 접속 주소입니다. 계정과 비밀번호는 별도 Secret으로 관리합니다.
+# ConfigMap 값 변경만으로 기존 Pod 환경변수는 갱신되지 않으므로 Deployment rollout이 필요합니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: member-db-config
+  namespace: app
+data:
+  # Private EC2에서 Docker Compose로 실행 중인 Member PostgreSQL입니다.
+  # `url`은 member-service.yaml의 configMapKeyRef.key와 정확히 일치해야 합니다.
+  url: jdbc:postgresql://10.30.2.93:5432/member_db
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: core-db-config
+  namespace: app
+data:
+  # 같은 EC2의 별도 호스트 포트로 공개된 Core PostgreSQL입니다.
+  # 컨테이너 내부 PostgreSQL 포트는 둘 다 5432지만 EC2 호스트에서 5433으로 매핑됩니다.
+  url: jdbc:postgresql://10.30.2.93:5433/core_db
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-db-config
+  namespace: app
+data:
+  # Core PostgreSQL 컨테이너 안에서 별도 논리 DB로 운영되는 Payment 전용 DB입니다.
+  # 계정과 비밀번호는 payment-db-credentials Secret으로 분리합니다.
+  url: jdbc:postgresql://10.30.2.93:5433/payment_db
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-db-config
+  namespace: app
+data:
+  # AI 전용 논리 DB입니다. 계정과 비밀번호는 ai-db-credentials Secret으로 관리합니다.
+  url: jdbc:postgresql://10.30.2.93:5433/ai_db

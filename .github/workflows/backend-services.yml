@@ -17,6 +17,9 @@ on:
       - '.github/workflows/backend-services.yml'
       - '.github/workflows/build-service-image.yml'
       - '.github/workflows/deploy-service.yml'
+      - 'infra/ec2-main/namespaces/app/workloads/**'
+      - 'infra/ec2-main/namespaces/app/configmaps/**'
+      - 'infra/ec2-main/namespaces/platform/workloads/config-server.yaml'
   push:
     branches:
       - main
@@ -32,6 +35,9 @@ on:
       - '.github/workflows/backend-services.yml'
       - '.github/workflows/build-service-image.yml'
       - '.github/workflows/deploy-service.yml'
+      - 'infra/ec2-main/namespaces/app/workloads/**'
+      - 'infra/ec2-main/namespaces/app/configmaps/**'
+      - 'infra/ec2-main/namespaces/platform/workloads/config-server.yaml'
   workflow_dispatch:
 
 # 동일 브랜치의 새 실행이 와도 진행 중이거나 대기 중인 배포를 취소하지 않습니다.
@@ -97,6 +103,15 @@ jobs:
             fi
             changed=$common_changed
             if grep -q "^backend/services/$service_path/" <<< "$changed_files"; then
+              changed=true
+            fi
+            if grep -q "^infra/ec2-main/namespaces/app/workloads/$service_path.yaml$" <<< "$changed_files"; then
+              changed=true
+            fi
+            if [[ "$service" == "config" ]] && grep -q '^infra/ec2-main/namespaces/platform/workloads/config-server.yaml$' <<< "$changed_files"; then
+              changed=true
+            fi
+            if [[ "$service" != "config" ]] && grep -q '^infra/ec2-main/namespaces/app/configmaps/' <<< "$changed_files"; then
               changed=true
             fi
             echo "$service=$changed" >> "$GITHUB_OUTPUT"
@@ -166,6 +181,7 @@ jobs:
     with:
       deployment: config-server
       namespace: platform
+      manifest: infra/ec2-main/namespaces/platform/workloads/config-server.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -187,6 +203,7 @@ jobs:
     with:
       deployment: member-service
       namespace: app
+      manifest: infra/ec2-main/namespaces/app/workloads/member-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -210,6 +227,7 @@ jobs:
     with:
       deployment: core-service
       namespace: app
+      manifest: infra/ec2-main/namespaces/app/workloads/core-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -222,6 +240,8 @@ jobs:
       - deploy-config
       - deploy-member
       - deploy-core
+      - deploy-payment
+      - deploy-ai
     if: >-
       always() &&
       github.event_name == 'push' &&
@@ -230,11 +250,68 @@ jobs:
       needs.build-gateway.result == 'success' &&
       (needs.deploy-config.result == 'success' || needs.deploy-config.result == 'skipped') &&
       (needs.deploy-member.result == 'success' || needs.deploy-member.result == 'skipped') &&
-      (needs.deploy-core.result == 'success' || needs.deploy-core.result == 'skipped')
+      (needs.deploy-core.result == 'success' || needs.deploy-core.result == 'skipped') &&
+      (needs.deploy-payment.result == 'success' || needs.deploy-payment.result == 'skipped') &&
+      (needs.deploy-ai.result == 'success' || needs.deploy-ai.result == 'skipped')
     uses: ./.github/workflows/deploy-service.yml
     with:
       deployment: gateway-service
       namespace: app
+      manifest: infra/ec2-main/namespaces/app/workloads/gateway-service.yaml
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}
+
+  deploy-payment:
+    needs:
+      - changes
+      - build-payment
+      - deploy-config
+      - deploy-member
+      - deploy-core
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.payment == 'true' &&
+      needs.build-payment.result == 'success' &&
+      (needs.deploy-config.result == 'success' || needs.deploy-config.result == 'skipped') &&
+      (needs.deploy-member.result == 'success' || needs.deploy-member.result == 'skipped') &&
+      (needs.deploy-core.result == 'success' || needs.deploy-core.result == 'skipped')
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: payment-service
+      namespace: app
+      manifest: infra/ec2-main/namespaces/app/workloads/payment-service.yaml
+    secrets:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      EC2_SSH_KNOWN_HOSTS: ${{ secrets.EC2_SSH_KNOWN_HOSTS }}
+
+  deploy-ai:
+    needs:
+      - changes
+      - build-ai
+      - deploy-config
+      - deploy-member
+      - deploy-core
+      - deploy-payment
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.ai == 'true' &&
+      needs.build-ai.result == 'success' &&
+      (needs.deploy-config.result == 'success' || needs.deploy-config.result == 'skipped') &&
+      (needs.deploy-member.result == 'success' || needs.deploy-member.result == 'skipped') &&
+      (needs.deploy-core.result == 'success' || needs.deploy-core.result == 'skipped') &&
+      (needs.deploy-payment.result == 'success' || needs.deploy-payment.result == 'skipped')
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      deployment: ai-service
+      namespace: app
+      manifest: infra/ec2-main/namespaces/app/workloads/ai-service.yaml
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}

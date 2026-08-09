@@ -1,0 +1,123 @@
+# Prometheus가 전체 target을 10초마다 수집해 짧은 배치·정산 피크를 관찰합니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 10s
+      evaluation_interval: 10s
+
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:9090
+
+      - job_name: member-postgresql
+        static_configs:
+          - targets:
+              - 10.30.2.93:9187
+
+      - job_name: core-postgresql
+        static_configs:
+          - targets:
+              - 10.30.2.93:9188
+
+      - job_name: payment-postgresql
+        static_configs:
+          - targets:
+              - 10.30.2.93:9189
+
+      - job_name: ai-postgresql
+        static_configs:
+          - targets:
+              - 10.30.2.93:9190
+
+      - job_name: elasticsearch
+        static_configs:
+          - targets:
+              - 10.30.2.93:9114
+
+      # Deployment replica, Pod 상태, restart, request/limit 같은 Kubernetes 객체 상태를 수집합니다.
+      - job_name: kube-state-metrics
+        static_configs:
+          - targets:
+              - kube-state-metrics.monitoring.svc.cluster.local:8080
+
+      # 노드의 실제 CPU·MemAvailable·디스크·네트워크·load average를 수집합니다.
+      - job_name: node-exporter
+        static_configs:
+          - targets:
+              - node-exporter.monitoring.svc.cluster.local:9100
+            labels:
+              server: Main EC2
+
+      # Private Data EC2의 실제 CPU·RAM·디스크·I/O를 수집합니다.
+      - job_name: data-node-exporter
+        static_configs:
+          - targets:
+              - 10.30.2.93:9100
+            labels:
+              server: Data EC2
+
+      # Data EC2 Docker Compose 컨테이너별 CPU·메모리 사용량을 수집합니다.
+      - job_name: data-cadvisor
+        static_configs:
+          - targets:
+              - 10.30.2.93:8080
+            labels:
+              server: Data EC2
+
+      # kubelet 내장 cAdvisor를 API Server proxy로 조회해 Pod·컨테이너 리소스를 수집합니다.
+      - job_name: kubernetes-cadvisor
+        scheme: https
+        kubernetes_sd_configs:
+          - role: node
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        relabel_configs:
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels:
+              - __meta_kubernetes_node_name
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      # prometheus.io/scrape=true annotation이 붙은 Spring Pod를 IP 변경과 무관하게 자동 발견합니다.
+      - job_name: kubernetes-spring-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # cert-manager처럼 자체 annotation을 가진 시스템 Pod는 제외하고 우리 Spring 영역만 수집합니다.
+          - source_labels:
+              - __meta_kubernetes_namespace
+            action: keep
+            regex: (app|platform)
+          - source_labels:
+              - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+            action: keep
+            regex: "true"
+          - source_labels:
+              - __meta_kubernetes_pod_annotation_prometheus_io_path
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels:
+              - __address__
+              - __meta_kubernetes_pod_annotation_prometheus_io_port
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - source_labels:
+              - __meta_kubernetes_namespace
+            target_label: namespace
+          - source_labels:
+              - __meta_kubernetes_pod_name
+            target_label: pod
+          - source_labels:
+              - __meta_kubernetes_pod_label_app
+            target_label: application

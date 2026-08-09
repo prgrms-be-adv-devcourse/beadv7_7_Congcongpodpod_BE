@@ -1,0 +1,12 @@
+# app Namespace 서비스가 Data EC2 Elasticsearch에 접속할 때 공유하는 비밀이 아닌 주소·계정입니다.
+# 비밀번호는 elasticsearch-credentials Secret으로 분리하며 이 파일에 실제 값을 기록하지 않습니다.
+# 값 변경 후에는 환경변수를 다시 주입하도록 해당 Deployment를 rollout해야 합니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-client-config
+  namespace: app
+data:
+  # Data EC2의 Elasticsearch HTTP API입니다. 보안 그룹은 Main EC2의 9200 접근만 허용합니다.
+  url: http://10.30.2.93:9200
+  username: elastic

@@ -1,0 +1,108 @@
+# Payment 전용 DB·Redis·Kafka를 사용하는 결제 서비스입니다.
+# 이 파일은 Deployment와 내부 통신용 ClusterIP Service를 함께 선언합니다.
+# 적용 전 app Namespace의 DB·Toss·Redis Secret과 공용 ConfigMap이 존재해야 합니다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: app
+  labels:
+    app: payment-service
+spec:
+  # 단일 노드 환경에서 1개 Pod를 실행합니다. 수평 확장 전 결제 멱등성을 먼저 검증합니다.
+  replicas: 1
+  # 새 Pod가 Ready가 된 뒤 기존 Pod를 내리므로 정상 배포 중 서비스 공백을 방지합니다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 10
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: payment-service
+          image: ghcr.io/prgrms-be-adv-devcourse/lastdish-payment-service:dev
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              # Spring Boot 4 환경변수 변환의 모호성을 피해 시스템 속성의 점·하이픈을 정확히 전달합니다.
+              value: >-
+                -Duser.timezone=Asia/Seoul
+                -Dmanagement.metrics.distribution.percentiles-histogram.http.server.requests=true
+            - name: CONFIG_SERVER_URL
+              value: http://config-server.platform.svc.cluster.local:8888
+            - name: PAYMENT_DB_URL
+              valueFrom: {configMapKeyRef: {name: payment-db-config, key: url}}
+            - name: PAYMENT_DB_USERNAME
+              valueFrom: {secretKeyRef: {name: payment-db-credentials, key: username}}
+            - name: PAYMENT_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: payment-db-credentials, key: password}}
+            - name: TOSS_CLIENT_KEY
+              valueFrom: {secretKeyRef: {name: payment-external-credentials, key: toss-client-key}}
+            - name: TOSS_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: payment-external-credentials, key: toss-secret-key}}
+            - name: REDIS_HOST
+              valueFrom: {configMapKeyRef: {name: redis-client-config, key: host}}
+            - name: REDIS_PORT
+              valueFrom: {configMapKeyRef: {name: redis-client-config, key: port}}
+            - name: REDIS_USERNAME
+              valueFrom: {configMapKeyRef: {name: redis-client-config, key: username}}
+            - name: REDIS_PASSWORD
+              valueFrom: {secretKeyRef: {name: redis-auth, key: password}}
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom: {configMapKeyRef: {name: kafka-client-config, key: bootstrap-servers}}
+          startupProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            # requests는 스케줄링 예약량이며 CPU limit은 시작·결제 처리 피크를 막지 않도록 두지 않습니다.
+            requests: {cpu: 50m, memory: 256Mi}
+            # 메모리 초과 시 OOMKilled되므로 Grafana에서 사용량과 재시작 횟수를 함께 확인합니다.
+            limits: {memory: 384Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
+            capabilities: {drop: [ALL]}
+---
+apiVersion: v1
+kind: Service
+# 다른 Pod는 payment-service.app.svc.cluster.local 또는 같은 Namespace의 payment-service로 접근합니다.
+metadata:
+  name: payment-service
+  namespace: app
+spec:
+  type: ClusterIP
+  selector: {app: payment-service}
+  ports:
+    - {name: http, port: 80, targetPort: http}

@@ -18,7 +18,7 @@ Access Token 검증과 역할 기반 접근 제어를 수행합니다.
 ## 라우팅 API
 
 로컬 라우팅 설정은
-[`infra/local/config/gateway-service.yml`](../../infra/local/config/gateway-service.yml)에
+[`infra/local/config-server/config/gateway-service.yml`](../../infra/local/config-server/config/gateway-service.yml)에
 있습니다.
 
 | 외부 경로 | 대상 서비스 | 주요 기능 |

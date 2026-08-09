@@ -11,6 +11,10 @@ on:
         description: Kubernetes namespace
         required: true
         type: string
+      manifest:
+        description: Repository-relative Kubernetes manifest path
+        required: true
+        type: string
     secrets:
       EC2_HOST:
         required: true
@@ -29,6 +33,9 @@ jobs:
       queue: max
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -44,7 +51,26 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           DEPLOYMENT: ${{ inputs.deployment }}
           NAMESPACE: ${{ inputs.namespace }}
+          MANIFEST: ${{ inputs.manifest }}
         run: |
+          # app 서비스가 참조하는 비밀이 아닌 공용 ConfigMap을 먼저 최신화합니다.
+          if [[ "$NAMESPACE" == "app" ]]; then
+            for configmap in infra/ec2-main/namespaces/app/configmaps/*.yaml; do
+              ssh -i "$HOME/.ssh/deploy_key" \
+                -o IdentitiesOnly=yes \
+                -o BatchMode=yes \
+                ec2-user@"$EC2_HOST" \
+                kubectl apply -f - < "$configmap"
+            done
+          fi
+
+          # 신규 Deployment도 최초 배포할 수 있도록 rollout 전에 선언 파일을 적용합니다.
+          ssh -i "$HOME/.ssh/deploy_key" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            ec2-user@"$EC2_HOST" \
+            kubectl apply -f - < "$MANIFEST"
+
           ssh -i "$HOME/.ssh/deploy_key" \
             -o IdentitiesOnly=yes \
             -o BatchMode=yes \
