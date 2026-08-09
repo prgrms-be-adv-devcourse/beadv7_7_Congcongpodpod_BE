@@ -80,7 +80,7 @@ PostgreSQL은 Kubernetes 밖의 DB 전용 EC2 `10.30.2.93`에서 Docker Compose�
 
 DB 서버 실행 절차는 [`infra/database/README.md`](../../infra/database/README.md)를 참고한다.
 
-비밀번호를 터미널 기록에 남기지 않고 애플리케이션용 Secret을 생성한다. 사용자명과 비밀번호는 DB 서버의 `infra/database/.env`와 일치해야 한다.
+비밀번호를 터미널 기록에 남기지 않고 애플리케이션용 Secret을 생성한다. 사용자명과 비밀번호는 DB 서버의 `infra/ec2-data/.env`와 일치해야 한다.
 
 ```bash
 read -s -p "Member DB password: " MEMBER_DB_PASSWORD

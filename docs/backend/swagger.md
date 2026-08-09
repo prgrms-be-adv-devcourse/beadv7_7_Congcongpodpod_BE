@@ -24,8 +24,8 @@ OpenAPI 문서를 제공하지 않는다.
 
 ```bash
 ./infra/local/member-service/generate-jwt-keys.sh
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env up --build -d
+docker compose --env-file dev/.env ps
 ```
 
 Compose는 Member Service를 `8081`, Core Service를 `8082`에 노출하고 두 서비스의
@@ -46,7 +46,7 @@ Core:   http://localhost:8082/swagger-ui/index.html
 애플리케이션만 개별 실행하려면 DB와 Config Server를 먼저 실행한다.
 
 ```bash
-docker compose up -d member-db core-db config-server
+docker compose --env-file dev/.env up -d member-db core-db config-server
 ```
 
 이후 저장소 루트에서 서비스별로 서로 다른 터미널을 사용한다.
@@ -149,13 +149,13 @@ Gateway는 다음 경로를 각 서비스의 `/v3/api-docs`로 프록시한다.
 ## 9. 종료
 
 ```bash
-docker compose down
+docker compose --env-file dev/.env down
 ```
 
 DB 데이터까지 삭제해야 할 때만 다음 명령을 사용한다.
 
 ```bash
-docker compose down -v
+docker compose --env-file dev/.env down -v
 ```
 
 `down -v`는 Member/Core 로컬 DB 데이터를 모두 삭제하므로 주의한다.

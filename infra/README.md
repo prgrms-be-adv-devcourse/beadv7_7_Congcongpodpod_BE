@@ -34,19 +34,19 @@ infra/
 - Config Server는 `infra/local/config-server/config`를 읽기 전용으로 마운트합니다.
 - `application.yml`은 공통 설정, `<service>.yml`은 서비스 기본 설정, `<service>-local.yml`은 로컬 override입니다.
 - Main EC2의 기준 파일은 `ec2-main`, Data EC2의 기준 파일은 `ec2-data`입니다. 서버에서 직접 수정한 내용은 저장소에도 반드시 반영합니다.
-- 실제 비밀번호·토큰·개인키는 Git에 커밋하지 않습니다. Kubernetes Secret 또는 Git에서 제외된 `.env`로 주입합니다.
+- 실제 비밀번호·토큰·개인키는 Git에 커밋하지 않습니다. 로컬 통합 환경은 Git에서 제외된 `dev/.env`, 배포 환경은 Kubernetes Secret 또는 EC2별 `.env`로 주입합니다.
 
 ## 주요 진입점
 
 ```bash
 # 로컬 전체 빌드·실행과 교체된 이전 이미지 정리
-./dev.sh
+./dev/dev.sh
 
 # 선택한 로컬 DB·메시지·캐시·검색 데이터를 초기화
-./dev.sh reset member-db
+./dev/dev.sh reset member-db
 
 # 모든 로컬 데이터 저장소를 초기화하고 전체 환경 재생성
-./dev.sh reset all
+./dev/dev.sh reset all
 
 # 로컬 JWT 키 생성
 ./infra/local/member-service/generate-jwt-keys.sh

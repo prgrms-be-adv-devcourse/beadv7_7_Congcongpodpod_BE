@@ -135,5 +135,6 @@
 !/frontend/**/default.perspectivev3
 
 # Local infrastructure tools and runtime secrets
+/dev/.env
 /infra/ec2-main/tools/
 /infra/ec2-data/.env

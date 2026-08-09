@@ -17,8 +17,8 @@ Member, Core와 서비스별 PostgreSQL을 Docker Compose로 함께 실행한다
 
 ```bash
 ./infra/local/member-service/generate-jwt-keys.sh
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env up --build -d
+docker compose --env-file dev/.env ps
 ```
 
 키 생성 스크립트는 로컬 전용 Access Token RSA 키 쌍을 생성한다. 개인키와 공개키는 `infra/local/member-service/keys`에 저장하고, Gateway 검증용 공개키는 `infra/local/gateway-service/keys`에 복사한다. 생성된 PEM 파일은 Git에 포함되지 않는다. 기존 키를 의도적으로 교체할 때만 `--force`를 사용한다.
@@ -61,7 +61,7 @@ Member와 Core 애플리케이션을 Compose 밖에서 개별 실행하려면 DB
 실행한다.
 
 ```bash
-docker compose up -d member-db core-db config-server
+docker compose --env-file dev/.env up -d member-db core-db config-server
 ```
 
 이후 저장소 루트에서 서비스별로 서로 다른 터미널을 사용한다.
@@ -135,27 +135,27 @@ CORS는 `local` 프로필에서만 활성화된다.
 데이터베이스 확인:
 
 ```bash
-docker compose exec member-db psql -U member -d member_db -c 'select current_database(), current_user;'
-docker compose exec core-db psql -U core -d core_db -c 'select current_database(), current_user;'
+docker compose --env-file dev/.env exec member-db psql -U member -d member_db -c 'select current_database(), current_user;'
+docker compose --env-file dev/.env exec core-db psql -U core -d core_db -c 'select current_database(), current_user;'
 ```
 
 ## 로그와 종료
 
 ```bash
-docker compose logs -f gateway-service member-service core-service
-docker compose down
+docker compose --env-file dev/.env logs -f gateway-service member-service core-service
+docker compose --env-file dev/.env down
 ```
 
 이미지까지 삭제하려면:
 
 ```bash
-docker compose down --rmi local
+docker compose --env-file dev/.env down --rmi local
 ```
 
 로컬 DB 데이터까지 초기화하려면 다음 명령을 사용한다. 모든 로컬 데이터가 삭제된다.
 
 ```bash
-docker compose down -v
+docker compose --env-file dev/.env down -v
 ```
 
 현재 DB 비밀번호는 로컬 개발 전용 공개 값이다. 운영 비밀번호, 토큰, Private key는 저장소에 추가하지 않는다. `infra/local/member-service/keys`와 `infra/local/gateway-service/keys`의 키는 로컬 환경에서만 사용한다.

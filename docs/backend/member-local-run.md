@@ -39,8 +39,8 @@ powershell -ExecutionPolicy Bypass -File .\infra\local\member-service\generate-j
 Member DB와 Config Server만 실행합니다.
 
 ```bash
-docker compose up -d member-db config-server
-docker compose ps
+docker compose --env-file dev/.env up -d member-db config-server
+docker compose --env-file dev/.env ps
 ```
 
 Config Server가 `healthy`가 된 후 Member Service를 실행합니다.
@@ -113,15 +113,15 @@ cd backend
 저장소 루트에서 실행합니다.
 
 ```bash
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env up --build -d
+docker compose --env-file dev/.env ps
 ```
 
 Windows PowerShell에서도 저장소 루트에서 같은 Docker Compose 명령을 사용합니다.
 
 ```powershell
-docker compose up --build -d
-docker compose ps
+docker compose --env-file dev/.env up --build -d
+docker compose --env-file dev/.env ps
 ```
 
 Compose는 Member Service에 Access 개인키와 공개키를 `/run/secrets`로 마운트합니다. Gateway는 동일한 Access 공개키로 토큰 서명을 검증합니다.
@@ -214,5 +214,5 @@ $tokens.refreshToken
 터미널의 Member Service는 `Ctrl+C`로 종료합니다. 로컬 인프라는 저장소 루트에서 종료합니다.
 
 ```bash
-docker compose stop member-db config-server
+docker compose --env-file dev/.env stop member-db config-server
 ```
