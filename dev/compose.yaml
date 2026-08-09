@@ -155,8 +155,10 @@ services:
       start_period: 20s
 
   elasticsearch:
-    # 멀티 아키텍처 태그를 사용해 Intel EC2와 Apple Silicon 로컬 환경을 모두 지원합니다.
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.6
+    # Elasticsearch 9.5.0에 동일 버전 Nori 플러그인을 설치한 로컬 개발 이미지입니다.
+    build:
+      context: ./local/elasticsearch
+    image: lastdish-elasticsearch:9.5.0-nori-local
     environment:
       discovery.type: single-node
       xpack.security.enabled: "true"
