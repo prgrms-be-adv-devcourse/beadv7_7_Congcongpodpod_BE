@@ -21,7 +21,7 @@ trap cleanup EXIT INT TERM
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "오류: $ENV_FILE 파일이 없습니다." >&2
-  echo "dev/local/kibana/.env.example을 .env로 복사한 뒤 실제 토큰을 입력하세요." >&2
+  echo "dev/kibana/.env.example을 .env로 복사한 뒤 실제 토큰을 입력하세요." >&2
   exit 1
 fi
 
