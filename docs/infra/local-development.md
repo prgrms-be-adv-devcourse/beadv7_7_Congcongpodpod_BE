@@ -16,27 +16,27 @@ Member, Core와 서비스별 PostgreSQL을 Docker Compose로 함께 실행한다
 저장소 루트에서:
 
 ```bash
-./infra/local/generate-jwt-keys.sh
+./infra/local/member-service/generate-jwt-keys.sh
 docker compose up --build -d
 docker compose ps
 ```
 
-키 생성 스크립트는 로컬 전용 Access/Refresh RSA 키 쌍을 `infra/local/keys`에 생성한다. 생성된 PEM 파일은 Git에 포함되지 않는다. 기존 키를 의도적으로 교체할 때만 `--force`를 사용한다.
+키 생성 스크립트는 로컬 전용 Access Token RSA 키 쌍을 생성한다. 개인키와 공개키는 `infra/local/member-service/keys`에 저장하고, Gateway 검증용 공개키는 `infra/local/gateway-service/keys`에 복사한다. 생성된 PEM 파일은 Git에 포함되지 않는다. 기존 키를 의도적으로 교체할 때만 `--force`를 사용한다.
 
 ```bash
-./infra/local/generate-jwt-keys.sh --force
+./infra/local/member-service/generate-jwt-keys.sh --force
 ```
 
 Windows PowerShell에서는 다음 명령을 사용한다. `openssl`이 PATH에 등록되어 있어야 한다.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1
+powershell -ExecutionPolicy Bypass -File .\infra\local\member-service\generate-jwt-keys.ps1
 ```
 
 Windows에서 기존 키를 교체하는 경우:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\infra\local\generate-jwt-keys.ps1 -Force
+powershell -ExecutionPolicy Bypass -File .\infra\local\member-service\generate-jwt-keys.ps1 -Force
 ```
 
 Gateway는 Access Token 검증에 `access-public-key.pem`만 사용한다. IDE에서 Gateway를 직접 실행할 때는 저장소 루트 기준 공개키 경로를 전달한다.
@@ -44,7 +44,7 @@ Gateway는 Access Token 검증에 `access-public-key.pem`만 사용한다. IDE�
 ```bash
 cd backend
 SPRING_PROFILES_ACTIVE=local \
-JWT_PUBLIC_KEY_LOCATION=file:../infra/local/keys/access-public-key.pem \
+JWT_PUBLIC_KEY_LOCATION=file:../../../infra/local/gateway-service/keys/access-public-key.pem \
   ./gradlew :services:gateway-service:bootRun
 ```
 
@@ -53,7 +53,7 @@ Windows PowerShell에서 직접 실행하는 경우:
 ```powershell
 cd backend
 $env:SPRING_PROFILES_ACTIVE = "local"
-$env:JWT_PUBLIC_KEY_LOCATION = "file:../infra/local/keys/access-public-key.pem"
+$env:JWT_PUBLIC_KEY_LOCATION = "file:../../../infra/local/gateway-service/keys/access-public-key.pem"
 .\gradlew.bat :services:gateway-service:bootRun
 ```
 
@@ -69,6 +69,8 @@ docker compose up -d member-db core-db config-server
 ```bash
 # Terminal 1: Member Service
 SPRING_PROFILES_ACTIVE=local SERVER_PORT=8081 \
+JWT_ACCESS_PRIVATE_KEY_LOCATION=file:../../../infra/local/member-service/keys/access-private-key.pem \
+JWT_ACCESS_PUBLIC_KEY_LOCATION=file:../../../infra/local/member-service/keys/access-public-key.pem \
   ./backend/gradlew -p backend :services:member-service:bootRun
 
 # Terminal 2: Core Service
@@ -82,6 +84,8 @@ Windows PowerShell에서는 다음과 같이 실행한다.
 # Terminal 1: Member Service
 $env:SPRING_PROFILES_ACTIVE = "local"
 $env:SERVER_PORT = "8081"
+$env:JWT_ACCESS_PRIVATE_KEY_LOCATION = "file:../../../infra/local/member-service/keys/access-private-key.pem"
+$env:JWT_ACCESS_PUBLIC_KEY_LOCATION = "file:../../../infra/local/member-service/keys/access-public-key.pem"
 .\backend\gradlew.bat -p backend :services:member-service:bootRun
 
 # Terminal 2: Core Service
@@ -154,4 +158,4 @@ docker compose down --rmi local
 docker compose down -v
 ```
 
-현재 DB 비밀번호는 로컬 개발 전용 공개 값이다. 운영 비밀번호, 토큰, Private key는 저장소에 추가하지 않는다. `infra/local/keys`의 키는 로컬 환경에서만 사용한다.
+현재 DB 비밀번호는 로컬 개발 전용 공개 값이다. 운영 비밀번호, 토큰, Private key는 저장소에 추가하지 않는다. `infra/local/member-service/keys`와 `infra/local/gateway-service/keys`의 키는 로컬 환경에서만 사용한다.

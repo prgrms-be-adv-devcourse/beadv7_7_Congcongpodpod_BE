@@ -100,10 +100,33 @@ Gateway가 외부 요청의 단일 진입점이며, Member와 Core Service는 �
 백엔드 전체 환경은 저장소 루트의 `compose.yaml`로 실행합니다.
 
 ```bash
-./infra/local/generate-jwt-keys.sh
-docker compose up -d --build
+./infra/local/member-service/generate-jwt-keys.sh
+./dev.sh
 docker compose ps
 ```
+
+`dev.sh`는 빌드와 컨테이너 교체가 성공한 뒤, 이번 빌드로 교체된 이전 LastDish 이미지만 삭제합니다. 현재 컨테이너나 다른 컨테이너가 사용하는 이미지는 강제로 삭제하지 않습니다.
+
+특정 서비스만 다시 빌드할 수도 있습니다.
+
+```bash
+./dev.sh config-server payment-service ai-service gateway-service
+```
+
+초기화할 로컬 데이터 저장소를 하나씩 선택할 수 있습니다. PostgreSQL은 선택한 논리 DB만 재생성하고 해당 서비스의 Flyway를 다시 실행합니다.
+
+```bash
+./dev.sh reset member-db
+./dev.sh reset core-db
+./dev.sh reset payment-db
+./dev.sh reset ai-db
+./dev.sh reset kafka
+./dev.sh reset redis
+./dev.sh reset elasticsearch
+./dev.sh reset all
+```
+
+`all`은 PostgreSQL 네 개 논리 DB, Kafka 메시지·KRaft 데이터, Redis 데이터, Elasticsearch 인덱스를 모두 삭제하고 전체 환경을 다시 빌드·실행합니다.
 
 ```bash
 cd frontend
