@@ -23,7 +23,7 @@ OpenAPI 문서를 제공하지 않는다.
 저장소 루트에서 로컬 JWT 키를 생성하고 전체 서비스를 실행한다.
 
 ```bash
-./infra/local/generate-jwt-keys.sh
+./infra/local/member-service/generate-jwt-keys.sh
 docker compose up --build -d
 docker compose ps
 ```
