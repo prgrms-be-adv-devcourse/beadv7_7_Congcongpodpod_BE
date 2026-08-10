@@ -25,8 +25,22 @@ public class PaymentLog {
   private PgProvider pgProvider;
 
   @Convert(converter = EncryptConverter.class)
-  @Column(name = "raw_payload", nullable = false, columnDefinition = "TEXT")
-  private String rawPayload;
+  @Column(name="payment_method")
+  private String paymentMethod;
+
+  @Convert(converter = EncryptConverter.class)
+  @Column(name="masked_card_num")
+  private String maskedCardNum;
+
+  @Convert(converter = EncryptConverter.class)
+  @Column(name="card_company")
+  private String cardCompany;
+
+  @Column(name="failed_code")
+  private String failedCode;
+
+  @Column(name="failed_message")
+  private String failedMessage;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
@@ -44,13 +58,21 @@ public class PaymentLog {
   private PaymentLog(
       Long paymentId,
       PgProvider pgProvider,
-      String rawPayload,
+      String paymentMethod,
+      String maskedCardNum,
+      String cardCompany,
+      String failedCode,
+      String failedMessage,
       LogType logType,
       Integer httpStatus,
       String pgResultCode) {
     this.paymentId = paymentId;
     this.pgProvider = pgProvider;
-    this.rawPayload = rawPayload;
+    this.paymentMethod = paymentMethod;
+    this.maskedCardNum = maskedCardNum;
+    this.cardCompany = cardCompany;
+    this.failedCode = failedCode;
+    this.failedMessage = failedMessage;
     this.logType = logType;
     this.httpStatus = httpStatus;
     this.pgResultCode = pgResultCode;
@@ -60,17 +82,21 @@ public class PaymentLog {
   // PG사 요청(REQUEST) 로그 생성
   public static PaymentLog createRequestLog(
       Long paymentId, PgProvider pgProvider, String rawPayload) {
-    return new PaymentLog(paymentId, pgProvider, rawPayload, LogType.REQUEST, null, null);
+    return new PaymentLog(paymentId, pgProvider, null, null, null, null, null, LogType.REQUEST, null, null);
   }
 
   // PG사 응답(RESPONSE) 로그 생성
   public static PaymentLog createResponseLog(
       Long paymentId,
       PgProvider pgProvider,
-      String rawPayload,
+      String paymentMethod,
+      String maskedCardNum,
+      String cardCompany,
+      String failedCode,
+      String failedMessage,
       Integer httpStatus,
       String pgResultCode) {
     return new PaymentLog(
-        paymentId, pgProvider, rawPayload, LogType.RESPONSE, httpStatus, pgResultCode);
+        paymentId, pgProvider, paymentMethod, maskedCardNum, cardCompany, failedCode, failedMessage, LogType.RESPONSE, httpStatus, pgResultCode);
   }
 }
