@@ -3,7 +3,7 @@ name: lastdish-local-kibana
 services:
   kibana:
     # 서버 Elasticsearch와 호환되도록 같은 버전으로 고정합니다.
-    image: docker.elastic.co/kibana/kibana:9.3.6
+    image: docker.elastic.co/kibana/kibana:9.5.0
     environment:
       SERVER_NAME: localhost
       SERVER_HOST: 0.0.0.0
