@@ -19,10 +19,13 @@ if ($LASTEXITCODE -ne 0) {
 try {
     Write-Host "Data EC2 Elasticsearch SSH 터널을 여는 중..."
     $TunnelProcess = Start-Process -FilePath "ssh" -ArgumentList @(
-        "-NT",
-        "-o", "ExitOnForwardFailure=yes",
-        "-o", "ServerAliveInterval=60",
-        "-L", "127.0.0.1:19200:10.30.2.93:9200",
+        "-NT"
+        "-o"
+        "ExitOnForwardFailure=yes"
+        "-o"
+        "ServerAliveInterval=60"
+        "-L"
+        "127.0.0.1:19200:10.30.2.93:9200"
         "lastdish-data"
     ) -PassThru
 
