@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.presentation.dto;
+package kr.lastdish.core.order.application.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
