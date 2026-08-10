@@ -1,7 +1,7 @@
 package kr.lastdish.core.order.presentation.dto;
 
 import java.time.LocalTime;
-import kr.lastdish.core.order.domain.Order;
+import kr.lastdish.core.order.application.dto.PickupCodeResult;
 
 public record PickupCodeResponse(
     Long orderId,
@@ -9,12 +9,12 @@ public record PickupCodeResponse(
     String pickupCode,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
-  public static PickupCodeResponse from(Order order) {
+  public static PickupCodeResponse from(PickupCodeResult result) {
     return new PickupCodeResponse(
-        order.getId(),
-        order.getDishName(),
-        order.getPickupCode(),
-        order.getPickupStartAt(),
-        order.getPickupEndAt());
+        result.orderId(),
+        result.dishName(),
+        result.pickupCode(),
+        result.pickupStartAt(),
+        result.pickupEndAt());
   }
 }
