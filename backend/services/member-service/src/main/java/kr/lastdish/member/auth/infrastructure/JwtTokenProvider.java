@@ -125,6 +125,20 @@ public class JwtTokenProvider implements TokenProvider {
     return Role.from(roleStr);
   }
 
+  /**
+   * JWT 토큰의 남은 유효 시간을 밀리초(millisecond) 단위로 반환
+   *
+   * @param token 유효 시간을 확인할 JWT 토큰 문자열
+   * @return 현재 시간으로부터 토큰 만료 시간까지 남은 밀리초 (만료된 경우 음수가 반환될 수 있음)
+   */
+  @Override
+  public long getExpiration(String token) {
+    Claims claims = parseClaims(token);
+    Date expiration = claims.getExpiration();
+    long now = new Date().getTime();
+    return expiration.getTime() - now;
+  }
+
   private Claims parseClaims(String token) {
     return Jwts.parser().verifyWith(publicKey).build().parseSignedClaims(token).getPayload();
   }
