@@ -7,6 +7,7 @@ import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderService {
   private final OrderRepository orderRepository;
+  private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
 
@@ -38,7 +40,9 @@ public class OrderService {
             cartItem.pickupStartAt(),
             cartItem.pickupEndAt());
 
-    return orderRepository.save(order);
+    Order savedOrder = orderRepository.save(order);
+    orderStatusChangedEventWriter.append(savedOrder);
+    return savedOrder;
   }
 
   public OrderResponse completePayment(Long orderId) {
@@ -51,6 +55,7 @@ public class OrderService {
   public Order cancelOrder(Long memberId, Long orderId) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
+    orderStatusChangedEventWriter.append(order);
     return order;
   }
 
@@ -92,6 +97,7 @@ public class OrderService {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
+    orderStatusChangedEventWriter.append(order);
     return OrderReceptionResponse.from(order);
   }
 
@@ -104,6 +110,7 @@ public class OrderService {
       case NO_SHOW -> order.markNoShow();
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
+    orderStatusChangedEventWriter.append(order);
 
     return PickupStatusResponse.from(order);
   }

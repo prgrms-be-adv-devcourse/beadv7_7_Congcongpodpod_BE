@@ -90,6 +90,9 @@ public class Order {
   @Column(nullable = false)
   private Boolean isDeleted;
 
+  @Column(nullable = false)
+  private long eventVersion;
+
   // 주문 생성
   public static Order create(
       Long memberId,
@@ -117,7 +120,12 @@ public class Order {
     order.pickupStartAt = pickupStartAt;
     order.pickupEndAt = pickupEndAt;
     order.isDeleted = false;
+    order.eventVersion = 0L;
     return order;
+  }
+
+  public long nextEventVersion() {
+    return ++eventVersion;
   }
 
   // 결제 완료

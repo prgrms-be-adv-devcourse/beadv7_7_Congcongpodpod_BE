@@ -8,6 +8,7 @@ import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderFacade {
 
   private final OrderRepository orderRepository;
+  private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
   private final OrderService orderService;
   private final CartFacade cartFacade;
   private final DishFacade dishFacade;
@@ -104,6 +106,7 @@ public class OrderFacade {
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     order.rejectOrder(reason);
+    orderStatusChangedEventWriter.append(order);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
     return OrderRejectResponse.from(order);
@@ -113,6 +116,7 @@ public class OrderFacade {
   public OrderRejectResponse rejectOrder(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.rejectOrder(reason);
+    orderStatusChangedEventWriter.append(order);
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
     return OrderRejectResponse.from(order);

@@ -13,6 +13,7 @@ import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
@@ -34,6 +35,8 @@ import org.springframework.data.domain.Pageable;
 class OrderServiceTest {
 
   @Mock private OrderRepository orderRepository;
+
+  @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
@@ -70,6 +73,7 @@ class OrderServiceTest {
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
 
     verify(orderRepository, times(1)).save(any(Order.class));
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -98,6 +102,7 @@ class OrderServiceTest {
     assertThat(result).isSameAs(order);
     verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId);
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -122,6 +127,7 @@ class OrderServiceTest {
     verify(pickupCodeGenerator, times(1)).generate();
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, pickupCode);
     verify(order, times(1)).issuePickupCode(pickupCode);
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -187,6 +193,7 @@ class OrderServiceTest {
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -204,6 +211,7 @@ class OrderServiceTest {
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order).markNoShow();
     verify(order, never()).completePickup();
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -223,6 +231,7 @@ class OrderServiceTest {
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, never()).completePickup();
     verify(order, never()).markNoShow();
+    verifyNoInteractions(orderStatusChangedEventWriter);
   }
 
   @Test
