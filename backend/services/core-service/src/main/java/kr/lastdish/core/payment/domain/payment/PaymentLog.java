@@ -2,7 +2,7 @@ package kr.lastdish.core.payment.domain.payment;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import kr.lastdish.core.common.crypto.EncryptConverter;
+import kr.lastdish.common.api.crypto.EncryptConverter;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

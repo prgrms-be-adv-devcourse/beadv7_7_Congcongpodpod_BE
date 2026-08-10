@@ -1,8 +1,9 @@
-package kr.lastdish.core.common.crypto;
+package kr.lastdish.common.api.crypto;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -11,6 +12,8 @@ import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 
 @Converter(autoApply = false)
@@ -49,7 +52,7 @@ public class EncryptConverter implements AttributeConverter<String, String> {
       // DB에 문자열로 저장
       return Base64.getEncoder().encodeToString(result);
     } catch (GeneralSecurityException e) {
-      throw new IllegalStateException("암호화 실패", e);
+      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "암호화 처리 중 오류가 발생했습니다.");
     }
   }
 
@@ -60,6 +63,9 @@ public class EncryptConverter implements AttributeConverter<String, String> {
     try {
       // 문자열을 디코딩해서 바이트 배열 [IV + 암호문]로 복원
       byte[] decoded = Base64.getDecoder().decode(dbData);
+      if (decoded.length <= IV_LENGTH) {
+        throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "복호화 처리 중 오류가 발생했습니다.");
+      }
       ByteBuffer buffer = ByteBuffer.wrap(decoded);
 
       byte[] iv = new byte[IV_LENGTH];
@@ -71,8 +77,8 @@ public class EncryptConverter implements AttributeConverter<String, String> {
       cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(TAG_LENGTH, iv));
 
       return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
-    } catch (GeneralSecurityException e) {
-      throw new IllegalStateException("복호화 실패", e);
+    } catch (GeneralSecurityException | IllegalArgumentException | BufferUnderflowException e) {
+      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "복호화 처리 중 오류가 발생했습니다.");
     }
   }
 }
