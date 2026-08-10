@@ -10,7 +10,6 @@ import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
-import kr.lastdish.member.auth.infrastructure.client.KakaoOAuthClient;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
@@ -34,7 +33,6 @@ public class AuthService {
   private final TokenProvider tokenProvider;
   private final PasswordEncoder passwordEncoder;
   private final RedisTemplate<String, String> redisTemplate;
-  private final KakaoOAuthClient kakaoOAuthClient; // 카카오 API와 통신하는 클라이언트
 
   @Transactional
   public SignUpResult signUp(SignUpCommand command) {
@@ -234,63 +232,5 @@ public class AuthService {
 
     // 2. DB에서 Refresh Token 삭제
     refreshTokenRepository.deleteByEmail(email);
-  }
-
-  @Transactional
-  public TokenResult kakaoLogin(String code) {
-    // 1. 인가 코드로 카카오 Access Token 발급 및 유저 정보 조회
-    KakaoUserInfoResponse userInfo = kakaoOAuthClient.getKakaoUserInfo(code);
-
-    String email = userInfo.email();
-    String name = userInfo.nickname();
-    String socialId = String.valueOf(userInfo.id());
-
-    // 2. 이메일 혹은 소셜 ID로 기존 회원 조회 (없으면 자동 회원가입)
-    Member member =
-        memberRepository
-            .findByEmail(email)
-            .orElseGet(
-                () -> {
-                  // 소셜 회원은 패스워드가 없으므로 임의의 난수 인코딩 값 혹은 null 방지 처리
-                  String encodedRandomPassword =
-                      passwordEncoder.encode(java.util.UUID.randomUUID().toString());
-
-                  Member newMember =
-                      Member.builder()
-                          .userName("kakao_" + socialId)
-                          .password(encodedRandomPassword)
-                          .name(name != null ? name : "카카오사용자")
-                          .phone("010-0000-0000") // 필요시 초기값 설정 혹은 정책에 맞게 처리
-                          .email(email)
-                          .role(Role.MEMBER)
-                          .build();
-                  return memberRepository.save(newMember);
-                });
-
-    // 3. 서비스 자체 JWT 토큰 생성
-    MemberId memberId = new MemberId(member.getId());
-    Role role = member.getRole();
-
-    String accessToken = tokenProvider.createAccessToken(memberId, role);
-    String refreshTokenValue = tokenProvider.createRefreshToken(memberId, role);
-
-    // 4. Refresh Token 해시화 및 DB 저장/갱신
-    String hashedRefreshToken = encryptSha256(refreshTokenValue);
-    LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
-
-    RefreshToken refreshToken =
-        refreshTokenRepository
-            .findByEmail(member.getEmail())
-            .orElse(
-                RefreshToken.builder()
-                    .email(member.getEmail())
-                    .token(hashedRefreshToken)
-                    .expiryDate(expiryDate)
-                    .build());
-
-    refreshToken.updateToken(hashedRefreshToken, expiryDate);
-    refreshTokenRepository.save(refreshToken);
-
-    return new TokenResult(accessToken, refreshTokenValue);
   }
 }
