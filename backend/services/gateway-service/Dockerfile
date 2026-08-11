@@ -15,6 +15,7 @@ COPY modules/api-common/build.gradle modules/api-common/build.gradle
 COPY modules/mvc-common/build.gradle modules/mvc-common/build.gradle
 COPY modules/event-common/build.gradle modules/event-common/build.gradle
 COPY modules/outbox/build.gradle modules/outbox/build.gradle
+COPY modules/inbox/build.gradle modules/inbox/build.gradle
 COPY modules/api-common/src modules/api-common/src
 
 RUN sed -i 's/\r$//' gradlew \
