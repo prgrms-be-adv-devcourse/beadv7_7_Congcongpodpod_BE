@@ -7,11 +7,11 @@ import java.util.regex.Pattern;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -63,16 +63,22 @@ class RequestIdFilterTests {
 
   @Test
   void 확정된_번호를_응답헤더와_attribute에도_남긴다() {
-    CapturingFilterChain chain =
-        filterWithRequest(
+    ServerWebExchange originalExchange =
+        MockServerWebExchange.from(
             MockServerHttpRequest.get("/api/v1/stores/1")
-                .header(RequestIdSupport.HEADER_NAME, "edge-abc-123"));
+                .header(RequestIdSupport.HEADER_NAME, "edge-abc-123")
+                .build());
+    CapturingFilterChain chain = new CapturingFilterChain();
 
-    ServerWebExchange exchange = chain.exchange();
+    StepVerifier.create(filter.filter(originalExchange, chain)).verifyComplete();
 
-    assertThat(exchange.getResponse().getHeaders().getFirst(RequestIdSupport.HEADER_NAME))
+    // GatewayGlobalExceptionHandler는 mutate() 이전의 원본 exchange를 들고 있으므로, 그 attribute·응답 헤더가
+    // 그대로 보이는지 검증한다. mutate()가 반환하는 decorator가 getAttributes()/getResponse()를 원본 exchange에
+    // 위임하기 때문에 성립하는 성질이다.
+    assertThat(originalExchange.getResponse().getHeaders().getFirst(RequestIdSupport.HEADER_NAME))
         .isEqualTo("edge-abc-123");
-    assertThat((String) exchange.getAttribute(RequestIdSupport.KEY)).isEqualTo("edge-abc-123");
+    assertThat((String) originalExchange.getAttribute(RequestIdSupport.KEY))
+        .isEqualTo("edge-abc-123");
   }
 
   private CapturingFilterChain filterWithRequest(MockServerHttpRequest.BaseBuilder<?> builder) {
@@ -89,7 +95,7 @@ class RequestIdFilterTests {
     return Objects.requireNonNull(headers.getFirst(RequestIdSupport.HEADER_NAME));
   }
 
-  private static final class CapturingFilterChain implements GatewayFilterChain {
+  private static final class CapturingFilterChain implements WebFilterChain {
 
     private @Nullable ServerWebExchange exchange;
 

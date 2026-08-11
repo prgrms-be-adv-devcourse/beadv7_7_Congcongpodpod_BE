@@ -135,6 +135,20 @@ class GatewayGlobalExceptionHandlerTests {
   }
 
   @Test
+  @DisplayName("BAD_GATEWAY는 원인 매칭 없이 WARN으로 기록한다")
+  void logsBadGatewayAsWarn() {
+    handler.handle(exchange(), new ResponseStatusException(HttpStatus.BAD_GATEWAY, "test")).block();
+
+    assertThat(appender.list).hasSize(1);
+
+    ILoggingEvent event = appender.list.getFirst();
+    assertThat(event.getLevel()).isEqualTo(Level.WARN);
+    assertThat(event.getFormattedMessage())
+        .contains(GatewayErrorCode.BAD_GATEWAY.getCode())
+        .contains(ResponseStatusException.class.getName());
+  }
+
+  @Test
   @DisplayName("하위 서비스 연결 실패는 WARN으로 기록한다")
   void logsServiceUnavailableAsWarn() {
     handler

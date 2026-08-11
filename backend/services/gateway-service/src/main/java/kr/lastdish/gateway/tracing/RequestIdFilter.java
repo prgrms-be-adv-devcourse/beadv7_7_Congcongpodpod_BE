@@ -2,12 +2,12 @@ package kr.lastdish.gateway.tracing;
 
 import java.util.UUID;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 /**
@@ -15,9 +15,13 @@ import reactor.core.publisher.Mono;
  *
  * <p>인바운드 {@code X-Request-Id}는 외부(현재는 Ingress 경유)가 통제하는 값이므로 형식을 검증한 뒤에만 이어받는다. 검증에 실패하거나 값이 없으면
  * 새로 발급한다. 이 필터는 요청 처리 초반에 실행되어야 하므로 최우선 순위로 둔다.
+ *
+ * <p>{@link WebFilter}로 구현한다. {@code GlobalFilter}는 {@code FilteringWebHandler}가 실행하는데, 이는 Spring
+ * Security의 {@code SecurityWebFilterChain}(WebFilter)과 핸들러 매핑보다 나중이라 인증 실패(401/403)·라우트 미매칭(404)
+ * 응답과 그 경로에서 발생하는 예외에는 requestId가 붙지 않는다. WebFilter로 구현하면 이 필터가 가장 먼저 실행되어 모든 경로를 포함한다.
  */
 @Component
-public class RequestIdFilter implements GlobalFilter, Ordered {
+public class RequestIdFilter implements WebFilter, Ordered {
 
   @Override
   public int getOrder() {
@@ -25,7 +29,7 @@ public class RequestIdFilter implements GlobalFilter, Ordered {
   }
 
   @Override
-  public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+  public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
     String requestId = resolveRequestId(exchange.getRequest());
 
     ServerHttpRequest request =

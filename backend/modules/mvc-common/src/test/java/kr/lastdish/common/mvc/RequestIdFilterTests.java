@@ -1,7 +1,9 @@
 package kr.lastdish.common.mvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import jakarta.servlet.FilterChain;
 import java.util.regex.Pattern;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,35 @@ class RequestIdFilterTests {
     filter.doFilter(request, response, new MockFilterChain());
 
     assertThat(MDC.get(RequestIdSupport.KEY)).isNull();
+  }
+
+  @Test
+  void 체인에서_예외가_발생해도_MDC를_정리한다() {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader(RequestIdSupport.HEADER_NAME, "edge-abc-123");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    FilterChain throwingChain =
+        (req, res) -> {
+          throw new IllegalStateException("chain failure");
+        };
+
+    assertThatThrownBy(() -> filter.doFilter(request, response, throwingChain))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("chain failure");
+
+    assertThat(MDC.get(RequestIdSupport.KEY)).isNull();
+  }
+
+  @Test
+  void 응답헤더에도_확정된_번호를_남긴다() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader(RequestIdSupport.HEADER_NAME, "edge-abc-123");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilter(request, response, new MockFilterChain());
+
+    assertThat(response.getHeader(RequestIdSupport.HEADER_NAME)).isEqualTo("edge-abc-123");
   }
 
   @Test
