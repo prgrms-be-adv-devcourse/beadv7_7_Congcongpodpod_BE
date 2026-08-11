@@ -2,6 +2,8 @@ package kr.lastdish.core.store.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import kr.lastdish.common.api.crypto.EncryptConverter;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +25,7 @@ public class StorePayoutAccount {
   @Column(name = "bank_name", nullable = false)
   private String bankName;
 
+  @Convert(converter = EncryptConverter.class)
   @Column(name = "account_number", nullable = false)
   private String accountNumber;
 
