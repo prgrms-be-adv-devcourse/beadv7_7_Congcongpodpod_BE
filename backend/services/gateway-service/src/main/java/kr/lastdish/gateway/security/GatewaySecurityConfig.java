@@ -46,7 +46,11 @@ public class GatewaySecurityConfig {
                     .permitAll()
                     // 회원가입, 로그인, Refresh Token 재발급은 Access Token 없이 요청한다.
                     .pathMatchers(
-                        POST, "/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh")
+                        POST,
+                        "/api/v1/auth/signup",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/kakao")
                     .permitAll()
                     // Kubernetes probe와 클러스터 내부 Prometheus 수집은 Bearer Token 없이 접근해야 한다.
                     .pathMatchers("/actuator/health/**", "/actuator/prometheus")

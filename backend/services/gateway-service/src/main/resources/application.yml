@@ -6,3 +6,11 @@ spring:
     name: gateway-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  cloud:
+    gateway:
+      routes:
+        # 카카오 OAuth2 인증 경로 라우팅 설정
+        - id: member-service-route
+          uri: http://member-service:8080
+          predicates:
+            - Path=/api/oauth2/**, /api/login/**

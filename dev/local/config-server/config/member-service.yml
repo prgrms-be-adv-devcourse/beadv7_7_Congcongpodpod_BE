@@ -64,3 +64,5 @@ jwt:
     access-public-key-location: ${JWT_ACCESS_PUBLIC_KEY_LOCATION}
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 1209600
+kakao:
+  admin-key: ${KAKAO_ADMIN_KEY}

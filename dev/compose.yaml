@@ -214,6 +214,8 @@ services:
       REDIS_USERNAME: default
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      KAKAO_ADMIN_KEY: ${KAKAO_ADMIN_KEY:?KAKAO_ADMIN_KEY is required in dev/.env}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:?KAKAO_CLIENT_ID is required in dev/.env}
     secrets:
       - source: member-access-private-key
         target: access-private-key.pem
