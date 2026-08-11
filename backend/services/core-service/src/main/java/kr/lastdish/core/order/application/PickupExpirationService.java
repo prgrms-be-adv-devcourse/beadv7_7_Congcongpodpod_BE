@@ -2,7 +2,7 @@ package kr.lastdish.core.order.application;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.store.application.StoreFacade;
@@ -17,7 +17,7 @@ public class PickupExpirationService {
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
   private final StoreFacade storeFacade;
-  private final DishFacade dishFacade;
+  private final DishService dishService;
 
   // 마감 시각이 지난 매장을 찾고, 해당 매장의 미픽업 주문과 상품 마감 처리
   @Transactional
@@ -36,7 +36,7 @@ public class PickupExpirationService {
           orderStatusChangedEventWriter.append(order);
         });
 
-    closingStoreIds.forEach(dishFacade::closeSaleByStoreId);
+    closingStoreIds.forEach(dishService::closeSaleByStoreId);
     return expirationTargets.size();
   }
 }

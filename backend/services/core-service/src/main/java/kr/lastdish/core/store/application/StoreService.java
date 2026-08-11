@@ -1,14 +1,12 @@
 package kr.lastdish.core.store.application;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.dish.application.DishFacade;
-import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +22,6 @@ public class StoreService {
 
   private final StoreRepository storeRepository;
   private final StorePayoutAccountRepository payoutAccountRepository;
-  private final DishFacade dishFacade;
 
   @Transactional
   public StoreResult register(RegisterStoreCommand command) {
@@ -96,7 +93,7 @@ public class StoreService {
     payoutAccountRepository.deleteByStoreId(storeId);
   }
 
-  private Store getOwnedStore(Long storeId, Long memberId) {
+  public Store getOwnedStore(Long storeId, Long memberId) {
     Store store =
         storeRepository
             .findById(storeId)
@@ -128,58 +125,6 @@ public class StoreService {
             .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
 
     return StoreResult.from(store);
-  }
-
-  public DishResponse getMyDish(Long storeId, Long memberId) {
-    getOwnedStore(storeId, memberId);
-    return dishFacade.getDishByStoreId(storeId);
-  }
-
-  public StorePageResult getNearbyStores(
-      BigDecimal latitude,
-      BigDecimal longitude,
-      Category category,
-      double radiusKm,
-      int page,
-      int size) {
-    if (radiusKm <= 0) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "검색 반경은 0보다 커야 합니다.");
-    }
-    if (page < 0) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "페이지 번호는 0 이상이어야 합니다.");
-    }
-    if (size <= 0) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "페이지 크기는 0보다 커야 합니다.");
-    }
-
-    double latitudeDelta = radiusKm / 111.0;
-    double longitudeDivisor = 111.0 * Math.cos(Math.toRadians(latitude.doubleValue()));
-    if (Math.abs(longitudeDivisor) < 0.01) {
-      longitudeDivisor = 0.01;
-    }
-    double longitudeDelta = radiusKm / longitudeDivisor;
-
-    BigDecimal minLatitude = latitude.subtract(BigDecimal.valueOf(latitudeDelta));
-    BigDecimal maxLatitude = latitude.add(BigDecimal.valueOf(latitudeDelta));
-    BigDecimal minLongitude = longitude.subtract(BigDecimal.valueOf(longitudeDelta));
-    BigDecimal maxLongitude = longitude.add(BigDecimal.valueOf(longitudeDelta));
-
-    List<Store> stores =
-        storeRepository.findOpenStoresByLocationRange(
-            minLatitude, maxLatitude, minLongitude, maxLongitude, category, page, size);
-    List<NearbyStoreResult> results =
-        stores.stream()
-            .map(
-                store ->
-                    new NearbyStoreResult(
-                        StoreResult.from(store),
-                        dishFacade.getOnSaleDishesByStoreId(store.getId())))
-            .toList();
-    long totalElements =
-        storeRepository.countByLocationRange(
-            minLatitude, maxLatitude, minLongitude, maxLongitude, category);
-
-    return StorePageResult.of(results, page, size, totalElements);
   }
 
   // 매장 정산 계좌
@@ -234,5 +179,30 @@ public class StoreService {
   @Transactional(readOnly = true)
   public List<Long> findSettlementTargetStoreIds() {
     return storeRepository.findAllActiveStoreIds();
+  }
+
+  public void validateDishPickupTime(
+      Long storeId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
+    Store store =
+        storeRepository
+            .findById(storeId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+
+    int businessDuration = forwardMinutes(store.getOpenTime(), store.getCloseTime());
+    int pickupStartOffset = forwardMinutes(store.getOpenTime(), pickupStartTime);
+    int pickupEndOffset = forwardMinutes(store.getOpenTime(), pickupEndTime);
+
+    boolean isWithinBusinessHours =
+        pickupEndOffset <= businessDuration && pickupStartOffset <= pickupEndOffset;
+
+    if (!isWithinBusinessHours) {
+      throw new BusinessException(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
+    }
+  }
+
+  private int forwardMinutes(LocalTime from, LocalTime to) {
+    int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
+    return Math.floorMod(minutes, 24 * 60);
   }
 }

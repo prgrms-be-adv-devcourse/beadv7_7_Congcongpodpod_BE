@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -20,10 +20,10 @@ class PickupExpirationServiceTest {
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter =
       mock(OrderStatusChangedEventWriter.class);
   private final StoreFacade storeFacade = mock(StoreFacade.class);
-  private final DishFacade dishFacade = mock(DishFacade.class);
+  private final DishService dishService = mock(DishService.class);
   private final PickupExpirationService pickupExpirationService =
       new PickupExpirationService(
-          orderRepository, orderStatusChangedEventWriter, storeFacade, dishFacade);
+          orderRepository, orderStatusChangedEventWriter, storeFacade, dishService);
 
   @Test
   void closesDishesAndMarksUnpickedOrdersAsNoShowWhenStoresClose() {
@@ -43,7 +43,7 @@ class PickupExpirationServiceTest {
     verify(secondOrder).markNoShow();
     verify(orderStatusChangedEventWriter).append(firstOrder);
     verify(orderStatusChangedEventWriter).append(secondOrder);
-    verify(dishFacade).closeSaleByStoreId(1L);
-    verify(dishFacade).closeSaleByStoreId(2L);
+    verify(dishService).closeSaleByStoreId(1L);
+    verify(dishService).closeSaleByStoreId(2L);
   }
 }

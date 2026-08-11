@@ -79,7 +79,7 @@ public class StoreController {
   @GetMapping("/{storeId}/dish")
   public ApiResponse<DishResponse> getMyDish(
       @PathVariable Long storeId, @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
-    return ApiResponse.ok(storeService.getMyDish(storeId, memberId));
+    return ApiResponse.ok(storeFacade.getMyDish(storeId, memberId));
   }
 
   @GetMapping("/nearby")
@@ -92,7 +92,7 @@ public class StoreController {
       @RequestParam(defaultValue = "10") int size) {
 
     StorePageResult result =
-        storeService.getNearbyStores(latitude, longitude, category, radiusKm, page, size);
+        storeFacade.getNearbyStores(latitude, longitude, category, radiusKm, page, size);
 
     return ApiResponse.ok(StoreSearchResponse.from(result));
   }
