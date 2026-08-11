@@ -182,7 +182,10 @@ public class Order {
     transitionTo(OrderStatus.PICKED_UP);
   }
 
-  public void markNoShow() {
+  public void markNoShow(LocalDateTime now) {
+    if (now.isBefore(this.pickupDeadline)) {
+      throw new BusinessException(ErrorCode.ORDER_PICKUP_TIME_NOT_ENDED);
+    }
     transitionTo(OrderStatus.NO_SHOW);
   }
 

@@ -39,8 +39,8 @@ class PickupExpirationServiceTest {
     int expiredCount = pickupExpirationService.expire(now);
 
     assertThat(expiredCount).isEqualTo(2);
-    verify(firstOrder).markNoShow();
-    verify(secondOrder).markNoShow();
+    verify(firstOrder).markNoShow(now);
+    verify(secondOrder).markNoShow(now);
     verify(orderStatusChangedEventWriter).append(firstOrder);
     verify(orderStatusChangedEventWriter).append(secondOrder);
     verify(dishService).closeSaleByStoreId(1L);

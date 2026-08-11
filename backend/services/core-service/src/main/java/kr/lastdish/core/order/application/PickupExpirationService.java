@@ -32,7 +32,7 @@ public class PickupExpirationService {
 
     expirationTargets.forEach(
         order -> {
-          order.markNoShow();
+          order.markNoShow(now);
           orderStatusChangedEventWriter.append(order);
         });
 

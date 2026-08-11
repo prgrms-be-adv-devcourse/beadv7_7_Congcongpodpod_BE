@@ -120,7 +120,7 @@ public class OrderService {
 
     switch (command.status()) {
       case PICKED_UP -> order.completePickup();
-      case NO_SHOW -> order.markNoShow();
+      case NO_SHOW -> order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     orderStatusChangedEventWriter.append(order);

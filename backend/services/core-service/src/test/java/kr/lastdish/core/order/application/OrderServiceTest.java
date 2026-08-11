@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -232,7 +233,7 @@ class OrderServiceTest {
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(order).markNoShow();
+    verify(order).markNoShow(any(LocalDateTime.class));
     verify(order, never()).completePickup();
     verify(orderStatusChangedEventWriter).append(order);
   }
@@ -253,7 +254,7 @@ class OrderServiceTest {
 
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, never()).completePickup();
-    verify(order, never()).markNoShow();
+    verify(order, never()).markNoShow(any(LocalDateTime.class));
     verifyNoInteractions(orderStatusChangedEventWriter);
   }
 
