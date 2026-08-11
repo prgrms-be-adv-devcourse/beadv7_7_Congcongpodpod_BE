@@ -9,6 +9,7 @@ import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeoutException;
+import kr.lastdish.common.api.tracing.RequestIdSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -170,6 +171,27 @@ class GatewayGlobalExceptionHandlerTests {
     handler.handle(exchange(), new ResponseStatusException(HttpStatus.NOT_FOUND, "test")).block();
 
     assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  @DisplayName("exchange에 requestId가 있으면 예외 로그에 포함한다")
+  void includesRequestIdInLogWhenPresent() {
+    MockServerWebExchange exchange = exchange();
+    exchange.getAttributes().put(RequestIdSupport.KEY, "req-abc-123");
+
+    handler.handle(exchange, new IllegalStateException("unexpected")).block();
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("req-abc-123");
+  }
+
+  @Test
+  @DisplayName("exchange에 requestId가 없으면 unknown으로 기록하고 예외를 던지지 않는다")
+  void fallsBackToUnknownWhenRequestIdMissing() {
+    handler.handle(exchange(), new IllegalStateException("unexpected")).block();
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
   }
 
   private void assertError(
