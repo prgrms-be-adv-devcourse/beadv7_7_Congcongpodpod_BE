@@ -8,11 +8,13 @@ import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.common.api.tracing.RequestIdSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 class GlobalExceptionHandlerTests {
 
@@ -77,5 +79,29 @@ class GlobalExceptionHandlerTests {
     handler.handleIllegalArgument(new IllegalArgumentException("수량은 1 이상이어야 합니다"));
 
     assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  @DisplayName("MDC에 requestId가 있으면 예외 로그에 포함한다")
+  void includesRequestIdInLogWhenPresentInMdc() {
+    MDC.put(RequestIdSupport.KEY, "req-abc-123");
+
+    try {
+      handler.handleException(new RuntimeException("DB 커넥션을 얻지 못했습니다"));
+    } finally {
+      MDC.remove(RequestIdSupport.KEY);
+    }
+
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("req-abc-123");
+  }
+
+  @Test
+  @DisplayName("MDC에 requestId가 없으면 unknown으로 기록한다")
+  void fallsBackToUnknownWhenRequestIdMissingFromMdc() {
+    MDC.remove(RequestIdSupport.KEY);
+
+    handler.handleException(new RuntimeException("DB 커넥션을 얻지 못했습니다"));
+
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
   }
 }
