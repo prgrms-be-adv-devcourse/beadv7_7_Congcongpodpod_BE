@@ -157,6 +157,37 @@ ALTER TABLE ONLY public.refresh_tokens
 
 CREATE INDEX idx_outbox_status_occurred_at ON public.outbox_events USING btree (status, occurred_at);
 
+CREATE TABLE public.inbox_events (
+                                     consumer_id VARCHAR(100) NOT NULL,
+                                     event_id UUID NOT NULL,
+                                     event_type VARCHAR(100) NOT NULL,
+                                     aggregate_type VARCHAR(50) NOT NULL,
+                                     aggregate_id BIGINT NOT NULL,
+                                     aggregate_version BIGINT NOT NULL,
+                                     schema_version INTEGER NOT NULL,
+                                     payload TEXT NOT NULL,
+                                     status VARCHAR(20) NOT NULL,
+                                     retry_count INTEGER NOT NULL DEFAULT 0,
+                                     last_error VARCHAR(1000),
+                                     occurred_at TIMESTAMPTZ NOT NULL,
+                                     received_at TIMESTAMPTZ NOT NULL,
+                                     locked_at TIMESTAMPTZ,
+                                     processed_at TIMESTAMPTZ,
+
+                                     CONSTRAINT inbox_events_pkey
+                                         PRIMARY KEY (consumer_id, event_id),
+
+                                     CONSTRAINT inbox_events_status_check
+                                         CHECK (status IN (
+                                                           'RECEIVED',
+                                                           'PROCESSING',
+                                                           'PROCESSED',
+                                                           'FAILED'
+                                             ))
+);
+
+CREATE INDEX idx_inbox_status_received_at
+    ON public.inbox_events (status, received_at);
 
 --
 -- PostgreSQL database dump complete
