@@ -93,6 +93,7 @@ public class StoreService {
     Store store = getOwnedStore(storeId, memberId);
 
     store.delete();
+    payoutAccountRepository.deleteByStoreId(storeId);
   }
 
   private Store getOwnedStore(Long storeId, Long memberId) {
