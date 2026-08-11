@@ -3,6 +3,7 @@ package kr.lastdish.gateway.error;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
@@ -33,6 +34,17 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GatewayGlobalExceptionHandler.class);
 
+  /** 하위 서비스 호출 실패로 판별하는 예외 종류와, 그때 사용할 오류 코드의 대응. */
+  private record DependencyFailure(Class<? extends Throwable> causeType, ErrorCodeSpec errorCode) {}
+
+  // 오류 코드 판별과 로그 원인 조회가 같은 순서를 보도록 목록 하나만 둔다.
+  private static final List<DependencyFailure> DEPENDENCY_FAILURES =
+      List.of(
+          new DependencyFailure(TimeoutException.class, GatewayErrorCode.GATEWAY_TIMEOUT),
+          new DependencyFailure(ConnectException.class, GatewayErrorCode.SERVICE_UNAVAILABLE),
+          new DependencyFailure(NoRouteToHostException.class, GatewayErrorCode.SERVICE_UNAVAILABLE),
+          new DependencyFailure(UnknownHostException.class, GatewayErrorCode.SERVICE_UNAVAILABLE));
+
   private final ObjectMapper objectMapper;
 
   public GatewayGlobalExceptionHandler(ObjectMapper objectMapper) {
@@ -48,15 +60,59 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
 
     ErrorCodeSpec errorCode = resolveErrorCode(exception);
 
-    if (errorCode == GatewayErrorCode.INTERNAL_ERROR) {
-      log.error(
-          "Gateway 요청 처리 중 오류가 발생했습니다. method={}, path={}",
-          exchange.getRequest().getMethod(),
-          exchange.getRequest().getPath(),
-          exception);
-    }
+    logFailure(exchange, errorCode, exception);
 
     return writeResponse(exchange, errorCode);
+  }
+
+  /**
+   * Gateway가 직접 관측한 사실만 기록한다.
+   *
+   * <p>하위 서비스 내부에서 발생한 예외의 원인과 스택은 해당 서비스가 기록하므로 여기서 중복해서 남기지 않는다. 일반적인 4xx는 로그를 남기지 않고 이후 공통 요청 완료
+   * 로그와 메트릭으로 집계한다.
+   */
+  private void logFailure(
+      ServerWebExchange exchange, ErrorCodeSpec errorCode, Throwable exception) {
+    if (errorCode == GatewayErrorCode.INTERNAL_ERROR) {
+      log.error(
+          "Gateway 요청 처리 중 오류가 발생했습니다. method={}, path={}, errorCode={}, exceptionClass={}",
+          exchange.getRequest().getMethod(),
+          exchange.getRequest().getPath(),
+          errorCode.getCode(),
+          exception.getClass().getName(),
+          exception);
+
+      return;
+    }
+
+    if (isDependencyFailure(errorCode)) {
+      // 부하 상황에서 반복될 수 있으므로 스택 없이 남기고, 원인 판별에 사용한 예외 종류만 함께 기록한다.
+      log.warn(
+          "하위 서비스 호출에 실패했습니다. method={}, path={}, errorCode={}, exceptionClass={}",
+          exchange.getRequest().getMethod(),
+          exchange.getRequest().getPath(),
+          errorCode.getCode(),
+          resolveFailureCauseName(exception));
+    }
+  }
+
+  private boolean isDependencyFailure(ErrorCodeSpec errorCode) {
+    return errorCode == GatewayErrorCode.GATEWAY_TIMEOUT
+        || errorCode == GatewayErrorCode.SERVICE_UNAVAILABLE
+        || errorCode == GatewayErrorCode.BAD_GATEWAY;
+  }
+
+  /** 오류 코드를 결정한 실제 원인 예외의 클래스명을 찾는다. 원인을 특정하지 못하면 전달받은 예외의 클래스명을 사용한다. */
+  private String resolveFailureCauseName(Throwable exception) {
+    for (DependencyFailure dependencyFailure : DEPENDENCY_FAILURES) {
+      Throwable cause = findCause(exception, dependencyFailure.causeType());
+
+      if (cause != null) {
+        return cause.getClass().getName();
+      }
+    }
+
+    return exception.getClass().getName();
   }
 
   private ErrorCodeSpec resolveErrorCode(Throwable exception) {
@@ -64,15 +120,11 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
       return resolveStatus(statusException.getStatusCode());
     }
 
-    if (hasCause(exception, TimeoutException.class)) {
-      return GatewayErrorCode.GATEWAY_TIMEOUT;
-    }
-
     // 실행 환경에 따라 동일한 하위 서비스 연결 실패가 서로 다른 네트워크 예외로 감싸질 수 있다.
-    if (hasCause(exception, ConnectException.class)
-        || hasCause(exception, NoRouteToHostException.class)
-        || hasCause(exception, UnknownHostException.class)) {
-      return GatewayErrorCode.SERVICE_UNAVAILABLE;
+    for (DependencyFailure dependencyFailure : DEPENDENCY_FAILURES) {
+      if (findCause(exception, dependencyFailure.causeType()) != null) {
+        return dependencyFailure.errorCode();
+      }
     }
 
     return GatewayErrorCode.INTERNAL_ERROR;
@@ -89,19 +141,19 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
     };
   }
 
-  private boolean hasCause(Throwable exception, Class<? extends Throwable> causeType) {
+  private Throwable findCause(Throwable exception, Class<? extends Throwable> causeType) {
     Throwable current = exception;
 
     // Reactor/Netty가 실제 네트워크 예외를 여러 단계로 감싸므로 전체 원인 체인을 확인한다.
     while (current != null) {
       if (causeType.isInstance(current)) {
-        return true;
+        return current;
       }
 
       current = current.getCause();
     }
 
-    return false;
+    return null;
   }
 
   private Mono<Void> writeResponse(ServerWebExchange exchange, ErrorCodeSpec errorCode) {
