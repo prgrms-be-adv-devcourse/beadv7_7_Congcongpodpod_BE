@@ -83,8 +83,8 @@ class OrderConcurrencyIntegrationTest {
                           10L,
                           BigDecimal.valueOf(2_000),
                           unitPrice,
-                          null,
-                          null));
+                          LocalTime.of(18, 0),
+                          LocalTime.of(19, 0)));
               Cart cart = cartJpaRepository.save(Cart.create(memberId));
               CartItem cartItem =
                   cartItemJpaRepository.save(
@@ -155,8 +155,8 @@ class OrderConcurrencyIntegrationTest {
                           3L,
                           BigDecimal.valueOf(2_000),
                           unitPrice,
-                          null,
-                          null));
+                          LocalTime.of(18, 0),
+                          LocalTime.of(19, 0)));
 
               depositRepository.save(new Deposit(memberId, BigDecimal.valueOf(8_000)));
 
@@ -171,7 +171,8 @@ class OrderConcurrencyIntegrationTest {
                       quantity,
                       unitPrice,
                       LocalTime.of(18, 0),
-                      LocalTime.of(19, 0));
+                      LocalTime.of(19, 0),
+                      LocalDateTime.of(2026, 8, 10, 19, 0));
               order.paymentSuccess();
               return orderJpaRepository.save(order).getId();
             });

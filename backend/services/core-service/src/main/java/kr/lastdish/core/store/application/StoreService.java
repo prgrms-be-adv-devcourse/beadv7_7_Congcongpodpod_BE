@@ -113,13 +113,6 @@ public class StoreService {
         .orElseGet(List::of);
   }
 
-  // Seller 상품관리용 조회 — 판매 상태와 무관하게 본인 매장의 상품을 조회한다.
-  public DishResponse getMyDish(Long storeId, Long memberId) {
-    getOwnedStore(storeId, memberId);
-
-    return dishFacade.getDishByStoreId(storeId);
-  }
-
   // 매장 상세 조회
   public StoreResult getStore(Long storeId) {
     Store store =
@@ -130,7 +123,11 @@ public class StoreService {
     return StoreResult.from(store);
   }
 
-  // 위치 기반 조회(기본 구현)
+  public DishResponse getMyDish(Long storeId, Long memberId) {
+    getOwnedStore(storeId, memberId);
+    return dishFacade.getDishByStoreId(storeId);
+  }
+
   public StorePageResult getNearbyStores(
       BigDecimal latitude,
       BigDecimal longitude,
@@ -141,39 +138,28 @@ public class StoreService {
     if (radiusKm <= 0) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "검색 반경은 0보다 커야 합니다.");
     }
-
     if (page < 0) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "페이지 번호는 0 이상이어야 합니다.");
     }
-
     if (size <= 0) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "페이지 크기는 0보다 커야 합니다.");
     }
 
-    double latitudeValue = latitude.doubleValue();
-
     double latitudeDelta = radiusKm / 111.0;
-
-    double longitudeDivisor = 111.0 * Math.cos(Math.toRadians(latitudeValue));
-
+    double longitudeDivisor = 111.0 * Math.cos(Math.toRadians(latitude.doubleValue()));
     if (Math.abs(longitudeDivisor) < 0.01) {
       longitudeDivisor = 0.01;
     }
-
     double longitudeDelta = radiusKm / longitudeDivisor;
 
     BigDecimal minLatitude = latitude.subtract(BigDecimal.valueOf(latitudeDelta));
-
     BigDecimal maxLatitude = latitude.add(BigDecimal.valueOf(latitudeDelta));
-
     BigDecimal minLongitude = longitude.subtract(BigDecimal.valueOf(longitudeDelta));
-
     BigDecimal maxLongitude = longitude.add(BigDecimal.valueOf(longitudeDelta));
 
     List<Store> stores =
         storeRepository.findOpenStoresByLocationRange(
             minLatitude, maxLatitude, minLongitude, maxLongitude, category, page, size);
-
     List<NearbyStoreResult> results =
         stores.stream()
             .map(
@@ -182,7 +168,6 @@ public class StoreService {
                         StoreResult.from(store),
                         dishFacade.getOnSaleDishesByStoreId(store.getId())))
             .toList();
-
     long totalElements =
         storeRepository.countByLocationRange(
             minLatitude, maxLatitude, minLongitude, maxLongitude, category);

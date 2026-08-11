@@ -35,8 +35,10 @@ public class CartItem {
   @Column(nullable = false)
   private Long quantity;
 
+  @Column(nullable = false)
   private LocalTime pickupStartAt;
 
+  @Column(nullable = false)
   private LocalTime pickupEndAt;
 
   @Column(nullable = false, updatable = false)

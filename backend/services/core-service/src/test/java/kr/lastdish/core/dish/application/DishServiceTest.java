@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
@@ -116,7 +117,9 @@ class DishServiceTest {
             null,
             10L,
             BigDecimal.valueOf(10_000),
-            BigDecimal.valueOf(7_000));
+            BigDecimal.valueOf(7_000),
+            LocalTime.of(18, 0),
+            LocalTime.of(19, 0));
 
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
@@ -169,8 +172,8 @@ class DishServiceTest {
         stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,
-        null,
-        null);
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
   }
 
   private DishUpdateRequest createUpdateRequest(Long stockQuantity) {
@@ -182,7 +185,9 @@ class DishServiceTest {
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),
-        BigDecimal.ZERO);
+        BigDecimal.ZERO,
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
   }
 
   @Test

@@ -77,7 +77,9 @@ public class DishService {
         request.thumbnailUrl(),
         request.stockQuantity(),
         request.dishPrice(),
-        request.discountPrice());
+        request.discountPrice(),
+        request.pickupStartTime(),
+        request.pickupEndTime());
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendPriceEventIfChanged(dish, unitPriceBefore);

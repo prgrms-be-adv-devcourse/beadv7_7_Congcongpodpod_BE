@@ -27,10 +27,7 @@ public class StoreFacade {
   @Transactional
   public StoreResult register(RegisterStoreCommand command) {
     StoreResult result = storeService.register(command);
-
-    // TODO: 역할 부여 호출 실패 시 재시도와 멱등성을 보장해 매장과 회원 권한의 불일치를 복구한다.
     sellerRoleGrantPort.grantSellerRole(command.memberId());
-
     return result;
   }
 

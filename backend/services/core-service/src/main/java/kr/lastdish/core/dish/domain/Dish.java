@@ -45,8 +45,10 @@ public class Dish {
 
   private BigDecimal discountPrice;
 
+  @Column(nullable = false)
   private LocalTime pickupStartTime;
 
+  @Column(nullable = false)
   private LocalTime pickupEndTime;
 
   @Column(nullable = false)
@@ -91,7 +93,9 @@ public class Dish {
       String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
-      BigDecimal discountPrice) {
+      BigDecimal discountPrice,
+      LocalTime pickupStartTime,
+      LocalTime pickupEndTime) {
     this.dishName = dishName;
     this.registeredAt = registeredAt;
     this.description = description;
@@ -99,6 +103,8 @@ public class Dish {
     this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
     this.discountPrice = discountPrice;
+    this.pickupStartTime = pickupStartTime;
+    this.pickupEndTime = pickupEndTime;
 
     if (stockQuantity == 0L) {
       this.dishStatus = DishStatus.SOLD_OUT;

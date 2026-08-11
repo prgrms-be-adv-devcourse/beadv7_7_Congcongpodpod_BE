@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import kr.lastdish.common.api.exception.BusinessException;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class OrderTest {
         2L,
         BigDecimal.valueOf(5_000),
         LocalTime.of(18, 0),
-        LocalTime.of(19, 0));
+        LocalTime.of(19, 0),
+        LocalDateTime.of(2026, 8, 10, 19, 0));
   }
 }

@@ -6,7 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -71,9 +73,32 @@ class OrderServiceTest {
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
+    assertThat(order.getPickupDeadline())
+        .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).atTime(cartItem.pickupEndAt()));
 
     verify(orderRepository, times(1)).save(any(Order.class));
     verify(orderStatusChangedEventWriter).append(order);
+  }
+
+  @Test
+  void createOrder_setsPickupDeadlineToNextDayWhenPickupCrossesMidnight() {
+    CartOrderSnapshot cartItem =
+        new CartOrderSnapshot(
+            2L,
+            3L,
+            "DishName",
+            1L,
+            BigDecimal.valueOf(5000),
+            LocalTime.of(23, 0),
+            LocalTime.of(1, 0));
+    when(orderRepository.save(any(Order.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    Order order =
+        orderService.createOrder(1L, new OrderMemberInfo("테스트 회원", "010-1234-5678"), cartItem);
+
+    assertThat(order.getPickupDeadline())
+        .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1).atTime(LocalTime.of(1, 0)));
   }
 
   @Test
