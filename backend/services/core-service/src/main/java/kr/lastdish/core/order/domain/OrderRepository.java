@@ -26,5 +26,5 @@ public interface OrderRepository {
 
   Page<Order> findAllByStoreIdAndStatus(Long storeId, OrderStatus status, Pageable pageable);
 
-  List<Order> findPickupExpirationTargets(LocalDateTime now);
+  List<Order> findPickupExpirationTargets(List<Long> storeIds);
 }

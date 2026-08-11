@@ -98,7 +98,6 @@ CREATE TABLE public.deposit_history (
     CONSTRAINT deposit_history_type_check CHECK (((type)::text = ANY ((ARRAY['CHARGE'::character varying, 'USE'::character varying, 'REFUND'::character varying])::text[])))
 );
 
-
 --
 -- Name: deposit_history_deposit_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -479,6 +478,7 @@ CREATE TABLE public.stores (
     longitude numeric(38,2) NOT NULL,
     open_time time(0) without time zone NOT NULL,
     member_id bigint NOT NULL,
+    next_closing_at timestamp(6) without time zone,
     store_id bigint NOT NULL,
     business_number character varying(255) NOT NULL,
     category character varying(255) NOT NULL,
@@ -688,10 +688,10 @@ CREATE INDEX idx_orders_store_deleted_created_at ON public.orders USING btree (s
 
 
 --
--- Name: idx_orders_pickup_expiration; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_orders_store_pickup_ready; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_orders_pickup_expiration ON public.orders USING btree (status, pickup_deadline) WHERE ((is_deleted = false) AND ((status)::text = 'PICKUP_READY'::text));
+CREATE INDEX idx_orders_store_pickup_ready ON public.orders USING btree (store_id, status) WHERE ((is_deleted = false) AND ((status)::text = 'PICKUP_READY'::text));
 
 
 --
@@ -727,6 +727,10 @@ CREATE INDEX idx_settlement_status ON public.settlements USING btree (settlement
 --
 
 CREATE INDEX idx_settlement_store_created_at ON public.settlements USING btree (store_id, created_at);
+
+CREATE INDEX idx_stores_next_closing_at
+    ON public.stores USING btree (next_closing_at)
+    WHERE ((is_deleted = false) AND ((status)::text = 'OPEN'::text));
 
 
 --

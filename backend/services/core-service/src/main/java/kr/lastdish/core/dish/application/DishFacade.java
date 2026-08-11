@@ -55,6 +55,10 @@ public class DishFacade {
     dishService.increaseStock(dishId, quantity);
   }
 
+  public void closeSaleByStoreId(Long storeId) {
+    dishService.closeSaleByStoreId(storeId);
+  }
+
   public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
     return dishService.getOnSaleDishesByStoreId(storeId);
   }

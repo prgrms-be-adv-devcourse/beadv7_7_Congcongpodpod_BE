@@ -1,6 +1,8 @@
 package kr.lastdish.core.store.infrastructure;
 
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.store.domain.Category;
@@ -9,6 +11,7 @@ import kr.lastdish.core.store.domain.StoreStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -65,4 +68,16 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
         WHERE store.deleted IS false
         """)
   List<Long> findAllActiveStoreIds();
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      SELECT DISTINCT store
+      FROM Store store
+      LEFT JOIN FETCH store.holidays
+      WHERE store.deleted IS false
+        AND store.status = "OPEN"
+        AND store.nextClosingAt <= :now
+      """)
+  List<Store> findStoresReadyToClose(@Param("now") LocalDateTime now);
 }

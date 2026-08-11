@@ -3,12 +3,14 @@ package kr.lastdish.core.dish.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Optional;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
@@ -209,5 +211,18 @@ class DishServiceTest {
 
     assertThat(event.payload().available()).isTrue();
     assertThat(event.payload().stockQuantity()).isEqualTo(5L);
+  }
+
+  @Test
+  void closesSaleAndRecordsStateEventWhenStoreCloses() {
+    Dish dish = createDish(10L);
+    ReflectionTestUtils.setField(dish, "id", 10L);
+    when(dishRepository.findWithLockByStoreIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(dish));
+
+    dishService.closeSaleByStoreId(1L);
+
+    assertThat(dish.getStockQuantity()).isZero();
+    assertThat(dish.getDishStatus()).isEqualTo(kr.lastdish.core.dish.domain.DishStatus.SOLD_OUT);
+    verify(outboxEventWriter).append(any(DomainEvent.class));
   }
 }

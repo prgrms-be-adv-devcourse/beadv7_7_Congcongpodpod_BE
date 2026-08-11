@@ -1,5 +1,6 @@
 package kr.lastdish.core.store.application;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -37,6 +38,13 @@ public class StoreFacade {
 
   public List<Long> findSettlementTargetStoreIds() {
     return storeService.findSettlementTargetStoreIds();
+  }
+
+  @Transactional
+  public List<Long> claimStoresReadyToClose(LocalDateTime now) {
+    List<Store> stores = storeRepository.findStoresReadyToClose(now);
+    stores.forEach(store -> store.rescheduleNextClosingAt(now));
+    return stores.stream().map(Store::getId).toList();
   }
 
   public Optional<StoreSettlementAccountResult> findSettlementAccount(Long storeId) {

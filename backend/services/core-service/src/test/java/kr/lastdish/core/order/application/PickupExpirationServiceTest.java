@@ -7,9 +7,11 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.Test;
 
 class PickupExpirationServiceTest {
@@ -17,16 +19,21 @@ class PickupExpirationServiceTest {
   private final OrderRepository orderRepository = mock(OrderRepository.class);
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter =
       mock(OrderStatusChangedEventWriter.class);
+  private final StoreFacade storeFacade = mock(StoreFacade.class);
+  private final DishFacade dishFacade = mock(DishFacade.class);
   private final PickupExpirationService pickupExpirationService =
-      new PickupExpirationService(orderRepository, orderStatusChangedEventWriter);
+      new PickupExpirationService(
+          orderRepository, orderStatusChangedEventWriter, storeFacade, dishFacade);
 
   @Test
-  void expiresPickupReadyOrdersPastTheirDeadline() {
+  void closesDishesAndMarksUnpickedOrdersAsNoShowWhenStoresClose() {
     LocalDateTime now = LocalDateTime.of(2026, 8, 10, 19, 0);
+    List<Long> closingStoreIds = List.of(1L, 2L);
     Order firstOrder = mock(Order.class);
     Order secondOrder = mock(Order.class);
 
-    when(orderRepository.findPickupExpirationTargets(now))
+    when(storeFacade.claimStoresReadyToClose(now)).thenReturn(closingStoreIds);
+    when(orderRepository.findPickupExpirationTargets(closingStoreIds))
         .thenReturn(List.of(firstOrder, secondOrder));
 
     int expiredCount = pickupExpirationService.expire(now);
@@ -36,5 +43,7 @@ class PickupExpirationServiceTest {
     verify(secondOrder).markNoShow();
     verify(orderStatusChangedEventWriter).append(firstOrder);
     verify(orderStatusChangedEventWriter).append(secondOrder);
+    verify(dishFacade).closeSaleByStoreId(1L);
+    verify(dishFacade).closeSaleByStoreId(2L);
   }
 }

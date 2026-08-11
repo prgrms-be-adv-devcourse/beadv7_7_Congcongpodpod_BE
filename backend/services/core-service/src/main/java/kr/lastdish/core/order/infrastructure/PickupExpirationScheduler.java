@@ -15,7 +15,7 @@ public class PickupExpirationScheduler {
 
   private final PickupExpirationService pickupExpirationService;
 
-  @Scheduled(cron = "${order.pickup-expiration.cron:0 0 * * * *}", zone = "Asia/Seoul")
+  @Scheduled(cron = "${store.closing.cron:0 0 * * * *}", zone = "Asia/Seoul")
   public void expirePickupOrders() {
     pickupExpirationService.expire(LocalDateTime.now(BUSINESS_ZONE));
   }

@@ -1,6 +1,8 @@
 package kr.lastdish.core.store.application;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class StoreService {
+
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   private final StoreRepository storeRepository;
   private final StorePayoutAccountRepository payoutAccountRepository;
@@ -46,6 +50,7 @@ public class StoreService {
             command.category());
 
     command.holidays().forEach(store::addHoliday);
+    store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
     Store savedStore = storeRepository.save(store);
 
@@ -67,6 +72,7 @@ public class StoreService {
         command.category());
 
     store.replaceHolidays(command.holidays());
+    store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
     return StoreResult.from(store);
   }
