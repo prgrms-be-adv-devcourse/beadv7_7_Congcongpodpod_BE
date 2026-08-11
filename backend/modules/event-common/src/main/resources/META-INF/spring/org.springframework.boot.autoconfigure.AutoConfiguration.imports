@@ -1,1 +1,3 @@
 kr.lastdish.common.event.EventCommonAutoConfiguration
+kr.lastdish.common.event.EventCommonAutoConfiguration
+kr.lastdish.common.event.kafka.KafkaEventAutoConfiguration
