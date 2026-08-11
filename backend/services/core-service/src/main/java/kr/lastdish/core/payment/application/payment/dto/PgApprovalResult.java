@@ -8,14 +8,27 @@ public record PgApprovalResult(
     BigDecimal approvedAmount,
     String failureCode, // 실패 시 Toss 에러 코드 (성공 시 null)
     String failureMessage, // 실패 시 Toss 에러 메시지 (성공 시 null)
-    String rawResponse) {
+    String paymentMethod,
+    String maskedCardNumber,
+    String issuerCode) {
   public static PgApprovalResult success(
-      String pgTransactionId, BigDecimal approvedAmount, String rawResponse) {
-    return new PgApprovalResult(pgTransactionId, true, approvedAmount, null, null, rawResponse);
+      String pgTransactionId,
+      BigDecimal approvedAmount,
+      String paymentMethod,
+      String maskedCardNumber,
+      String issuerCode) {
+    return new PgApprovalResult(
+        pgTransactionId,
+        true,
+        approvedAmount,
+        null,
+        null,
+        paymentMethod,
+        maskedCardNumber,
+        issuerCode);
   }
 
-  public static PgApprovalResult failure(
-      String failureCode, String failureMessage, String rawResponse) {
-    return new PgApprovalResult(null, false, null, failureCode, failureMessage, rawResponse);
+  public static PgApprovalResult failure(String failureCode, String failureMessage) {
+    return new PgApprovalResult(null, false, null, failureCode, failureMessage, null, null, null);
   }
 }

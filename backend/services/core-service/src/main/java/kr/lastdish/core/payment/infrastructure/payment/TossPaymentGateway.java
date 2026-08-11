@@ -11,12 +11,14 @@ import kr.lastdish.core.payment.domain.payment.PaymentLog;
 import kr.lastdish.core.payment.domain.payment.PaymentLogRepository;
 import kr.lastdish.core.payment.domain.payment.PgProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TossPaymentGateway implements PgPaymentGateway {
@@ -43,13 +45,12 @@ public class TossPaymentGateway implements PgPaymentGateway {
       Long paymentId, String paymentKey, String orderId, BigDecimal amount) {
 
     // REQUEST 로그 기록
-    paymentLogRepository.save(
-        PaymentLog.createRequestLog(
-            paymentId,
-            PgProvider.TOSS,
-            String.format("paymentKey=%s, orderId=%s, amount=%s", paymentKey, orderId, amount)));
+    paymentLogRepository.save(PaymentLog.createRequestLog(paymentId, PgProvider.TOSS));
 
     try {
+      Map<String, Object> requestBody =
+          Map.of("paymentKey", paymentKey, "orderId", orderId, "amount", amount);
+      log.debug("Toss로 보내는 요청 본문: {}", requestBody);
       String rawJson =
           restClient
               .post()
@@ -62,17 +63,24 @@ public class TossPaymentGateway implements PgPaymentGateway {
 
       TossConfirmResponse response = objectMapper.readValue(rawJson, TossConfirmResponse.class);
 
-      return PgApprovalResult.success(response.paymentKey(), response.totalAmount(), rawJson);
+      return PgApprovalResult.success(
+          response.paymentKey(),
+          response.totalAmount(),
+          response.method(),
+          response.card() != null ? response.card().number() : null,
+          response.card() != null ? response.card().issuerCode() : null);
 
     } catch (RestClientResponseException e) {
       String rawJson = e.getResponseBodyAsString();
+      log.debug("Toss 원본 에러 응답: {}", rawJson);
       TossErrorResponse error = e.getResponseBodyAs(TossErrorResponse.class);
       String code = error != null && error.code() != null ? error.code() : "UNKNOWN_ERROR";
       String message = error != null && error.message() != null ? error.message() : e.getMessage();
-      return PgApprovalResult.failure(code, message, rawJson);
+      return PgApprovalResult.failure(code, message);
 
     } catch (Exception e) {
-      return PgApprovalResult.failure("NETWORK_ERROR", "결제 서버와의 통신에 실패했습니다.", null);
+      log.debug("Toss 통신 중 예상치 못한 예외 발생", e);
+      return PgApprovalResult.failure("NETWORK_ERROR", "결제 서버와의 통신에 실패했습니다.");
     }
   }
 
