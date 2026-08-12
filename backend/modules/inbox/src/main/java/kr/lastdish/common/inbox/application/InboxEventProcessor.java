@@ -1,12 +1,11 @@
 package kr.lastdish.common.inbox.application;
 
+import java.time.Instant;
 import kr.lastdish.common.inbox.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
