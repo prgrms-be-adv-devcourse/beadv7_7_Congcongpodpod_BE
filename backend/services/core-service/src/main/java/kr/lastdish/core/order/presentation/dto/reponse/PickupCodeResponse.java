@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.presentation.dto;
+package kr.lastdish.core.order.presentation.dto.reponse;
 
 import java.time.LocalTime;
 import kr.lastdish.core.order.application.dto.PickupCodeResult;

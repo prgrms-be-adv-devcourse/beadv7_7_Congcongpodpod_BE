@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.presentation.dto;
+package kr.lastdish.core.order.presentation.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
