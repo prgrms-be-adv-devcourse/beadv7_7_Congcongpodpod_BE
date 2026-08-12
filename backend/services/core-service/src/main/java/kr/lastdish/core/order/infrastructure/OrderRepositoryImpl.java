@@ -71,7 +71,7 @@ public class OrderRepositoryImpl implements OrderRepository {
   }
 
   @Override
-  public List<Order> findPickupExpirationTargets(List<Long> storeIds) {
-    return orderJpaRepository.findPickupExpirationTargets(storeIds);
+  public List<Order> findPickupExpirationTargets(Long storeId, LocalDateTime now) {
+    return orderJpaRepository.findPickupExpirationTargets(storeId, now);
   }
 }

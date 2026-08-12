@@ -88,7 +88,7 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
-  public List<Store> findStoresReadyToClose(LocalDateTime now) {
-    return storeJpaRepository.findStoresReadyToClose(now);
+  public List<Long> findStoreIdsReadyToClose(LocalDateTime now) {
+    return storeJpaRepository.findStoreIdsReadyToClose(now);
   }
 }

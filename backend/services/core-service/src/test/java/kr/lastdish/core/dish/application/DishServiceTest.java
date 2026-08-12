@@ -3,7 +3,6 @@ package kr.lastdish.core.dish.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -214,15 +213,20 @@ class DishServiceTest {
   }
 
   @Test
-  void closesSaleAndRecordsStateEventWhenStoreCloses() {
+  void 매장_마감으로_판매를_종료하면_재고를_0으로_초기화하고_상태_이벤트를_기록한다() {
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
     when(dishRepository.findWithLockByStoreIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(dish));
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
     dishService.closeSaleByStoreId(1L);
 
     assertThat(dish.getStockQuantity()).isZero();
     assertThat(dish.getDishStatus()).isEqualTo(kr.lastdish.core.dish.domain.DishStatus.SOLD_OUT);
-    verify(outboxEventWriter).append(any(DomainEvent.class));
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+    assertThat(event.payload().available()).isFalse();
+    assertThat(event.payload().stockQuantity()).isZero();
   }
 }

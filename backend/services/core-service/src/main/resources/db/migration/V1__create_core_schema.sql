@@ -691,7 +691,7 @@ CREATE INDEX idx_orders_store_deleted_created_at ON public.orders USING btree (s
 -- Name: idx_orders_store_pickup_ready; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_orders_store_pickup_ready ON public.orders USING btree (store_id, status) WHERE ((is_deleted = false) AND ((status)::text = 'PICKUP_READY'::text));
+CREATE INDEX idx_orders_store_pickup_ready ON public.orders USING btree (store_id, pickup_deadline) WHERE ((is_deleted = false) AND ((status)::text = 'PICKUP_READY'::text));
 
 
 --

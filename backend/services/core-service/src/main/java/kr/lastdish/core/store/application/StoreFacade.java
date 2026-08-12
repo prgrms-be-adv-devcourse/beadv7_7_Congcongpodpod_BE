@@ -20,6 +20,7 @@ import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -47,11 +48,28 @@ public class StoreFacade {
     return storeService.findSettlementTargetStoreIds();
   }
 
+  // 마감 시간이 지난 후보 매장의 ID 조회
+  public List<Long> findStoreIdsReadyToClose(LocalDateTime now) {
+    return storeRepository.findStoreIdsReadyToClose(now);
+  }
+
   @Transactional
-  public List<Long> claimStoresReadyToClose(LocalDateTime now) {
-    List<Store> stores = storeRepository.findStoresReadyToClose(now);
-    stores.forEach(store -> store.rescheduleNextClosingAt(now));
-    return stores.stream().map(Store::getId).toList();
+  public void rescheduleNextClosingAt(Long storeId, LocalDateTime now) {
+    rescheduleNextClosingAt(storeId, now, "마감 대상 매장을 찾을 수 없습니다.");
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void rescheduleNextClosingAtAfterFailure(Long storeId, LocalDateTime now) {
+    rescheduleNextClosingAt(storeId, now, "마감 실패 매장을 찾을 수 없습니다.");
+  }
+
+  private void rescheduleNextClosingAt(Long storeId, LocalDateTime now, String notFoundMessage) {
+    Store store =
+        storeRepository
+            .findById(storeId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, notFoundMessage));
+    store.rescheduleNextClosingAt(now);
   }
 
   public Optional<StoreSettlementAccountResult> findSettlementAccount(Long storeId) {
