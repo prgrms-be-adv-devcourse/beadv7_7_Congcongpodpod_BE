@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.core.cart.application.CartDishPriceSynchronizer;
+import kr.lastdish.core.cart.application.event.spring.DishPriceChangedEventListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,6 +1,7 @@
 package kr.lastdish.core.cart.application.event;
 
 import kr.lastdish.common.event.EventMessage;
+import kr.lastdish.common.inbox.domain.InboxEventHandler;
 import kr.lastdish.core.cart.application.CartDishPriceSynchronizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -9,11 +10,22 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
-public class DishPriceChangedMessageHandler {
+public class DishPriceChangedMessageHandler implements InboxEventHandler {
 
   private final ObjectMapper objectMapper;
   private final CartDishPriceSynchronizer synchronizer;
 
+  @Override
+  public String consumerId() {
+    return "core-cart-dish-price";
+  }
+
+  @Override
+  public String eventType() {
+    return "DISH_PRICE_CHANGED";
+  }
+
+  @Override
   public void handle(EventMessage message) {
     DishPriceChangedPayload payload;
 
