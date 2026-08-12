@@ -2,13 +2,7 @@ package kr.lastdish.member.auth.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.util.concurrent.TimeUnit;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.application.dto.LoginCommand;
 import kr.lastdish.member.auth.application.dto.RefreshTokenCommand;
@@ -20,18 +14,14 @@ import kr.lastdish.member.auth.infrastructure.JwtTokenProvider;
 import kr.lastdish.member.auth.presentation.dto.*;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = "spring.data.redis.repositories.enabled=false")
+@SpringBootTest
 @ActiveProfiles("test")
 @Transactional
 class AuthServiceTest {
@@ -41,15 +31,8 @@ class AuthServiceTest {
   @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private JwtTokenProvider jwtTokenProvider;
 
-  @MockitoBean private RedisTemplate<String, String> redisTemplate;
-
-  private ValueOperations<String, String> valueOperations;
-
-  @BeforeEach
-  void setUpRedis() {
-    valueOperations = mock(ValueOperations.class);
-    when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-  }
+  @Autowired
+  private org.springframework.data.redis.core.RedisTemplate<String, String> redisTemplate;
 
   @Test
   @DisplayName("로그인 시 리프레시 토큰이 평문이 아니라 SHA-256 해시값으로 DB에 저장된다.")
@@ -213,7 +196,8 @@ class AuthServiceTest {
     authService.logout(accessToken, new RefreshTokenCommand(refreshToken));
 
     // then
-    verify(valueOperations)
-        .set(eq(accessToken), eq("blacklisted"), anyLong(), eq(TimeUnit.MILLISECONDS));
+    String blacklistedValue = redisTemplate.opsForValue().get(accessToken);
+    assertThat(blacklistedValue).isNotNull();
+    assertThat(blacklistedValue).isEqualTo("blacklisted");
   }
 }
