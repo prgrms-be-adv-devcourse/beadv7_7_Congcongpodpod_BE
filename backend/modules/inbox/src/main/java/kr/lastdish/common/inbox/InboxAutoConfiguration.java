@@ -14,7 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     before = {HibernateJpaAutoConfiguration.class, DataJpaRepositoriesAutoConfiguration.class})
 @EnableScheduling
 @Import({
-  InboxAutoConfigurationPackagesRegistrar.class,
+  InboxAutoConfigurationPackagesRegistry.class,
   InboxEventWriter.class,
   InboxClaimService.class,
   InboxScheduler.class,

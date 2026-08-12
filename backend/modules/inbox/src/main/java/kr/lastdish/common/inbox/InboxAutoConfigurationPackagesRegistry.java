@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
 
-final class InboxAutoConfigurationPackagesRegistrar implements ImportBeanDefinitionRegistrar {
+final class InboxAutoConfigurationPackagesRegistry implements ImportBeanDefinitionRegistrar {
 
   @Override
   public void registerBeanDefinitions(
