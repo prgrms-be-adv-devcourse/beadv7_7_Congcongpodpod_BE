@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import kr.lastdish.core.cart.presentation.dto.CartItemAddRequest;
 import kr.lastdish.core.cart.presentation.dto.CartItemUpdateRequest;
 import kr.lastdish.core.dish.domain.Dish;
@@ -43,8 +44,8 @@ class CartControllerTest {
                 10L,
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 100L;
 
     // 1) 장바구니 조회 -> 없으면 생성됨 (별도 생성 API 없음)
@@ -136,8 +137,8 @@ class CartControllerTest {
                 10L,
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Dish dishB =
         dishRepository.save(
             Dish.create(
@@ -149,8 +150,8 @@ class CartControllerTest {
                 10L,
                 BigDecimal.valueOf(9000),
                 BigDecimal.valueOf(6000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 200L;
 
     String getOrCreateResponse =
@@ -202,8 +203,8 @@ class CartControllerTest {
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 300L;
 
     String getOrCreateResponse =
@@ -236,8 +237,8 @@ class CartControllerTest {
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 400L;
 
     String getOrCreateResponse =

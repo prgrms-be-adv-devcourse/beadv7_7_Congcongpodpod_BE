@@ -1,11 +1,10 @@
 package kr.lastdish.common.event.kafka;
 
+import java.util.concurrent.TimeUnit;
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
-
-import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 public class KafkaEventPublisher implements EventPublisher {

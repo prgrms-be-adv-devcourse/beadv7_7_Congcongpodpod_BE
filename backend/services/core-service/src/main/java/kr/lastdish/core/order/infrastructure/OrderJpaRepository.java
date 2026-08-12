@@ -83,4 +83,16 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       """)
   Page<Order> findAllByStoreIdAndStatus(
       @Param("storeId") Long storeId, @Param("status") OrderStatus status, Pageable pageable);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select o
+      from Order o
+      where o.isDeleted = false
+        and o.status = "PICKUP_READY"
+        and o.storeId in :storeIds
+      order by o.createdAt asc, o.id asc
+      """)
+  List<Order> findPickupExpirationTargets(@Param("storeIds") List<Long> storeIds);
 }

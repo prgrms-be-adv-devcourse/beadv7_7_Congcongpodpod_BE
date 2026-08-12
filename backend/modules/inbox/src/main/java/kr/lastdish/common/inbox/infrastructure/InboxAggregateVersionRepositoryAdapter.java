@@ -1,13 +1,12 @@
 package kr.lastdish.common.inbox.infrastructure;
 
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import kr.lastdish.common.inbox.domain.InboxAggregateVersion;
 import kr.lastdish.common.inbox.domain.InboxAggregateVersionId;
 import kr.lastdish.common.inbox.domain.InboxAggregateVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-
-import java.time.Instant;
 
 @Repository
 @RequiredArgsConstructor

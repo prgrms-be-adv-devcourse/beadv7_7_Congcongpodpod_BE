@@ -2,8 +2,9 @@
 
 CREATE TABLE public.orders (
     is_deleted boolean NOT NULL,
-    pickup_end_at time(0) without time zone,
-    pickup_start_at time(0) without time zone,
+    pickup_end_at time(0) without time zone NOT NULL,
+    pickup_deadline timestamp(6) without time zone NOT NULL,
+    pickup_start_at time(0) without time zone NOT NULL,
     total_price numeric(38,2) NOT NULL,
     unit_price numeric(38,2) NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
@@ -64,6 +65,10 @@ ALTER TABLE ONLY public.orders
 CREATE INDEX idx_orders_member_deleted_created_at ON public.orders USING btree (member_id, is_deleted, created_at);
 
 CREATE INDEX idx_orders_store_deleted_created_at ON public.orders USING btree (store_id, is_deleted, created_at);
+
+CREATE INDEX idx_orders_store_pickup_ready
+    ON public.orders USING btree (store_id, status)
+    WHERE ((is_deleted = false) AND ((status)::text = 'PICKUP_READY'::text));
 
 CREATE INDEX idx_order_history_order_created_at ON public.order_history USING btree (order_id, created_at);
 

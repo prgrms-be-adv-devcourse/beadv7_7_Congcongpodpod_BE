@@ -43,6 +43,7 @@ CREATE TABLE public.stores (
     longitude numeric(38,2) NOT NULL,
     open_time time(0) without time zone NOT NULL,
     member_id bigint NOT NULL,
+    next_closing_at timestamp(6) without time zone,
     store_id bigint NOT NULL,
     business_number character varying(255) NOT NULL,
     category character varying(255) NOT NULL,
@@ -71,6 +72,10 @@ ALTER TABLE ONLY public.store_payout_accounts
 
 ALTER TABLE ONLY public.stores
     ADD CONSTRAINT stores_pkey PRIMARY KEY (store_id);
+
+CREATE INDEX idx_stores_next_closing_at
+    ON public.stores USING btree (next_closing_at)
+    WHERE ((is_deleted = false) AND ((status)::text = 'OPEN'::text));
 
 ALTER TABLE ONLY public.store_holidays
     ADD CONSTRAINT fk5ag9a0mnds3cbtgyi0hjrkchu FOREIGN KEY (store_id) REFERENCES public.stores(store_id);

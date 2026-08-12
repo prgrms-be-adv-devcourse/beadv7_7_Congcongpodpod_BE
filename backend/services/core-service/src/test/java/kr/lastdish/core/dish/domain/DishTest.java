@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 
 class DishTest {
@@ -30,7 +31,15 @@ class DishTest {
      * 재고를 0으로 변경합니다.
      */
     dish.update(
-        "김치찌개", LocalDateTime.now(), "상품 설명", null, 0L, BigDecimal.valueOf(10000), BigDecimal.ZERO);
+        "김치찌개",
+        LocalDateTime.now(),
+        "상품 설명",
+        null,
+        0L,
+        BigDecimal.valueOf(10000),
+        BigDecimal.ZERO,
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
 
     // when
     boolean available = dish.isAvailable();
@@ -62,7 +71,7 @@ class DishTest {
         stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,
-        null,
-        null);
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
   }
 }
