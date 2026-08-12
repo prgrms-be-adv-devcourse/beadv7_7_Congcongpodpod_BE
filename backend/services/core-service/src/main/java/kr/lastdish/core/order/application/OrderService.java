@@ -1,6 +1,8 @@
 package kr.lastdish.core.order.application;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -24,6 +26,7 @@ public class OrderService {
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
     Order order =
@@ -37,11 +40,22 @@ public class OrderService {
             cartItem.quantity(),
             cartItem.unitPrice(),
             cartItem.pickupStartAt(),
-            cartItem.pickupEndAt());
+            cartItem.pickupEndAt(),
+            pickupDeadline(cartItem));
 
     Order savedOrder = orderRepository.save(order);
     orderStatusChangedEventWriter.append(savedOrder);
     return savedOrder;
+  }
+
+  private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
+    LocalDate pickupDate = LocalDate.now(BUSINESS_ZONE);
+
+    if (cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt())) {
+      pickupDate = pickupDate.plusDays(1);
+    }
+
+    return pickupDate.atTime(cartItem.pickupEndAt());
   }
 
   public OrderResult completePayment(Long orderId) {
@@ -106,7 +120,7 @@ public class OrderService {
 
     switch (command.status()) {
       case PICKED_UP -> order.completePickup();
-      case NO_SHOW -> order.markNoShow();
+      case NO_SHOW -> order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
     orderStatusChangedEventWriter.append(order);

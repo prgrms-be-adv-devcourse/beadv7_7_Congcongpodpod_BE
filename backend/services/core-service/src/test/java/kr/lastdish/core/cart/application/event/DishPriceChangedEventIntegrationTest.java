@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.UUID;
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
@@ -30,7 +31,16 @@ class DishPriceChangedEventIntegrationTest {
     // given
     CartItem cartItem =
         cartItemRepository.save(
-            CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 2L, 1L));
+            CartItem.create(
+                1L,
+                10L,
+                null,
+                "김치찌개",
+                BigDecimal.valueOf(8_000),
+                2L,
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0),
+                1L));
 
     EventMessage message =
         new EventMessage(

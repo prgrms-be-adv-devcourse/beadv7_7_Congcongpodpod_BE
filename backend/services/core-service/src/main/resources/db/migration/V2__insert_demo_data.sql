@@ -51,6 +51,7 @@ INSERT INTO public.stores (
     store_phone,
     open_time,
     close_time,
+    next_closing_at,
     status,
     latitude,
     longitude,
@@ -66,6 +67,11 @@ SELECT
     '02-0000-' || lpad(number::text, 4, '0'),
     time '09:00:00',
     time '23:00:00',
+    CASE
+        WHEN EXTRACT(ISODOW FROM CURRENT_DATE) = 7
+            THEN (CURRENT_DATE + 1) + time '23:00:00'
+        ELSE CURRENT_DATE + time '23:00:00'
+    END,
     'OPEN',
     37.4800000 + (((number - 1) / 6) * 0.0100000),
     127.0100000 + (((number - 1) % 6) * 0.0080000),
@@ -176,6 +182,7 @@ INSERT INTO public.orders (
     pickup_code,
     pickup_start_at,
     pickup_end_at,
+    pickup_deadline,
     cancel_reason,
     reject_reason,
     created_at,
@@ -198,6 +205,9 @@ SELECT
     'DEMO-' || lpad((6001 + (store_number * 100) + (order_number - 1))::text, 4, '0'),
     d.pickup_start_time,
     d.pickup_end_time,
+    (timestamp '2026-06-01 10:00:00'
+        + (((order_number - 1) % 30) * interval '1 day'))::date
+        + d.pickup_end_time,
     null,
     null,
     timestamp '2026-06-01 10:00:00'
