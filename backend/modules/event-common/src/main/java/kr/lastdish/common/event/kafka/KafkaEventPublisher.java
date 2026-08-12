@@ -16,26 +16,23 @@ public class KafkaEventPublisher implements EventPublisher {
   @Override
   public void publish(EventMessage message) {
     String topic = message.eventType();
+    String key = message.aggregateType() + ":" + message.aggregateId();
     validateTopic(topic);
 
     try {
-      kafkaTemplate.send(topic, message)
-          .get(PUBLISH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+      kafkaTemplate.send(topic, key, message).get(PUBLISH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException(
-          "Kafka 이벤트 발행 중 인터럽트가 발생했습니다.", exception);
+      throw new IllegalStateException("Kafka 이벤트 발행 중 인터럽트가 발생했습니다.", exception);
     } catch (Exception exception) {
       throw new IllegalStateException(
-          "Kafka 이벤트 발행에 실패했습니다. eventId=" + message.eventId(),
-          exception);
+          "Kafka 이벤트 발행에 실패했습니다. eventId=" + message.eventId(), exception);
     }
   }
 
   private void validateTopic(String topic) {
     if (topic == null || !topic.matches("[a-zA-Z0-9._-]+")) {
-      throw new IllegalArgumentException(
-          "Kafka 토픽으로 사용할 수 없는 eventType입니다: " + topic);
+      throw new IllegalArgumentException("Kafka 토픽으로 사용할 수 없는 eventType입니다: " + topic);
     }
   }
 }

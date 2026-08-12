@@ -12,17 +12,12 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 @AutoConfiguration
 @ConditionalOnClass(KafkaTemplate.class)
-@ConditionalOnProperty(
-    name = "event.publisher",
-    havingValue = "kafka"
-)
+@ConditionalOnProperty(name = "event.publisher", havingValue = "kafka")
 public class KafkaEventAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(EventPublisher.class)
-  EventPublisher kafkaEventPublisher(
-      KafkaTemplate<String, EventMessage> kafkaTemplate
-  ) {
+  EventPublisher kafkaEventPublisher(KafkaTemplate<String, EventMessage> kafkaTemplate) {
     return new KafkaEventPublisher(kafkaTemplate);
   }
 }

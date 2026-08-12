@@ -1,5 +1,6 @@
 package kr.lastdish.core.cart.application.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
@@ -7,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.common.event.EventMessage;
+import kr.lastdish.common.inbox.domain.InboxProcessingPolicy;
 import kr.lastdish.core.cart.application.CartDishPriceSynchronizer;
 import kr.lastdish.core.cart.application.event.spring.DishPriceChangedEventListener;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,11 @@ class DishPriceChangedMessageHandlerTest {
   @BeforeEach
   void setUp() {
     handler = new DishPriceChangedMessageHandler(new ObjectMapper(), synchronizer);
+  }
+
+  @Test
+  void 최신_가격만_반영하는_정책을_사용한다() {
+    assertThat(handler.processingPolicy()).isEqualTo(InboxProcessingPolicy.IDEMPOTENT_LATEST_WINS);
   }
 
   @Test

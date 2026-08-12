@@ -2,6 +2,7 @@ package kr.lastdish.core.cart.application.event;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.inbox.domain.InboxEventHandler;
+import kr.lastdish.common.inbox.domain.InboxProcessingPolicy;
 import kr.lastdish.core.cart.application.CartDishPriceSynchronizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,11 @@ public class DishPriceChangedMessageHandler implements InboxEventHandler {
   @Override
   public String eventType() {
     return "DISH_PRICE_CHANGED";
+  }
+
+  @Override
+  public InboxProcessingPolicy processingPolicy() {
+    return InboxProcessingPolicy.IDEMPOTENT_LATEST_WINS;
   }
 
   @Override
