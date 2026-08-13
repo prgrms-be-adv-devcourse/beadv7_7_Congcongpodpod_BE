@@ -19,6 +19,9 @@ import reactor.core.publisher.Mono;
  * <p>{@link WebFilter}로 구현한다. {@code GlobalFilter}는 {@code FilteringWebHandler}가 실행하는데, 이는 Spring
  * Security의 {@code SecurityWebFilterChain}(WebFilter)과 핸들러 매핑보다 나중이라 인증 실패(401/403)·라우트 미매칭(404)
  * 응답과 그 경로에서 발생하는 예외에는 requestId가 붙지 않는다. WebFilter로 구현하면 이 필터가 가장 먼저 실행되어 모든 경로를 포함한다.
+ *
+ * <p>응답 헤더는 프록시가 완료된 뒤, 응답이 실제로 커밋되기 직전에 설정한다. 하위 서비스도 같은 이름의 헤더를 자기 응답에 남기는데, Gateway가 그 응답을 프록시하며
+ * 헤더를 그대로 실어 보내면 미리 설정해둔 값과 합쳐져 같은 값이 두 줄로 남는다. 커밋 직전에 설정하면 그 사이 무엇이 섞여 있었든 마지막에 하나로 정리된다.
  */
 @Component
 public class RequestIdFilter implements WebFilter, Ordered {
@@ -41,7 +44,17 @@ public class RequestIdFilter implements WebFilter, Ordered {
 
     ServerWebExchange mutatedExchange = exchange.mutate().request(request).build();
     mutatedExchange.getAttributes().put(RequestIdSupport.KEY, requestId);
-    mutatedExchange.getResponse().getHeaders().set(RequestIdSupport.HEADER_NAME, requestId);
+
+    mutatedExchange
+        .getResponse()
+        .beforeCommit(
+            () -> {
+              mutatedExchange
+                  .getResponse()
+                  .getHeaders()
+                  .set(RequestIdSupport.HEADER_NAME, requestId);
+              return Mono.empty();
+            });
 
     return chain.filter(mutatedExchange);
   }
