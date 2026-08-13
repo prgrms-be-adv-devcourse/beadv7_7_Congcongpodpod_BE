@@ -73,7 +73,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: backend/services/${{ inputs.service-name }}/build/libs
-          file: backend/services/${{ inputs.service-name }}/Dockerfile
+          file: backend/services/${{ inputs.service-name }}/Dockerfile.runtime
           platforms: linux/amd64
           push: ${{ inputs.publish }}
           tags: ${{ steps.metadata.outputs.tags }}
