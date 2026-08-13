@@ -1,17 +1,18 @@
-package kr.lastdish.core.cart.application.event;
+package kr.lastdish.core.cart.application.event.spring;
 
 import kr.lastdish.common.event.EventMessage;
+import kr.lastdish.core.cart.application.event.DishStateChangedMessageHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class DishPriceChangedEventListener {
+public class DishStateChangedEventListener {
 
-  public static final String EVENT_TYPE = "DISH_PRICE_CHANGED";
+  public static final String EVENT_TYPE = "DISH_STATE_CHANGED";
 
-  private final DishPriceChangedMessageHandler handler;
+  private final DishStateChangedMessageHandler handler;
 
   @EventListener
   public void handle(EventMessage message) {
