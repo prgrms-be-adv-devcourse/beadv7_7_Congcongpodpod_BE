@@ -216,6 +216,7 @@ class OrderServiceTest {
     Long orderId = 1L;
     Order order = mock(Order.class);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.nextEventVersion()).thenReturn(7L);
 
     PickupStatusResult response =
         orderService.updatePickupStatus(
@@ -224,7 +225,8 @@ class OrderServiceTest {
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order).completePickup(any(LocalDateTime.class));
-    verify(orderStatusChangedEventWriter).append(order);
+    verify(order).nextEventVersion();
+    verify(orderStatusChangedEventWriter).append(order, 7L);
     verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
@@ -233,6 +235,7 @@ class OrderServiceTest {
     Long orderId = 1L;
     Order order = mock(Order.class);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.nextEventVersion()).thenReturn(7L);
 
     PickupStatusResult response =
         orderService.updatePickupStatus(
@@ -242,7 +245,8 @@ class OrderServiceTest {
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order).markNoShow(any(LocalDateTime.class));
     verify(order, never()).completePickup(any(LocalDateTime.class));
-    verify(orderStatusChangedEventWriter).append(order);
+    verify(order).nextEventVersion();
+    verify(orderStatusChangedEventWriter).append(order, 7L);
     verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 

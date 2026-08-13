@@ -16,12 +16,16 @@ public class OrderStatusChangedEventWriter {
   private final OutboxEventWriter outboxEventWriter;
 
   public void append(Order order) {
+    append(order, order.nextEventVersion());
+  }
+
+  public void append(Order order, long aggregateVersion) {
     OrderStatusChangedEvent event =
         new OrderStatusChangedEvent(
             UUID.randomUUID(),
             OrderStatusChangedEvent.SCHEMA_VERSION,
             order.getId(),
-            order.nextEventVersion(),
+            aggregateVersion,
             new OrderStatusChangedPayload(order.getMemberId(), order.getStatus()),
             Instant.now());
 

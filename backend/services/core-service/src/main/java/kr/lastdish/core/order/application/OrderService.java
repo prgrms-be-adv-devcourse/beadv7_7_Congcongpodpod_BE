@@ -125,17 +125,23 @@ public class OrderService {
     switch (command.status()) {
       case PICKED_UP -> {
         order.completePickup(LocalDateTime.now(BUSINESS_ZONE));
-        // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
-        // orderPickedUpEventWriter.append(order);
       }
       case NO_SHOW -> {
         order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
-        // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
-        // orderNoShowEventWriter.append(order);
       }
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
-    orderStatusChangedEventWriter.append(order);
+
+    long aggregateVersion = order.nextEventVersion();
+    orderStatusChangedEventWriter.append(order, aggregateVersion);
+
+    if (command.status() == OrderStatus.PICKED_UP) {
+      // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
+      // orderPickedUpEventWriter.append(order, aggregateVersion);
+    } else if (command.status() == OrderStatus.NO_SHOW) {
+      // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
+      // orderNoShowEventWriter.append(order, aggregateVersion);
+    }
 
     return PickupStatusResult.from(order);
   }

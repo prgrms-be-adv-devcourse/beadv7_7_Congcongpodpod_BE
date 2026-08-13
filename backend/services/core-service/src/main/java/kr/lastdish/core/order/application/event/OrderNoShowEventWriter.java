@@ -16,12 +16,16 @@ public class OrderNoShowEventWriter {
   private final OutboxEventWriter outboxEventWriter;
 
   public void append(Order order) {
+    append(order, order.nextEventVersion());
+  }
+
+  public void append(Order order, long aggregateVersion) {
     OrderNoShowEvent event =
         new OrderNoShowEvent(
             UUID.randomUUID(),
             OrderNoShowEvent.SCHEMA_VERSION,
             order.getId(),
-            order.nextEventVersion(),
+            aggregateVersion,
             new OrderNoShowPayload(order.getStoreId(), order.getTotalPrice()),
             Instant.now());
 
