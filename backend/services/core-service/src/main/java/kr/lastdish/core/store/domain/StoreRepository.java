@@ -37,5 +37,5 @@ public interface StoreRepository {
 
   List<Long> findAllActiveStoreIds();
 
-  List<Store> findStoresReadyToClose(LocalDateTime now);
+  List<Long> findStoreIdsReadyToClose(LocalDateTime now);
 }

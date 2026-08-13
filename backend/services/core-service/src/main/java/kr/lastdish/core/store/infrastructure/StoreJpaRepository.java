@@ -1,6 +1,5 @@
 package kr.lastdish.core.store.infrastructure;
 
-import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,7 +10,6 @@ import kr.lastdish.core.store.domain.StoreStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -69,15 +67,15 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
         """)
   List<Long> findAllActiveStoreIds();
 
-  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  // 마감 대상 매장을 매장별 트랜잭션에서 처리할 수 있도록 ID만 조회한다.
   @Query(
       """
-      SELECT DISTINCT store
+      SELECT store.id
       FROM Store store
-      LEFT JOIN FETCH store.holidays
       WHERE store.deleted IS false
         AND store.status = "OPEN"
         AND store.nextClosingAt <= :now
+      ORDER BY store.id
       """)
-  List<Store> findStoresReadyToClose(@Param("now") LocalDateTime now);
+  List<Long> findStoreIdsReadyToClose(@Param("now") LocalDateTime now);
 }

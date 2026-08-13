@@ -91,8 +91,10 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       from Order o
       where o.isDeleted = false
         and o.status = "PICKUP_READY"
-        and o.storeId in :storeIds
+        and o.storeId = :storeId
+        and o.pickupDeadline <= :now
       order by o.createdAt asc, o.id asc
       """)
-  List<Order> findPickupExpirationTargets(@Param("storeIds") List<Long> storeIds);
+  List<Order> findPickupExpirationTargets(
+      @Param("storeId") Long storeId, @Param("now") LocalDateTime now);
 }
