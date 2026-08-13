@@ -24,7 +24,9 @@ public class PaymentLog {
   @Column(name = "pg_provider", nullable = false)
   private PgProvider pgProvider;
 
-  @Convert(converter = EncryptConverter.class)
+  @Column(name = "payment_key")
+  private String paymentKey;
+
   @Column(name = "payment_method")
   private String paymentMethod;
 
@@ -32,7 +34,6 @@ public class PaymentLog {
   @Column(name = "masked_card_num")
   private String maskedCardNum;
 
-  @Convert(converter = EncryptConverter.class)
   @Column(name = "card_company")
   private String cardCompany;
 
@@ -58,6 +59,7 @@ public class PaymentLog {
   private PaymentLog(
       Long paymentId,
       PgProvider pgProvider,
+      String paymentKey,
       String paymentMethod,
       String maskedCardNum,
       String cardCompany,
@@ -69,6 +71,7 @@ public class PaymentLog {
     this.paymentId = paymentId;
     this.pgProvider = pgProvider;
     this.paymentMethod = paymentMethod;
+    this.paymentKey = paymentKey;
     this.maskedCardNum = maskedCardNum;
     this.cardCompany = cardCompany;
     this.failedCode = failedCode;
@@ -80,15 +83,27 @@ public class PaymentLog {
   }
 
   // PG사 요청(REQUEST) 로그 생성
-  public static PaymentLog createRequestLog(Long paymentId, PgProvider pgProvider) {
+  public static PaymentLog createRequestLog(
+      Long paymentId, PgProvider pgProvider, String paymentKey) {
     return new PaymentLog(
-        paymentId, pgProvider, null, null, null, null, null, LogType.REQUEST, null, null);
+        paymentId,
+        pgProvider,
+        paymentKey,
+        null,
+        null,
+        null,
+        null,
+        null,
+        LogType.REQUEST,
+        null,
+        null);
   }
 
   // PG사 응답(RESPONSE) 로그 생성
   public static PaymentLog createResponseLog(
       Long paymentId,
       PgProvider pgProvider,
+      String paymentKey,
       String paymentMethod,
       String maskedCardNum,
       String cardCompany,
@@ -99,6 +114,7 @@ public class PaymentLog {
     return new PaymentLog(
         paymentId,
         pgProvider,
+        paymentKey,
         paymentMethod,
         maskedCardNum,
         cardCompany,

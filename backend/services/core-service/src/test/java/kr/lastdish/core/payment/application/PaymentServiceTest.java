@@ -73,13 +73,14 @@ class PaymentServiceTest {
         Payment.ready(1L, new BigDecimal("50000"), PgProvider.TOSS, "merchant-order-fail-1");
     when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
-    PgApprovalResult failResult = PgApprovalResult.failure(code, message);
+    PgApprovalResult failResult = PgApprovalResult.failure("test-payment-key-123", code, message);
 
     paymentService.failPayment(1L, failResult);
 
     verify(paymentLogRepository).save(paymentLogCaptor.capture());
     PaymentLog savedLog = paymentLogCaptor.getValue();
 
+    assertThat(savedLog.getPaymentKey()).isEqualTo("test-payment-key-123");
     assertThat(savedLog.getFailedCode()).isEqualTo(code);
     assertThat(savedLog.getFailedMessage()).isEqualTo(message);
     assertThat(savedLog.getPaymentMethod()).isNull();

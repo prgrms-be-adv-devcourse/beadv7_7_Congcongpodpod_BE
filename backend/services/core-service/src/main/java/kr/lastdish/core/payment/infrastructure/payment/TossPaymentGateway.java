@@ -24,6 +24,7 @@ import org.springframework.web.client.RestClientResponseException;
 public class TossPaymentGateway implements PgPaymentGateway {
 
   private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
+  private static final int MAX_FAILURE_MESSAGE_LENGTH = 500;
   private final PaymentLogRepository paymentLogRepository;
 
   @Value("${toss.secret-key:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}")
@@ -31,6 +32,11 @@ public class TossPaymentGateway implements PgPaymentGateway {
 
   private final RestClient restClient = buildRestClient();
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  // failed_message 컬럼 길이를 넘지 않도록 예외 메시지를 자른다
+  private static String truncate(String value, int maxLength) {
+    return (value == null || value.length() <= maxLength) ? value : value.substring(0, maxLength);
+  }
 
   private static RestClient buildRestClient() {
     SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -45,19 +51,19 @@ public class TossPaymentGateway implements PgPaymentGateway {
       Long paymentId, String paymentKey, String orderId, BigDecimal amount) {
 
     // REQUEST 로그 기록
-    paymentLogRepository.save(PaymentLog.createRequestLog(paymentId, PgProvider.TOSS));
+    paymentLogRepository.save(PaymentLog.createRequestLog(paymentId, PgProvider.TOSS, paymentKey));
 
     try {
       Map<String, Object> requestBody =
           Map.of("paymentKey", paymentKey, "orderId", orderId, "amount", amount);
-      log.debug("Toss로 보내는 요청 본문: {}", requestBody);
+      log.debug("Toss로 결제 승인 요청. orderId={}, amount={}", orderId, amount);
       String rawJson =
           restClient
               .post()
               .uri(TOSS_CONFIRM_URL)
               .header("Authorization", buildAuthorizationHeader())
               .header("Content-Type", "application/json")
-              .body(Map.of("paymentKey", paymentKey, "orderId", orderId, "amount", amount))
+              .body(requestBody)
               .retrieve()
               .body(String.class);
 
@@ -71,16 +77,16 @@ public class TossPaymentGateway implements PgPaymentGateway {
           response.card() != null ? response.card().issuerCode() : null);
 
     } catch (RestClientResponseException e) {
-      String rawJson = e.getResponseBodyAsString();
-      log.debug("Toss 원본 에러 응답: {}", rawJson);
       TossErrorResponse error = e.getResponseBodyAs(TossErrorResponse.class);
       String code = error != null && error.code() != null ? error.code() : "UNKNOWN_ERROR";
       String message = error != null && error.message() != null ? error.message() : e.getMessage();
-      return PgApprovalResult.failure(code, message);
+
+      return PgApprovalResult.failure(
+          paymentKey, code, truncate(message, MAX_FAILURE_MESSAGE_LENGTH));
 
     } catch (Exception e) {
-      log.debug("Toss 통신 중 예상치 못한 예외 발생", e);
-      return PgApprovalResult.failure("NETWORK_ERROR", "결제 서버와의 통신에 실패했습니다.");
+      log.error("Toss 통신 중 예상치 못한 예외 발생. paymentId={}, orderId={}", paymentId, orderId, e);
+      return PgApprovalResult.failure(paymentKey, "NETWORK_ERROR", "결제 서버와의 통신에 실패했습니다.");
     }
   }
 

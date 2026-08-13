@@ -80,6 +80,7 @@ public class PaymentService {
         PaymentLog.createResponseLog(
             payment.getId(),
             payment.getPgProvider(),
+            pgResult.pgTransactionId(),
             pgResult.paymentMethod(),
             pgResult.maskedCardNumber(),
             pgResult.issuerCode(),
@@ -109,6 +110,7 @@ public class PaymentService {
         PaymentLog.createResponseLog(
             payment.getId(),
             payment.getPgProvider(),
+            pgResult.pgTransactionId(),
             pgResult.paymentMethod(),
             pgResult.maskedCardNumber(),
             pgResult.issuerCode(),

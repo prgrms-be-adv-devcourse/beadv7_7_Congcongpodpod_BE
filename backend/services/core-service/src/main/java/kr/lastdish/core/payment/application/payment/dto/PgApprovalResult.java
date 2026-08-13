@@ -28,7 +28,9 @@ public record PgApprovalResult(
         issuerCode);
   }
 
-  public static PgApprovalResult failure(String failureCode, String failureMessage) {
-    return new PgApprovalResult(null, false, null, failureCode, failureMessage, null, null, null);
+  public static PgApprovalResult failure(
+      String pgTransactionId, String failureCode, String failureMessage) {
+    return new PgApprovalResult(
+        pgTransactionId, false, null, failureCode, failureMessage, null, null, null);
   }
 }
