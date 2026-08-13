@@ -7,13 +7,13 @@ import kr.lastdish.core.cart.application.CartFacade;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
-import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.dto.*;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.*;
 import kr.lastdish.core.payment.application.deposit.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderFacade {
 
   private final OrderRepository orderRepository;
+  private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
   private final OrderService orderService;
   private final CartFacade cartFacade;
   private final DishFacade dishFacade;
@@ -36,7 +37,7 @@ public class OrderFacade {
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResponse payAndCreateOrder(Long memberId, Long cartItemId) {
+  public OrderResult payAndCreateOrder(Long memberId, Long cartItemId) {
     // 외부 회원 서비스 호출을 먼저 완료해 CartItem DB 잠금 시간을 최소화한다.
     OrderMemberInfo memberInfo = orderMemberQueryPort.getOrderMemberInfo(memberId);
     CartOrderSnapshot cartItem = cartFacade.getOrderSnapshot(memberId, cartItemId);
@@ -51,17 +52,17 @@ public class OrderFacade {
     depositFacade.use(memberId, order.getId(), order.getTotalPrice());
 
     // 결제 완료 처리
-    OrderResponse response = orderService.completePayment(order.getId());
+    OrderResult result = orderService.completePayment(order.getId());
 
     // 주문이 완료된 상품을 장바구니에서 제거
     cartFacade.removeOrderedItem(memberId, cartItemId);
 
-    return response;
+    return result;
   }
 
   // 주문 취소 - 재고 복구 - 결제 환불
   @Transactional
-  public OrderResponse cancelOrder(Long memberId, Long orderId) {
+  public OrderResult cancelOrder(Long memberId, Long orderId) {
     // 주문 취소
     Order order = orderService.cancelOrder(memberId, orderId);
 
@@ -71,12 +72,12 @@ public class OrderFacade {
     // 결제 환불
     depositFacade.refund(memberId, orderId, order.getTotalPrice());
 
-    return OrderResponse.from(order);
+    return OrderResult.from(order);
   }
 
   // 매장 주문 접수
   @Transactional
-  public OrderReceptionResponse acceptOrder(Long memberId, String role, Long orderId) {
+  public OrderReceptionResult acceptOrder(Long memberId, String role, Long orderId) {
 
     validateSellerOrder(memberId, role, orderId);
 
@@ -86,49 +87,52 @@ public class OrderFacade {
 
   // 매장 주문 반려
   @Transactional
-  public OrderRejectResponse rejectOrder(
-      Long memberId, String role, Long orderId, OrderRejectRequest request) {
+  public OrderRejectResult rejectOrder(
+      Long memberId, String role, Long orderId, RejectOrderCommand command) {
     validateSellerOrder(memberId, role, orderId);
+    OrderRejectReason reason = command.reason();
 
     // 반려 사유에 따라 환불 프로세스 분기
-    if (request.reason().shouldRestoreStock()) {
-      return rejectOrderAndRestoreStock(orderId, request.reason());
+    if (reason.shouldRestoreStock()) {
+      return rejectOrderAndRestoreStock(orderId, reason);
     } else {
-      return rejectOrder(orderId, request.reason());
+      return rejectOrder(orderId, reason);
     }
   }
 
   @Transactional
-  public OrderRejectResponse rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
+  public OrderRejectResult rejectOrderAndRestoreStock(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     order.rejectOrder(reason);
+    orderStatusChangedEventWriter.append(order);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
-    return OrderRejectResponse.from(order);
+    return OrderRejectResult.from(order);
   }
 
   @Transactional
-  public OrderRejectResponse rejectOrder(Long orderId, OrderRejectReason reason) {
+  public OrderRejectResult rejectOrder(Long orderId, OrderRejectReason reason) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.rejectOrder(reason);
+    orderStatusChangedEventWriter.append(order);
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
-    return OrderRejectResponse.from(order);
+    return OrderRejectResult.from(order);
   }
 
   @Transactional
-  public PickupStatusResponse updateOrder(
-      Long memberId, String role, Long orderId, PickupStatusRequest request) {
+  public PickupStatusResult updateOrder(
+      Long memberId, String role, Long orderId, UpdatePickupStatusCommand command) {
     validateSellerOrder(memberId, role, orderId);
 
     // 상태 업데이트
-    return orderService.updatePickupStatus(orderId, request);
+    return orderService.updatePickupStatus(orderId, command);
   }
 
   @Transactional(readOnly = true)
-  public Page<OrderResponse> getStoreOrders(
+  public Page<OrderResult> getStoreOrders(
       Long memberId, String role, Long storeId, OrderStatus status, Pageable pageable) {
     validateSeller(role);
     storeFacade.validateStoreOwner(storeId, memberId);

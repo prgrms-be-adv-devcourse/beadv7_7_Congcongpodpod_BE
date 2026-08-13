@@ -28,7 +28,6 @@ public class PaymentLog {
   @Column(name = "payment_key")
   private String paymentKey;
 
-  @Convert(converter = EncryptConverter.class)
   @Column(name = "payment_method")
   private String paymentMethod;
 
@@ -36,7 +35,6 @@ public class PaymentLog {
   @Column(name = "masked_card_num")
   private String maskedCardNum;
 
-  @Convert(converter = EncryptConverter.class)
   @Column(name = "card_company")
   private String cardCompany;
 

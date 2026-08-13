@@ -9,4 +9,6 @@ public interface StorePayoutAccountRepository {
   Optional<StorePayoutAccount> findByStoreId(Long storeId);
 
   boolean existsByStoreId(Long storeId);
+
+  void deleteByStoreId(Long storeId);
 }

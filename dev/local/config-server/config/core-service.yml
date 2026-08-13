@@ -56,7 +56,7 @@ services:
     base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
 
 event:
-  publisher: ${EVENT_PUBLISHER:spring}
+  publisher: ${EVENT_PUBLISHER:kafka}
 
 outbox:
   scheduler:
@@ -65,3 +65,11 @@ outbox:
   batch-size: ${OUTBOX_BATCH_SIZE:100}
   max-retries: ${OUTBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
+
+inbox:
+  scheduler:
+    enabled: ${INBOX_SCHEDULER_ENABLED:true}
+  polling-delay-ms: ${INBOX_POLLING_DELAY_MS:1000}
+  batch-size: ${INBOX_BATCH_SIZE:100}
+  max-retries: ${INBOX_MAX_RETRIES:5}
+  lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}

@@ -71,7 +71,11 @@ public class Order {
 
   private LocalTime pickupStartAt;
 
+  @Column(nullable = false)
   private LocalTime pickupEndAt;
+
+  @Column(nullable = false)
+  private LocalDateTime pickupDeadline;
 
   @Column(nullable = false)
   private BigDecimal totalPrice;
@@ -90,6 +94,9 @@ public class Order {
   @Column(nullable = false)
   private Boolean isDeleted;
 
+  @Column(nullable = false)
+  private long eventVersion;
+
   // 주문 생성
   public static Order create(
       Long memberId,
@@ -101,7 +108,8 @@ public class Order {
       Long quantity,
       BigDecimal unitPrice,
       LocalTime pickupStartAt,
-      LocalTime pickupEndAt) {
+      LocalTime pickupEndAt,
+      LocalDateTime pickupDeadline) {
     Order order = new Order();
     order.memberId = memberId;
     order.storeId = storeId;
@@ -116,8 +124,14 @@ public class Order {
     order.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
     order.pickupStartAt = pickupStartAt;
     order.pickupEndAt = pickupEndAt;
+    order.pickupDeadline = pickupDeadline;
     order.isDeleted = false;
+    order.eventVersion = 0L;
     return order;
+  }
+
+  public long nextEventVersion() {
+    return ++eventVersion;
   }
 
   // 결제 완료
@@ -168,7 +182,10 @@ public class Order {
     transitionTo(OrderStatus.PICKED_UP);
   }
 
-  public void markNoShow() {
+  public void markNoShow(LocalDateTime now) {
+    if (now.isBefore(this.pickupDeadline)) {
+      throw new BusinessException(ErrorCode.ORDER_PICKUP_TIME_NOT_ENDED);
+    }
     transitionTo(OrderStatus.NO_SHOW);
   }
 

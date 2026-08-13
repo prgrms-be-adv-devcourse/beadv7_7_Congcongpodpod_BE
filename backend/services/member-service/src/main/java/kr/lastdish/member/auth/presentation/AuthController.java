@@ -7,10 +7,7 @@ import kr.lastdish.member.auth.application.dto.SignUpResult;
 import kr.lastdish.member.auth.application.dto.TokenResult;
 import kr.lastdish.member.auth.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -41,9 +38,31 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ApiResponse<Void> logout(@Valid @RequestBody TokenLogoutRequest request) {
+  public ApiResponse<Void> logout(
+      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @Valid @RequestBody TokenLogoutRequest request) {
 
-    authService.logout(request.toCommand());
+    // "Bearer " 접두사 제거하여 토큰 값만 추출
+    String accessToken = null;
+    if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+      accessToken = authorizationHeader.substring(7);
+    }
+
+    authService.logout(accessToken, request.toCommand());
+    return ApiResponse.ok();
+  }
+
+  @PatchMapping("/withdraw")
+  public ApiResponse<Void> withdraw(
+      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+
+    String accessToken = null;
+    if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+      accessToken = authorizationHeader.substring(7);
+    }
+
+    authService.withdraw(accessToken, memberId);
     return ApiResponse.ok();
   }
 }

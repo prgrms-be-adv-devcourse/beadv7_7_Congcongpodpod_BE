@@ -15,6 +15,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 서비스 테스트가 Redis 캐시·토큰 블랙리스트를 실제로 검증할 수 있도록 제공합니다.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -29,6 +40,9 @@ jobs:
 
       - name: Test service
         working-directory: backend
+        env:
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
         run: ./gradlew ":services:${{ inputs.service-name }}:test" --no-daemon
 
       - name: Set up Docker Buildx

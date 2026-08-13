@@ -18,4 +18,6 @@ public interface TokenProvider {
   MemberId getMemberId(String token);
 
   Role getRole(String token);
+
+  long getExpiration(String token);
 }

@@ -1,12 +1,15 @@
 package kr.lastdish.core.cart.application.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.common.event.EventMessage;
+import kr.lastdish.common.inbox.domain.InboxProcessingPolicy;
 import kr.lastdish.core.cart.application.CartDishStateSynchronizer;
+import kr.lastdish.core.cart.application.event.spring.DishStateChangedEventListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +27,11 @@ class DishStateChangedMessageHandlerTest {
   @BeforeEach
   void setUp() {
     handler = new DishStateChangedMessageHandler(new ObjectMapper(), synchronizer);
+  }
+
+  @Test
+  void 최신_상태만_반영하는_정책을_사용한다() {
+    assertThat(handler.processingPolicy()).isEqualTo(InboxProcessingPolicy.IDEMPOTENT_LATEST_WINS);
   }
 
   @Test
