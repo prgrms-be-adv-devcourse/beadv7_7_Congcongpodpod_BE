@@ -24,7 +24,6 @@ public class PaymentLog {
   @Column(name = "pg_provider", nullable = false)
   private PgProvider pgProvider;
 
-  @Convert(converter = EncryptConverter.class)
   @Column(name = "payment_key")
   private String paymentKey;
 
