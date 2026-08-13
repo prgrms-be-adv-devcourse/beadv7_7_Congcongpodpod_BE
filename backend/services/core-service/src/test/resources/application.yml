@@ -9,6 +9,8 @@ spring:
   kafka:
     admin:
       auto-create: false
+    listener:
+      auto-startup: false
 
 services:
   member:
