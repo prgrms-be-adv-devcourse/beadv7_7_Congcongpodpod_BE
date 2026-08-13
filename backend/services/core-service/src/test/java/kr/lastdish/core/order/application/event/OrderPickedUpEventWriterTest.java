@@ -29,10 +29,9 @@ class OrderPickedUpEventWriterTest {
     when(order.getMemberId()).thenReturn(20L);
     when(order.getStoreId()).thenReturn(30L);
     when(order.getTotalPrice()).thenReturn(new BigDecimal("12000"));
-    when(order.getPickedUpAt()).thenReturn(LocalDateTime.of(2026, 8, 13, 15, 30));
-    when(order.nextEventVersion()).thenReturn(4L);
+    when(order.getPickupResultAt()).thenReturn(LocalDateTime.of(2026, 8, 13, 15, 30));
 
-    writer.append(order);
+    writer.append(order, 4L);
 
     ArgumentCaptor<DomainEvent<?>> captor = ArgumentCaptor.forClass(DomainEvent.class);
     verify(outboxEventWriter).append(captor.capture());

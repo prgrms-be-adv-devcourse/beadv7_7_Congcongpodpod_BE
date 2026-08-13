@@ -56,10 +56,12 @@ class OrderTest {
   @Test
   void 픽업_종료_시각부터_노쇼_처리할_수_있다() {
     Order order = createPickupReadyOrder();
+    LocalDateTime noShowAt = LocalDateTime.of(2026, 8, 10, 19, 0);
 
-    order.markNoShow(LocalDateTime.of(2026, 8, 10, 19, 0));
+    order.markNoShow(noShowAt);
 
     assertThat(order.getStatus()).isEqualTo(OrderStatus.NO_SHOW);
+    assertThat(order.getPickupResultAt()).isEqualTo(noShowAt);
   }
 
   @Test
@@ -70,7 +72,7 @@ class OrderTest {
     order.completePickup(pickedUpAt);
 
     assertThat(order.getStatus()).isEqualTo(OrderStatus.PICKED_UP);
-    assertThat(order.getPickedUpAt()).isEqualTo(pickedUpAt);
+    assertThat(order.getPickupResultAt()).isEqualTo(pickedUpAt);
   }
 
   private Order createPickupReadyOrder() {

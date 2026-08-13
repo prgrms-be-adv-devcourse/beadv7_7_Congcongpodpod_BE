@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.order.domain.Order;
@@ -26,9 +28,9 @@ class OrderNoShowEventWriterTest {
     when(order.getId()).thenReturn(10L);
     when(order.getStoreId()).thenReturn(30L);
     when(order.getTotalPrice()).thenReturn(new BigDecimal("12000"));
-    when(order.nextEventVersion()).thenReturn(4L);
+    when(order.getPickupResultAt()).thenReturn(LocalDateTime.of(2026, 8, 13, 19, 0));
 
-    writer.append(order);
+    writer.append(order, 4L);
 
     ArgumentCaptor<DomainEvent<?>> captor = ArgumentCaptor.forClass(DomainEvent.class);
     verify(outboxEventWriter).append(captor.capture());
@@ -40,7 +42,7 @@ class OrderNoShowEventWriterTest {
     assertThat(event.aggregateVersion()).isEqualTo(4L);
     assertThat(event.schemaVersion()).isEqualTo(OrderNoShowEvent.SCHEMA_VERSION);
     assertThat(event.eventId()).isNotNull();
-    assertThat(event.occurredAt()).isNotNull();
+    assertThat(event.occurredAt()).isEqualTo(Instant.parse("2026-08-13T10:00:00Z"));
     assertThat(event.payload()).isEqualTo(new OrderNoShowPayload(30L, new BigDecimal("12000")));
   }
 }

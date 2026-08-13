@@ -4,7 +4,7 @@ CREATE TABLE public.orders (
     is_deleted boolean NOT NULL,
     pickup_end_at time(0) without time zone NOT NULL,
     pickup_deadline timestamp(6) without time zone NOT NULL,
-    picked_up_at timestamp(6) without time zone,
+    pickup_result_at timestamp(6) without time zone,
     pickup_start_at time(0) without time zone NOT NULL,
     total_price numeric(38,2) NOT NULL,
     unit_price numeric(38,2) NOT NULL,

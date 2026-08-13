@@ -17,10 +17,6 @@ public class OrderPickedUpEventWriter {
 
   private final OutboxEventWriter outboxEventWriter;
 
-  public void append(Order order) {
-    append(order, order.nextEventVersion());
-  }
-
   public void append(Order order, long aggregateVersion) {
     OrderPickedUpEvent event =
         new OrderPickedUpEvent(
@@ -30,7 +26,7 @@ public class OrderPickedUpEventWriter {
             aggregateVersion,
             new OrderPickedUpPayload(
                 order.getMemberId(), order.getStoreId(), order.getTotalPrice()),
-            order.getPickedUpAt().atZone(BUSINESS_ZONE).toInstant());
+            order.getPickupResultAt().atZone(BUSINESS_ZONE).toInstant());
 
     outboxEventWriter.append(event);
   }

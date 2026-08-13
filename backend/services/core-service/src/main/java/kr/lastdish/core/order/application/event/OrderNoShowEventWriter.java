@@ -1,6 +1,6 @@
 package kr.lastdish.core.order.application.event;
 
-import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.order.domain.Order;
@@ -13,11 +13,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OrderNoShowEventWriter {
 
-  private final OutboxEventWriter outboxEventWriter;
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
-  public void append(Order order) {
-    append(order, order.nextEventVersion());
-  }
+  private final OutboxEventWriter outboxEventWriter;
 
   public void append(Order order, long aggregateVersion) {
     OrderNoShowEvent event =
@@ -27,7 +25,7 @@ public class OrderNoShowEventWriter {
             order.getId(),
             aggregateVersion,
             new OrderNoShowPayload(order.getStoreId(), order.getTotalPrice()),
-            Instant.now());
+            order.getPickupResultAt().atZone(BUSINESS_ZONE).toInstant());
 
     outboxEventWriter.append(event);
   }
