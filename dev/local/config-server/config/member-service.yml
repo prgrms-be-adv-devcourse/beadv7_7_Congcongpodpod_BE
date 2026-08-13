@@ -73,4 +73,8 @@ jwt:
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 1209600
 kakao:
-  admin-key: ${KAKAO_ADMIN_KEY}
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+    admin-key: ${KAKAO_ADMIN_KEY}

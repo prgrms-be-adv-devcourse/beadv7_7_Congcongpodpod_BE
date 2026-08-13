@@ -13,16 +13,16 @@ public class KakaoOAuthClient {
 
   private final RestClient restClient = RestClient.create();
 
-  @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
+  @Value("${kakao.oauth.client-id}")
   private String clientId;
 
-  @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+  @Value("${kakao.oauth.redirect-uri}")
   private String redirectUri;
 
-  @Value("${spring.security.oauth2.client.registration.kakao.client-secret:}")
+  @Value("${kakao.oauth.client-secret:}")
   private String clientSecret;
 
-  @Value("${spring.security.oauth2.client.registration.kakao.admin-key}")
+  @Value("${kakao.oauth.admin-key}")
   private String adminKey;
 
   public String getAccessToken(String code) {
