@@ -2,6 +2,7 @@ package kr.lastdish.core.order.application;
 
 import java.time.LocalDateTime;
 import kr.lastdish.core.dish.application.DishService;
+import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.store.application.StoreFacade;
@@ -16,6 +17,7 @@ public class PickupExpirationStoreProcessor {
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final StoreFacade storeFacade;
   private final DishService dishService;
 
@@ -28,7 +30,10 @@ public class PickupExpirationStoreProcessor {
     expirationTargets.forEach(
         order -> {
           order.markNoShow(now);
-          orderStatusChangedEventWriter.append(order);
+          long aggregateVersion = order.nextEventVersion();
+          orderStatusChangedEventWriter.append(order, aggregateVersion);
+          // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
+          // orderNoShowEventWriter.append(order, aggregateVersion);
         });
 
     dishService.closeSaleByStoreId(storeId);

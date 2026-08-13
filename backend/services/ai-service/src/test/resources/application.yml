@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+  kafka:
+    admin:
+      auto-create: false
+    listener:
+      auto-startup: false

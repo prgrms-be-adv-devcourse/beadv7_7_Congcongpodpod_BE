@@ -8,7 +8,12 @@ CREATE TABLE public.payment_log (
     log_type character varying(255) NOT NULL,
     pg_provider character varying(255) NOT NULL,
     pg_result_code character varying(255),
-    raw_payload text NOT NULL,
+    payment_key VARCHAR(200),
+    payment_method VARCHAR(50),
+    masked_card_num TEXT,
+    card_company VARCHAR(50),
+    failed_code VARCHAR(100),
+    failed_message VARCHAR(500),
     CONSTRAINT payment_log_log_type_check CHECK (((log_type)::text = ANY ((ARRAY['REQUEST'::character varying, 'RESPONSE'::character varying])::text[]))),
     CONSTRAINT payment_log_pg_provider_check CHECK (((pg_provider)::text = ANY ((ARRAY['TOSS'::character varying, 'KAKAOPAY'::character varying])::text[])))
 );

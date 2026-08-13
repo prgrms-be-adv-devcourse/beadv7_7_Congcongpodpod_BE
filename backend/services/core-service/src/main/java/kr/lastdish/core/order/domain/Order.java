@@ -77,6 +77,8 @@ public class Order {
   @Column(nullable = false)
   private LocalDateTime pickupDeadline;
 
+  private LocalDateTime pickupResultAt;
+
   @Column(nullable = false)
   private BigDecimal totalPrice;
 
@@ -178,15 +180,23 @@ public class Order {
     }
   }
 
-  public void completePickup() {
+  public void completePickup(LocalDateTime pickupResultAt) {
+    if (pickupResultAt == null) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "픽업 완료 시각은 필수입니다.");
+    }
     transitionTo(OrderStatus.PICKED_UP);
+    this.pickupResultAt = pickupResultAt;
   }
 
-  public void markNoShow(LocalDateTime now) {
-    if (now.isBefore(this.pickupDeadline)) {
+  public void markNoShow(LocalDateTime pickupResultAt) {
+    if (pickupResultAt == null) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "노쇼 처리 시각은 필수입니다.");
+    }
+    if (pickupResultAt.isBefore(this.pickupDeadline)) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_TIME_NOT_ENDED);
     }
     transitionTo(OrderStatus.NO_SHOW);
+    this.pickupResultAt = pickupResultAt;
   }
 
   private void transitionTo(OrderStatus nextStatus) {

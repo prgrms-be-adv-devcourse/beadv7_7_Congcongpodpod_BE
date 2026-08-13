@@ -14,7 +14,10 @@ public class DishStateChangedKafkaListener {
 
   private final InboxEventWriter inboxEventWriter;
 
-  @KafkaListener(topics = "DISH_STATE_CHANGED", groupId = CONSUMER_ID)
+  @KafkaListener(
+      topics = "DISH_STATE_CHANGED",
+      groupId = CONSUMER_ID,
+      autoStartup = "${event.kafka.listener-auto-startup:true}")
   public void consume(EventMessage message) {
     inboxEventWriter.saveIfAbsent(CONSUMER_ID, message);
   }

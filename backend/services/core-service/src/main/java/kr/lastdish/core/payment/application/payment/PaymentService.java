@@ -80,7 +80,12 @@ public class PaymentService {
         PaymentLog.createResponseLog(
             payment.getId(),
             payment.getPgProvider(),
-            pgResult.rawResponse(),
+            pgResult.pgTransactionId(),
+            pgResult.paymentMethod(),
+            pgResult.maskedCardNumber(),
+            pgResult.issuerCode(),
+            pgResult.failureCode(),
+            pgResult.failureMessage(),
             pgResult.success() ? 200 : 400,
             pgResult.success() ? "DONE" : pgResult.failureCode()));
 
@@ -105,7 +110,12 @@ public class PaymentService {
         PaymentLog.createResponseLog(
             payment.getId(),
             payment.getPgProvider(),
-            pgResult.rawResponse(),
+            pgResult.pgTransactionId(),
+            pgResult.paymentMethod(),
+            pgResult.maskedCardNumber(),
+            pgResult.issuerCode(),
+            pgResult.failureCode(),
+            pgResult.failureMessage(),
             pgResult.success() ? 200 : 400,
             pgResult.success() ? "DONE" : pgResult.failureCode()));
 
