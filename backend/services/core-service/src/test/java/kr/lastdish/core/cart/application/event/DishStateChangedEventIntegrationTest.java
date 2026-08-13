@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.UUID;
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
+import kr.lastdish.core.cart.application.event.spring.DishStateChangedEventListener;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
 import kr.lastdish.core.cart.domain.CartItemStatus;
@@ -30,7 +32,17 @@ class DishStateChangedEventIntegrationTest {
   void Spring_Event가_Cart_Listener에_전달되어_CartItem_상태를_변경한다() {
     // given
     CartItem cartItem =
-        cartItemRepository.save(CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 7L));
+        cartItemRepository.save(
+            CartItem.create(
+                1L,
+                10L,
+                null,
+                "김치찌개",
+                BigDecimal.valueOf(8_000),
+                7L,
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0),
+                0L));
 
     EventMessage message =
         new EventMessage(

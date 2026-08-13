@@ -34,7 +34,6 @@ public class DishService {
 
     // 할인율 검증
     validateDiscountRate(request.dishPrice(), request.discountPrice());
-
     if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
       throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
     }
@@ -63,7 +62,6 @@ public class DishService {
 
     // 동시에 같은 Dish가 변경되면 동일한 event Version이 생성되지 않도록 이벤트가 발생하는 변경 메서드는 잠금 조회를 사용합니다.
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
-
     // Dish 변경 전 가격을 저장합니다.
     BigDecimal unitPriceBefore = dish.getDiscountPrice();
 
@@ -77,7 +75,9 @@ public class DishService {
         request.thumbnailUrl(),
         request.stockQuantity(),
         request.dishPrice(),
-        request.discountPrice());
+        request.discountPrice(),
+        request.pickupStartTime(),
+        request.pickupEndTime());
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendPriceEventIfChanged(dish, unitPriceBefore);
@@ -133,6 +133,19 @@ public class DishService {
     dish.increaseStock(quantity);
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+  }
+
+  @Transactional
+  public void closeSaleByStoreId(Long storeId) {
+    dishRepository
+        .findWithLockByStoreIdAndIsDeletedFalse(storeId)
+        .ifPresent(
+            dish -> {
+              boolean availableBefore = dish.isAvailable();
+              Long stockQuantityBefore = dish.getStockQuantity();
+              dish.closeSale();
+              appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+            });
   }
 
   @Transactional

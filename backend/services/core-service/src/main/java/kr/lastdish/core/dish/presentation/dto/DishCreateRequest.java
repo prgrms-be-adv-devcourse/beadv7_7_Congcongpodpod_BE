@@ -18,5 +18,5 @@ public record DishCreateRequest(
     @NotNull @Positive Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,
     @NotNull @PositiveOrZero BigDecimal discountPrice,
-    @JsonFormat(pattern = "HH:mm") LocalTime pickupStartTime,
-    @JsonFormat(pattern = "HH:mm") LocalTime pickupEndTime) {}
+    @NotNull @JsonFormat(pattern = "HH:mm") LocalTime pickupStartTime,
+    @NotNull @JsonFormat(pattern = "HH:mm") LocalTime pickupEndTime) {}

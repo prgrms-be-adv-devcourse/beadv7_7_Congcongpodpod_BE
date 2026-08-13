@@ -13,6 +13,8 @@ public enum ErrorCode implements ErrorCodeSpec {
   INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "D004", "재고 수량은 0보다 커야 합니다."),
   DISH_INVALID_DISCOUNT_RATE(HttpStatus.BAD_REQUEST, "D005", "할인율은 30% 이상이어야 합니다."),
   DISH_ALREADY_EXISTS(HttpStatus.CONFLICT, "D006", "한 개의 상품만 등록이 가능합니다."),
+  DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS(
+      HttpStatus.BAD_REQUEST, "D007", "픽업 시간은 매장 영업시간 안에 있어야 합니다."),
   INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다."),
   INVALID_PAYMENT_STATUS(HttpStatus.CONFLICT, "PAY001", "결제 대기 상태에서만 처리할 수 있습니다."),
   ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD001", "주문을 찾을 수 없습니다."),
@@ -21,7 +23,8 @@ public enum ErrorCode implements ErrorCodeSpec {
   ORDER_NOT_SELLER(HttpStatus.FORBIDDEN, "ORD004", "주문을 접수할 권한이 없습니다."),
   PICKUP_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ORD005", "픽업 코드 생성에 실패했습니다."),
   CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD006", "주문할 장바구니 상품을 찾을 수 없습니다."),
-  CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다.");
+  CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다."),
+  ORDER_PICKUP_TIME_NOT_ENDED(HttpStatus.CONFLICT, "ORD008", "픽업 종료 시간 이후에 노쇼 처리할 수 있습니다.");
 
   private final HttpStatus status;
   private final String code;

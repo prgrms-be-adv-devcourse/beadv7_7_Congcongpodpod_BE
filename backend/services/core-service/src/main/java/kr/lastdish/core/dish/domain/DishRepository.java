@@ -19,4 +19,6 @@ public interface DishRepository {
   List<Dish> findOnSaleByStoreId(Long storeId);
 
   Optional<Dish> findByStoreIdAndIsDeletedFalse(Long storeId);
+
+  Optional<Dish> findWithLockByStoreIdAndIsDeletedFalse(Long storeId);
 }

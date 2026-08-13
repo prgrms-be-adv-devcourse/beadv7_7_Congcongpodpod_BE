@@ -33,6 +33,9 @@ spring:
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP:payment-service}
 
+event:
+  publisher: ${EVENT_PUBLISHER:kafka}
+
 outbox:
   scheduler:
     enabled: ${OUTBOX_SCHEDULER_ENABLED:true}
@@ -40,6 +43,14 @@ outbox:
   batch-size: 100
   lock-timeout-seconds: 60
   max-retries: 5
+
+inbox:
+  scheduler:
+    enabled: ${INBOX_SCHEDULER_ENABLED:true}
+  polling-delay-ms: ${INBOX_POLLING_DELAY_MS:1000}
+  batch-size: ${INBOX_BATCH_SIZE:100}
+  max-retries: ${INBOX_MAX_RETRIES:5}
+  lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
 
 toss:
   client-key: ${TOSS_CLIENT_KEY:test_ck_placeholder}

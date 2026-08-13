@@ -8,4 +8,6 @@ public interface StorePayoutAccountJpaRepository extends JpaRepository<StorePayo
   Optional<StorePayoutAccount> findByStoreIdAndDeletedFalse(Long storeId);
 
   boolean existsByStoreIdAndDeletedFalse(Long storeId);
+
+  void deleteByStoreId(Long storeId);
 }

@@ -69,4 +69,9 @@ public class OrderRepositoryImpl implements OrderRepository {
       Long storeId, OrderStatus status, Pageable pageable) {
     return orderJpaRepository.findAllByStoreIdAndStatus(storeId, status, pageable);
   }
+
+  @Override
+  public List<Order> findPickupExpirationTargets(List<Long> storeIds) {
+    return orderJpaRepository.findPickupExpirationTargets(storeIds);
+  }
 }
