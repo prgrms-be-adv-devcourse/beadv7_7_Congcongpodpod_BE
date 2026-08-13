@@ -29,8 +29,8 @@ public class CartService {
 
   // 장바구니에 상품을 담는다. 이미 담긴 상품이 있으면 교체(upsert)한다.
   @Transactional
-  public CartItemResponse addItem(Long cartId, CartItemAddRequest request) {
-    Cart cart = getCartOrThrow(cartId);
+  public CartItemResponse addItem(Long memberId, Long cartId, CartItemAddRequest request) {
+    Cart cart = getOwnedCartOrThrow(memberId, cartId);
     long quantity = request.quantity() != null ? request.quantity() : 1L;
     DishSnapshot dish = getAvailableDishOrThrow(request.dishId(), quantity);
 
@@ -82,8 +82,8 @@ public class CartService {
   // 장바구니에 담긴 상품의 수량을 바꾼다.
   @Transactional
   public CartItemResponse updateItemQuantity(
-      Long cartId, Long itemId, CartItemUpdateRequest request) {
-    getCartOrThrow(cartId);
+      Long memberId, Long cartId, Long itemId, CartItemUpdateRequest request) {
+    getOwnedCartOrThrow(memberId, cartId);
     CartItem cartItem = getCartItemOrThrow(cartId, itemId);
     DishSnapshot dish = getAvailableDishOrThrow(cartItem.getDishId(), request.quantity());
 
@@ -94,16 +94,16 @@ public class CartService {
 
   // 장바구니에서 상품 하나를 뺀다.
   @Transactional
-  public void removeItem(Long cartId, Long itemId) {
-    getCartOrThrow(cartId);
+  public void removeItem(Long memberId, Long cartId, Long itemId) {
+    getOwnedCartOrThrow(memberId, cartId);
     CartItem cartItem = getCartItemOrThrow(cartId, itemId);
     cartItemRepository.delete(cartItem);
   }
 
   // 장바구니를 비운다. Cart는 회원의 장바구니 슬롯 개념이라 삭제하지 않고 담긴 상품만 지운다.
   @Transactional
-  public void clearCart(Long cartId) {
-    Cart cart = getCartOrThrow(cartId);
+  public void clearCart(Long memberId, Long cartId) {
+    Cart cart = getOwnedCartOrThrow(memberId, cartId);
     cartItemRepository.deleteByCartId(cart.getId());
   }
 
@@ -176,6 +176,19 @@ public class CartService {
         .findById(cartId)
         .orElseThrow(
             () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "장바구니를 찾을 수 없습니다."));
+  }
+
+  private Cart getOwnedCartOrThrow(Long memberId, Long cartId) {
+    Cart cart = getCartOrThrow(cartId);
+    validateMemberOwner(memberId, cart.getMemberId());
+    return cart;
+  }
+
+  // 장바구니 회원 소유권 검증
+  private void validateMemberOwner(Long authenticatedMemberId, Long ownerMemberId) {
+    if (!ownerMemberId.equals(authenticatedMemberId)) {
+      throw new BusinessException(ErrorCode.CART_ACCESS_DENIED);
+    }
   }
 
   // itemId로 CartItem을 찾고, 그 상품이 이 cartId 소유가 맞는지까지 확인한다.

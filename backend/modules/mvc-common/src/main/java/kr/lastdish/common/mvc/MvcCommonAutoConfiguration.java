@@ -6,5 +6,5 @@ import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, RequestIdFilter.class})
 public class MvcCommonAutoConfiguration {}
