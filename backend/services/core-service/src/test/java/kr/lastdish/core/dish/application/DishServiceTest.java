@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Optional;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
@@ -116,7 +118,9 @@ class DishServiceTest {
             null,
             10L,
             BigDecimal.valueOf(10_000),
-            BigDecimal.valueOf(7_000));
+            BigDecimal.valueOf(7_000),
+            LocalTime.of(18, 0),
+            LocalTime.of(19, 0));
 
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
@@ -169,8 +173,8 @@ class DishServiceTest {
         stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,
-        null,
-        null);
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
   }
 
   private DishUpdateRequest createUpdateRequest(Long stockQuantity) {
@@ -182,7 +186,9 @@ class DishServiceTest {
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),
-        BigDecimal.ZERO);
+        BigDecimal.ZERO,
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
   }
 
   @Test
@@ -204,5 +210,23 @@ class DishServiceTest {
 
     assertThat(event.payload().available()).isTrue();
     assertThat(event.payload().stockQuantity()).isEqualTo(5L);
+  }
+
+  @Test
+  void 매장_마감으로_판매를_종료하면_재고를_0으로_초기화하고_상태_이벤트를_기록한다() {
+    Dish dish = createDish(10L);
+    ReflectionTestUtils.setField(dish, "id", 10L);
+    when(dishRepository.findWithLockByStoreIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(dish));
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    dishService.closeSaleByStoreId(1L);
+
+    assertThat(dish.getStockQuantity()).isZero();
+    assertThat(dish.getDishStatus()).isEqualTo(kr.lastdish.core.dish.domain.DishStatus.SOLD_OUT);
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+    assertThat(event.payload().available()).isFalse();
+    assertThat(event.payload().stockQuantity()).isZero();
   }
 }

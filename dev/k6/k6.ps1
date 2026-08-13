@@ -41,10 +41,15 @@ if (-not (Test-Path $ScenarioFile)) {
 }
 
 $DockerArguments = @(
-    "run", "--rm", "-i",
-    "-v", "${ScriptDirectory}:/scripts:ro",
-    "-e", "BASE_URL=$env:BASE_URL",
-    "grafana/k6", "run"
+    "run"
+    "--rm"
+    "-i"
+    "-v"
+    "${ScriptDirectory}:/scripts:ro"
+    "-e"
+    "BASE_URL=$env:BASE_URL"
+    "grafana/k6"
+    "run"
 ) + $K6Arguments + @("/scripts/$Scenario.js")
 
 & docker @DockerArguments

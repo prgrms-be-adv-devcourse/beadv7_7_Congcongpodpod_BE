@@ -1,16 +1,20 @@
 package kr.lastdish.core.order.application;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.dto.*;
+import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,8 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderService {
   private final OrderRepository orderRepository;
+  private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderPickedUpEventWriter orderPickedUpEventWriter;
+  private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
     Order order =
@@ -36,21 +44,35 @@ public class OrderService {
             cartItem.quantity(),
             cartItem.unitPrice(),
             cartItem.pickupStartAt(),
-            cartItem.pickupEndAt());
+            cartItem.pickupEndAt(),
+            pickupDeadline(cartItem));
 
-    return orderRepository.save(order);
+    Order savedOrder = orderRepository.save(order);
+    orderStatusChangedEventWriter.append(savedOrder);
+    return savedOrder;
   }
 
-  public OrderResponse completePayment(Long orderId) {
+  private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
+    LocalDate pickupDate = LocalDate.now(BUSINESS_ZONE);
+
+    if (cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt())) {
+      pickupDate = pickupDate.plusDays(1);
+    }
+
+    return pickupDate.atTime(cartItem.pickupEndAt());
+  }
+
+  public OrderResult completePayment(Long orderId) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     order.paymentSuccess();
-    return OrderResponse.from(order);
+    return OrderResult.from(order);
   }
 
   @Transactional
   public Order cancelOrder(Long memberId, Long orderId) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
+    orderStatusChangedEventWriter.append(order);
     return order;
   }
 
@@ -88,49 +110,65 @@ public class OrderService {
 
   @Transactional
   // 주문 접수 - 픽업 코드 발급
-  public OrderReceptionResponse acceptOrder(Long orderId) {
+  public OrderReceptionResult acceptOrder(Long orderId) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
-    return OrderReceptionResponse.from(order);
+    orderStatusChangedEventWriter.append(order);
+    return OrderReceptionResult.from(order);
   }
 
   @Transactional
-  public PickupStatusResponse updatePickupStatus(Long orderId, PickupStatusRequest request) {
+  public PickupStatusResult updatePickupStatus(Long orderId, UpdatePickupStatusCommand command) {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
 
-    switch (request.status()) {
-      case PICKED_UP -> order.completePickup();
-      case NO_SHOW -> order.markNoShow();
+    switch (command.status()) {
+      case PICKED_UP -> {
+        order.completePickup(LocalDateTime.now(BUSINESS_ZONE));
+      }
+      case NO_SHOW -> {
+        order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
+      }
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
 
-    return PickupStatusResponse.from(order);
+    long aggregateVersion = order.nextEventVersion();
+    orderStatusChangedEventWriter.append(order, aggregateVersion);
+
+    if (command.status() == OrderStatus.PICKED_UP) {
+      // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
+      // orderPickedUpEventWriter.append(order, aggregateVersion);
+    } else if (command.status() == OrderStatus.NO_SHOW) {
+      // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
+      // orderNoShowEventWriter.append(order, aggregateVersion);
+    }
+
+    return PickupStatusResult.from(order);
   }
 
   @Transactional(readOnly = true)
-  public OrderResponse getEachOrder(Long memberId, Long orderId) {
+  public OrderResult getEachOrder(Long memberId, Long orderId) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     order.validateOwner(memberId);
-    return OrderResponse.from(order);
+    return OrderResult.from(order);
   }
 
-  public PickupCodeResponse getPickupCode(Long memberId, Long orderId) {
+  public PickupCodeResult getPickupCode(Long memberId, Long orderId) {
     Order order = orderRepository.findPickupAvailableOrder(orderId, memberId);
-    return PickupCodeResponse.from(order);
+    return PickupCodeResult.from(order);
   }
 
   @Transactional(readOnly = true)
-  public Page<OrderResponse> getMyOrders(Long memberId, OrderStatus status, Pageable pageable) {
+  public Page<OrderResult> getMyOrders(Long memberId, OrderStatus status, Pageable pageable) {
     return orderRepository
         .findAllByMemberIdAndStatus(memberId, status, pageable)
-        .map(OrderResponse::from);
+        .map(OrderResult::from);
   }
 
   @Transactional(readOnly = true)
-  public Page<OrderResponse> getStoreOrders(Long storeId, OrderStatus status, Pageable pageable) {
+  public Page<OrderResult> getStoreOrders(Long storeId, OrderStatus status, Pageable pageable) {
     return orderRepository
         .findAllByStoreIdAndStatus(storeId, status, pageable)
-        .map(OrderResponse::from);
+        .map(OrderResult::from);
   }
 }

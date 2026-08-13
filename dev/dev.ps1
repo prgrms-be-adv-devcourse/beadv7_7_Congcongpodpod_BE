@@ -11,9 +11,12 @@ if (-not (Test-Path $environmentFile)) {
 }
 
 $composeArgs = @(
-    "--env-file", $environmentFile,
-    "--project-directory", $scriptDirectory,
-    "--file", $composeFile
+    "--env-file"
+    $environmentFile
+    "--project-directory"
+    $scriptDirectory
+    "--file"
+    $composeFile
 )
 
 Push-Location $projectRoot
@@ -53,37 +56,33 @@ try {
                 "member-db" {
                     & docker compose @composeArgs stop member-service
                     & docker compose @composeArgs up -d member-db
-                    & docker compose @composeArgs exec -T member-db psql -v ON_ERROR_STOP=1 -U member -d postgres `
-                        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'member_db' AND pid <> pg_backend_pid();" `
-                        -c "DROP DATABASE IF EXISTS member_db;" `
-                        -c "CREATE DATABASE member_db OWNER member;"
+                    & docker compose @composeArgs exec -T member-db psql -v ON_ERROR_STOP=1 -U member -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'member_db' AND pid <> pg_backend_pid();"
+                    & docker compose @composeArgs exec -T member-db psql -v ON_ERROR_STOP=1 -U member -d postgres -c "DROP DATABASE IF EXISTS member_db;"
+                    & docker compose @composeArgs exec -T member-db psql -v ON_ERROR_STOP=1 -U member -d postgres -c "CREATE DATABASE member_db OWNER member;"
                     & docker compose @composeArgs up -d member-service
                 }
                 "core-db" {
                     & docker compose @composeArgs stop core-service
                     & docker compose @composeArgs up -d core-db
-                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres `
-                        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'core_db' AND pid <> pg_backend_pid();" `
-                        -c "DROP DATABASE IF EXISTS core_db;" `
-                        -c "CREATE DATABASE core_db OWNER core;"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'core_db' AND pid <> pg_backend_pid();"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "DROP DATABASE IF EXISTS core_db;"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "CREATE DATABASE core_db OWNER core;"
                     & docker compose @composeArgs up -d core-service
                 }
                 "payment-db" {
                     & docker compose @composeArgs stop payment-service
                     & docker compose @composeArgs up -d core-db database-initializer
-                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres `
-                        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'payment_db' AND pid <> pg_backend_pid();" `
-                        -c "DROP DATABASE IF EXISTS payment_db;" `
-                        -c "CREATE DATABASE payment_db OWNER payment;"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'payment_db' AND pid <> pg_backend_pid();"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "DROP DATABASE IF EXISTS payment_db;"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "CREATE DATABASE payment_db OWNER payment;"
                     & docker compose @composeArgs up -d payment-service
                 }
                 "ai-db" {
                     & docker compose @composeArgs stop ai-service
                     & docker compose @composeArgs up -d core-db database-initializer
-                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres `
-                        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'ai_db' AND pid <> pg_backend_pid();" `
-                        -c "DROP DATABASE IF EXISTS ai_db;" `
-                        -c "CREATE DATABASE ai_db OWNER ai;"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'ai_db' AND pid <> pg_backend_pid();"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "DROP DATABASE IF EXISTS ai_db;"
+                    & docker compose @composeArgs exec -T core-db psql -v ON_ERROR_STOP=1 -U core -d postgres -c "CREATE DATABASE ai_db OWNER ai;"
                     & docker compose @composeArgs up -d ai-service
                 }
                 "kafka" {
@@ -108,9 +107,9 @@ try {
                     & docker compose @composeArgs down
                     if ($LASTEXITCODE -ne 0) { throw "docker compose down failed." }
                     foreach ($volume in @(
-                        "lastdish-local_member-db-data",
-                        "lastdish-local_core-db-data",
-                        "lastdish-local_kafka-data",
+                        "lastdish-local_member-db-data"
+                        "lastdish-local_core-db-data"
+                        "lastdish-local_kafka-data"
                         "lastdish-local_elasticsearch-data"
                     )) {
                         & docker volume inspect $volume *> $null

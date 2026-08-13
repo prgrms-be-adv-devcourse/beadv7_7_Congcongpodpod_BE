@@ -2,12 +2,19 @@ package kr.lastdish.gateway.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeoutException;
+import kr.lastdish.common.api.tracing.RequestIdSupport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -20,11 +27,26 @@ class GatewayGlobalExceptionHandlerTests {
 
   private ObjectMapper objectMapper;
   private GatewayGlobalExceptionHandler handler;
+  private ch.qos.logback.classic.Logger logger;
+  private ListAppender<ILoggingEvent> appender;
 
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
     handler = new GatewayGlobalExceptionHandler(objectMapper);
+
+    logger =
+        (ch.qos.logback.classic.Logger)
+            LoggerFactory.getLogger(GatewayGlobalExceptionHandler.class);
+    appender = new ListAppender<>();
+    appender.start();
+    logger.addAppender(appender);
+  }
+
+  @AfterEach
+  void detachAppender() {
+    logger.detachAppender(appender);
+    appender.stop();
   }
 
   @Test
@@ -92,6 +114,98 @@ class GatewayGlobalExceptionHandlerTests {
     StepVerifier.create(handler.handle(exchange, exception))
         .expectErrorMatches(error -> error == exception)
         .verify();
+  }
+
+  @Test
+  @DisplayName("하위 서비스 timeout은 method·path·오류 코드와 함께 WARN으로 기록한다")
+  void logsGatewayTimeoutAsWarn() {
+    handler
+        .handle(exchange(), new IllegalStateException(new TimeoutException("response timeout")))
+        .block();
+
+    assertThat(appender.list).hasSize(1);
+
+    ILoggingEvent event = appender.list.getFirst();
+    assertThat(event.getLevel()).isEqualTo(Level.WARN);
+    assertThat(event.getFormattedMessage())
+        .contains("GET")
+        .contains("/test")
+        .contains(GatewayErrorCode.GATEWAY_TIMEOUT.getCode())
+        .contains(TimeoutException.class.getName());
+  }
+
+  @Test
+  @DisplayName("BAD_GATEWAY는 원인 매칭 없이 WARN으로 기록한다")
+  void logsBadGatewayAsWarn() {
+    handler.handle(exchange(), new ResponseStatusException(HttpStatus.BAD_GATEWAY, "test")).block();
+
+    assertThat(appender.list).hasSize(1);
+
+    ILoggingEvent event = appender.list.getFirst();
+    assertThat(event.getLevel()).isEqualTo(Level.WARN);
+    assertThat(event.getFormattedMessage())
+        .contains(GatewayErrorCode.BAD_GATEWAY.getCode())
+        .contains(ResponseStatusException.class.getName());
+  }
+
+  @Test
+  @DisplayName("하위 서비스 연결 실패는 WARN으로 기록한다")
+  void logsServiceUnavailableAsWarn() {
+    handler
+        .handle(exchange(), new IllegalStateException(new ConnectException("connection refused")))
+        .block();
+
+    assertThat(appender.list).hasSize(1);
+
+    ILoggingEvent event = appender.list.getFirst();
+    assertThat(event.getLevel()).isEqualTo(Level.WARN);
+    assertThat(event.getFormattedMessage())
+        .contains(GatewayErrorCode.SERVICE_UNAVAILABLE.getCode())
+        .contains(ConnectException.class.getName());
+  }
+
+  @Test
+  @DisplayName("Gateway 내부 오류는 예외 스택과 함께 ERROR로 기록한다")
+  void logsInternalErrorWithStackTrace() {
+    handler.handle(exchange(), new IllegalStateException("unexpected")).block();
+
+    assertThat(appender.list).hasSize(1);
+
+    ILoggingEvent event = appender.list.getFirst();
+    assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+    assertThat(event.getThrowableProxy()).isNotNull();
+    assertThat(event.getFormattedMessage())
+        .contains(GatewayErrorCode.INTERNAL_ERROR.getCode())
+        .contains(IllegalStateException.class.getName());
+  }
+
+  @Test
+  @DisplayName("일반적인 4xx는 로그를 남기지 않는다")
+  void doesNotLogClientErrors() {
+    handler.handle(exchange(), new ResponseStatusException(HttpStatus.NOT_FOUND, "test")).block();
+
+    assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  @DisplayName("exchange에 requestId가 있으면 예외 로그에 포함한다")
+  void includesRequestIdInLogWhenPresent() {
+    MockServerWebExchange exchange = exchange();
+    exchange.getAttributes().put(RequestIdSupport.KEY, "req-abc-123");
+
+    handler.handle(exchange, new IllegalStateException("unexpected")).block();
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("req-abc-123");
+  }
+
+  @Test
+  @DisplayName("exchange에 requestId가 없으면 unknown으로 기록하고 예외를 던지지 않는다")
+  void fallsBackToUnknownWhenRequestIdMissing() {
+    handler.handle(exchange(), new IllegalStateException("unexpected")).block();
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
   }
 
   private void assertError(

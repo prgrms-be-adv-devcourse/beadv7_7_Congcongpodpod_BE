@@ -71,7 +71,13 @@ public class Order {
 
   private LocalTime pickupStartAt;
 
+  @Column(nullable = false)
   private LocalTime pickupEndAt;
+
+  @Column(nullable = false)
+  private LocalDateTime pickupDeadline;
+
+  private LocalDateTime pickupResultAt;
 
   @Column(nullable = false)
   private BigDecimal totalPrice;
@@ -90,6 +96,9 @@ public class Order {
   @Column(nullable = false)
   private Boolean isDeleted;
 
+  @Column(nullable = false)
+  private long eventVersion;
+
   // 주문 생성
   public static Order create(
       Long memberId,
@@ -101,7 +110,8 @@ public class Order {
       Long quantity,
       BigDecimal unitPrice,
       LocalTime pickupStartAt,
-      LocalTime pickupEndAt) {
+      LocalTime pickupEndAt,
+      LocalDateTime pickupDeadline) {
     Order order = new Order();
     order.memberId = memberId;
     order.storeId = storeId;
@@ -116,8 +126,14 @@ public class Order {
     order.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
     order.pickupStartAt = pickupStartAt;
     order.pickupEndAt = pickupEndAt;
+    order.pickupDeadline = pickupDeadline;
     order.isDeleted = false;
+    order.eventVersion = 0L;
     return order;
+  }
+
+  public long nextEventVersion() {
+    return ++eventVersion;
   }
 
   // 결제 완료
@@ -164,12 +180,23 @@ public class Order {
     }
   }
 
-  public void completePickup() {
+  public void completePickup(LocalDateTime pickupResultAt) {
+    if (pickupResultAt == null) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "픽업 완료 시각은 필수입니다.");
+    }
     transitionTo(OrderStatus.PICKED_UP);
+    this.pickupResultAt = pickupResultAt;
   }
 
-  public void markNoShow() {
+  public void markNoShow(LocalDateTime pickupResultAt) {
+    if (pickupResultAt == null) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "노쇼 처리 시각은 필수입니다.");
+    }
+    if (pickupResultAt.isBefore(this.pickupDeadline)) {
+      throw new BusinessException(ErrorCode.ORDER_PICKUP_TIME_NOT_ENDED);
+    }
     transitionTo(OrderStatus.NO_SHOW);
+    this.pickupResultAt = pickupResultAt;
   }
 
   private void transitionTo(OrderStatus nextStatus) {

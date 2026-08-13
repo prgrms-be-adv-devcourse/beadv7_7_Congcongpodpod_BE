@@ -11,16 +11,17 @@ import kr.lastdish.core.cart.application.CartFacade;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.dto.OrderReceptionResult;
+import kr.lastdish.core.order.application.dto.OrderResult;
+import kr.lastdish.core.order.application.dto.PickupStatusResult;
+import kr.lastdish.core.order.application.dto.RejectOrderCommand;
+import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
-import kr.lastdish.core.order.presentation.dto.OrderRejectRequest;
-import kr.lastdish.core.order.presentation.dto.OrderResponse;
-import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
-import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
 import kr.lastdish.core.payment.application.deposit.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.DisplayName;
@@ -49,6 +50,8 @@ class OrderFacadeTest {
 
   @Mock private OrderRepository orderRepository;
 
+  @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+
   @Mock private StoreFacade storeFacade;
 
   @Mock private OrderMemberQueryPort orderMemberQueryPort;
@@ -76,12 +79,12 @@ class OrderFacadeTest {
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
     when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
 
-    OrderResponse expectedResponse = mock(OrderResponse.class);
+    OrderResult expectedResponse = mock(OrderResult.class);
 
     when(orderService.completePayment(10L)).thenReturn(expectedResponse);
 
     // when
-    OrderResponse response = orderFacade.payAndCreateOrder(memberId, cartItemId);
+    OrderResult response = orderFacade.payAndCreateOrder(memberId, cartItemId);
 
     // then
     assertThat(response).isSameAs(expectedResponse);
@@ -148,13 +151,13 @@ class OrderFacadeTest {
     Long orderId = 10L;
     Long storeId = 100L;
     Order order = mock(Order.class);
-    OrderReceptionResponse expectedResponse = mock(OrderReceptionResponse.class);
+    OrderReceptionResult expectedResponse = mock(OrderReceptionResult.class);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
     when(orderService.acceptOrder(orderId)).thenReturn(expectedResponse);
 
-    OrderReceptionResponse response = orderFacade.acceptOrder(memberId, "SELLER", orderId);
+    OrderReceptionResult response = orderFacade.acceptOrder(memberId, "SELLER", orderId);
 
     assertThat(response).isSameAs(expectedResponse);
 
@@ -190,7 +193,6 @@ class OrderFacadeTest {
     Long quantity = 2L;
     BigDecimal totalPrice = BigDecimal.valueOf(10_000);
     Order order = mock(Order.class);
-    OrderRejectRequest request = new OrderRejectRequest(reason);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
@@ -200,10 +202,11 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(quantity);
     when(order.getTotalPrice()).thenReturn(totalPrice);
 
-    orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
+    orderFacade.rejectOrder(sellerId, "SELLER", orderId, new RejectOrderCommand(reason));
 
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
     verify(order).rejectOrder(reason);
+    verify(orderStatusChangedEventWriter).append(order);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade).increaseStock(dishId, quantity);
   }
@@ -220,7 +223,6 @@ class OrderFacadeTest {
     Long storeId = 100L;
     BigDecimal totalPrice = BigDecimal.valueOf(10_000);
     Order order = mock(Order.class);
-    OrderRejectRequest request = new OrderRejectRequest(reason);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
@@ -228,10 +230,11 @@ class OrderFacadeTest {
     when(order.getMemberId()).thenReturn(customerId);
     when(order.getTotalPrice()).thenReturn(totalPrice);
 
-    orderFacade.rejectOrder(sellerId, "SELLER", orderId, request);
+    orderFacade.rejectOrder(sellerId, "SELLER", orderId, new RejectOrderCommand(reason));
 
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
     verify(order).rejectOrder(reason);
+    verify(orderStatusChangedEventWriter).append(order);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }
@@ -243,21 +246,21 @@ class OrderFacadeTest {
     Long orderId = 10L;
     Long storeId = 100L;
     Order order = mock(Order.class);
-    PickupStatusRequest request = mock(PickupStatusRequest.class);
-    PickupStatusResponse expectedResponse = mock(PickupStatusResponse.class);
+    UpdatePickupStatusCommand command = new UpdatePickupStatusCommand(OrderStatus.PICKED_UP);
+    PickupStatusResult expectedResponse = mock(PickupStatusResult.class);
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(order.getStoreId()).thenReturn(storeId);
-    when(orderService.updatePickupStatus(orderId, request)).thenReturn(expectedResponse);
+    when(orderService.updatePickupStatus(orderId, command)).thenReturn(expectedResponse);
 
-    PickupStatusResponse response = orderFacade.updateOrder(memberId, "SELLER", orderId, request);
+    PickupStatusResult response = orderFacade.updateOrder(memberId, "SELLER", orderId, command);
 
     assertThat(response).isSameAs(expectedResponse);
 
     InOrder inOrder = inOrder(orderRepository, storeFacade, orderService);
     inOrder.verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
     inOrder.verify(storeFacade).validateStoreOwner(storeId, memberId);
-    inOrder.verify(orderService).updatePickupStatus(orderId, request);
+    inOrder.verify(orderService).updatePickupStatus(orderId, command);
   }
 
   @Test
@@ -265,9 +268,9 @@ class OrderFacadeTest {
   void updateOrder_notSeller() {
     Long memberId = 1L;
     Long orderId = 10L;
-    PickupStatusRequest request = mock(PickupStatusRequest.class);
+    UpdatePickupStatusCommand command = new UpdatePickupStatusCommand(OrderStatus.PICKED_UP);
 
-    assertThatThrownBy(() -> orderFacade.updateOrder(memberId, "MEMBER", orderId, request))
+    assertThatThrownBy(() -> orderFacade.updateOrder(memberId, "MEMBER", orderId, command))
         .isInstanceOf(RuntimeException.class);
 
     verifyNoInteractions(orderRepository, storeFacade, orderService);
@@ -280,12 +283,12 @@ class OrderFacadeTest {
     Long storeId = 100L;
     OrderStatus status = OrderStatus.PICKUP_READY;
     Pageable pageable = PageRequest.of(0, 20);
-    OrderResponse orderResponse = mock(OrderResponse.class);
-    Page<OrderResponse> expected = new PageImpl<>(List.of(orderResponse), pageable, 1);
+    OrderResult orderResult = mock(OrderResult.class);
+    Page<OrderResult> expected = new PageImpl<>(List.of(orderResult), pageable, 1);
 
     when(orderService.getStoreOrders(storeId, status, pageable)).thenReturn(expected);
 
-    Page<OrderResponse> response =
+    Page<OrderResult> response =
         orderFacade.getStoreOrders(memberId, "SELLER", storeId, status, pageable);
 
     assertThat(response).isSameAs(expected);

@@ -6,20 +6,25 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
-import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
+import kr.lastdish.core.order.application.dto.OrderReceptionResult;
+import kr.lastdish.core.order.application.dto.OrderResult;
+import kr.lastdish.core.order.application.dto.PickupStatusResult;
+import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
+import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
+import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.OrderReceptionResponse;
-import kr.lastdish.core.order.presentation.dto.OrderResponse;
-import kr.lastdish.core.order.presentation.dto.PickupStatusRequest;
-import kr.lastdish.core.order.presentation.dto.PickupStatusResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +39,12 @@ import org.springframework.data.domain.Pageable;
 class OrderServiceTest {
 
   @Mock private OrderRepository orderRepository;
+
+  @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+
+  @Mock private OrderPickedUpEventWriter orderPickedUpEventWriter;
+
+  @Mock private OrderNoShowEventWriter orderNoShowEventWriter;
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
@@ -68,8 +79,32 @@ class OrderServiceTest {
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
+    assertThat(order.getPickupDeadline())
+        .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).atTime(cartItem.pickupEndAt()));
 
     verify(orderRepository, times(1)).save(any(Order.class));
+    verify(orderStatusChangedEventWriter).append(order);
+  }
+
+  @Test
+  void createOrder_setsPickupDeadlineToNextDayWhenPickupCrossesMidnight() {
+    CartOrderSnapshot cartItem =
+        new CartOrderSnapshot(
+            2L,
+            3L,
+            "DishName",
+            1L,
+            BigDecimal.valueOf(5000),
+            LocalTime.of(23, 0),
+            LocalTime.of(1, 0));
+    when(orderRepository.save(any(Order.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    Order order =
+        orderService.createOrder(1L, new OrderMemberInfo("테스트 회원", "010-1234-5678"), cartItem);
+
+    assertThat(order.getPickupDeadline())
+        .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1).atTime(LocalTime.of(1, 0)));
   }
 
   @Test
@@ -98,6 +133,7 @@ class OrderServiceTest {
     assertThat(result).isSameAs(order);
     verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId);
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -114,7 +150,7 @@ class OrderServiceTest {
     when(order.getId()).thenReturn(orderId);
     when(order.getPickupCode()).thenReturn(pickupCode);
 
-    OrderReceptionResponse response = orderService.acceptOrder(orderId);
+    OrderReceptionResult response = orderService.acceptOrder(orderId);
 
     assertThat(response.orderId()).isEqualTo(orderId);
     assertThat(response.pickUpCode()).isEqualTo(pickupCode);
@@ -122,6 +158,7 @@ class OrderServiceTest {
     verify(pickupCodeGenerator, times(1)).generate();
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, pickupCode);
     verify(order, times(1)).issuePickupCode(pickupCode);
+    verify(orderStatusChangedEventWriter).append(order);
   }
 
   @Test
@@ -140,7 +177,7 @@ class OrderServiceTest {
     when(order.getId()).thenReturn(orderId);
     when(order.getPickupCode()).thenReturn(availableCode);
 
-    OrderReceptionResponse response = orderService.acceptOrder(orderId);
+    OrderReceptionResult response = orderService.acceptOrder(orderId);
 
     assertThat(response.orderId()).isEqualTo(orderId);
     assertThat(response.pickUpCode()).isEqualTo(availableCode);
@@ -178,51 +215,52 @@ class OrderServiceTest {
   void updatePickupStatus_pickedUp_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
-    PickupStatusRequest request = mock(PickupStatusRequest.class);
-
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
-    when(request.status()).thenReturn(OrderStatus.PICKED_UP);
+    when(order.nextEventVersion()).thenReturn(7L);
 
-    PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
+    PickupStatusResult response =
+        orderService.updatePickupStatus(
+            orderId, new UpdatePickupStatusCommand(OrderStatus.PICKED_UP));
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
+    verify(order).completePickup(any(LocalDateTime.class));
+    verify(order).nextEventVersion();
+    verify(orderStatusChangedEventWriter).append(order, 7L);
+    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
   void updatePickupStatus_noShow_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
-    PickupStatusRequest request = mock(PickupStatusRequest.class);
-
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
-    when(request.status()).thenReturn(OrderStatus.NO_SHOW);
+    when(order.nextEventVersion()).thenReturn(7L);
 
-    PickupStatusResponse response = orderService.updatePickupStatus(orderId, request);
+    PickupStatusResult response =
+        orderService.updatePickupStatus(
+            orderId, new UpdatePickupStatusCommand(OrderStatus.NO_SHOW));
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(order).markNoShow();
-    verify(order, never()).completePickup();
+    verify(order).markNoShow(any(LocalDateTime.class));
+    verify(order, never()).completePickup(any(LocalDateTime.class));
+    verify(order).nextEventVersion();
+    verify(orderStatusChangedEventWriter).append(order, 7L);
+    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
   void updatePickupStatus_invalidStatus() {
-    Long orderId = 1L;
-    Order order = mock(Order.class);
-    PickupStatusRequest request = mock(PickupStatusRequest.class);
+    assertThatThrownBy(() -> new UpdatePickupStatusCommand(OrderStatus.RESERVED))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("픽업 상태는 PICKED_UP 또는 NO_SHOW만 가능합니다.");
 
-    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
-    when(request.status()).thenReturn(OrderStatus.RESERVED);
-
-    assertThatThrownBy(() -> orderService.updatePickupStatus(orderId, request))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(CommonErrorCode.INVALID_STATE);
-
-    verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(order, never()).completePickup();
-    verify(order, never()).markNoShow();
+    verifyNoInteractions(
+        orderRepository,
+        orderStatusChangedEventWriter,
+        orderPickedUpEventWriter,
+        orderNoShowEventWriter);
   }
 
   @Test
@@ -235,7 +273,7 @@ class OrderServiceTest {
     doNothing().when(order).validateOwner(memberId);
     when(order.getRejectReason()).thenReturn(null);
 
-    OrderResponse response = orderService.getEachOrder(memberId, orderId);
+    OrderResult response = orderService.getEachOrder(memberId, orderId);
 
     assertThat(response).isNotNull();
     verify(orderRepository).findByIdAndIsDeletedFalse(orderId);
@@ -252,7 +290,7 @@ class OrderServiceTest {
 
     when(orderRepository.findAllByMemberIdAndStatus(memberId, status, pageable)).thenReturn(orders);
 
-    Page<OrderResponse> response = orderService.getMyOrders(memberId, status, pageable);
+    Page<OrderResult> response = orderService.getMyOrders(memberId, status, pageable);
 
     assertThat(response.getTotalElements()).isEqualTo(1);
     assertThat(response.getContent()).hasSize(1);
@@ -267,7 +305,7 @@ class OrderServiceTest {
     when(orderRepository.findAllByMemberIdAndStatus(memberId, null, pageable))
         .thenReturn(Page.empty(pageable));
 
-    Page<OrderResponse> response = orderService.getMyOrders(memberId, null, pageable);
+    Page<OrderResult> response = orderService.getMyOrders(memberId, null, pageable);
 
     assertThat(response).isEmpty();
     verify(orderRepository, times(1)).findAllByMemberIdAndStatus(memberId, null, pageable);
@@ -283,7 +321,7 @@ class OrderServiceTest {
 
     when(orderRepository.findAllByStoreIdAndStatus(storeId, status, pageable)).thenReturn(orders);
 
-    Page<OrderResponse> response = orderService.getStoreOrders(storeId, status, pageable);
+    Page<OrderResult> response = orderService.getStoreOrders(storeId, status, pageable);
 
     assertThat(response.getTotalElements()).isEqualTo(1);
     assertThat(response.getContent()).hasSize(1);
@@ -298,7 +336,7 @@ class OrderServiceTest {
     when(orderRepository.findAllByStoreIdAndStatus(storeId, null, pageable))
         .thenReturn(Page.empty(pageable));
 
-    Page<OrderResponse> response = orderService.getStoreOrders(storeId, null, pageable);
+    Page<OrderResult> response = orderService.getStoreOrders(storeId, null, pageable);
 
     assertThat(response).isEmpty();
     verify(orderRepository, times(1)).findAllByStoreIdAndStatus(storeId, null, pageable);

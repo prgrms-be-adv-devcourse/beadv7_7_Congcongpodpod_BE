@@ -5,7 +5,9 @@ import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.order.application.OrderFacade;
 import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.order.presentation.dto.*;
+import kr.lastdish.core.order.presentation.dto.request.OrderRejectRequest;
+import kr.lastdish.core.order.presentation.dto.request.PickupStatusRequest;
+import kr.lastdish.core.order.presentation.dto.response.*;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -23,13 +25,13 @@ public class OrderController {
   @PostMapping("/cartItems/{cartItemId}")
   public ApiResponse<OrderResponse> createOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long cartItemId) {
-    return ApiResponse.ok(orderFacade.payAndCreateOrder(memberId, cartItemId));
+    return ApiResponse.ok(OrderResponse.from(orderFacade.payAndCreateOrder(memberId, cartItemId)));
   }
 
   @PatchMapping("/{orderId}/cancel")
   public ApiResponse<OrderResponse> cancelOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long orderId) {
-    return ApiResponse.ok(orderFacade.cancelOrder(memberId, orderId));
+    return ApiResponse.ok(OrderResponse.from(orderFacade.cancelOrder(memberId, orderId)));
   }
 
   // 매장 주문 접수
@@ -38,7 +40,8 @@ public class OrderController {
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @RequestHeader("X-Authenticated-Role") String role,
       @PathVariable Long orderId) {
-    return ApiResponse.ok(orderFacade.acceptOrder(memberId, role, orderId));
+    return ApiResponse.ok(
+        OrderReceptionResponse.from(orderFacade.acceptOrder(memberId, role, orderId)));
   }
 
   // 매장 주문 반려
@@ -48,7 +51,9 @@ public class OrderController {
       @RequestHeader("X-Authenticated-Role") String role,
       @PathVariable Long orderId,
       @RequestBody @Valid OrderRejectRequest request) {
-    return ApiResponse.ok(orderFacade.rejectOrder(memberId, role, orderId, request));
+    return ApiResponse.ok(
+        OrderRejectResponse.from(
+            orderFacade.rejectOrder(memberId, role, orderId, request.toCommand())));
   }
 
   // 매장 픽업 처리
@@ -58,19 +63,21 @@ public class OrderController {
       @RequestHeader("X-Authenticated-Role") String role,
       @PathVariable Long orderId,
       @RequestBody @Valid PickupStatusRequest request) {
-    return ApiResponse.ok(orderFacade.updateOrder(memberId, role, orderId, request));
+    return ApiResponse.ok(
+        PickupStatusResponse.from(
+            orderFacade.updateOrder(memberId, role, orderId, request.toCommand())));
   }
 
   @GetMapping("/{orderId}")
   public ApiResponse<OrderResponse> getEachOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long orderId) {
-    return ApiResponse.ok(orderService.getEachOrder(memberId, orderId));
+    return ApiResponse.ok(OrderResponse.from(orderService.getEachOrder(memberId, orderId)));
   }
 
   @GetMapping("/{orderId}/pickupCode")
   public ApiResponse<PickupCodeResponse> getPickupCode(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long orderId) {
-    return ApiResponse.ok(orderService.getPickupCode(memberId, orderId));
+    return ApiResponse.ok(PickupCodeResponse.from(orderService.getPickupCode(memberId, orderId)));
   }
 
   @GetMapping
@@ -78,7 +85,8 @@ public class OrderController {
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @RequestParam(required = false) OrderStatus status,
       @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-    return ApiResponse.ok(orderService.getMyOrders(memberId, status, pageable));
+    return ApiResponse.ok(
+        orderService.getMyOrders(memberId, status, pageable).map(OrderResponse::from));
   }
 
   @GetMapping("/stores/{storeId}")
@@ -88,6 +96,9 @@ public class OrderController {
       @PathVariable Long storeId,
       @RequestParam(required = false) OrderStatus status,
       @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-    return ApiResponse.ok(orderFacade.getStoreOrders(memberId, role, storeId, status, pageable));
+    return ApiResponse.ok(
+        orderFacade
+            .getStoreOrders(memberId, role, storeId, status, pageable)
+            .map(OrderResponse::from));
   }
 }

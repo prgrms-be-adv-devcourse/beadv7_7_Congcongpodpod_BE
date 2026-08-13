@@ -3,7 +3,7 @@ package kr.lastdish.core.settlement.application;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.core.order.application.OrderFacade;
-import kr.lastdish.core.order.presentation.dto.OrderSettlementInfo;
+import kr.lastdish.core.order.application.dto.OrderSettlementInfo;
 import kr.lastdish.core.settlement.application.dto.SettlementOrderData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

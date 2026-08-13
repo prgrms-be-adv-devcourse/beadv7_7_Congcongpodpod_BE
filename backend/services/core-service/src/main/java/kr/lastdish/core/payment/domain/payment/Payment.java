@@ -3,7 +3,6 @@ package kr.lastdish.core.payment.domain.payment;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import kr.lastdish.core.common.crypto.EncryptConverter;
 import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -40,7 +39,6 @@ public class Payment {
   private ApprovedStatus approvedStatus;
 
   // PG사에서 결제 승인 후 가맹점에 발급하는 paymentKey
-  @Convert(converter = EncryptConverter.class)
   @Column(name = "pg_transaction_id")
   private String pgTransactionId;
 

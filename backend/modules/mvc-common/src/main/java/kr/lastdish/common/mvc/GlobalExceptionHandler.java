@@ -4,6 +4,10 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.common.api.tracing.RequestIdSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -15,6 +19,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException exception) {
@@ -57,7 +63,23 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
+    String requestId = resolveRequestId();
+
+    // 응답 본문에는 일반 메시지만 내려가므로, 원인 조사가 가능하도록 예외 종류와 스택 트레이스를 로그에만 남긴다.
+    log.error(
+        "예상하지 못한 서버 오류가 발생했습니다. requestId={}, errorCode={}, exceptionClass={}",
+        requestId,
+        CommonErrorCode.INTERNAL_ERROR.getCode(),
+        exception.getClass().getName(),
+        exception);
+
     return build(CommonErrorCode.INTERNAL_ERROR, CommonErrorCode.INTERNAL_ERROR.getMessage());
+  }
+
+  /** RequestIdFilter보다 앞선 단계에서 예외가 나면 MDC가 비어있을 수 있다. 그 경우 값이 없다는 사실 자체를 로그에 남긴다. */
+  private String resolveRequestId() {
+    String requestId = MDC.get(RequestIdSupport.KEY);
+    return requestId != null ? requestId : RequestIdSupport.UNKNOWN;
   }
 
   private ResponseEntity<ApiResponse<Void>> build(ErrorCodeSpec errorCode, String message) {

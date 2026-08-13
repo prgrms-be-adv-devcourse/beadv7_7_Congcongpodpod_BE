@@ -148,7 +148,7 @@ class StoreControllerTest {
             10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.valueOf(7_000),
-            null,
-            null));
+            LocalTime.of(18, 0),
+            LocalTime.of(19, 0)));
   }
 }

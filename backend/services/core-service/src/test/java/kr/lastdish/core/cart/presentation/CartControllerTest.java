@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import kr.lastdish.core.cart.presentation.dto.CartItemAddRequest;
 import kr.lastdish.core.cart.presentation.dto.CartItemUpdateRequest;
 import kr.lastdish.core.dish.domain.Dish;
@@ -43,14 +44,14 @@ class CartControllerTest {
                 10L,
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 100L;
 
     // 1) 장바구니 조회 -> 없으면 생성됨 (별도 생성 API 없음)
     String getOrCreateResponse =
         mockMvc
-            .perform(get("/api/v1/carts/members/{memberId}", memberId))
+            .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.memberId").value(memberId))
             .andExpect(jsonPath("$.data.items").isEmpty())
@@ -64,6 +65,7 @@ class CartControllerTest {
         mockMvc
             .perform(
                 post("/api/v1/carts/{cartId}/items", cartId)
+                    .header("X-Authenticated-Member-Id", memberId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         objectMapper.writeValueAsString(
@@ -80,7 +82,7 @@ class CartControllerTest {
 
     // 3) 장바구니 조회 -> 담긴 상품과 합계 확인
     mockMvc
-        .perform(get("/api/v1/carts/members/{memberId}", memberId))
+        .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].cartItemId").value(itemId))
         .andExpect(jsonPath("$.data.items[0].status").value("AVAILABLE"))
@@ -91,6 +93,7 @@ class CartControllerTest {
     mockMvc
         .perform(
             patch("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId)
+                .header("X-Authenticated-Member-Id", memberId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(3L))))
         .andExpect(status().isOk())
@@ -99,11 +102,13 @@ class CartControllerTest {
 
     // 5) 상품 삭제
     mockMvc
-        .perform(delete("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId))
+        .perform(
+            delete("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId)
+                .header("X-Authenticated-Member-Id", memberId))
         .andExpect(status().isNoContent());
 
     mockMvc
-        .perform(get("/api/v1/carts/members/{memberId}", memberId))
+        .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items").isEmpty());
 
@@ -111,14 +116,18 @@ class CartControllerTest {
     mockMvc
         .perform(
             post("/api/v1/carts/{cartId}/items", cartId)
+                .header("X-Authenticated-Member-Id", memberId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 2L))))
         .andExpect(status().isOk());
 
-    mockMvc.perform(delete("/api/v1/carts/{cartId}", cartId)).andExpect(status().isNoContent());
+    mockMvc
+        .perform(
+            delete("/api/v1/carts/{cartId}", cartId).header("X-Authenticated-Member-Id", memberId))
+        .andExpect(status().isNoContent());
 
     mockMvc
-        .perform(get("/api/v1/carts/members/{memberId}", memberId))
+        .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items").isEmpty());
   }
@@ -136,8 +145,8 @@ class CartControllerTest {
                 10L,
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Dish dishB =
         dishRepository.save(
             Dish.create(
@@ -149,13 +158,15 @@ class CartControllerTest {
                 10L,
                 BigDecimal.valueOf(9000),
                 BigDecimal.valueOf(6000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 200L;
 
     String getOrCreateResponse =
         mockMvc
-            .perform(get("/api/v1/carts/members/{memberId}", memberId)) // 조회로 Cart 생성
+            .perform(
+                get("/api/v1/carts/members")
+                    .header("X-Authenticated-Member-Id", memberId)) // 조회로 Cart 생성
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -165,6 +176,7 @@ class CartControllerTest {
     mockMvc
         .perform(
             post("/api/v1/carts/{cartId}/items", cartId)
+                .header("X-Authenticated-Member-Id", memberId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(new CartItemAddRequest(dishA.getId(), 1L))))
@@ -174,6 +186,7 @@ class CartControllerTest {
     mockMvc
         .perform(
             post("/api/v1/carts/{cartId}/items", cartId)
+                .header("X-Authenticated-Member-Id", memberId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(new CartItemAddRequest(dishB.getId(), 1L))))
@@ -183,7 +196,7 @@ class CartControllerTest {
 
     // DB에서 다시 읽어와도(영속성 컨텍스트 캐시가 아니라 실제 저장 결과) dishId가 B여야 한다
     mockMvc
-        .perform(get("/api/v1/carts/members/{memberId}", memberId))
+        .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].dishId").value(dishB.getId()))
         .andExpect(jsonPath("$.data.items[0].dishName").value("소불고기 마감할인 세트"));
@@ -202,13 +215,13 @@ class CartControllerTest {
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 300L;
 
     String getOrCreateResponse =
         mockMvc
-            .perform(get("/api/v1/carts/members/{memberId}", memberId))
+            .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
             .andReturn()
             .getResponse()
             .getContentAsString();
@@ -217,6 +230,7 @@ class CartControllerTest {
     mockMvc
         .perform(
             post("/api/v1/carts/{cartId}/items", cartId)
+                .header("X-Authenticated-Member-Id", memberId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 3L))))
         .andExpect(status().isConflict())
@@ -236,13 +250,13 @@ class CartControllerTest {
                 2L, // 재고 2개
                 BigDecimal.valueOf(8000),
                 BigDecimal.valueOf(5000),
-                null,
-                null));
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
     Long memberId = 400L;
 
     String getOrCreateResponse =
         mockMvc
-            .perform(get("/api/v1/carts/members/{memberId}", memberId))
+            .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
             .andReturn()
             .getResponse()
             .getContentAsString();
@@ -252,6 +266,7 @@ class CartControllerTest {
         mockMvc
             .perform(
                 post("/api/v1/carts/{cartId}/items", cartId)
+                    .header("X-Authenticated-Member-Id", memberId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 1L))))
@@ -263,6 +278,7 @@ class CartControllerTest {
     mockMvc
         .perform(
             patch("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId)
+                .header("X-Authenticated-Member-Id", memberId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(5L))))
         .andExpect(status().isConflict())
@@ -270,8 +286,81 @@ class CartControllerTest {
 
     // 실패했으니 수량은 그대로 1이어야 한다
     mockMvc
-        .perform(get("/api/v1/carts/members/{memberId}", memberId))
+        .perform(get("/api/v1/carts/members").header("X-Authenticated-Member-Id", memberId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].quantity").value(1));
+  }
+
+  @Test
+  void 다른_회원의_장바구니는_추가_수정_삭제할_수_없다() throws Exception {
+    Long ownerMemberId = 500L;
+    Long otherMemberId = 501L;
+    Dish dish =
+        dishRepository.save(
+            Dish.create(
+                1L,
+                "소유권 검증 상품",
+                LocalDateTime.now(),
+                "소유권 검증용",
+                null,
+                10L,
+                BigDecimal.valueOf(8000),
+                BigDecimal.valueOf(5000),
+                LocalTime.of(18, 0),
+                LocalTime.of(19, 0)));
+
+    String cartResponse =
+        mockMvc
+            .perform(
+                get("/api/v1/carts/members").header("X-Authenticated-Member-Id", ownerMemberId))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    Long cartId = objectMapper.readTree(cartResponse).path("data").path("cartId").asLong();
+
+    String itemResponse =
+        mockMvc
+            .perform(
+                post("/api/v1/carts/{cartId}/items", cartId)
+                    .header("X-Authenticated-Member-Id", ownerMemberId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 1L))))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    Long itemId = objectMapper.readTree(itemResponse).path("data").path("cartItemId").asLong();
+
+    mockMvc
+        .perform(
+            post("/api/v1/carts/{cartId}/items", cartId)
+                .header("X-Authenticated-Member-Id", otherMemberId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new CartItemAddRequest(dish.getId(), 2L))))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.error.code").value("CT005"));
+
+    mockMvc
+        .perform(
+            patch("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId)
+                .header("X-Authenticated-Member-Id", otherMemberId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(2L))))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.error.code").value("CT005"));
+
+    mockMvc
+        .perform(
+            delete("/api/v1/carts/{cartId}/items/{itemId}", cartId, itemId)
+                .header("X-Authenticated-Member-Id", otherMemberId))
+        .andExpect(status().isForbidden());
+
+    mockMvc
+        .perform(
+            delete("/api/v1/carts/{cartId}", cartId)
+                .header("X-Authenticated-Member-Id", otherMemberId))
+        .andExpect(status().isForbidden());
   }
 }

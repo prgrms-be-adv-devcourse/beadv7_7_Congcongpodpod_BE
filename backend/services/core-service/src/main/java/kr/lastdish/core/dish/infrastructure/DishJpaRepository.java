@@ -20,6 +20,9 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
 
   Optional<Dish> findByStoreIdAndIsDeletedFalse(Long storeId);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<Dish> findWithLockByStoreIdAndIsDeletedFalse(Long storeId);
+
   @Query(
       """
     SELECT d
