@@ -12,7 +12,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
-import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
@@ -240,22 +239,11 @@ class OrderServiceTest {
 
   @Test
   void updatePickupStatus_invalidStatus() {
-    Long orderId = 1L;
-    Order order = mock(Order.class);
-    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    assertThatThrownBy(() -> new UpdatePickupStatusCommand(OrderStatus.RESERVED))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("픽업 상태는 PICKED_UP 또는 NO_SHOW만 가능합니다.");
 
-    assertThatThrownBy(
-            () ->
-                orderService.updatePickupStatus(
-                    orderId, new UpdatePickupStatusCommand(OrderStatus.RESERVED)))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(CommonErrorCode.INVALID_STATE);
-
-    verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(order, never()).completePickup();
-    verify(order, never()).markNoShow(any(LocalDateTime.class));
-    verifyNoInteractions(orderStatusChangedEventWriter);
+    verifyNoInteractions(orderRepository, orderStatusChangedEventWriter);
   }
 
   @Test

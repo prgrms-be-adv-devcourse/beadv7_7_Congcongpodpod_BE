@@ -125,6 +125,8 @@ public class OrderService {
     }
     orderStatusChangedEventWriter.append(order);
 
+    // 정산 도메인 이벤트
+
     return PickupStatusResult.from(order);
   }
 
