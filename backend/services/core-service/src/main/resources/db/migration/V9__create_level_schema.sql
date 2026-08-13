@@ -1,4 +1,6 @@
-﻿CREATE TABLE levels (
+﻿-- core-service의 level 도메인 스키마입니다.
+
+CREATE TABLE levels (
     level_id BIGSERIAL PRIMARY KEY,
     member_id BIGINT NOT NULL,
     dish_level VARCHAR(20) NOT NULL,
