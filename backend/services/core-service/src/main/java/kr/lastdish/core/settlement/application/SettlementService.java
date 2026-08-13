@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -46,6 +45,13 @@ public class SettlementService {
    *
    * Transactional 범위 변경
    * 매장별 트랜잭션 -> 매장의 각각의 DB 변경은 별도의 트랜잭션으로 분리
+   *
+   * -------------------------------------------------------------------
+   *
+   * 실패 재처리 로직 분리, processMonthlySettlement는 최초 정산만 실행
+   * retryMonthlySettlement는 failed 건에 대해서만 가져와 재처리 진행
+   * 최초 정산은 1회만, 그 외는 failed 재처리 최대 3회 실행
+   * 모든 배치 완료 후 처리되지 않는 실패 건은 운영에서 처리
    */
 
   public SettlementProcessResult processMonthlySettlement(Long storeId, YearMonth settlementMonth) {
@@ -78,7 +84,7 @@ public class SettlementService {
       // 해당 정산 없음, 정산 생성
       SettlementPeriod period = SettlementPeriod.from(settlementMonth);
 
-      // Order로부터 매장 주문 내역 가져오기
+      // Order로부터 매장 주문 내역 가져오기, 오류 발생 시 fail 저장 안됨 -> 처리 필요, Tasklet으로 전파 가능
       List<SettlementOrderData> orders =
               settlementOrderReader.readSettlementOrders(storeId, period.periodStart(), period.periodEnd());
 
@@ -89,6 +95,7 @@ public class SettlementService {
         return SettlementProcessResult.skipped(storeId, null, "정산 대상 주문이 없습니다.");
       }
 
+      // 오류 발생 시 fail 저장 안됨, Tasklet으로 전파 가능 -> 처리 필요
       SettlementAccountData account = settlementStoreReader.readAccountByStoreId(storeId)
                       .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "정산 계좌가 등록되지 않았습니다. storeId=" + storeId));
 
@@ -111,7 +118,6 @@ public class SettlementService {
 
       return SettlementProcessResult.failed(storeId, settlement.getId(), failureReason);
     }
-
   }
 
   @Transactional(readOnly = true)
