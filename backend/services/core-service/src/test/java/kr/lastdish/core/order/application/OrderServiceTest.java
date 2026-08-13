@@ -19,6 +19,8 @@ import kr.lastdish.core.order.application.dto.OrderReceptionResult;
 import kr.lastdish.core.order.application.dto.OrderResult;
 import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
+import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -39,6 +41,10 @@ class OrderServiceTest {
   @Mock private OrderRepository orderRepository;
 
   @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+
+  @Mock private OrderPickedUpEventWriter orderPickedUpEventWriter;
+
+  @Mock private OrderNoShowEventWriter orderNoShowEventWriter;
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
@@ -218,6 +224,7 @@ class OrderServiceTest {
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(orderStatusChangedEventWriter).append(order);
+    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
@@ -235,6 +242,7 @@ class OrderServiceTest {
     verify(order).markNoShow(any(LocalDateTime.class));
     verify(order, never()).completePickup();
     verify(orderStatusChangedEventWriter).append(order);
+    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
@@ -243,7 +251,11 @@ class OrderServiceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("픽업 상태는 PICKED_UP 또는 NO_SHOW만 가능합니다.");
 
-    verifyNoInteractions(orderRepository, orderStatusChangedEventWriter);
+    verifyNoInteractions(
+        orderRepository,
+        orderStatusChangedEventWriter,
+        orderPickedUpEventWriter,
+        orderNoShowEventWriter);
   }
 
   @Test
