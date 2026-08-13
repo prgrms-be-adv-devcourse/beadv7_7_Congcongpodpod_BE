@@ -21,6 +21,7 @@ dependencies {
     implementation project(':modules:mvc-common')
     implementation project(':modules:event-common')
     implementation project(':modules:outbox')
+    implementation project(':modules:inbox')
 
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -28,6 +29,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     runtimeOnly 'org.flywaydb:flyway-database-postgresql'
 
     runtimeOnly 'org.postgresql:postgresql'

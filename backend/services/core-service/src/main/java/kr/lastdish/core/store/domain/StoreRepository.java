@@ -1,6 +1,7 @@
 package kr.lastdish.core.store.domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +36,6 @@ public interface StoreRepository {
       Category category);
 
   List<Long> findAllActiveStoreIds();
+
+  List<Long> findStoreIdsReadyToClose(LocalDateTime now);
 }

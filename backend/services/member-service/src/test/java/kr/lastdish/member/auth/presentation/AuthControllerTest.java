@@ -1,77 +1,91 @@
 package kr.lastdish.member.auth.presentation;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.lastdish.member.auth.application.AuthService;
+import kr.lastdish.member.auth.application.dto.SignUpResult;
+import kr.lastdish.member.auth.application.dto.TokenResult;
+import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.presentation.dto.LoginRequest;
 import kr.lastdish.member.auth.presentation.dto.SignUpRequest;
+import kr.lastdish.member.auth.presentation.dto.TokenRefreshRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@AutoConfigureMockMvc
-@Transactional
+@WebMvcTest(controllers = AuthController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
   @Autowired private MockMvc mockMvc;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Autowired private ObjectMapper objectMapper;
+  @MockitoBean private AuthService authService;
+  @MockitoBean private TokenProvider tokenProvider;
+  @MockitoBean private PasswordEncoder passwordEncoder;
+  @MockitoBean private CacheManager cacheManager;
 
   @Test
-  @DisplayName("회원가입 후 로그인 및 토큰 재발급 통합 테스트")
-  void signUpAndLoginAndRefreshTest() throws Exception {
-    // given 1: 회원가입 요청 데이터
+  @DisplayName("회원가입 요청 성공")
+  void signUpTest() throws Exception {
     SignUpRequest signUpRequest =
         new SignUpRequest("testuser", "password123!", "테스터", "010-1234-5678", "test@example.com");
 
-    // when 1: 회원가입 API 호출
+    SignUpResult mockSignUpResult = new SignUpResult(1L, "testuser", "test@example.com");
+    given(authService.signUp(any())).willReturn(mockSignUpResult);
+
     mockMvc
         .perform(
             post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signUpRequest)))
         .andExpect(status().isOk());
+  }
 
-    // given 2: 로그인 요청 데이터
+  @Test
+  @DisplayName("로그인 요청 성공 시 Access Token 및 Refresh Token 반환")
+  void loginTest() throws Exception {
     LoginRequest loginRequest = new LoginRequest("test@example.com", "password123!");
+    TokenResult mockTokenResult = new TokenResult("mock-access-token", "mock-refresh-token");
 
-    // when 2: 로그인 API 호출 및 토큰 발급 확인
-    MvcResult loginResult =
-        mockMvc
-            .perform(
-                post("/api/v1/auth/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(loginRequest)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.accessToken").exists())
-            .andExpect(jsonPath("$.data.refreshToken").exists())
-            .andReturn();
+    given(authService.login(any())).willReturn(mockTokenResult);
 
-    // 응답받은 JSON에서 JsonPath를 이용해 리프레시 토큰 값 직접 추출
-    String responseBody = loginResult.getResponse().getContentAsString();
-    String refreshToken = com.jayway.jsonpath.JsonPath.read(responseBody, "$.data.refreshToken");
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.accessToken").value("mock-access-token"))
+        .andExpect(jsonPath("$.data.refreshToken").value("mock-refresh-token"));
+  }
 
-    // given 3: 리프레시 토큰으로 재발급 요청 데이터 준비
-    String refreshJson = "{\"refreshToken\":\"" + refreshToken + "\"}";
+  @Test
+  @DisplayName("토큰 재발급 요청 성공")
+  void refreshTest() throws Exception {
+    TokenRefreshRequest refreshRequest = new TokenRefreshRequest("mock-refresh-token");
+    TokenResult mockTokenResult = new TokenResult("new-access-token", "new-refresh-token");
 
-    // when 3: 토큰 재발급 API 호출 및 새로운 Access Token 발급 확인
+    given(authService.refresh(any())).willReturn(mockTokenResult);
+
     mockMvc
         .perform(
             post("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(refreshJson))
+                .content(objectMapper.writeValueAsString(refreshRequest)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.accessToken").exists());
+        .andExpect(jsonPath("$.data.accessToken").value("new-access-token"));
   }
 }

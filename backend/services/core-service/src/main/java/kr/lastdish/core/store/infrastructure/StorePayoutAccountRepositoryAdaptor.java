@@ -25,4 +25,9 @@ public class StorePayoutAccountRepositoryAdaptor implements StorePayoutAccountRe
   public boolean existsByStoreId(Long storeId) {
     return payoutAccountJpaRepository.existsByStoreIdAndDeletedFalse(storeId);
   }
+
+  @Override
+  public void deleteByStoreId(Long storeId) {
+    payoutAccountJpaRepository.deleteByStoreId(storeId);
+  }
 }

@@ -3,6 +3,7 @@ package kr.lastdish.core.dish.presentation;
 import jakarta.validation.Valid;
 import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
@@ -15,17 +16,18 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/dishes")
 public class DishController {
+  private final DishFacade dishFacade;
   private final DishService dishService;
 
   @PostMapping
   public ApiResponse<DishResponse> createDish(@Valid @RequestBody DishCreateRequest request) {
-    return ApiResponse.ok(dishService.createDish(request));
+    return ApiResponse.ok(dishFacade.createDish(request));
   }
 
   @PutMapping("/{dishId}")
   public ApiResponse<DishResponse> updateDish(
       @PathVariable Long dishId, @Valid @RequestBody DishUpdateRequest request) {
-    return ApiResponse.ok(dishService.updateDish(dishId, request));
+    return ApiResponse.ok(dishFacade.updateDish(dishId, request));
   }
 
   @PatchMapping("/{dishId}")

@@ -19,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(InternalMemberController.class)
+// @ImportAutoConfiguration(exclude = OAuth2ClientWebSecurityAutoConfiguration.class)
 class InternalMemberControllerTest {
 
   @Autowired MockMvc mockMvc;

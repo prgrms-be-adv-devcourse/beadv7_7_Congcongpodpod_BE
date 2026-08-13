@@ -63,6 +63,16 @@ public class Member {
     this.isDeleted = false;
   }
 
+  public void updateMember(
+      String userName, String password, String name, String phone, String email) {
+    this.userName = userName;
+    this.password = password;
+    this.name = name;
+    this.phone = phone;
+    this.email = email;
+    this.updatedAt = LocalDateTime.now();
+  }
+
   public void withdraw() {
     this.isDeleted = true;
     this.deletedAt = LocalDateTime.now();
