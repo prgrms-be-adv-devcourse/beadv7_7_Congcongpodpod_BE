@@ -1,6 +1,6 @@
 package kr.lastdish.core.order.application.event;
 
-import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.order.domain.Order;
@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OrderPickedUpEventWriter {
 
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
+
   private final OutboxEventWriter outboxEventWriter;
 
   public void append(Order order) {
@@ -24,7 +26,7 @@ public class OrderPickedUpEventWriter {
             order.nextEventVersion(),
             new OrderPickedUpPayload(
                 order.getMemberId(), order.getStoreId(), order.getTotalPrice()),
-            Instant.now());
+            order.getPickedUpAt().atZone(BUSINESS_ZONE).toInstant());
 
     outboxEventWriter.append(event);
   }

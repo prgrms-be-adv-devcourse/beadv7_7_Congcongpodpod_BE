@@ -77,6 +77,8 @@ public class Order {
   @Column(nullable = false)
   private LocalDateTime pickupDeadline;
 
+  private LocalDateTime pickedUpAt;
+
   @Column(nullable = false)
   private BigDecimal totalPrice;
 
@@ -178,8 +180,12 @@ public class Order {
     }
   }
 
-  public void completePickup() {
+  public void completePickup(LocalDateTime pickedUpAt) {
+    if (pickedUpAt == null) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "픽업 완료 시각은 필수입니다.");
+    }
     transitionTo(OrderStatus.PICKED_UP);
+    this.pickedUpAt = pickedUpAt;
   }
 
   public void markNoShow(LocalDateTime now) {

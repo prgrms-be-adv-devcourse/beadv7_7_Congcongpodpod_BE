@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.presentation.dto.reponse;
+package kr.lastdish.core.order.presentation.dto.response;
 
 import kr.lastdish.core.order.application.dto.OrderReceptionResult;
 

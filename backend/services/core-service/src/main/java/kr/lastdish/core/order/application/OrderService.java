@@ -124,7 +124,7 @@ public class OrderService {
 
     switch (command.status()) {
       case PICKED_UP -> {
-        order.completePickup();
+        order.completePickup(LocalDateTime.now(BUSINESS_ZONE));
         // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
         // orderPickedUpEventWriter.append(order);
       }

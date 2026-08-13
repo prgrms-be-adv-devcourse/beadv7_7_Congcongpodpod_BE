@@ -223,6 +223,7 @@ class OrderServiceTest {
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
+    verify(order).completePickup(any(LocalDateTime.class));
     verify(orderStatusChangedEventWriter).append(order);
     verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
@@ -240,7 +241,7 @@ class OrderServiceTest {
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order).markNoShow(any(LocalDateTime.class));
-    verify(order, never()).completePickup();
+    verify(order, never()).completePickup(any(LocalDateTime.class));
     verify(orderStatusChangedEventWriter).append(order);
     verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }

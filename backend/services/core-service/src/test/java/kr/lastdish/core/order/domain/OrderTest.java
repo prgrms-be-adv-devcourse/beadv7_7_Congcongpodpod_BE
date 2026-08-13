@@ -62,6 +62,17 @@ class OrderTest {
     assertThat(order.getStatus()).isEqualTo(OrderStatus.NO_SHOW);
   }
 
+  @Test
+  void 픽업_완료_시각을_Order에_저장한다() {
+    Order order = createPickupReadyOrder();
+    LocalDateTime pickedUpAt = LocalDateTime.of(2026, 8, 10, 18, 30);
+
+    order.completePickup(pickedUpAt);
+
+    assertThat(order.getStatus()).isEqualTo(OrderStatus.PICKED_UP);
+    assertThat(order.getPickedUpAt()).isEqualTo(pickedUpAt);
+  }
+
   private Order createPickupReadyOrder() {
     Order order = createOrder();
     order.paymentSuccess();
