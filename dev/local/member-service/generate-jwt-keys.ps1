@@ -23,6 +23,7 @@ if (-not $Force) {
         (Test-Path $MemberPublicKey) -or
         (Test-Path $GatewayPublicKey)) {
         throw "오류: 기존 Access Token 키가 있습니다. 재생성하려면 -Force를 사용하세요."
+        throw "오류: 발생 지점을 찾기 위한 플러스 라인
     }
 }
 
