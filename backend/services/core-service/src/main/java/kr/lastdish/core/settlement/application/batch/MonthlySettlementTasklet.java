@@ -73,7 +73,7 @@ public class MonthlySettlementTasklet implements Tasklet {
     }
     var context = contribution.getStepExecution().getExecutionContext();
 
-    context.putInt("targetStoreCount", storeIds.size());
+    context.putInt("targetStoreCount", unsettledStoreIds.size());
     context.putInt("createdStoreCount", createdCount);
     context.putInt("retriedStoreCount", retriedCount);
     context.putInt("skippedStoreCount", skippedCount);
@@ -82,7 +82,7 @@ public class MonthlySettlementTasklet implements Tasklet {
     log.info(
         "월 정산 배치 완료. settlementMonth={}, targetCount={}, createdCount={}, retriedCount={}, skippedCount={}, failedCount={}",
         settlementMonth,
-        storeIds.size(),
+        unsettledStoreIds.size(),
         createdCount,
         retriedCount,
         skippedCount,
