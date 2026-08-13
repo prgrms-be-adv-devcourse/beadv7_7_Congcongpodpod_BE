@@ -24,4 +24,4 @@ public enum DishLevel {
     if (purchaseCount >= LEVEL_2.minPurchases) return LEVEL_2;
     return LEVEL_1;
   }
-}
+  }

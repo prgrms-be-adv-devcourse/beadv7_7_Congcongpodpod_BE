@@ -1,0 +1,51 @@
+package kr.lastdish.core.level.application;
+
+import kr.lastdish.core.level.domain.DishLevel;
+import kr.lastdish.core.level.domain.Level;
+import kr.lastdish.core.level.domain.LevelHistory;
+import kr.lastdish.core.payment.domain.deposit.Deposit;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class LevelService {
+    private final LevelRepository levelRepositoory;
+    private final LevelHistoryRepository levelHistoryRepository;
+
+    // 회원의 Level 조회 시점에 정보가 생성되지 않은 회원인 경우, 기본 등급(LEVEL_1)으로 신규 생성하여 반환
+    @Transactional
+    public Level getOrCreateLevel(Long memberId){
+        return LevelRepository
+                .findByMemberId(memberId)
+                .orElseGet(() -> LevelRepository.save(Deposit.createDefault(memberId)));
+    }
+
+    // 픽업완료 시 구매 횟수 증가, 등급 재계산 및 승급 처리, 승급 시 이력 기록
+    @Transactional
+    public void recordPurchase(Long memberId){
+        Level level =
+                levelRepository
+                        .findWithLockByMemberId(memberId)
+                        .orElseGet(() -> levelRepository.save(Level.createDefault(memberId)));
+
+        level.addPurchase();
+
+        DishLevel oldLevel = level.getDishLevel();
+        boolean upgraded = level.upgradeLevel();
+
+        if (upgraded) {
+            levelHistoryRepository.save(
+                    LevelHistory.recordUpgrade(
+                            memberId, oldLevel, level.getDishLevel(), level.getPurchaseCount()));
+        }
+
+    }
+
+    // 회원의 현재 등급 및 적립률 조회 (Point 도메인이 적립 계산 시 사용)
+    @Transactional
+    public LevelResponse getLevel(Long memberId) {
+        return LevelResponse.from(getOrCreateLevel(memberId));
+    }
+}
