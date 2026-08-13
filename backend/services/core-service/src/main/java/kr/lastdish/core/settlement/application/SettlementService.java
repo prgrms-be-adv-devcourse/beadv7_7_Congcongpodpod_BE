@@ -46,25 +46,23 @@ public class SettlementService {
 
   public SettlementProcessResult processMonthlySettlement(Long storeId, YearMonth settlementMonth) {
     // 이미 존재하는 정산이 있는지 조회
-    Settlement existing = settlementRepository.findByStoreIdAndSettlementMonth(storeId, settlementMonth)
-            .orElse(null);
+    Settlement existing =
+        settlementRepository.findByStoreIdAndSettlementMonth(storeId, settlementMonth).orElse(null);
 
     // 정산 시작 전 초기화
     boolean retry = false;
     Settlement settlement;
+    List<SettlementOrderData> unsettledOrders = null;
 
     if (existing != null) {
-      // 정산이 이미 존재함 (Completed, Processing, Failed)
-      if (existing.getSettlementStatus() == SettlementStatus.COMPLETED) {
-        return SettlementProcessResult.skipped(storeId, existing.getId(), "이미 완료된 정산입니다.");
-        // 정산 테이블에 completed 상태로 존재하는 매장의 경우 Tasklet에서 미리 제거 후 정산 실행하도록 변경 필요
-      }
+      // 정산이 이미 존재함 (Processing, Failed), Completed는 Tasklet에서 제거 후 정산 실행
 
       if (existing.getSettlementStatus() == SettlementStatus.PROCESSING) {
-        return SettlementProcessResult.skipped(storeId, existing.getId(), "현재 처리 중이거나 복구 확인이 필요한 정산입니다.");
+        return SettlementProcessResult.skipped(
+            storeId, existing.getId(), "현재 처리 중이거나 복구 확인이 필요한 정산입니다.");
         // 정산이 시작되지 않았거나 Failed 상태인 정산만 시도하기 위해 Processing을 skip하는 로직을 추가했지만,
         // Processing 상태로 재시도될 경우가 있을까,,
-        // -> Processing에서 상태 변경이 되지 않고 오류 발생 시밖에 없음, 이 부분은 수동 혹은 스케줄러 처리 필요
+        // -> Processing에서 상태 변경이 되지 않고 오류 발생 시밖에 없음, 이 부분은 수동 처리
       }
 
       // Failed 정산의 경우 재시도, 기존 정산을 상태 변경 후 settlement 변수에 할당
@@ -76,10 +74,11 @@ public class SettlementService {
 
       // Order로부터 매장 주문 내역 가져오기
       List<SettlementOrderData> orders =
-              settlementOrderReader.readSettlementOrders(storeId, period.periodStart(), period.periodEnd());
+          settlementOrderReader.readSettlementOrders(
+              storeId, period.periodStart(), period.periodEnd());
 
       // 이미 처리된 주문 제거
-      List<SettlementOrderData> unsettledOrders = excludeSettledOrders(orders);
+      unsettledOrders = excludeSettledOrders(orders);
 
       if (unsettledOrders == null || unsettledOrders.isEmpty()) {
         return SettlementProcessResult.skipped(storeId, null, "정산 대상 주문이 없습니다.");
@@ -93,19 +92,36 @@ public class SettlementService {
       }
 
       // 정산 생성, 기본값으로 생성, complete 시 삽입
-      settlement = settlementTransactionalManager.start(setSettlement(storeId, settlementMonth, period, account.get()));
+      settlement =
+          settlementTransactionalManager.start(
+              setSettlement(storeId, settlementMonth, period, account.get()));
     }
 
     try {
+      // 재시도인 경우만 매장 주문 내역 가져옮, 아닌 경우 상단 else문에서 가져온 주문 내역 사용
+      if (retry) {
+        SettlementPeriod period = SettlementPeriod.from(settlementMonth);
+
+        // Order로부터 매장 주문 내역 가져오기
+        List<SettlementOrderData> orders =
+            settlementOrderReader.readSettlementOrders(
+                storeId, period.periodStart(), period.periodEnd());
+
+        // 이미 처리된 주문 제거
+        unsettledOrders = excludeSettledOrders(orders);
+      }
       // 계산 오류, 제약조건 오류, DB 커넥션 오류 시에만 fail로 저장
-      List<OrderSettlementAmount> calculatedOrders = calculateOrders(storeId, settlementMonth);
+      List<OrderSettlementAmount> calculatedOrders =
+          unsettledOrders.stream()
+              .map(order -> calculateOrder(order, SettlementCalculator.DEFAULT_FEE_RATE))
+              .toList();
 
       settlementTransactionalManager.complete(settlement.getId(), calculatedOrders);
 
-      return retry ? SettlementProcessResult.retried(storeId, settlement.getId())
-              : SettlementProcessResult.created(storeId, settlement.getId());
-    }
-    catch (Exception e) {
+      return retry
+          ? SettlementProcessResult.retried(storeId, settlement.getId())
+          : SettlementProcessResult.created(storeId, settlement.getId());
+    } catch (Exception e) {
       String failureReason = extractFailureReason(e);
 
       settlementTransactionalManager.fail(settlement.getId(), failureReason);
@@ -132,14 +148,24 @@ public class SettlementService {
     Long storeId = settlementStoreReader.readStoreIdByMemberId(memberId);
 
     Settlement settlement =
-            settlementRepository
-                    .findByIdAndStoreId(settlementId, storeId)
-                    .orElseThrow(
-                            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "정산 정보를 찾을 수 없습니다."));
+        settlementRepository
+            .findByIdAndStoreId(settlementId, storeId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "정산 정보를 찾을 수 없습니다."));
 
     List<SettlementDetail> details = settlementDetailRepository.findAllBySettlementId(settlementId);
 
     return SettlementDetailResponse.of(settlement, details);
+  }
+
+  public List<Long> excludeSettledStore(List<Long> storeIds) {
+    if (storeIds == null || storeIds.isEmpty()) {
+      return List.of();
+    }
+
+    Set<Long> settledStoreIds = settlementRepository.findSettledStoreIds(storeIds);
+
+    return storeIds.stream().filter(storeId -> !settledStoreIds.contains(storeId)).toList();
   }
 
   private List<SettlementOrderData> excludeSettledOrders(List<SettlementOrderData> orders) {
@@ -148,48 +174,32 @@ public class SettlementService {
     }
 
     Set<Long> settledOrderIds =
-            settlementDetailRepository.findSettledOrderIds(
-                    orders.stream().map(SettlementOrderData::orderId).toList());
+        settlementDetailRepository.findSettledOrderIds(
+            orders.stream().map(SettlementOrderData::orderId).toList());
 
     return orders.stream().filter(order -> !settledOrderIds.contains(order.orderId())).toList();
   }
 
   // 정산 start 세팅
   private Settlement setSettlement(
-          Long storeId,
-          YearMonth settlementMonth,
-          SettlementPeriod period,
-          SettlementAccountData account) {
+      Long storeId,
+      YearMonth settlementMonth,
+      SettlementPeriod period,
+      SettlementAccountData account) {
 
     return new Settlement(
-            storeId,
-            settlementMonth,
-            period.periodStart(),
-            period.periodEnd(),
-            0,
-            0,
-            SettlementCalculator.DEFAULT_FEE_RATE,
-            0,
-            0,
-            account.bankName(),
-            account.accountNumber(),
-            account.accountHolder());
-  }
-
-  // 각 주문을 수수료 계산(정산)하여 리스트로 반환
-  private List<OrderSettlementAmount> calculateOrders(Long storeId, YearMonth settlementMonth) {
-    BigDecimal feeRate = SettlementCalculator.DEFAULT_FEE_RATE;
-
-    SettlementPeriod period = SettlementPeriod.from(settlementMonth);
-
-    // Order로부터 매장 주문 내역 가져오기
-    List<SettlementOrderData> orders =
-            settlementOrderReader.readSettlementOrders(storeId, period.periodStart(), period.periodEnd());
-
-    // 이미 처리된 주문 제거
-    List<SettlementOrderData> unsettledOrders = excludeSettledOrders(orders);
-
-    return unsettledOrders.stream().map(order -> calculateOrder(order, feeRate)).toList();
+        storeId,
+        settlementMonth,
+        period.periodStart(),
+        period.periodEnd(),
+        0,
+        0,
+        SettlementCalculator.DEFAULT_FEE_RATE,
+        0,
+        0,
+        account.bankName(),
+        account.accountNumber(),
+        account.accountHolder());
   }
 
   // 각 주문 수수료 계산
@@ -197,10 +207,10 @@ public class SettlementService {
     long feeAmount = settlementCalculator.calculateFeeAmount(order.salesAmount(), feeRate);
 
     long settlementAmount =
-            settlementCalculator.calculateSettlementAmount(order.salesAmount(), feeAmount);
+        settlementCalculator.calculateSettlementAmount(order.salesAmount(), feeAmount);
 
     return new OrderSettlementAmount(
-            order, order.salesAmount(), feeRate, feeAmount, settlementAmount);
+        order, order.salesAmount(), feeRate, feeAmount, settlementAmount);
   }
 
   private String extractFailureReason(Exception exception) {
@@ -210,8 +220,6 @@ public class SettlementService {
       cause = cause.getCause();
     }
 
-    return cause.getMessage() == null
-            ? cause.getClass().getSimpleName()
-            : cause.getMessage();
+    return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
   }
 }

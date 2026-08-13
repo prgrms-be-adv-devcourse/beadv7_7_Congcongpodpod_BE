@@ -35,29 +35,40 @@ public class MonthlySettlementTasklet implements Tasklet {
 
     List<Long> storeIds = settlementStoreReader.readSettlementTargetStoreIds();
 
+    List<Long> unsettledStoreIds = settlementService.excludeSettledStore(storeIds);
+
     int createdCount = 0;
     int retriedCount = 0;
     int skippedCount = 0;
     int failedCount = 0;
 
-    for (Long storeId : storeIds) {
+    for (Long storeId : unsettledStoreIds) {
       try {
-        SettlementProcessResult result = settlementService.processMonthlySettlement(storeId, settlementMonth);
+        SettlementProcessResult result =
+            settlementService.processMonthlySettlement(storeId, settlementMonth);
 
-        switch (result.status()){
+        switch (result.status()) {
           case CREATED -> createdCount++;
           case RETRIED -> retriedCount++;
           case SKIPPED -> skippedCount++;
           case FAILED -> failedCount++;
         }
 
-        log.info("매장별 월 정산 처리 결과. storeId={}, settlementId={}, settlementMonth={}, status={}, message={}",
-                result.storeId(), result.settlementId(), settlementMonth, result.status(), result.message());
-      }
-      catch (RuntimeException exception) {
+        log.info(
+            "매장별 월 정산 처리 결과. storeId={}, settlementId={}, settlementMonth={}, status={}, message={}",
+            result.storeId(),
+            result.settlementId(),
+            settlementMonth,
+            result.status(),
+            result.message());
+      } catch (RuntimeException exception) {
         failedCount++;
 
-        log.error("월 정산 처리 중 처리되지 않은 오류 발생. storeId={}, settlementMonth={}", storeId, settlementMonth, exception);
+        log.error(
+            "월 정산 처리 중 처리되지 않은 오류 발생. storeId={}, settlementMonth={}",
+            storeId,
+            settlementMonth,
+            exception);
       }
     }
     var context = contribution.getStepExecution().getExecutionContext();
@@ -68,8 +79,14 @@ public class MonthlySettlementTasklet implements Tasklet {
     context.putInt("skippedStoreCount", skippedCount);
     context.putInt("failedStoreCount", failedCount);
 
-    log.info("월 정산 배치 완료. settlementMonth={}, targetCount={}, createdCount={}, retriedCount={}, skippedCount={}, failedCount={}",
-            settlementMonth, storeIds.size(), createdCount, retriedCount, skippedCount, failedCount);
+    log.info(
+        "월 정산 배치 완료. settlementMonth={}, targetCount={}, createdCount={}, retriedCount={}, skippedCount={}, failedCount={}",
+        settlementMonth,
+        storeIds.size(),
+        createdCount,
+        retriedCount,
+        skippedCount,
+        failedCount);
 
     return RepeatStatus.FINISHED;
   }
