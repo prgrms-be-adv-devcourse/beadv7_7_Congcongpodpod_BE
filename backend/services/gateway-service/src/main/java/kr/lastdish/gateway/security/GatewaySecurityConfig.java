@@ -80,6 +80,7 @@ public class GatewaySecurityConfig {
                     // 로그아웃과 회원·장바구니·주문·결제·입금(예치금) 기능은 회원과 판매자 모두 이용한다.
                     .pathMatchers(
                         "/api/v1/auth/logout",
+                        "/api/v1/auth/withdraw",
                         "/api/v1/members/**",
                         "/api/v1/carts/**",
                         "/api/v1/orders/**",

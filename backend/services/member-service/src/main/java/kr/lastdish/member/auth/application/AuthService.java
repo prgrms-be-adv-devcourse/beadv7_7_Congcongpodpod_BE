@@ -109,9 +109,13 @@ public class AuthService {
     // 1. 인가 코드로 카카오 Access Token 발급 및 유저 정보 조회
     KakaoUserInfoResponse userInfo = kakaoOAuthClient.getKakaoUserInfo(code);
 
-    String email = userInfo.email();
-    String name = userInfo.nickname();
     String socialId = String.valueOf(userInfo.id());
+    // 이메일 null 방지: 이메일이 없으면 카카오 소셜ID 기반 임시 이메일 생성
+    String email =
+        (userInfo.email() != null && !userInfo.email().isBlank())
+            ? userInfo.email()
+            : "kakao_" + socialId + "@kakao.user";
+    String name = userInfo.nickname();
 
     // 2. 이메일 혹은 소셜 ID로 기존 회원 조회 (없으면 자동 회원가입)
     Member member =
@@ -184,7 +188,12 @@ public class AuthService {
 
   @Transactional
   public void withdraw(String accessToken, Long memberId) {
+
     // 1. 회원 조회
+    if (memberId == null) {
+      throw new IllegalArgumentException("회원 ID가 존재하지 않습니다.");
+    }
+
     Member member =
         memberRepository
             .findById(memberId)

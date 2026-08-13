@@ -1,6 +1,10 @@
 package kr.lastdish.member.auth.infrastructure.client;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.application.dto.KakaoUserInfoResponse;
+import kr.lastdish.member.auth.exception.AuthErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -8,6 +12,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
+@Slf4j
 @Component
 public class KakaoOAuthClient {
 
@@ -50,36 +55,55 @@ public class KakaoOAuthClient {
   public KakaoUserInfoResponse getKakaoUserInfo(String code) {
     String accessToken = getAccessToken(code);
     if (accessToken == null) {
-      throw new RuntimeException("카카오 Access Token 발급 실패");
+      throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
     }
 
-    return restClient
-        .get()
-        .uri("https://kapi.kakao.com/v2/user/me")
-        .header("Authorization", "Bearer " + accessToken)
-        .retrieve()
-        .body(KakaoUserInfoResponse.class);
+    try {
+      KakaoUserInfoResponse userInfo =
+          restClient
+              .get()
+              .uri("https://kapi.kakao.com/v2/user/me")
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .body(KakaoUserInfoResponse.class);
+
+      if (userInfo == null) {
+        throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
+      }
+
+      return userInfo;
+    } catch (BusinessException e) {
+      throw e;
+    } catch (Exception e) {
+      log.error("[Kakao OAuth] 유저 정보 조회 실패: {}", e.getMessage());
+      throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
+    }
   }
 
   public void unlink(String socialId) {
-    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-    params.add("target_id_type", "user_id");
-    params.add("target_id", socialId);
+    if (socialId == null || socialId.isBlank()) return;
 
     try {
+      MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+      params.add("target_id_type", "user_id");
+      params.add("target_id", socialId);
+
       restClient
           .post()
           .uri("https://kapi.kakao.com/v1/user/unlink")
           .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-          .header("Authorization", "KakaoAK " + adminKey) // Admin Key 인증 방식
+          .header("Authorization", "KakaoAK " + adminKey)
           .body(params)
           .retrieve()
           .toBodilessEntity();
     } catch (Exception e) {
-      throw new RuntimeException("카카오 연결 끊기 실패: " + e.getMessage(), e);
+      log.error("카카오 unlink 처리 중 예외 무시: {}", e.getMessage());
     }
   }
 
   private record KakaoTokenResponse(
-      String accessToken, String tokenType, String refreshToken, Integer expiresIn) {}
+      @JsonProperty("access_token") String accessToken,
+      @JsonProperty("token_type") String tokenType,
+      @JsonProperty("refresh_token") String refreshToken,
+      @JsonProperty("expires_in") Integer expiresIn) {}
 }
