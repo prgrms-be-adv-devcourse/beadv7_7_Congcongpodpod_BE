@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.presentation.dto;
+package kr.lastdish.core.order.presentation.dto.response;
 
 import kr.lastdish.core.order.application.dto.OrderRejectResult;
 import kr.lastdish.core.order.domain.OrderStatus;
