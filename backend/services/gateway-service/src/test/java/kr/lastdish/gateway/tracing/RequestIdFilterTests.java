@@ -70,7 +70,12 @@ class RequestIdFilterTests {
                 .build());
     CapturingFilterChain chain = new CapturingFilterChain();
 
-    StepVerifier.create(filter.filter(originalExchange, chain)).verifyComplete();
+    // 응답 헤더는 커밋 시점에 확정되므로, 실제 응답이 나가는 시점을 재현하기 위해 setComplete까지 이어서 실행한다.
+    StepVerifier.create(
+            filter
+                .filter(originalExchange, chain)
+                .then(originalExchange.getResponse().setComplete()))
+        .verifyComplete();
 
     // GatewayGlobalExceptionHandler는 mutate() 이전의 원본 exchange를 들고 있으므로, 그 attribute·응답 헤더가
     // 그대로 보이는지 검증한다. mutate()가 반환하는 decorator가 getAttributes()/getResponse()를 원본 exchange에
@@ -79,6 +84,31 @@ class RequestIdFilterTests {
         .isEqualTo("edge-abc-123");
     assertThat((String) originalExchange.getAttribute(RequestIdSupport.KEY))
         .isEqualTo("edge-abc-123");
+  }
+
+  @Test
+  void 하위_서비스_응답이_같은_헤더를_실어보내도_한_번만_남는다() {
+    ServerWebExchange originalExchange =
+        MockServerWebExchange.from(
+            MockServerHttpRequest.get("/api/v1/stores/1")
+                .header(RequestIdSupport.HEADER_NAME, "edge-abc-123")
+                .build());
+
+    // Gateway가 하위 서비스 응답을 프록시하며 같은 이름의 헤더를 그대로 실어 보내는 상황을 재현한다.
+    WebFilterChain chainThatEchoesDownstreamHeader =
+        exchange -> {
+          exchange.getResponse().getHeaders().add(RequestIdSupport.HEADER_NAME, "edge-abc-123");
+          return Mono.empty();
+        };
+
+    StepVerifier.create(
+            filter
+                .filter(originalExchange, chainThatEchoesDownstreamHeader)
+                .then(originalExchange.getResponse().setComplete()))
+        .verifyComplete();
+
+    assertThat(originalExchange.getResponse().getHeaders().get(RequestIdSupport.HEADER_NAME))
+        .containsExactly("edge-abc-123");
   }
 
   private CapturingFilterChain filterWithRequest(MockServerHttpRequest.BaseBuilder<?> builder) {
