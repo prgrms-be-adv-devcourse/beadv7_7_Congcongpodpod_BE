@@ -3,6 +3,7 @@ package kr.lastdish.core.settlement.application;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -28,16 +29,6 @@ public class SettlementService {
   private final SettlementTransactionalManager settlementTransactionalManager;
 
   /*
-   * 한 매장의 월 정산을 하나의 독립된 트랜잭션으로 생성합니다.
-   *
-   * Settlement 또는 SettlementDetail 저장 중 예외가 발생하면
-   * 해당 매장의 정산 데이터 전체가 롤백됩니다.
-   * Failed의 경우 정산 데이터가 쌓이지 않음
-   *
-   * -> 기본 구현 후 재처리 방식 변경, 진행 상황부터 이어서 정산되도록
-   *
-   * -------------------------------------------------------------------
-   *
    * 재처리 방식 개선, 실패 결과는 저장되고 정산 재시도 시 재반영
    * 정산 시작 시 매장의 정산 상태를 Processing으로 저장
    * Detail 저장 중 예외 발생 시 매장의 정산 상태는 Failed로 변경, Detail만 롤백
@@ -45,13 +36,12 @@ public class SettlementService {
    *
    * Transactional 범위 변경
    * 매장별 트랜잭션 -> 매장의 각각의 DB 변경은 별도의 트랜잭션으로 분리
+   * -> 정산의 상태 관리를 위함, 현재 구조 상 실패할 일이 적으나,
+   *    추후 서비스가 커졌을 때 타 모듈, 서비스와의 통신 오류나 실패 원인별 세부 처리를 위해
+   *    정산의 상태를 DB에 적재하기 위함
    *
-   * -------------------------------------------------------------------
-   *
-   * 실패 재처리 로직 분리, processMonthlySettlement는 최초 정산만 실행
-   * retryMonthlySettlement는 failed 건에 대해서만 가져와 재처리 진행
-   * 최초 정산은 1회만, 그 외는 failed 재처리 최대 3회 실행
-   * 모든 배치 완료 후 처리되지 않는 실패 건은 운영에서 처리
+   * DB 커넥션 및 계산 결과 오류 시 failed 처리 -> 재시도 시 성공 가능
+   * 정산 계좌 미등록의 경우 정산하지 않고 로그만 출력하여 관리 -> 계좌 미등록 상태가 유지된다면 재시도 시 실패
    */
 
   public SettlementProcessResult processMonthlySettlement(Long storeId, YearMonth settlementMonth) {
@@ -71,7 +61,7 @@ public class SettlementService {
       }
 
       if (existing.getSettlementStatus() == SettlementStatus.PROCESSING) {
-        return SettlementProcessResult.skipped(storeId, existing.getId(), "현재 처리 중인 정산입니다.");
+        return SettlementProcessResult.skipped(storeId, existing.getId(), "현재 처리 중이거나 복구 확인이 필요한 정산입니다.");
         // 정산이 시작되지 않았거나 Failed 상태인 정산만 시도하기 위해 Processing을 skip하는 로직을 추가했지만,
         // Processing 상태로 재시도될 경우가 있을까,,
         // -> Processing에서 상태 변경이 되지 않고 오류 발생 시밖에 없음, 이 부분은 수동 혹은 스케줄러 처리 필요
@@ -84,7 +74,7 @@ public class SettlementService {
       // 해당 정산 없음, 정산 생성
       SettlementPeriod period = SettlementPeriod.from(settlementMonth);
 
-      // Order로부터 매장 주문 내역 가져오기, 오류 발생 시 fail 저장 안됨 -> 처리 필요, Tasklet으로 전파 가능
+      // Order로부터 매장 주문 내역 가져오기
       List<SettlementOrderData> orders =
               settlementOrderReader.readSettlementOrders(storeId, period.periodStart(), period.periodEnd());
 
@@ -95,15 +85,19 @@ public class SettlementService {
         return SettlementProcessResult.skipped(storeId, null, "정산 대상 주문이 없습니다.");
       }
 
-      // 오류 발생 시 fail 저장 안됨, Tasklet으로 전파 가능 -> 처리 필요
-      SettlementAccountData account = settlementStoreReader.readAccountByStoreId(storeId)
-                      .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "정산 계좌가 등록되지 않았습니다. storeId=" + storeId));
+      Optional<SettlementAccountData> account = settlementStoreReader.readAccountByStoreId(storeId);
+
+      // 정산 계좌 미등록은 정산 처리 실패가 아닌 정산 조건 미충족으로 skip
+      if (account.isEmpty()) {
+        return SettlementProcessResult.skipped(storeId, null, "정산 계좌가 등록되지 않았습니다.");
+      }
 
       // 정산 생성, 기본값으로 생성, complete 시 삽입
-      settlement = settlementTransactionalManager.start(setSettlement(storeId, settlementMonth, period, account));
+      settlement = settlementTransactionalManager.start(setSettlement(storeId, settlementMonth, period, account.get()));
     }
 
     try {
+      // 계산 오류, 제약조건 오류, DB 커넥션 오류 시에만 fail로 저장
       List<OrderSettlementAmount> calculatedOrders = calculateOrders(storeId, settlementMonth);
 
       settlementTransactionalManager.complete(settlement.getId(), calculatedOrders);
