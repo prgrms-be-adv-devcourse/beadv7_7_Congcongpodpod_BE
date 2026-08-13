@@ -12,6 +12,19 @@ management:
       # 모든 JVM·HTTP 메트릭에 서비스명을 붙여 Grafana에서 서비스별로 구분합니다.
       application: ${spring.application.name}
 
+spring:
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: kr.lastdish.common.event
+        spring.json.value.default.type: kr.lastdish.common.event.EventMessage
+        spring.json.use.type.headers: false
+
 springdoc:
   api-docs:
     enabled: false

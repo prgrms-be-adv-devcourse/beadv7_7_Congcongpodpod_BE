@@ -1,14 +1,17 @@
 package kr.lastdish.core.dish.application;
 
-import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
+import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +19,22 @@ public class DishFacade {
 
   private final DishRepository dishRepository;
   private final DishService dishService;
+  private final StoreService storeService;
+
+  @Transactional
+  public DishResponse createDish(DishCreateRequest request) {
+    storeService.validateDishPickupTime(
+        request.storeId(), request.pickupStartTime(), request.pickupEndTime());
+    return dishService.createDish(request);
+  }
+
+  @Transactional
+  public DishResponse updateDish(Long dishId, DishUpdateRequest request) {
+    Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
+    storeService.validateDishPickupTime(
+        dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
+    return dishService.updateDish(dishId, request);
+  }
 
   /**
    * 조회 가능한(판매중) Dish의 스냅샷을 가져온다.
@@ -53,14 +72,5 @@ public class DishFacade {
 
   public void increaseStock(Long dishId, Long quantity) {
     dishService.increaseStock(dishId, quantity);
-  }
-
-  public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
-    return dishService.getOnSaleDishesByStoreId(storeId);
-  }
-
-  // Seller 상품관리용 조회 — 소유권 검증은 호출자(Store 컨텍스트)의 책임이다.
-  public DishResponse getDishByStoreId(Long storeId) {
-    return dishService.getDishByStoreId(storeId);
   }
 }

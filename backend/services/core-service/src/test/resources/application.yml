@@ -6,6 +6,11 @@ spring:
       enabled: false
   flyway:
     enabled: false
+  kafka:
+    admin:
+      auto-create: false
+    listener:
+      auto-startup: false
 
 services:
   member:
@@ -19,6 +24,8 @@ management:
 
 event:
   publisher: spring
+  kafka:
+    listener-auto-startup: false
 
 outbox:
   scheduler:

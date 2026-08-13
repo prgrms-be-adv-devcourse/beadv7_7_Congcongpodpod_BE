@@ -1,6 +1,7 @@
 package kr.lastdish.core.store.infrastructure;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.store.domain.Category;
@@ -84,5 +85,10 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   @Override
   public List<Long> findAllActiveStoreIds() {
     return storeJpaRepository.findAllActiveStoreIds();
+  }
+
+  @Override
+  public List<Long> findStoreIdsReadyToClose(LocalDateTime now) {
+    return storeJpaRepository.findStoreIdsReadyToClose(now);
   }
 }

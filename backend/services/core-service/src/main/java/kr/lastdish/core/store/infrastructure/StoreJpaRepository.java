@@ -1,6 +1,7 @@
 package kr.lastdish.core.store.infrastructure;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.store.domain.Category;
@@ -65,4 +66,16 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
         WHERE store.deleted IS false
         """)
   List<Long> findAllActiveStoreIds();
+
+  // 마감 대상 매장을 매장별 트랜잭션에서 처리할 수 있도록 ID만 조회한다.
+  @Query(
+      """
+      SELECT store.id
+      FROM Store store
+      WHERE store.deleted IS false
+        AND store.status = "OPEN"
+        AND store.nextClosingAt <= :now
+      ORDER BY store.id
+      """)
+  List<Long> findStoreIdsReadyToClose(@Param("now") LocalDateTime now);
 }

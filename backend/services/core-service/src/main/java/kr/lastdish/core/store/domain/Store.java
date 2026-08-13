@@ -3,6 +3,8 @@ package kr.lastdish.core.store.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,9 @@ public class Store {
   @Column(name = "close_time", nullable = false)
   private LocalTime closeTime;
 
+  @Column(name = "next_closing_at")
+  private LocalDateTime nextClosingAt;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false)
   private StoreStatus status;
@@ -80,6 +85,7 @@ public class Store {
     this.storePhone = storePhone;
     this.openTime = openTime;
     this.closeTime = closeTime;
+    this.nextClosingAt = calculateNextClosingAt(LocalDateTime.now());
     this.latitude = latitude;
     this.longitude = longitude;
     this.category = category;
@@ -115,6 +121,38 @@ public class Store {
     holidays.clear();
 
     daysOfWeek.forEach(this::addHoliday);
+  }
+
+  /** 영업시간과 정기 휴무일을 기준으로 기준 시각 이후의 가장 가까운 마감 일시를 계산한다. */
+  public void rescheduleNextClosingAt(LocalDateTime from) {
+    this.nextClosingAt = calculateNextClosingAt(from);
+  }
+
+  private LocalDateTime calculateNextClosingAt(LocalDateTime from) {
+    LocalDate firstBusinessDate = from.toLocalDate().minusDays(1);
+
+    for (int dayOffset = 0; dayOffset < 8; dayOffset++) {
+      LocalDate businessDate = firstBusinessDate.plusDays(dayOffset);
+      if (isHoliday(businessDate.getDayOfWeek())) {
+        continue;
+      }
+
+      LocalDateTime closingAt = businessDate.atTime(closeTime);
+      if (!closeTime.isAfter(openTime)) {
+        closingAt = closingAt.plusDays(1);
+      }
+
+      if (closingAt.isAfter(from)) {
+        return closingAt;
+      }
+    }
+
+    // 모든 요일이 휴무일인 매장은 자동 마감 대상이 없다.
+    return null;
+  }
+
+  private boolean isHoliday(DayOfWeek dayOfWeek) {
+    return holidays.stream().anyMatch(holiday -> holiday.getDayOfWeek() == dayOfWeek);
   }
 
   public boolean isOwnedBy(Long memberId) {
