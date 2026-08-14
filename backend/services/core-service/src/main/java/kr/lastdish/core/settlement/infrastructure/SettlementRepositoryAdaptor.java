@@ -61,4 +61,9 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
 
     return new HashSet<>(jpaSettlementRepository.findSettledStoreIds(storeIds));
   }
+
+  @Override
+  public void truncateAllSettlementData() {
+    jpaSettlementRepository.truncateAllSettlementData();
+  }
 }
