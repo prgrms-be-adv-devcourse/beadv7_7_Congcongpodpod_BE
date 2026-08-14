@@ -9,6 +9,8 @@ import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.*;
+import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -24,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderPickedUpEventWriter orderPickedUpEventWriter;
+  private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
   private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
@@ -119,11 +123,25 @@ public class OrderService {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
 
     switch (command.status()) {
-      case PICKED_UP -> order.completePickup();
-      case NO_SHOW -> order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
+      case PICKED_UP -> {
+        order.completePickup(LocalDateTime.now(BUSINESS_ZONE));
+      }
+      case NO_SHOW -> {
+        order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
+      }
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
-    orderStatusChangedEventWriter.append(order);
+
+    long aggregateVersion = order.nextEventVersion();
+    orderStatusChangedEventWriter.append(order, aggregateVersion);
+
+    if (command.status() == OrderStatus.PICKED_UP) {
+      // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
+      // orderPickedUpEventWriter.append(order, aggregateVersion);
+    } else if (command.status() == OrderStatus.NO_SHOW) {
+      // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
+      // orderNoShowEventWriter.append(order, aggregateVersion);
+    }
 
     return PickupStatusResult.from(order);
   }

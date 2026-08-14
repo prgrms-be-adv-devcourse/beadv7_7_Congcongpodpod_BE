@@ -12,7 +12,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
-import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.OrderMemberInfo;
@@ -20,6 +19,8 @@ import kr.lastdish.core.order.application.dto.OrderReceptionResult;
 import kr.lastdish.core.order.application.dto.OrderResult;
 import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
+import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -40,6 +41,10 @@ class OrderServiceTest {
   @Mock private OrderRepository orderRepository;
 
   @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+
+  @Mock private OrderPickedUpEventWriter orderPickedUpEventWriter;
+
+  @Mock private OrderNoShowEventWriter orderNoShowEventWriter;
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
@@ -211,6 +216,7 @@ class OrderServiceTest {
     Long orderId = 1L;
     Order order = mock(Order.class);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.nextEventVersion()).thenReturn(7L);
 
     PickupStatusResult response =
         orderService.updatePickupStatus(
@@ -218,7 +224,10 @@ class OrderServiceTest {
 
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(orderStatusChangedEventWriter).append(order);
+    verify(order).completePickup(any(LocalDateTime.class));
+    verify(order).nextEventVersion();
+    verify(orderStatusChangedEventWriter).append(order, 7L);
+    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
@@ -226,6 +235,7 @@ class OrderServiceTest {
     Long orderId = 1L;
     Order order = mock(Order.class);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.nextEventVersion()).thenReturn(7L);
 
     PickupStatusResult response =
         orderService.updatePickupStatus(
@@ -234,28 +244,23 @@ class OrderServiceTest {
     assertThat(response).isNotNull();
     verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order).markNoShow(any(LocalDateTime.class));
-    verify(order, never()).completePickup();
-    verify(orderStatusChangedEventWriter).append(order);
+    verify(order, never()).completePickup(any(LocalDateTime.class));
+    verify(order).nextEventVersion();
+    verify(orderStatusChangedEventWriter).append(order, 7L);
+    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
   void updatePickupStatus_invalidStatus() {
-    Long orderId = 1L;
-    Order order = mock(Order.class);
-    when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    assertThatThrownBy(() -> new UpdatePickupStatusCommand(OrderStatus.RESERVED))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("픽업 상태는 PICKED_UP 또는 NO_SHOW만 가능합니다.");
 
-    assertThatThrownBy(
-            () ->
-                orderService.updatePickupStatus(
-                    orderId, new UpdatePickupStatusCommand(OrderStatus.RESERVED)))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(CommonErrorCode.INVALID_STATE);
-
-    verify(orderRepository).findWithLockByIdAndIsDeletedFalse(orderId);
-    verify(order, never()).completePickup();
-    verify(order, never()).markNoShow(any(LocalDateTime.class));
-    verifyNoInteractions(orderStatusChangedEventWriter);
+    verifyNoInteractions(
+        orderRepository,
+        orderStatusChangedEventWriter,
+        orderPickedUpEventWriter,
+        orderNoShowEventWriter);
   }
 
   @Test

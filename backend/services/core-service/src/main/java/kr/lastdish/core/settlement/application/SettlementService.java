@@ -3,13 +3,12 @@ package kr.lastdish.core.settlement.application;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
-import kr.lastdish.core.settlement.application.dto.SettlementAccountData;
-import kr.lastdish.core.settlement.application.dto.SettlementCreateResult;
-import kr.lastdish.core.settlement.application.dto.SettlementOrderData;
-import kr.lastdish.core.settlement.application.dto.SettlementPeriod;
+import kr.lastdish.core.settlement.application.batch.SettlementTransactionalManager;
+import kr.lastdish.core.settlement.application.dto.*;
 import kr.lastdish.core.settlement.domain.*;
 import kr.lastdish.core.settlement.presentation.dto.SettlementDetailResponse;
 import kr.lastdish.core.settlement.presentation.dto.SettlementResponse;
@@ -17,77 +16,118 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class SettlementService {
   private final SettlementCalculator settlementCalculator;
   private final SettlementOrderReader settlementOrderReader;
   private final SettlementRepository settlementRepository;
   private final SettlementDetailRepository settlementDetailRepository;
   private final SettlementStoreReader settlementStoreReader;
+  private final SettlementTransactionalManager settlementTransactionalManager;
 
   /*
-   * 한 매장의 월 정산을 하나의 독립된 트랜잭션으로 생성합니다.
+   * 재처리 방식 개선, 실패 결과는 저장되고 정산 재시도 시 재반영
+   * 정산 시작 시 매장의 정산 상태를 Processing으로 저장
+   * Detail 저장 중 예외 발생 시 매장의 정산 상태는 Failed로 변경, Detail만 롤백
+   * 각 매장의 정산 결과를 log로 출력
    *
-   * Settlement 또는 SettlementDetail 저장 중 예외가 발생하면
-   * 해당 매장의 정산 데이터 전체가 롤백됩니다.
-   * Failed의 경우 정산 데이터가 쌓이지 않음
+   * Transactional 범위 변경
+   * 매장별 트랜잭션 -> 매장의 각각의 DB 변경은 별도의 트랜잭션으로 분리
+   * -> 정산의 상태 관리를 위함, 현재 구조 상 실패할 일이 적으나,
+   *    추후 서비스가 커졌을 때 타 모듈, 서비스와의 통신 오류나 실패 원인별 세부 처리를 위해
+   *    정산의 상태를 DB에 적재하기 위함
    *
-   * -> 기본 구현 후 재처리 방식 변경, 진행 상황부터 이어서 정산되도록
+   * DB 커넥션 및 계산 결과 오류 시 failed 처리 -> 재시도 시 성공 가능
+   * 정산 계좌 미등록의 경우 정산하지 않고 로그만 출력하여 관리 -> 계좌 미등록 상태가 유지된다면 재시도 시 실패
    */
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public SettlementCreateResult createMonthlySettlement(Long storeId, YearMonth settlementMonth) {
-    // 이미 정산된 매장이면 skip
-    if (settlementRepository.existsByStoreIdAndSettlementMonth(storeId, settlementMonth)) {
-      return SettlementCreateResult.skipped(storeId);
+  public SettlementProcessResult processMonthlySettlement(Long storeId, YearMonth settlementMonth) {
+    // 이미 존재하는 정산이 있는지 조회
+    Settlement existing =
+        settlementRepository.findByStoreIdAndSettlementMonth(storeId, settlementMonth).orElse(null);
+
+    // 정산 시작 전 초기화
+    boolean retry = false;
+    Settlement settlement;
+    List<SettlementOrderData> unsettledOrders = null;
+
+    if (existing != null) {
+      // 정산이 이미 존재함 (Processing, Failed), Completed는 Tasklet에서 제거 후 정산 실행
+
+      if (existing.getSettlementStatus() == SettlementStatus.PROCESSING) {
+        return SettlementProcessResult.skipped(
+            storeId, existing.getId(), "현재 처리 중이거나 복구 확인이 필요한 정산입니다.");
+        // 정산이 시작되지 않았거나 Failed 상태인 정산만 시도하기 위해 Processing을 skip하는 로직을 추가했지만,
+        // Processing 상태로 재시도될 경우가 있을까,,
+        // -> Processing에서 상태 변경이 되지 않고 오류 발생 시밖에 없음, 이 부분은 수동 처리
+      }
+
+      // Failed 정산의 경우 재시도, 기존 정산을 상태 변경 후 settlement 변수에 할당
+      settlement = settlementTransactionalManager.restart(existing.getId());
+      retry = true;
+    } else {
+      // 해당 정산 없음, 정산 생성
+      SettlementPeriod period = SettlementPeriod.from(settlementMonth);
+
+      // Order로부터 매장 주문 내역 가져오기
+      List<SettlementOrderData> orders =
+          settlementOrderReader.readSettlementOrders(
+              storeId, period.periodStart(), period.periodEnd());
+
+      // 이미 처리된 주문 제거
+      unsettledOrders = excludeSettledOrders(orders);
+
+      if (unsettledOrders == null || unsettledOrders.isEmpty()) {
+        return SettlementProcessResult.skipped(storeId, null, "정산 대상 주문이 없습니다.");
+      }
+
+      Optional<SettlementAccountData> account = settlementStoreReader.readAccountByStoreId(storeId);
+
+      // 정산 계좌 미등록은 정산 처리 실패가 아닌 정산 조건 미충족으로 skip
+      if (account.isEmpty()) {
+        return SettlementProcessResult.skipped(storeId, null, "정산 계좌가 등록되지 않았습니다.");
+      }
+
+      // 정산 생성, 기본값으로 생성, complete 시 삽입
+      settlement =
+          settlementTransactionalManager.start(
+              setSettlement(storeId, settlementMonth, period, account.get()));
     }
 
-    SettlementPeriod period = SettlementPeriod.from(settlementMonth);
+    try {
+      // 재시도인 경우만 매장 주문 내역 가져옮, 아닌 경우 상단 else문에서 가져온 주문 내역 사용
+      if (retry) {
+        SettlementPeriod period = SettlementPeriod.from(settlementMonth);
 
-    // Order로부터 매장 주문 내역 가져오기
-    List<SettlementOrderData> orders =
-        settlementOrderReader.readSettlementOrders(
-            storeId, period.periodStart(), period.periodEnd());
+        // Order로부터 매장 주문 내역 가져오기
+        List<SettlementOrderData> orders =
+            settlementOrderReader.readSettlementOrders(
+                storeId, period.periodStart(), period.periodEnd());
 
-    // 이미 처리된 주문 제거
-    List<SettlementOrderData> unsettledOrders = excludeSettledOrders(orders);
+        // 이미 처리된 주문 제거
+        unsettledOrders = excludeSettledOrders(orders);
+      }
+      // 계산 오류, 제약조건 오류, DB 커넥션 오류 시에만 fail로 저장
+      List<OrderSettlementAmount> calculatedOrders =
+          unsettledOrders.stream()
+              .map(order -> calculateOrder(order, SettlementCalculator.DEFAULT_FEE_RATE))
+              .toList();
 
-    // 처리되지 않은 주문이 없다면 매장 skip
-    if (unsettledOrders.isEmpty()) {
-      return SettlementCreateResult.skipped(storeId);
+      settlementTransactionalManager.complete(settlement.getId(), calculatedOrders);
+
+      return retry
+          ? SettlementProcessResult.retried(storeId, settlement.getId())
+          : SettlementProcessResult.created(storeId, settlement.getId());
+    } catch (Exception e) {
+      String failureReason = extractFailureReason(e);
+
+      settlementTransactionalManager.fail(settlement.getId(), failureReason);
+
+      return SettlementProcessResult.failed(storeId, settlement.getId(), failureReason);
     }
-
-    SettlementAccountData account =
-        settlementStoreReader
-            .readAccountByStoreId(storeId)
-            .orElseThrow(
-                () ->
-                    new BusinessException(
-                        CommonErrorCode.ENTITY_NOT_FOUND, "정산 계좌가 등록되지 않았습니다. storeId=" + storeId));
-
-    List<OrderSettlementAmount> calculatedOrders = calculateOrders(unsettledOrders);
-
-    // 정산 생성
-    Settlement settlement =
-        createSettlement(storeId, settlementMonth, period, calculatedOrders, account);
-
-    Settlement savedSettlement = settlementRepository.save(settlement);
-
-    List<SettlementDetail> settlementDetails =
-        createSettlementDetails(savedSettlement, calculatedOrders);
-
-    settlementDetailRepository.saveAll(settlementDetails);
-
-    // 정산 완료 처리
-    savedSettlement.complete();
-
-    return SettlementCreateResult.created(
-        storeId, savedSettlement.getId(), settlementDetails.size());
   }
 
   @Transactional(readOnly = true)
@@ -118,6 +158,16 @@ public class SettlementService {
     return SettlementDetailResponse.of(settlement, details);
   }
 
+  public List<Long> excludeSettledStore(List<Long> storeIds) {
+    if (storeIds == null || storeIds.isEmpty()) {
+      return List.of();
+    }
+
+    Set<Long> settledStoreIds = settlementRepository.findSettledStoreIds(storeIds);
+
+    return storeIds.stream().filter(storeId -> !settledStoreIds.contains(storeId)).toList();
+  }
+
   private List<SettlementOrderData> excludeSettledOrders(List<SettlementOrderData> orders) {
     if (orders == null || orders.isEmpty()) {
       return List.of();
@@ -130,11 +180,26 @@ public class SettlementService {
     return orders.stream().filter(order -> !settledOrderIds.contains(order.orderId())).toList();
   }
 
-  // 각 주문을 수수료 계산(정산)하여 리스트로 반환
-  private List<OrderSettlementAmount> calculateOrders(List<SettlementOrderData> orders) {
-    BigDecimal feeRate = SettlementCalculator.DEFAULT_FEE_RATE;
+  // 정산 start 세팅
+  private Settlement setSettlement(
+      Long storeId,
+      YearMonth settlementMonth,
+      SettlementPeriod period,
+      SettlementAccountData account) {
 
-    return orders.stream().map(order -> calculateOrder(order, feeRate)).toList();
+    return new Settlement(
+        storeId,
+        settlementMonth,
+        period.periodStart(),
+        period.periodEnd(),
+        0,
+        0,
+        SettlementCalculator.DEFAULT_FEE_RATE,
+        0,
+        0,
+        account.bankName(),
+        account.accountNumber(),
+        account.accountHolder());
   }
 
   // 각 주문 수수료 계산
@@ -148,61 +213,13 @@ public class SettlementService {
         order, order.salesAmount(), feeRate, feeAmount, settlementAmount);
   }
 
-  // 정산 생성
-  private Settlement createSettlement(
-      Long storeId,
-      YearMonth settlementMonth,
-      SettlementPeriod period,
-      List<OrderSettlementAmount> calculatedOrders,
-      SettlementAccountData account) {
-    // 정산 전체 판매액 합산
-    long grossAmount =
-        calculatedOrders.stream().mapToLong(OrderSettlementAmount::salesAmount).sum();
+  private String extractFailureReason(Exception exception) {
+    Throwable cause = exception;
 
-    // 정산 전체 수수료 합산
-    long feeAmount = calculatedOrders.stream().mapToLong(OrderSettlementAmount::feeAmount).sum();
+    while (cause.getCause() != null) {
+      cause = cause.getCause();
+    }
 
-    // 정산 전체 정산액 합산
-    long settlementAmount =
-        calculatedOrders.stream().mapToLong(OrderSettlementAmount::settlementAmount).sum();
-
-    return new Settlement(
-        storeId,
-        settlementMonth,
-        period.periodStart(),
-        period.periodEnd(),
-        calculatedOrders.size(),
-        grossAmount,
-        SettlementCalculator.DEFAULT_FEE_RATE,
-        feeAmount,
-        settlementAmount,
-        account.bankName(),
-        account.accountNumber(),
-        account.accountHolder());
+    return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
   }
-
-  // 정산된 주문 리스트 -> 정산 내역으로 변환
-  private List<SettlementDetail> createSettlementDetails(
-      Settlement settlement, List<OrderSettlementAmount> calculatedOrders) {
-    return calculatedOrders.stream()
-        .map(
-            calculated ->
-                new SettlementDetail(
-                    settlement.getId(),
-                    calculated.order().orderId(),
-                    calculated.salesAmount(),
-                    calculated.feeAmount(),
-                    calculated.feeRate(),
-                    calculated.settlementAmount(),
-                    calculated.order().orderCompletedAt()))
-        .toList();
-  }
-
-  // 정산된 주문 데이터
-  private record OrderSettlementAmount(
-      SettlementOrderData order,
-      long salesAmount,
-      BigDecimal feeRate,
-      long feeAmount,
-      long settlementAmount) {}
 }
