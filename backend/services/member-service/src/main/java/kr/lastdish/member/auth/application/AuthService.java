@@ -4,16 +4,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.application.dto.*;
 import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
-import kr.lastdish.member.member.domain.Member;
-import kr.lastdish.member.member.domain.MemberId;
-import kr.lastdish.member.member.domain.MemberRepository;
-import kr.lastdish.member.member.domain.Role;
+import kr.lastdish.member.auth.infrastructure.client.KakaoOAuthClient;
+import kr.lastdish.member.member.domain.*;
 import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +32,7 @@ public class AuthService {
   private final TokenProvider tokenProvider;
   private final PasswordEncoder passwordEncoder;
   private final RedisTemplate<String, String> redisTemplate;
+  private final KakaoOAuthClient kakaoOAuthClient;
 
   @Transactional
   public SignUpResult signUp(SignUpCommand command) {
@@ -69,6 +69,11 @@ public class AuthService {
             .findByEmail(command.email())
             .orElseThrow(() -> new BusinessException(AuthErrorCode.EMAIL_NOT_FOUND));
 
+    // 소셜 가입 회원이 일반 로그인을 시도할 경우 차단
+    if (member.getProvider() != null && member.getProvider() != SocialProvider.LOCAL) {
+      throw new BusinessException(AuthErrorCode.SOCIAL_MEMBER_LOGIN_RESTRICTED);
+    }
+
     // 2. 비밀번호 검증 (비밀번호 불일치 -> 401)
     if (!passwordEncoder.matches(command.password(), member.getPassword())) {
       throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
@@ -103,6 +108,73 @@ public class AuthService {
   }
 
   @Transactional
+  public TokenResult kakaoLogin(String code) {
+    // 1. 인가 코드로 카카오 Access Token 발급 및 유저 정보 조회
+    KakaoUserInfoResponse userInfo = kakaoOAuthClient.getKakaoUserInfo(code);
+
+    String socialId = String.valueOf(userInfo.id());
+    String email =
+        (userInfo.email() != null && !userInfo.email().isBlank())
+            ? userInfo.email()
+            : "kakao_" + socialId + "@kakao.user";
+    String name = userInfo.nickname();
+
+    // 2. 이메일 혹은 소셜 ID로 기존 회원 조회 (없으면 자동 회원가입)
+    Member member =
+        memberRepository
+            .findByProviderAndProviderId(SocialProvider.KAKAO, socialId)
+            .orElseGet(
+                () -> {
+                  if (memberRepository.findByEmail(email).isPresent()) {
+                    throw new BusinessException(AuthErrorCode.KAKAO_EMAIL_ALREADY_REGISTERED);
+                  }
+
+                  String encodedRandomPassword =
+                      passwordEncoder.encode(UUID.randomUUID().toString());
+
+                  Member newMember =
+                      Member.builder()
+                          .userName("kakao_" + socialId)
+                          .password(encodedRandomPassword)
+                          .name(name != null ? name : "카카오사용자")
+                          .phone("010-0000-0000")
+                          .email(email)
+                          .role(Role.MEMBER)
+                          .provider(SocialProvider.KAKAO)
+                          .providerId(socialId)
+                          .build();
+
+                  return memberRepository.save(newMember);
+                });
+
+    // 3. 서비스 자체 JWT 토큰 생성
+    MemberId memberId = new MemberId(member.getId());
+    Role role = member.getRole();
+
+    String accessToken = tokenProvider.createAccessToken(memberId, role);
+    String refreshTokenValue = tokenProvider.createRefreshToken(memberId, role);
+
+    // 4. Refresh Token 해시화 및 DB 저장/갱신
+    String hashedRefreshToken = encryptSha256(refreshTokenValue);
+    LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
+
+    RefreshToken refreshToken =
+        refreshTokenRepository
+            .findByEmail(member.getEmail())
+            .orElse(
+                RefreshToken.builder()
+                    .email(member.getEmail())
+                    .token(hashedRefreshToken)
+                    .expiryDate(expiryDate)
+                    .build());
+
+    refreshToken.updateToken(hashedRefreshToken, expiryDate);
+    refreshTokenRepository.save(refreshToken);
+
+    return new TokenResult(accessToken, refreshTokenValue);
+  }
+
+  @Transactional
   public void logout(String accessToken, RefreshTokenCommand command) {
     String refreshToken = command.refreshToken();
 
@@ -120,14 +192,16 @@ public class AuthService {
 
     // 3. 통합 무효화 로직 사용 (Access Token 블랙리스트 + DB Refresh Token 삭제)
     invalidateTokens(accessToken, savedToken.getEmail());
-
-    // 4. 리프레시 토큰 엔티티 삭제
-    refreshTokenRepository.delete(savedToken);
   }
 
   @Transactional
   public void withdraw(String accessToken, Long memberId) {
+
     // 1. 회원 조회
+    if (memberId == null) {
+      throw new IllegalArgumentException("회원 ID가 존재하지 않습니다.");
+    }
+
     Member member =
         memberRepository
             .findById(memberId)
@@ -138,10 +212,19 @@ public class AuthService {
       throw new BusinessException(AuthErrorCode.ALREADY_WITHDRAWN_MEMBER);
     }
 
-    // 3. 토큰 무효화
+    // 3. 카카오 소셜 로그인 유저일 경우 카카오 측 연결 끊기
+    if (member.getProvider() == SocialProvider.KAKAO && member.getProviderId() != null) {
+      try {
+        kakaoOAuthClient.unlink(member.getProviderId());
+      } catch (Exception e) {
+        log.error("카카오 연결 해제 중 오류 발생 (회원 탈퇴는 계속 진행됩니다): {}", e.getMessage());
+      }
+    }
+
+    // 4. 토큰 무효화
     invalidateTokens(accessToken, member.getEmail());
 
-    // 4. 회원 탈퇴 처리
+    // 5. 회원 탈퇴 처리
     member.withdraw();
   }
 

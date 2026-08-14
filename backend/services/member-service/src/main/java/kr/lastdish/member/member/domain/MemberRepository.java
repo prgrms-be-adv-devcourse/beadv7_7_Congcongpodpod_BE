@@ -14,6 +14,8 @@ public interface MemberRepository {
 
   Optional<Member> findByEmail(String email);
 
+  Optional<Member> findByProviderAndProviderId(SocialProvider provider, String providerId);
+
   boolean existsByUserName(String userName);
 
   boolean existsByEmail(String email);

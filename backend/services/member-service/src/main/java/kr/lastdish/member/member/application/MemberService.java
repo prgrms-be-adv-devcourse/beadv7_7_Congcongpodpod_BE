@@ -4,6 +4,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
+import kr.lastdish.member.member.domain.SocialProvider;
 import kr.lastdish.member.member.exception.MemberErrorCode;
 import kr.lastdish.member.member.presentation.dto.MemberUpdateRequest;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,10 @@ public class MemberService {
     // 4. 비밀번호 변경 (값이 들어왔을 때만)
     String encodedPassword = null;
     if (requestDto.getPassword() != null && !requestDto.getPassword().isBlank()) {
+      // 소셜 로그인 회원은 비밀번호 변경 불가
+      if (member.getProvider() != null && member.getProvider() != SocialProvider.LOCAL) {
+        throw new BusinessException(MemberErrorCode.SOCIAL_MEMBER_CANNOT_CHANGE_PASSWORD);
+      }
       encodedPassword = passwordEncoder.encode(requestDto.getPassword());
     }
 

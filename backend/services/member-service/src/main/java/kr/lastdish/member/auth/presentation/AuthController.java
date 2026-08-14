@@ -65,4 +65,10 @@ public class AuthController {
     authService.withdraw(accessToken, memberId);
     return ApiResponse.ok();
   }
+
+  @PostMapping("/kakao")
+  public ApiResponse<TokenResponse> kakaoLogin(@RequestParam("code") String code) {
+    TokenResult result = authService.kakaoLogin(code);
+    return ApiResponse.ok(TokenResponse.from(result));
+  }
 }
