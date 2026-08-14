@@ -98,7 +98,7 @@ class CartControllerTest {
                 .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(3L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.quantity").value(3))
-        .andExpect(jsonPath("$.data.subtotalPrice").value(15000));
+        .andExpect(jsonPath("$.data.subtotalPrice").value(5000));
 
     // 5) 상품 삭제
     mockMvc

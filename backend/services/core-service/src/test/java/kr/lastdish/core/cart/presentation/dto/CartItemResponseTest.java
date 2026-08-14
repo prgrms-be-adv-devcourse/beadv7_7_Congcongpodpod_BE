@@ -12,7 +12,19 @@ class CartItemResponseTest {
   @Test
   void CartItem의_주문가능_상태를_응답에_포함한다() {
     // given
-    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 7L);
+    CartItem cartItem =
+        CartItem.create(
+            1L,
+            10L,
+            null,
+            "김치찌개",
+            BigDecimal.valueOf(8_000),
+            BigDecimal.valueOf(8_000),
+            BigDecimal.ZERO,
+            7L,
+            null,
+            null,
+            0L);
 
     cartItem.synchronizeDishState(true, 5L, 1L);
 

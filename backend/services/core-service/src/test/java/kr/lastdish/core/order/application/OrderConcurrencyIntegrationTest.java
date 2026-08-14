@@ -94,6 +94,8 @@ class OrderConcurrencyIntegrationTest {
                           dish.getStoreId(),
                           dish.getDishName(),
                           unitPrice,
+                          unitPrice,
+                          BigDecimal.ZERO,
                           quantity,
                           LocalTime.of(18, 0),
                           LocalTime.of(19, 0),

@@ -1,5 +1,6 @@
 package kr.lastdish.core.cart.application;
 
+import java.math.BigDecimal;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -45,6 +46,8 @@ public class CartService {
                       dish.storeId(),
                       dish.dishName(),
                       dish.unitPrice(),
+                      dish.totalPrice(),
+                      calculateSavedAmount(dish, quantity),
                       quantity,
                       dish.pickupStartAt(),
                       dish.pickupEndAt(),
@@ -60,6 +63,8 @@ public class CartService {
                             dish.storeId(),
                             dish.dishName(),
                             dish.unitPrice(),
+                            dish.totalPrice(),
+                            calculateSavedAmount(dish, quantity),
                             quantity,
                             dish.pickupStartAt(),
                             dish.pickupEndAt(),
@@ -87,9 +92,17 @@ public class CartService {
     CartItem cartItem = getCartItemOrThrow(cartId, itemId);
     DishSnapshot dish = getAvailableDishOrThrow(cartItem.getDishId(), request.quantity());
 
-    cartItem.changeQuantity(request.quantity(), dish.aggregateVersion());
+    cartItem.changeQuantity(
+        request.quantity(),
+        dish.totalPrice(),
+        calculateSavedAmount(dish, request.quantity()),
+        dish.aggregateVersion());
 
     return CartItemResponse.from(cartItem);
+  }
+
+  private static BigDecimal calculateSavedAmount(DishSnapshot dish, Long quantity) {
+    return dish.savedAmount().multiply(BigDecimal.valueOf(quantity));
   }
 
   // 장바구니에서 상품 하나를 뺀다.

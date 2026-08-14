@@ -86,6 +86,9 @@ public class Order {
   private BigDecimal unitPrice;
 
   @Column(nullable = false)
+  private BigDecimal savedAmount;
+
+  @Column(nullable = false)
   private String dishName;
 
   @Column(nullable = false)
@@ -112,6 +115,36 @@ public class Order {
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
       LocalDateTime pickupDeadline) {
+    return create(
+        memberId,
+        storeId,
+        dishId,
+        memberName,
+        phone,
+        dishName,
+        quantity,
+        unitPrice,
+        unitPrice.multiply(BigDecimal.valueOf(quantity)),
+        BigDecimal.ZERO,
+        pickupStartAt,
+        pickupEndAt,
+        pickupDeadline);
+  }
+
+  public static Order create(
+      Long memberId,
+      Long storeId,
+      Long dishId,
+      String memberName,
+      String phone,
+      String dishName,
+      Long quantity,
+      BigDecimal unitPrice,
+      BigDecimal totalPrice,
+      BigDecimal savedAmount,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
+      LocalDateTime pickupDeadline) {
     Order order = new Order();
     order.memberId = memberId;
     order.storeId = storeId;
@@ -123,7 +156,8 @@ public class Order {
     order.dishName = dishName;
     order.quantity = quantity;
     order.unitPrice = unitPrice;
-    order.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
+    order.totalPrice = totalPrice;
+    order.savedAmount = savedAmount;
     order.pickupStartAt = pickupStartAt;
     order.pickupEndAt = pickupEndAt;
     order.pickupDeadline = pickupDeadline;

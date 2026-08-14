@@ -43,7 +43,14 @@ public class Dish {
   @Column(nullable = false)
   private BigDecimal dishPrice;
 
+  @Column(nullable = false)
   private BigDecimal discountPrice;
+
+  @Column(nullable = false)
+  private BigDecimal totalPrice;
+
+  @Column(nullable = false)
+  private BigDecimal savedAmount;
 
   @Column(nullable = false)
   private LocalTime pickupStartTime;
@@ -79,6 +86,8 @@ public class Dish {
     dish.dishStatus = DishStatus.ON_SALE;
     dish.dishPrice = dishPrice;
     dish.discountPrice = discountPrice;
+    dish.totalPrice = discountPrice;
+    dish.savedAmount = dishPrice.subtract(discountPrice);
     dish.pickupStartTime = pickupStartTime;
     dish.pickupEndTime = pickupEndTime;
     dish.isDeleted = false;
@@ -103,6 +112,8 @@ public class Dish {
     this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
     this.discountPrice = discountPrice;
+    this.totalPrice = discountPrice;
+    this.savedAmount = dishPrice.subtract(discountPrice);
     this.pickupStartTime = pickupStartTime;
     this.pickupEndTime = pickupEndTime;
 

@@ -10,8 +10,30 @@ public record CartOrderSnapshot(
     String dishName,
     Long quantity,
     BigDecimal unitPrice,
+    BigDecimal totalPrice,
+    BigDecimal savedAmount,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
+
+  public CartOrderSnapshot(
+      Long storeId,
+      Long dishId,
+      String dishName,
+      Long quantity,
+      BigDecimal unitPrice,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt) {
+    this(
+        storeId,
+        dishId,
+        dishName,
+        quantity,
+        unitPrice,
+        unitPrice.multiply(BigDecimal.valueOf(quantity)),
+        BigDecimal.ZERO,
+        pickupStartAt,
+        pickupEndAt);
+  }
 
   public static CartOrderSnapshot from(CartItem cartItem) {
     return new CartOrderSnapshot(
@@ -20,6 +42,8 @@ public record CartOrderSnapshot(
         cartItem.getDishName(),
         cartItem.getQuantity(),
         cartItem.getUnitPrice(),
+        cartItem.getTotalPrice(),
+        cartItem.getSavedAmount(),
         cartItem.getPickupStartAt(),
         cartItem.getPickupEndAt());
   }

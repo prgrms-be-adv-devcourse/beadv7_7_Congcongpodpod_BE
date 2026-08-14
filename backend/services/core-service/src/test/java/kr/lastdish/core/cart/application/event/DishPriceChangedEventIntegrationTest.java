@@ -38,6 +38,8 @@ class DishPriceChangedEventIntegrationTest {
                 null,
                 "김치찌개",
                 BigDecimal.valueOf(8_000),
+                BigDecimal.valueOf(8_000),
+                BigDecimal.ZERO,
                 2L,
                 LocalTime.of(18, 0),
                 LocalTime.of(19, 0),
@@ -63,7 +65,7 @@ class DishPriceChangedEventIntegrationTest {
 
     // then
     assertThat(updatedCartItem.getUnitPrice()).isEqualByComparingTo("7000");
-    assertThat(updatedCartItem.getSubtotalPrice()).isEqualByComparingTo("14000");
+    assertThat(updatedCartItem.getSubtotalPrice()).isEqualByComparingTo("7000");
     assertThat(updatedCartItem.getLastAppliedDishPriceVersion()).isEqualTo(2L);
   }
 }

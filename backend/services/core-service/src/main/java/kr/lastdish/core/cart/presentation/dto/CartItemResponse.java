@@ -12,6 +12,7 @@ public record CartItemResponse(
     BigDecimal unitPrice,
     Long quantity,
     BigDecimal subtotalPrice,
+    BigDecimal savedAmount,
     CartItemStatus status,
     boolean orderable) {
 
@@ -23,6 +24,7 @@ public record CartItemResponse(
         cartItem.getUnitPrice(),
         cartItem.getQuantity(),
         cartItem.getSubtotalPrice(),
+        cartItem.getSavedAmount(),
         cartItem.getStatus(),
         cartItem.isOrderable());
   }
