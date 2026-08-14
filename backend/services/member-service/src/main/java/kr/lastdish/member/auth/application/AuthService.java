@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.auth.application.dto.*;
 import kr.lastdish.member.auth.domain.RefreshToken;
@@ -123,35 +124,28 @@ public class AuthService {
         memberRepository
             .findByProviderAndProviderId(SocialProvider.KAKAO, socialId)
             .orElseGet(
-                () ->
-                    // 없으면 이메일로 기존 회원 조회
-                    memberRepository
-                        .findByEmail(email)
-                        .map(
-                            existingMember -> {
-                              // 기존 일반 회원(LOCAL)이 있으면 카카오 계정 정보 연동/업데이트
-                              existingMember.linkSocialAccount(SocialProvider.KAKAO, socialId);
-                              return existingMember;
-                            })
-                        .orElseGet(
-                            () -> {
-                              // 소셜 회원은 패스워드가 없으므로 임의의 난수 인코딩 값 혹은 null 방지 처리
-                              String encodedRandomPassword =
-                                  passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+                () -> {
+                  if (memberRepository.findByEmail(email).isPresent()) {
+                    throw new BusinessException(AuthErrorCode.ACCOUNT_LINK_REQUIRED);
+                  }
 
-                              Member newMember =
-                                  Member.builder()
-                                      .userName("kakao_" + socialId)
-                                      .password(encodedRandomPassword)
-                                      .name(name != null ? name : "카카오사용자")
-                                      .phone("010-0000-0000")
-                                      .email(email)
-                                      .role(Role.MEMBER)
-                                      .provider(SocialProvider.KAKAO)
-                                      .providerId(socialId)
-                                      .build();
-                              return memberRepository.save(newMember);
-                            }));
+                  String encodedRandomPassword =
+                      passwordEncoder.encode(UUID.randomUUID().toString());
+
+                  Member newMember =
+                      Member.builder()
+                          .userName("kakao_" + socialId)
+                          .password(encodedRandomPassword)
+                          .name(name != null ? name : "카카오사용자")
+                          .phone("010-0000-0000")
+                          .email(email)
+                          .role(Role.MEMBER)
+                          .provider(SocialProvider.KAKAO)
+                          .providerId(socialId)
+                          .build();
+
+                  return memberRepository.save(newMember);
+                });
 
     // 3. 서비스 자체 JWT 토큰 생성
     MemberId memberId = new MemberId(member.getId());

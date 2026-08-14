@@ -42,7 +42,7 @@ public class MemberRepositoryImpl implements MemberRepository {
 
   @Override
   public Optional<Member> findByProviderAndProviderId(SocialProvider provider, String providerId) {
-    return jpaMemberRepository.findByProviderIdAndIsDeletedFalse(provider, providerId);
+    return jpaMemberRepository.findByProviderAndProviderIdAndIsDeletedFalse(provider, providerId);
   }
 
   @Override
