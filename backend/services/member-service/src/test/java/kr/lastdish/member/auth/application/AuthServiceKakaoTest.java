@@ -126,7 +126,7 @@ class AuthServiceKakaoTest {
             BusinessException.class,
             exception ->
                 assertThat(exception.getErrorCode())
-                    .isEqualTo(AuthErrorCode.ACCOUNT_LINK_REQUIRED));
+                    .isEqualTo(AuthErrorCode.KAKAO_EMAIL_ALREADY_REGISTERED));
 
     verify(memberRepository).findByProviderAndProviderId(SocialProvider.KAKAO, PROVIDER_ID);
     verify(memberRepository).findByEmail(localMemberEmail);
