@@ -1,6 +1,7 @@
 package kr.lastdish.core.level.domain;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -27,6 +28,10 @@ public class Level {
   @Column(name = "purchase_count", nullable = false)
   private int purchaseCount;
 
+  // 회원의 누적 할인 금액
+  @Column(name = "discount_amount", nullable = false)
+  private BigDecimal discountAmount;
+
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
@@ -34,6 +39,7 @@ public class Level {
     this.memberId = memberId;
     this.dishLevel = DishLevel.LEVEL_1;
     this.purchaseCount = 0;
+    this.discountAmount = BigDecimal.ZERO;
     this.updatedAt = LocalDateTime.now();
   }
 
@@ -44,6 +50,12 @@ public class Level {
   // 적립 완료 시 구매 횟수 증가
   public void addPurchase() {
     this.purchaseCount++;
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  // 주문 시 발생한 할인 금액을 누적
+  public void addDiscountAmount(BigDecimal amount) {
+    this.discountAmount = this.discountAmount.add(amount);
     this.updatedAt = LocalDateTime.now();
   }
 

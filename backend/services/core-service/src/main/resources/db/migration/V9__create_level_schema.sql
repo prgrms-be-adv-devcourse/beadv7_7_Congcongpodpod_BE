@@ -5,6 +5,7 @@ CREATE TABLE levels (
     member_id BIGINT NOT NULL,
     dish_level VARCHAR(20) NOT NULL,
     purchase_count INTEGER NOT NULL DEFAULT 0,
+    discount_amount NUMERIC(38,2) NOT NULL DEFAULT 0,
     updated_at TIMESTAMP NOT NULL,
     CONSTRAINT uq_levels_member_id UNIQUE (member_id)
 );

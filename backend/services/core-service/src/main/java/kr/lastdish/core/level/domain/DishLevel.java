@@ -24,4 +24,10 @@ public enum DishLevel {
     if (purchaseCount >= LEVEL_2.minPurchases) return LEVEL_2;
     return LEVEL_1;
   }
+
+  public DishLevel next() {
+    DishLevel[] levels = values();
+    int nextIndex = ordinal() + 1;
+    return nextIndex < levels.length ? levels[nextIndex] : null;
   }
+}
