@@ -6,11 +6,13 @@ import kr.lastdish.member.auth.application.dto.KakaoUserInfoResponse;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 @Slf4j
 @Component
@@ -53,32 +55,30 @@ public class KakaoOAuthClient {
   }
 
   public KakaoUserInfoResponse getKakaoUserInfo(String code) {
-    String accessToken = getAccessToken(code);
-
-    if (accessToken == null) {
-      throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
-    }
-
     try {
+      String accessToken = getAccessToken(code);
+
+      if (accessToken == null || accessToken.isBlank()) {
+        throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
+      }
+
       KakaoUserInfoResponse userInfo =
           restClient
               .get()
               .uri("https://kapi.kakao.com/v2/user/me")
-              .header("Authorization", "Bearer " + accessToken)
+              .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
               .retrieve()
               .body(KakaoUserInfoResponse.class);
 
-      if (userInfo == null) {
+      if (userInfo == null || userInfo.id() == null) {
         throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
       }
-
-      throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
 
       return userInfo;
     } catch (BusinessException e) {
       throw e;
-    } catch (Exception e) {
-      log.error("[Kakao OAuth] 유저 정보 조회 실패: {}", e.getMessage());
+    } catch (RestClientException e) {
+      log.warn("[Kakao OAuth] 인증 처리 실패: {}", e.getMessage());
       throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
     }
   }
