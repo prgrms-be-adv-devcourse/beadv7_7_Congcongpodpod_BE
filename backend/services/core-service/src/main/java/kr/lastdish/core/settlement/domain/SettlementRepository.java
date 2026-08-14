@@ -24,4 +24,6 @@ public interface SettlementRepository {
   Optional<Settlement> findByIdAndStoreId(Long settlementId, Long storeId);
 
   Set<Long> findSettledStoreIds(List<Long> storeIds);
+
+  void truncateAllSettlementData();
 }
