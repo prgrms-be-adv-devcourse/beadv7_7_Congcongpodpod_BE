@@ -51,7 +51,7 @@ public class SettlementController {
 
   // 정산 성능 테스트 완료 후 제거
   @DeleteMapping("/test/initialize")
-  public ApiResponse<Void> initializeSettlementData(){
+  public ApiResponse<Void> initializeSettlementData() {
     settlementService.initializeSettlement();
     return ApiResponse.ok();
   }

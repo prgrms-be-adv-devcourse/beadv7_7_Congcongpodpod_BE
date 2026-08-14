@@ -162,7 +162,7 @@ public class SettlementService {
 
   // 정산 테스트용 Truncate_테스트 후 제거 필수
   @Transactional
-  public void initializeSettlement(){
+  public void initializeSettlement() {
     settlementRepository.truncateAllSettlementData();
     log.warn("-------------정산 성능 테스트용 데이터 전체 초기화 완료 settlements settlement_details---------------");
   }

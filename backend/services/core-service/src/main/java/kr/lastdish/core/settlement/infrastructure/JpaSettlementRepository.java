@@ -34,12 +34,12 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
-          value = """
+      value =
+          """
                   TRUNCATE TABLE
                     settlement_details, settlements
                   RESTART INDENTITY
                   """,
-          nativeQuery = true
-  )
+      nativeQuery = true)
   void truncateAllSettlementData();
 }
