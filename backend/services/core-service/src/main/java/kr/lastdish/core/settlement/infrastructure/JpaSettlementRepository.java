@@ -38,7 +38,7 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
           """
                   TRUNCATE TABLE
                     settlement_details, settlements
-                  RESTART INDENTITY
+                  RESTART IDENTITY
                   """,
       nativeQuery = true)
   void truncateAllSettlementData();
