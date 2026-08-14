@@ -54,6 +54,7 @@ public class KakaoOAuthClient {
 
   public KakaoUserInfoResponse getKakaoUserInfo(String code) {
     String accessToken = getAccessToken(code);
+
     if (accessToken == null) {
       throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
     }
@@ -70,6 +71,8 @@ public class KakaoOAuthClient {
       if (userInfo == null) {
         throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
       }
+
+      throw new BusinessException(AuthErrorCode.KAKAO_AUTH_FAILED);
 
       return userInfo;
     } catch (BusinessException e) {
@@ -97,6 +100,7 @@ public class KakaoOAuthClient {
           .body(params)
           .retrieve()
           .toBodilessEntity();
+
     } catch (Exception e) {
       log.error("카카오 unlink 처리 중 예외 무시: {}", e.getMessage());
     }
