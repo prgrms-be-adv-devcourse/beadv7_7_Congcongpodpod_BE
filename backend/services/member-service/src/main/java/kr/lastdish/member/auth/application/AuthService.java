@@ -11,10 +11,7 @@ import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
 import kr.lastdish.member.auth.infrastructure.client.KakaoOAuthClient;
-import kr.lastdish.member.member.domain.Member;
-import kr.lastdish.member.member.domain.MemberId;
-import kr.lastdish.member.member.domain.MemberRepository;
-import kr.lastdish.member.member.domain.Role;
+import kr.lastdish.member.member.domain.*;
 import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +68,11 @@ public class AuthService {
             .findByEmail(command.email())
             .orElseThrow(() -> new BusinessException(AuthErrorCode.EMAIL_NOT_FOUND));
 
+    // 소셜 가입 회원이 일반 로그인을 시도할 경우 차단
+    if (member.getProvider() != null && member.getProvider() != SocialProvider.LOCAL) {
+      throw new BusinessException(AuthErrorCode.SOCIAL_MEMBER_LOGIN_RESTRICTED);
+    }
+
     // 2. 비밀번호 검증 (비밀번호 불일치 -> 401)
     if (!passwordEncoder.matches(command.password(), member.getPassword())) {
       throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
@@ -110,7 +112,6 @@ public class AuthService {
     KakaoUserInfoResponse userInfo = kakaoOAuthClient.getKakaoUserInfo(code);
 
     String socialId = String.valueOf(userInfo.id());
-    // 이메일 null 방지: 이메일이 없으면 카카오 소셜ID 기반 임시 이메일 생성
     String email =
         (userInfo.email() != null && !userInfo.email().isBlank())
             ? userInfo.email()
@@ -120,24 +121,37 @@ public class AuthService {
     // 2. 이메일 혹은 소셜 ID로 기존 회원 조회 (없으면 자동 회원가입)
     Member member =
         memberRepository
-            .findByEmail(email)
+            .findByProviderAndProviderId(SocialProvider.KAKAO, socialId)
             .orElseGet(
-                () -> {
-                  // 소셜 회원은 패스워드가 없으므로 임의의 난수 인코딩 값 혹은 null 방지 처리
-                  String encodedRandomPassword =
-                      passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+                () ->
+                    // 없으면 이메일로 기존 회원 조회
+                    memberRepository
+                        .findByEmail(email)
+                        .map(
+                            existingMember -> {
+                              // 기존 일반 회원(LOCAL)이 있으면 카카오 계정 정보 연동/업데이트
+                              existingMember.linkSocialAccount(SocialProvider.KAKAO, socialId);
+                              return existingMember;
+                            })
+                        .orElseGet(
+                            () -> {
+                              // 소셜 회원은 패스워드가 없으므로 임의의 난수 인코딩 값 혹은 null 방지 처리
+                              String encodedRandomPassword =
+                                  passwordEncoder.encode(java.util.UUID.randomUUID().toString());
 
-                  Member newMember =
-                      Member.builder()
-                          .userName("kakao_" + socialId)
-                          .password(encodedRandomPassword)
-                          .name(name != null ? name : "카카오사용자")
-                          .phone("010-0000-0000") // 필요시 초기값 설정 혹은 정책에 맞게 처리
-                          .email(email)
-                          .role(Role.MEMBER)
-                          .build();
-                  return memberRepository.save(newMember);
-                });
+                              Member newMember =
+                                  Member.builder()
+                                      .userName("kakao_" + socialId)
+                                      .password(encodedRandomPassword)
+                                      .name(name != null ? name : "카카오사용자")
+                                      .phone("010-0000-0000")
+                                      .email(email)
+                                      .role(Role.MEMBER)
+                                      .provider(SocialProvider.KAKAO)
+                                      .providerId(socialId)
+                                      .build();
+                              return memberRepository.save(newMember);
+                            }));
 
     // 3. 서비스 자체 JWT 토큰 생성
     MemberId memberId = new MemberId(member.getId());
@@ -205,10 +219,9 @@ public class AuthService {
     }
 
     // 3. 카카오 소셜 로그인 유저일 경우 카카오 측 연결 끊기
-    if (member.getUserName() != null && member.getUserName().startsWith("kakao_")) {
-      String socialId = member.getUserName().replace("kakao_", "");
+    if (member.getProvider() == SocialProvider.KAKAO && member.getProviderId() != null) {
       try {
-        kakaoOAuthClient.unlink(socialId);
+        kakaoOAuthClient.unlink(member.getProviderId());
       } catch (Exception e) {
         log.error("카카오 연결 해제 중 오류 발생 (회원 탈퇴는 계속 진행됩니다): {}", e.getMessage());
       }

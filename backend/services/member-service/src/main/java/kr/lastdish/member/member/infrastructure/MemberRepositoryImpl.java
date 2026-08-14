@@ -3,6 +3,7 @@ package kr.lastdish.member.member.infrastructure;
 import java.util.Optional;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
+import kr.lastdish.member.member.domain.SocialProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -37,6 +38,11 @@ public class MemberRepositoryImpl implements MemberRepository {
   @Override
   public Optional<Member> findByEmail(String email) {
     return jpaMemberRepository.findByEmailAndIsDeletedFalse(email);
+  }
+
+  @Override
+  public Optional<Member> findByProviderAndProviderId(SocialProvider provider, String providerId) {
+    return jpaMemberRepository.findByProviderIdAndIsDeletedFalse(provider, providerId);
   }
 
   @Override
