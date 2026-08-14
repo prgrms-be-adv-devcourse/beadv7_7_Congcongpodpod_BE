@@ -29,7 +29,7 @@ class OrderPickedUpEventWriterTest {
     when(order.getMemberId()).thenReturn(20L);
     when(order.getStoreId()).thenReturn(30L);
     when(order.getTotalPrice()).thenReturn(new BigDecimal("12000"));
-    when(order.getSavedAmount()).thenReturn(new BigDecimal("3000"));
+    when(order.getTotalSavedAmount()).thenReturn(new BigDecimal("3000"));
     when(order.getPickupResultAt()).thenReturn(LocalDateTime.of(2026, 8, 13, 15, 30));
 
     writer.append(order, 4L);

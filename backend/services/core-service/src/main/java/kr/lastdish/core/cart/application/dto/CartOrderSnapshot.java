@@ -11,7 +11,7 @@ public record CartOrderSnapshot(
     Long quantity,
     BigDecimal unitPrice,
     BigDecimal totalPrice,
-    BigDecimal savedAmount,
+    BigDecimal totalSavedAmount,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
 
@@ -23,7 +23,7 @@ public record CartOrderSnapshot(
         cartItem.getQuantity(),
         cartItem.getUnitPrice(),
         cartItem.getTotalPrice(),
-        cartItem.getSavedAmount(),
+        cartItem.getTotalSavedAmount(),
         cartItem.getPickupStartAt(),
         cartItem.getPickupEndAt());
   }

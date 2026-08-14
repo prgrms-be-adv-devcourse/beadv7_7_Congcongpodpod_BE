@@ -81,6 +81,7 @@ class OrderServiceTest {
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
+    assertThat(order.getTotalSavedAmount()).isEqualByComparingTo("4000");
     assertThat(order.getPickupDeadline())
         .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).atTime(cartItem.pickupEndAt()));
 

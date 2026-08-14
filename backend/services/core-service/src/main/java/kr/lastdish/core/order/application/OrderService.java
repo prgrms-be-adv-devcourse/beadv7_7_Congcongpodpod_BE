@@ -43,8 +43,7 @@ public class OrderService {
             cartItem.dishName(),
             cartItem.quantity(),
             cartItem.unitPrice(),
-            cartItem.totalPrice(),
-            cartItem.savedAmount(),
+            cartItem.totalSavedAmount(),
             cartItem.pickupStartAt(),
             cartItem.pickupEndAt(),
             pickupDeadline(cartItem));

@@ -28,7 +28,7 @@ public class OrderPickedUpEventWriter {
                 order.getMemberId(),
                 order.getStoreId(),
                 order.getTotalPrice(),
-                order.getSavedAmount()),
+                order.getTotalSavedAmount()),
             order.getPickupResultAt().atZone(BUSINESS_ZONE).toInstant());
 
     outboxEventWriter.append(event);

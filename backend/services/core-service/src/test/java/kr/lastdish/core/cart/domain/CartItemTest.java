@@ -9,6 +9,25 @@ import org.junit.jupiter.api.Test;
 class CartItemTest {
 
   @Test
+  void 상품_추가시_단위_절약금액과_총_절약금액을_구분한다() {
+    CartItem cartItem =
+        CartItem.create(
+            1L,
+            10L,
+            null,
+            "치킨마요 마감할인 세트",
+            BigDecimal.valueOf(3000),
+            BigDecimal.valueOf(500),
+            3L,
+            null,
+            null,
+            0L);
+
+    assertThat(cartItem.getUnitSavedAmount()).isEqualByComparingTo("500");
+    assertThat(cartItem.getTotalSavedAmount()).isEqualByComparingTo("1500");
+  }
+
+  @Test
   void 상품_추가시_totalPrice는_Dish에서_전달받은_값을_저장한다() {
     CartItem cartItem =
         CartItem.create(
@@ -86,16 +105,7 @@ class CartItemTest {
             0L);
 
     cartItem.replace(
-        20L,
-        null,
-        "소불고기 마감할인 세트",
-        BigDecimal.valueOf(5000),
-        BigDecimal.valueOf(5000),
-        BigDecimal.ZERO,
-        2L,
-        null,
-        null,
-        0L);
+        20L, null, "소불고기 마감할인 세트", BigDecimal.valueOf(5000), BigDecimal.ZERO, 2L, null, null, 0L);
 
     assertThat(cartItem.getDishId()).isEqualTo(20L);
     assertThat(cartItem.getDishName()).isEqualTo("소불고기 마감할인 세트");
@@ -230,16 +240,7 @@ class CartItemTest {
 
     // when
     cartItem.replace(
-        20L,
-        null,
-        "교체 상품",
-        BigDecimal.valueOf(5_000),
-        BigDecimal.valueOf(5_000),
-        BigDecimal.ZERO,
-        2L,
-        null,
-        null,
-        0L);
+        20L, null, "교체 상품", BigDecimal.valueOf(5_000), BigDecimal.ZERO, 2L, null, null, 0L);
 
     // then
     assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.AVAILABLE);

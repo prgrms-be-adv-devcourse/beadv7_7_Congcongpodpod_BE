@@ -33,10 +33,10 @@ public class CartItem {
   private BigDecimal unitPrice;
 
   @Column(nullable = false)
-  private BigDecimal totalPrice;
+  private BigDecimal unitSavedAmount;
 
   @Column(nullable = false)
-  private BigDecimal savedAmount;
+  private BigDecimal totalSavedAmount;
 
   @Column(nullable = false)
   private Long quantity;
@@ -69,8 +69,8 @@ public class CartItem {
       Long storeId,
       String dishName,
       BigDecimal unitPrice,
-      BigDecimal totalPrice,
-      BigDecimal savedAmount,
+      BigDecimal unitSavedAmount,
+      BigDecimal totalSavedAmount,
       Long quantity,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
@@ -81,8 +81,8 @@ public class CartItem {
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
-    this.totalPrice = totalPrice;
-    this.savedAmount = savedAmount;
+    this.unitSavedAmount = unitSavedAmount;
+    this.totalSavedAmount = totalSavedAmount;
     this.pickupStartAt = pickupStartAt;
     this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
@@ -102,8 +102,7 @@ public class CartItem {
       Long storeId,
       String dishName,
       BigDecimal unitPrice,
-      BigDecimal totalPrice,
-      BigDecimal savedAmount,
+      BigDecimal unitSavedAmount,
       Long quantity,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
@@ -114,8 +113,37 @@ public class CartItem {
         storeId,
         dishName,
         unitPrice,
-        totalPrice,
-        savedAmount,
+        unitSavedAmount,
+        unitSavedAmount.multiply(BigDecimal.valueOf(quantity)),
+        quantity,
+        pickupStartAt,
+        pickupEndAt,
+        dishVersion);
+  }
+
+  /**
+   * @deprecated 총 가격은 단가와 수량으로 계산됩니다. {@code totalPrice}를 받지 않는 팩터리를 사용하세요.
+   */
+  @Deprecated(forRemoval = true)
+  public static CartItem create(
+      Long cartId,
+      Long dishId,
+      Long storeId,
+      String dishName,
+      BigDecimal unitPrice,
+      BigDecimal totalPrice,
+      BigDecimal unitSavedAmount,
+      Long quantity,
+      LocalTime pickupStartAt,
+      LocalTime pickupEndAt,
+      long dishVersion) {
+    return create(
+        cartId,
+        dishId,
+        storeId,
+        dishName,
+        unitPrice,
+        unitSavedAmount,
         quantity,
         pickupStartAt,
         pickupEndAt,
@@ -127,8 +155,7 @@ public class CartItem {
       Long storeId,
       String dishName,
       BigDecimal unitPrice,
-      BigDecimal totalPrice,
-      BigDecimal savedAmount,
+      BigDecimal unitSavedAmount,
       Long quantity,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
@@ -138,8 +165,8 @@ public class CartItem {
     this.dishName = dishName;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
-    this.totalPrice = totalPrice;
-    this.savedAmount = savedAmount;
+    this.unitSavedAmount = unitSavedAmount;
+    this.totalSavedAmount = unitSavedAmount.multiply(BigDecimal.valueOf(quantity));
     this.pickupStartAt = pickupStartAt;
     this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
@@ -159,20 +186,9 @@ public class CartItem {
 
   public void changeQuantity(Long quantity, long dishVersion) {
     validateQuantity(quantity);
-    BigDecimal adjustedSavedAmount =
-        savedAmount
-            .multiply(BigDecimal.valueOf(quantity))
-            .divide(BigDecimal.valueOf(this.quantity));
-    changeQuantity(quantity, this.totalPrice, adjustedSavedAmount, dishVersion);
-  }
-
-  public void changeQuantity(
-      Long quantity, BigDecimal totalPrice, BigDecimal savedAmount, long dishVersion) {
-    validateQuantity(quantity);
 
     this.quantity = quantity;
-    this.totalPrice = totalPrice;
-    this.savedAmount = savedAmount;
+    this.totalSavedAmount = this.unitSavedAmount.multiply(BigDecimal.valueOf(quantity));
     this.lastAppliedDishVersion = dishVersion;
 
     /*
@@ -189,8 +205,12 @@ public class CartItem {
     }
   }
 
+  public BigDecimal getTotalPrice() {
+    return unitPrice;
+  }
+
   public BigDecimal getSubtotalPrice() {
-    return totalPrice;
+    return getTotalPrice();
   }
 
   /**
@@ -237,7 +257,6 @@ public class CartItem {
     }
 
     this.unitPrice = unitPrice;
-    this.totalPrice = unitPrice;
     this.lastAppliedDishPriceVersion = aggregateVersion;
     this.updatedAt = LocalDateTime.now();
   }

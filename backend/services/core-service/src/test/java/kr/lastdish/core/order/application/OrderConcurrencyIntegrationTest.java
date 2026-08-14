@@ -172,6 +172,7 @@ class OrderConcurrencyIntegrationTest {
                       dish.getDishName(),
                       quantity,
                       unitPrice,
+                      BigDecimal.ZERO,
                       LocalTime.of(18, 0),
                       LocalTime.of(19, 0),
                       LocalDateTime.of(2026, 8, 10, 19, 0));
