@@ -20,7 +20,8 @@ public enum AuthErrorCode implements ErrorCodeSpec {
   KAKAO_AUTH_FAILED(HttpStatus.BAD_REQUEST, "A012", "카카오 인증 처리에 실패했습니다."),
   KAKAO_UNLINK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "A013", "카카오 연동 해제 중 오류가 발생했습니다."),
   SOCIAL_MEMBER_LOGIN_RESTRICTED(HttpStatus.BAD_REQUEST, "A014", "소셜 가입 계정입니다. 소셜 로그인을 이용하세요."),
-  KAKAO_EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "A015", "해당 이메일은 일반 회원으로 가입되어 있습니다. 일반 로그인을 이용해주세요.");
+  KAKAO_EMAIL_ALREADY_REGISTERED(
+      HttpStatus.CONFLICT, "A015", "해당 이메일은 일반 회원으로 가입되어 있습니다. 일반 로그인을 이용해주세요.");
 
   private final HttpStatus status;
   private final String code;
