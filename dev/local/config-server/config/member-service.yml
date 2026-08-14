@@ -72,3 +72,9 @@ jwt:
     access-public-key-location: ${JWT_ACCESS_PUBLIC_KEY_LOCATION}
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 1209600
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+    admin-key: ${KAKAO_ADMIN_KEY}

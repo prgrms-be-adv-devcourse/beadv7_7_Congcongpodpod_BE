@@ -46,7 +46,11 @@ public class GatewaySecurityConfig {
                     .permitAll()
                     // 회원가입, 로그인, Refresh Token 재발급은 Access Token 없이 요청한다.
                     .pathMatchers(
-                        POST, "/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh")
+                        POST,
+                        "/api/v1/auth/signup",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/kakao")
                     .permitAll()
                     // Kubernetes probe와 클러스터 내부 Prometheus 수집은 Bearer Token 없이 접근해야 한다.
                     .pathMatchers("/actuator/health/**", "/actuator/prometheus")
@@ -76,6 +80,7 @@ public class GatewaySecurityConfig {
                     // 로그아웃과 회원·장바구니·주문·결제·입금(예치금) 기능은 회원과 판매자 모두 이용한다.
                     .pathMatchers(
                         "/api/v1/auth/logout",
+                        "/api/v1/auth/withdraw",
                         "/api/v1/members/**",
                         "/api/v1/carts/**",
                         "/api/v1/orders/**",
