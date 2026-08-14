@@ -126,7 +126,7 @@ public class AuthService {
             .orElseGet(
                 () -> {
                   if (memberRepository.findByEmail(email).isPresent()) {
-                    throw new BusinessException(AuthErrorCode.ACCOUNT_LINK_REQUIRED);
+                    throw new BusinessException(AuthErrorCode.KAKAO_EMAIL_ALREADY_REGISTERED);
                   }
 
                   String encodedRandomPassword =
