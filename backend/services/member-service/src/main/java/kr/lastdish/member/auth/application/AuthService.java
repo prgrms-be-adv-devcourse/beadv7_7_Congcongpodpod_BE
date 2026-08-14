@@ -90,7 +90,7 @@ public class AuthService {
     String hashedRefreshToken = encryptSha256(refreshTokenValue);
 
     // 5. Refresh Token 저장 또는 갱신
-    LocalDateTime expiryDate = LocalDateTime.now().plusDays(28);
+    LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
     RefreshToken refreshToken =
         refreshTokenRepository
             .findByEmail(member.getEmail())
@@ -156,7 +156,7 @@ public class AuthService {
 
     // 4. Refresh Token 해시화 및 DB 저장/갱신
     String hashedRefreshToken = encryptSha256(refreshTokenValue);
-    LocalDateTime expiryDate = LocalDateTime.now().plusDays(28);
+    LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
 
     RefreshToken refreshToken =
         refreshTokenRepository
@@ -267,7 +267,7 @@ public class AuthService {
 
     // 6. 새로운 Refresh Token을 해시화하여 DB 갱신
     String hashedNewRefreshToken = encryptSha256(newRefreshTokenValue);
-    LocalDateTime expiryDate = LocalDateTime.now().plusDays(28);
+    LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
 
     refreshToken.updateToken(hashedNewRefreshToken, expiryDate);
     refreshTokenRepository.save(refreshToken);
