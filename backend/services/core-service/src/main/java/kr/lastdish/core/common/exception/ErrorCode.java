@@ -25,7 +25,11 @@ public enum ErrorCode implements ErrorCodeSpec {
   PICKUP_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ORD005", "픽업 코드 생성에 실패했습니다."),
   CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD006", "주문할 장바구니 상품을 찾을 수 없습니다."),
   CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다."),
-  ORDER_PICKUP_TIME_NOT_ENDED(HttpStatus.CONFLICT, "ORD008", "픽업 종료 시간 이후에 노쇼 처리할 수 있습니다.");
+  ORDER_PICKUP_TIME_NOT_ENDED(HttpStatus.CONFLICT, "ORD008", "픽업 종료 시간 이후에 노쇼 처리할 수 있습니다."),
+  IMAGE_UPLOAD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "IMG001", "이미지를 업로드할 권한이 없습니다."),
+  UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "IMG002", "지원하지 않는 이미지 형식입니다."),
+  INVALID_IMAGE_SIZE(HttpStatus.BAD_REQUEST, "IMG003", "이미지 파일 크기가 허용 범위를 벗어났습니다."),
+  INVALID_IMAGE_FILE_NAME(HttpStatus.BAD_REQUEST, "IMG004", "이미지 파일명이 올바르지 않습니다.");
 
   private final HttpStatus status;
   private final String code;
