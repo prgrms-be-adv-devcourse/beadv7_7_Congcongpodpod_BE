@@ -15,26 +15,6 @@ public record CartOrderSnapshot(
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
 
-  public CartOrderSnapshot(
-      Long storeId,
-      Long dishId,
-      String dishName,
-      Long quantity,
-      BigDecimal unitPrice,
-      LocalTime pickupStartAt,
-      LocalTime pickupEndAt) {
-    this(
-        storeId,
-        dishId,
-        dishName,
-        quantity,
-        unitPrice,
-        unitPrice.multiply(BigDecimal.valueOf(quantity)),
-        BigDecimal.ZERO,
-        pickupStartAt,
-        pickupEndAt);
-  }
-
   public static CartOrderSnapshot from(CartItem cartItem) {
     return new CartOrderSnapshot(
         cartItem.getStoreId(),
