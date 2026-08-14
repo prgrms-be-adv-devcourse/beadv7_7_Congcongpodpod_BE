@@ -14,8 +14,7 @@ public record DishResponse(
     Long stockQuantity,
     String dishStatus,
     BigDecimal dishPrice,
-    BigDecimal discountPrice,
-    BigDecimal savedAmount) {
+    BigDecimal discountPrice) {
   public static DishResponse from(Dish dish) {
     return new DishResponse(
         dish.getId(),
@@ -27,7 +26,6 @@ public record DishResponse(
         dish.getStockQuantity(),
         dish.getDishStatus().name(),
         dish.getDishPrice(),
-        dish.getDiscountPrice(),
-        dish.getSavedAmount());
+        dish.getDiscountPrice());
   }
 }
