@@ -10,6 +10,7 @@ import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeoutException;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
+import kr.lastdish.gateway.tracing.RequestCompletionLogger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,13 +28,15 @@ class GatewayGlobalExceptionHandlerTests {
 
   private ObjectMapper objectMapper;
   private GatewayGlobalExceptionHandler handler;
+  private RequestCompletionLogger completionLogger;
   private ch.qos.logback.classic.Logger logger;
   private ListAppender<ILoggingEvent> appender;
 
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
-    handler = new GatewayGlobalExceptionHandler(objectMapper);
+    completionLogger = new RequestCompletionLogger();
+    handler = new GatewayGlobalExceptionHandler(objectMapper, completionLogger);
 
     logger =
         (ch.qos.logback.classic.Logger)
@@ -206,6 +209,35 @@ class GatewayGlobalExceptionHandlerTests {
 
     assertThat(appender.list).hasSize(1);
     assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
+  }
+
+  @Test
+  @DisplayName("오류 응답을 쓴 뒤 완료 로그를 남긴다")
+  void 오류_응답을_쓴_뒤_완료_로그를_남긴다() {
+    ch.qos.logback.classic.Logger 완료로거 =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(RequestCompletionLogger.class);
+    ListAppender<ILoggingEvent> 완료수집기 = new ListAppender<>();
+    완료수집기.start();
+    완료로거.addAppender(완료수집기);
+
+    try {
+      MockServerWebExchange exchange =
+          MockServerWebExchange.from(MockServerHttpRequest.get("/api/v1/orders/8817342").build());
+      exchange.getAttributes().put(RequestIdSupport.KEY, "req-276-gw-error");
+      completionLogger.markStarted(exchange);
+
+      handler.handle(exchange, new ConnectException("연결 실패")).block();
+
+      assertThat(완료수집기.list).hasSize(1);
+      assertThat(완료수집기.list.getFirst().getFormattedMessage())
+          .contains("requestId=req-276-gw-error")
+          .contains("status=503")
+          .contains("pathPattern=unmatched")
+          .doesNotContain("8817342");
+    } finally {
+      완료로거.detachAppender(완료수집기);
+      완료수집기.stop();
+    }
   }
 
   private void assertError(

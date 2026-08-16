@@ -8,6 +8,7 @@ import java.util.concurrent.TimeoutException;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
+import kr.lastdish.gateway.tracing.RequestCompletionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.webflux.error.ErrorWebExceptionHandler;
@@ -47,9 +48,12 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
           new DependencyFailure(UnknownHostException.class, GatewayErrorCode.SERVICE_UNAVAILABLE));
 
   private final ObjectMapper objectMapper;
+  private final RequestCompletionLogger completionLogger;
 
-  public GatewayGlobalExceptionHandler(ObjectMapper objectMapper) {
+  public GatewayGlobalExceptionHandler(
+      ObjectMapper objectMapper, RequestCompletionLogger completionLogger) {
     this.objectMapper = objectMapper;
+    this.completionLogger = completionLogger;
   }
 
   @Override
@@ -63,7 +67,10 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
 
     logFailure(exchange, errorCode, exception);
 
-    return writeResponse(exchange, errorCode);
+    // 오류 응답은 WebFilter 바깥에서 만들어지므로 RequestCompletionLoggingFilter가 이 경로를 보지 못한다.
+    // 응답 쓰기가 정상적으로 끝난 뒤 같은 기록기를 호출해 완료 로그를 남긴다. 중복 방지는 기록기가 맡는다.
+    return writeResponse(exchange, errorCode)
+        .doOnSuccess(unused -> completionLogger.logCompletion(exchange));
   }
 
   /**
