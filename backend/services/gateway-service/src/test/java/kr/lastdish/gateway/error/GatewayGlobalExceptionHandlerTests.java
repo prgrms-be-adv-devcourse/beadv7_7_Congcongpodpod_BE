@@ -7,6 +7,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeoutException;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.cloud.gateway.route.Route;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -120,7 +123,7 @@ class GatewayGlobalExceptionHandlerTests {
   }
 
   @Test
-  @DisplayName("하위 서비스 timeout은 method·path·오류 코드와 함께 WARN으로 기록한다")
+  @DisplayName("하위 서비스 timeout은 method·경로 패턴·오류 코드와 함께 WARN으로 기록한다")
   void logsGatewayTimeoutAsWarn() {
     handler
         .handle(exchange(), new IllegalStateException(new TimeoutException("response timeout")))
@@ -132,7 +135,7 @@ class GatewayGlobalExceptionHandlerTests {
     assertThat(event.getLevel()).isEqualTo(Level.WARN);
     assertThat(event.getFormattedMessage())
         .contains("GET")
-        .contains("/test")
+        .contains("pathPattern=unmatched")
         .contains(GatewayErrorCode.GATEWAY_TIMEOUT.getCode())
         .contains(TimeoutException.class.getName());
   }
@@ -209,6 +212,50 @@ class GatewayGlobalExceptionHandlerTests {
 
     assertThat(appender.list).hasSize(1);
     assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
+  }
+
+  @Test
+  @DisplayName("예외 로그에 실제 경로의 식별자를 남기지 않는다")
+  void 예외_로그에_실제_경로의_식별자를_남기지_않는다() {
+    MockServerWebExchange exchange =
+        MockServerWebExchange.from(
+            MockServerHttpRequest.get("/api/v1/stores/8817342?latitude=37.5665").build());
+
+    handler.handle(exchange, new IllegalStateException(new ConnectException("연결 실패"))).block();
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage())
+        .contains("pathPattern=unmatched")
+        .doesNotContain("8817342")
+        .doesNotContain("37.5665")
+        .doesNotContain("latitude");
+  }
+
+  @Test
+  @DisplayName("선택된 라우트가 있으면 예외 로그에 그 경로 패턴을 남긴다")
+  void 선택된_라우트가_있으면_예외_로그에_그_경로_패턴을_남긴다() {
+    MockServerWebExchange exchange =
+        MockServerWebExchange.from(MockServerHttpRequest.get("/api/v1/stores/8817342").build());
+    Route route =
+        Route.async()
+            .id("core-service")
+            .uri(URI.create("http://core-service:8080"))
+            .predicate(ignored -> true)
+            .build();
+    exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, route);
+    exchange
+        .getAttributes()
+        .put(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR, "core-service");
+    exchange
+        .getAttributes()
+        .put(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR, "/api/v1/stores/**");
+
+    handler.handle(exchange, new IllegalStateException(new ConnectException("연결 실패"))).block();
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage())
+        .contains("pathPattern=/api/v1/stores/**")
+        .doesNotContain("8817342");
   }
 
   @Test

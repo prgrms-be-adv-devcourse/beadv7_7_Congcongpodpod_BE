@@ -9,6 +9,7 @@ import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.common.api.tracing.RequestIdSupport;
 import kr.lastdish.gateway.tracing.RequestCompletionLogger;
+import kr.lastdish.gateway.tracing.RequestPathPatternResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.webflux.error.ErrorWebExceptionHandler;
@@ -85,10 +86,10 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
 
     if (errorCode == GatewayErrorCode.INTERNAL_ERROR) {
       log.error(
-          "Gateway 요청 처리 중 오류가 발생했습니다. requestId={}, method={}, path={}, errorCode={}, exceptionClass={}",
+          "Gateway 요청 처리 중 오류가 발생했습니다. requestId={}, method={}, pathPattern={}, errorCode={}, exceptionClass={}",
           requestId,
           exchange.getRequest().getMethod(),
-          exchange.getRequest().getPath(),
+          RequestPathPatternResolver.resolve(exchange),
           errorCode.getCode(),
           exception.getClass().getName(),
           exception);
@@ -99,10 +100,10 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
     if (isDependencyFailure(errorCode)) {
       // 부하 상황에서 반복될 수 있으므로 스택 없이 남기고, 원인 판별에 사용한 예외 종류만 함께 기록한다.
       log.warn(
-          "하위 서비스 호출에 실패했습니다. requestId={}, method={}, path={}, errorCode={}, exceptionClass={}",
+          "하위 서비스 호출에 실패했습니다. requestId={}, method={}, pathPattern={}, errorCode={}, exceptionClass={}",
           requestId,
           exchange.getRequest().getMethod(),
-          exchange.getRequest().getPath(),
+          RequestPathPatternResolver.resolve(exchange),
           errorCode.getCode(),
           resolveFailureCauseName(exception));
     }
