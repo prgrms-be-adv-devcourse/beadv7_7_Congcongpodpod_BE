@@ -1,14 +1,21 @@
 package kr.lastdish.core.store.application;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.UUID;
+
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
+import kr.lastdish.core.store.domain.event.StoreChangedEvent;
+import kr.lastdish.core.store.domain.event.StoreChangedPayload;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +29,7 @@ public class StoreService {
 
   private final StoreRepository storeRepository;
   private final StorePayoutAccountRepository payoutAccountRepository;
+  private final OutboxEventWriter outboxEventWriter;
 
   @Transactional
   public StoreResult register(RegisterStoreCommand command) {
@@ -70,6 +78,8 @@ public class StoreService {
 
     store.replaceHolidays(command.holidays());
     store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
+
+    appendChangedEvent(store);
 
     return StoreResult.from(store);
   }
@@ -204,5 +214,23 @@ public class StoreService {
   private int forwardMinutes(LocalTime from, LocalTime to) {
     int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
     return Math.floorMod(minutes, 24 * 60);
+  }
+
+  private void appendChangedEvent(Store store){
+    StoreChangedPayload payload =
+            new StoreChangedPayload(store.getStoreName(), store.getStoreAddress(), store.getStorePhone(), store.getOpenTime(), store.getCloseTime(), store.getLatitude(), store.getLongitude(), store.getCategory(), store.getHolidays());
+
+    long aggregateVersion = store.nextEventVersion();
+
+    StoreChangedEvent event =
+            new StoreChangedEvent(
+                    UUID.randomUUID(),
+                    StoreChangedEvent.SCHEMA_VERSION,
+                    store.getId(),
+                    aggregateVersion,
+                    payload,
+                    Instant.now());
+
+    outboxEventWriter.append(event);
   }
 }
