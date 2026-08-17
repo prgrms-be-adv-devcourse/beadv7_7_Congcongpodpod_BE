@@ -105,6 +105,7 @@ public class CartItem {
       LocalTime pickupEndAt,
       long dishVersion) {
     validateQuantity(quantity);
+    validatePrices(dishPrice, unitPrice);
 
     return new CartItem(
         cartId,
@@ -130,6 +131,7 @@ public class CartItem {
       LocalTime pickupEndAt,
       long dishVersion) {
     validateQuantity(quantity);
+    validatePrices(dishPrice, unitPrice);
 
     this.dishId = dishId;
     this.storeId = storeId;
@@ -171,6 +173,17 @@ public class CartItem {
   private static void validateQuantity(Long quantity) {
     if (quantity == null || quantity < 1) {
       throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
+    }
+  }
+
+  /** 주문 시 절약 금액을 정가 - 판매가로 계산하므로, 정가가 판매가보다 낮으면 음수 절약 금액이 만들어진다. */
+  private static void validatePrices(BigDecimal dishPrice, BigDecimal unitPrice) {
+    if (unitPrice == null || unitPrice.signum() < 0) {
+      throw new IllegalArgumentException("Dish 판매 가격은 0 이상이어야 합니다.");
+    }
+
+    if (dishPrice == null || dishPrice.compareTo(unitPrice) < 0) {
+      throw new IllegalArgumentException("Dish 정가는 판매 가격 이상이어야 합니다.");
     }
   }
 
@@ -221,13 +234,7 @@ public class CartItem {
       return;
     }
 
-    if (unitPrice == null || unitPrice.signum() < 0) {
-      throw new IllegalArgumentException("Dish 판매 가격은 0 이상이어야 합니다.");
-    }
-
-    if (dishPrice == null || dishPrice.compareTo(unitPrice) < 0) {
-      throw new IllegalArgumentException("Dish 정가는 판매 가격 이상이어야 합니다.");
-    }
+    validatePrices(dishPrice, unitPrice);
 
     this.dishPrice = dishPrice;
     this.unitPrice = unitPrice;

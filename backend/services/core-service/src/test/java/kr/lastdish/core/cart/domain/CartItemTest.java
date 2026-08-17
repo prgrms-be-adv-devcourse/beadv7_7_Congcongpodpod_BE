@@ -61,6 +61,45 @@ class CartItemTest {
   }
 
   @Test
+  void 정가가_판매가보다_낮은_상품은_담을_수_없다() {
+    assertThatThrownBy(
+            () ->
+                cartItem(
+                    "치킨마요 마감할인 세트", BigDecimal.valueOf(3000), BigDecimal.valueOf(5000), 1L, 0L))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Dish 정가는 판매 가격 이상이어야 합니다.");
+  }
+
+  @Test
+  void 정가가_판매가보다_낮은_상품으로는_교체할_수_없다() {
+    CartItem cartItem = cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 1L);
+
+    assertThatThrownBy(
+            () ->
+                cartItem.replace(
+                    20L,
+                    null,
+                    "소불고기 마감할인 세트",
+                    BigDecimal.valueOf(3000),
+                    BigDecimal.valueOf(5000),
+                    2L,
+                    null,
+                    null,
+                    0L))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Dish 정가는 판매 가격 이상이어야 합니다.");
+  }
+
+  @Test
+  void 판매가가_음수인_상품은_담을_수_없다() {
+    assertThatThrownBy(
+            () ->
+                cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), BigDecimal.valueOf(-1), 1L, 0L))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Dish 판매 가격은 0 이상이어야 합니다.");
+  }
+
+  @Test
   void 상품_교체시_dishId와_이름과_단가와_수량이_모두_바뀐다() {
     CartItem cartItem = cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 1L);
 
