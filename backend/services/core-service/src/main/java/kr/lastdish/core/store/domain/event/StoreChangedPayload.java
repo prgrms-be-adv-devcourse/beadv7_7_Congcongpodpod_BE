@@ -17,6 +17,5 @@ public record StoreChangedPayload(
         LocalTime closeTime,
         BigDecimal latitude,
         BigDecimal longitude,
-        Category category,
-        List<StoreHoliday> holidays) {
+        Category category) {
 }

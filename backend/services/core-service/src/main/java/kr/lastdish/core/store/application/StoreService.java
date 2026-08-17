@@ -221,7 +221,7 @@ public class StoreService {
 
   private void appendChangedEvent(Store store){
     StoreChangedPayload payload =
-            new StoreChangedPayload(store.getStoreName(), store.getStoreAddress(), store.getStorePhone(), store.getOpenTime(), store.getCloseTime(), store.getLatitude(), store.getLongitude(), store.getCategory(), store.getHolidays());
+            new StoreChangedPayload(store.getStoreName(), store.getStoreAddress(), store.getStorePhone(), store.getOpenTime(), store.getCloseTime(), store.getLatitude(), store.getLongitude(), store.getCategory());
 
     long aggregateVersion = store.nextEventVersion();
 
