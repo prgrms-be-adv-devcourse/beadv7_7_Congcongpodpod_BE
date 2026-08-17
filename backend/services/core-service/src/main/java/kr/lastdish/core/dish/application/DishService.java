@@ -11,10 +11,7 @@ import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
-import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
-import kr.lastdish.core.dish.domain.event.DishPriceChangedPayload;
-import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
-import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
+import kr.lastdish.core.dish.domain.event.*;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
@@ -52,6 +49,9 @@ public class DishService {
             request.pickupEndTime());
 
     Dish savedDish = dishRepository.save(dish);
+
+    appendCreatedEvent(savedDish);
+
     return DishResponse.from(savedDish);
   }
 
@@ -242,6 +242,21 @@ public class DishService {
             aggregateVersion,
             new DishPriceChangedPayload(dishPriceAfter, unitPriceAfter),
             Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  private void appendCreatedEvent(Dish dish) {
+    long aggregateVersion = dish.nextAggregateVersion();
+
+    DishCreatedEvent event =
+            new DishCreatedEvent(
+                    UUID.randomUUID(),
+                    DishCreatedEvent.SCHEMA_VERSION,
+                    dish.getId(),
+                    aggregateVersion,
+                    new DishCreatedPayload(dish),
+                    Instant.now());
 
     outboxEventWriter.append(event);
   }
