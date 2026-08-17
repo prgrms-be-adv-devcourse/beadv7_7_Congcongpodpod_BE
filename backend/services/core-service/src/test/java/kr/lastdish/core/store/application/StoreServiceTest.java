@@ -1,31 +1,20 @@
 package kr.lastdish.core.store.application;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
-import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.store.application.dto.StoreResult;
-import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.*;
-import kr.lastdish.core.store.domain.event.StoreChangedEvent;
-import kr.lastdish.core.store.domain.event.StoreDeletedEvent;
-import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class StoreServiceTest {
