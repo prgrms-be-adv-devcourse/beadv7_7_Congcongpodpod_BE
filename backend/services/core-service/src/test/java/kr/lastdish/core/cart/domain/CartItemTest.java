@@ -8,107 +8,76 @@ import org.junit.jupiter.api.Test;
 
 class CartItemTest {
 
-  @Test
-  void 상품_추가시_단위_절약금액과_총_절약금액을_구분한다() {
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "치킨마요 마감할인 세트",
-            BigDecimal.valueOf(3000),
-            BigDecimal.valueOf(500),
-            3L,
-            null,
-            null,
-            0L);
+  // 이 테스트가 확인하려는 건 cartId/dishId/픽업시간이 아니라 가격·수량·상태라, 나머지는 헬퍼로 고정한다.
+  // 정가를 따지지 않는 테스트는 할인 없음(정가 = 판매가)으로 둔다.
+  private static CartItem cartItem(String dishName, BigDecimal unitPrice, Long quantity) {
+    return cartItem(dishName, unitPrice, quantity, 0L);
+  }
 
-    assertThat(cartItem.getUnitSavedAmount()).isEqualByComparingTo("500");
-    assertThat(cartItem.getTotalSavedAmount()).isEqualByComparingTo("1500");
+  private static CartItem cartItem(
+      String dishName, BigDecimal unitPrice, Long quantity, long dishVersion) {
+    return cartItem(dishName, unitPrice, unitPrice, quantity, dishVersion);
+  }
+
+  private static CartItem cartItem(
+      String dishName,
+      BigDecimal dishPrice,
+      BigDecimal unitPrice,
+      Long quantity,
+      long dishVersion) {
+    return CartItem.create(
+        1L, 10L, null, dishName, dishPrice, unitPrice, quantity, null, null, dishVersion);
   }
 
   @Test
-  void 상품_추가시_totalPrice는_Dish에서_전달받은_값을_저장한다() {
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "치킨마요 마감할인 세트",
-            BigDecimal.valueOf(3000),
-            BigDecimal.valueOf(3000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            0L);
+  void 상품_추가시_소계는_단가와_수량의_곱이다() {
+    CartItem cartItem = cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 2L);
 
-    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(3000));
+    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(6000));
   }
 
   @Test
-  void 수량_변경시_totalPrice를_계산하지_않는다() {
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "치킨마요 마감할인 세트",
-            BigDecimal.valueOf(3000),
-            BigDecimal.valueOf(3000),
-            BigDecimal.ZERO,
-            1L,
-            null,
-            null,
-            0L);
+  void 수량_변경시_소계가_다시_계산된다() {
+    CartItem cartItem = cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 1L);
 
     cartItem.changeQuantity(3L);
 
     assertThat(cartItem.getQuantity()).isEqualTo(3L);
-    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(3000));
+    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(9000));
   }
 
   @Test
   void 수량을_0_이하로_바꾸면_예외가_발생한다() {
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "치킨마요 마감할인 세트",
-            BigDecimal.valueOf(3000),
-            BigDecimal.valueOf(3000),
-            BigDecimal.ZERO,
-            1L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 1L);
 
     assertThatThrownBy(() -> cartItem.changeQuantity(0L))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
+  void 수량이_0_이하인_상품은_담을_수_없다() {
+    assertThatThrownBy(() -> cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 0L))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
   void 상품_교체시_dishId와_이름과_단가와_수량이_모두_바뀐다() {
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "치킨마요 마감할인 세트",
-            BigDecimal.valueOf(3000),
-            BigDecimal.valueOf(3000),
-            BigDecimal.ZERO,
-            1L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("치킨마요 마감할인 세트", BigDecimal.valueOf(3000), 1L);
 
     cartItem.replace(
-        20L, null, "소불고기 마감할인 세트", BigDecimal.valueOf(5000), BigDecimal.ZERO, 2L, null, null, 0L);
+        20L,
+        null,
+        "소불고기 마감할인 세트",
+        BigDecimal.valueOf(8000),
+        BigDecimal.valueOf(5000),
+        2L,
+        null,
+        null,
+        0L);
 
     assertThat(cartItem.getDishId()).isEqualTo(20L);
     assertThat(cartItem.getDishName()).isEqualTo("소불고기 마감할인 세트");
+    assertThat(cartItem.getDishPrice()).isEqualByComparingTo(BigDecimal.valueOf(8000));
     assertThat(cartItem.getUnitPrice()).isEqualByComparingTo(BigDecimal.valueOf(5000));
     assertThat(cartItem.getQuantity()).isEqualTo(2L);
   }
@@ -116,19 +85,7 @@ class CartItemTest {
   @Test
   void Dish가_판매불가이면_장바구니_상품도_판매불가로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L);
 
     // when
     cartItem.synchronizeDishState(false, 10L, 1L);
@@ -143,19 +100,7 @@ class CartItemTest {
   @Test
   void Dish_재고가_없으면_품절로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L);
 
     // when
     cartItem.synchronizeDishState(true, 0L, 1L);
@@ -168,19 +113,7 @@ class CartItemTest {
   @Test
   void 장바구니_수량보다_Dish_재고가_적으면_재고부족으로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            7L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 7L);
 
     // when
     cartItem.synchronizeDishState(true, 5L, 1L);
@@ -193,19 +126,7 @@ class CartItemTest {
   @Test
   void Dish_재고가_장바구니_수량_이상이면_주문가능으로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L);
 
     cartItem.synchronizeDishState(true, 0L, 1L);
 
@@ -220,19 +141,7 @@ class CartItemTest {
   @Test
   void 주문불가였던_상품을_검증된_Dish로_교체하면_주문가능으로_변경한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "기존 상품",
-            BigDecimal.valueOf(3_000),
-            BigDecimal.valueOf(3_000),
-            BigDecimal.ZERO,
-            5L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("기존 상품", BigDecimal.valueOf(3_000), 5L);
 
     cartItem.synchronizeDishState(true, 3L, 1L);
 
@@ -240,7 +149,15 @@ class CartItemTest {
 
     // when
     cartItem.replace(
-        20L, null, "교체 상품", BigDecimal.valueOf(5_000), BigDecimal.ZERO, 2L, null, null, 0L);
+        20L,
+        null,
+        "교체 상품",
+        BigDecimal.valueOf(5_000),
+        BigDecimal.valueOf(5_000),
+        2L,
+        null,
+        null,
+        0L);
 
     // then
     assertThat(cartItem.getStatus()).isEqualTo(CartItemStatus.AVAILABLE);
@@ -251,19 +168,7 @@ class CartItemTest {
   @Test
   void 재고부족이었던_상품의_수량을_주문가능하게_변경하면_상태도_복구한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            5L,
-            null,
-            null,
-            0L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 5L);
 
     cartItem.synchronizeDishState(true, 3L, 1L);
 
@@ -283,19 +188,7 @@ class CartItemTest {
   @Test
   void 같은_버전과_이전_버전의_Dish_이벤트는_무시한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            2L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L, 2L);
 
     // when
     cartItem.synchronizeDishState(false, 0L, 2L);
@@ -310,47 +203,38 @@ class CartItemTest {
   void 최신_Dish_가격을_CartItem에_반영한다() {
     // given
     CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            1L);
+        cartItem("김치찌개", BigDecimal.valueOf(10_000), BigDecimal.valueOf(8_000), 2L, 1L);
 
     // when
-    cartItem.synchronizeDishPrice(BigDecimal.valueOf(7_000), 2L);
+    cartItem.synchronizeDishPrice(BigDecimal.valueOf(10_000), BigDecimal.valueOf(7_000), 2L);
 
     // then
     assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("7000");
-    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo("7000");
+    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo("14000");
     assertThat(cartItem.getLastAppliedDishPriceVersion()).isEqualTo(2L);
+  }
+
+  @Test
+  void 판매가가_그대로여도_정가가_바뀌면_CartItem에_반영한다() {
+    // given
+    CartItem cartItem =
+        cartItem("김치찌개", BigDecimal.valueOf(10_000), BigDecimal.valueOf(8_000), 2L, 1L);
+
+    // when
+    cartItem.synchronizeDishPrice(BigDecimal.valueOf(12_000), BigDecimal.valueOf(8_000), 2L);
+
+    // then — 정가가 낡으면 주문 시 절약 금액이 그만큼 적게 잡힌다.
+    assertThat(cartItem.getDishPrice()).isEqualByComparingTo("12000");
+    assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("8000");
   }
 
   @Test
   void 이전_Dish_가격_이벤트는_무시한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            2L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L, 2L);
 
     // when
-    cartItem.synchronizeDishPrice(BigDecimal.valueOf(6_000), 1L);
+    cartItem.synchronizeDishPrice(BigDecimal.valueOf(8_000), BigDecimal.valueOf(6_000), 1L);
 
     // then
     assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("8000");
@@ -360,23 +244,38 @@ class CartItemTest {
   @Test
   void Dish_가격이_음수이면_예외가_발생한다() {
     // given
-    CartItem cartItem =
-        CartItem.create(
-            1L,
-            10L,
-            null,
-            "김치찌개",
-            BigDecimal.valueOf(8_000),
-            BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
-            2L,
-            null,
-            null,
-            1L);
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L, 1L);
 
     // when & then
-    assertThatThrownBy(() -> cartItem.synchronizeDishPrice(BigDecimal.valueOf(-1), 2L))
+    assertThatThrownBy(
+            () ->
+                cartItem.synchronizeDishPrice(
+                    BigDecimal.valueOf(8_000), BigDecimal.valueOf(-1), 2L))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Dish 판매 가격은 0 이상이어야 합니다.");
+  }
+
+  @Test
+  void 정가가_판매가보다_낮으면_예외가_발생한다() {
+    // given
+    CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L, 1L);
+
+    // when & then
+    assertThatThrownBy(
+            () ->
+                cartItem.synchronizeDishPrice(
+                    BigDecimal.valueOf(5_000), BigDecimal.valueOf(7_000), 2L))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Dish 정가는 판매 가격 이상이어야 합니다.");
+  }
+
+  @Test
+  void 상품_추가시_정가와_판매가를_모두_저장한다() {
+    CartItem cartItem =
+        cartItem("김치찌개", BigDecimal.valueOf(10_000), BigDecimal.valueOf(7_000), 3L, 0L);
+
+    assertThat(cartItem.getDishPrice()).isEqualByComparingTo("10000");
+    assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("7000");
+    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo("21000");
   }
 }

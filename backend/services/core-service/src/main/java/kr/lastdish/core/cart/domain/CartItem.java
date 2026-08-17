@@ -29,14 +29,13 @@ public class CartItem {
   @Column(nullable = false)
   private String dishName;
 
+  /** 할인 전 정가입니다. 주문 시 절약 금액(정가 - 판매가)을 계산하는 데 쓰입니다. */
+  @Column(nullable = false)
+  private BigDecimal dishPrice;
+
+  /** 실제로 결제하는 판매가(마감 할인가)입니다. */
   @Column(nullable = false)
   private BigDecimal unitPrice;
-
-  @Column(nullable = false)
-  private BigDecimal unitSavedAmount;
-
-  @Column(nullable = false)
-  private BigDecimal totalSavedAmount;
 
   @Column(nullable = false)
   private Long quantity;
@@ -68,9 +67,8 @@ public class CartItem {
       Long dishId,
       Long storeId,
       String dishName,
+      BigDecimal dishPrice,
       BigDecimal unitPrice,
-      BigDecimal unitSavedAmount,
-      BigDecimal totalSavedAmount,
       Long quantity,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
@@ -79,10 +77,9 @@ public class CartItem {
     this.dishId = dishId;
     this.storeId = storeId;
     this.dishName = dishName;
+    this.dishPrice = dishPrice;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
-    this.unitSavedAmount = unitSavedAmount;
-    this.totalSavedAmount = totalSavedAmount;
     this.pickupStartAt = pickupStartAt;
     this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
@@ -101,49 +98,21 @@ public class CartItem {
       Long dishId,
       Long storeId,
       String dishName,
+      BigDecimal dishPrice,
       BigDecimal unitPrice,
-      BigDecimal unitSavedAmount,
       Long quantity,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
       long dishVersion) {
+    validateQuantity(quantity);
+
     return new CartItem(
         cartId,
         dishId,
         storeId,
         dishName,
+        dishPrice,
         unitPrice,
-        unitSavedAmount,
-        unitSavedAmount.multiply(BigDecimal.valueOf(quantity)),
-        quantity,
-        pickupStartAt,
-        pickupEndAt,
-        dishVersion);
-  }
-
-  /**
-   * @deprecated 총 가격은 단가와 수량으로 계산됩니다. {@code totalPrice}를 받지 않는 팩터리를 사용하세요.
-   */
-  @Deprecated(forRemoval = true)
-  public static CartItem create(
-      Long cartId,
-      Long dishId,
-      Long storeId,
-      String dishName,
-      BigDecimal unitPrice,
-      BigDecimal totalPrice,
-      BigDecimal unitSavedAmount,
-      Long quantity,
-      LocalTime pickupStartAt,
-      LocalTime pickupEndAt,
-      long dishVersion) {
-    return create(
-        cartId,
-        dishId,
-        storeId,
-        dishName,
-        unitPrice,
-        unitSavedAmount,
         quantity,
         pickupStartAt,
         pickupEndAt,
@@ -154,19 +123,20 @@ public class CartItem {
       Long dishId,
       Long storeId,
       String dishName,
+      BigDecimal dishPrice,
       BigDecimal unitPrice,
-      BigDecimal unitSavedAmount,
       Long quantity,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
       long dishVersion) {
+    validateQuantity(quantity);
+
     this.dishId = dishId;
     this.storeId = storeId;
     this.dishName = dishName;
+    this.dishPrice = dishPrice;
     this.unitPrice = unitPrice;
     this.quantity = quantity;
-    this.unitSavedAmount = unitSavedAmount;
-    this.totalSavedAmount = unitSavedAmount.multiply(BigDecimal.valueOf(quantity));
     this.pickupStartAt = pickupStartAt;
     this.pickupEndAt = pickupEndAt;
     this.lastAppliedDishVersion = dishVersion;
@@ -188,7 +158,6 @@ public class CartItem {
     validateQuantity(quantity);
 
     this.quantity = quantity;
-    this.totalSavedAmount = this.unitSavedAmount.multiply(BigDecimal.valueOf(quantity));
     this.lastAppliedDishVersion = dishVersion;
 
     /*
@@ -205,12 +174,8 @@ public class CartItem {
     }
   }
 
-  public BigDecimal getTotalPrice() {
-    return unitPrice;
-  }
-
   public BigDecimal getSubtotalPrice() {
-    return getTotalPrice();
+    return unitPrice.multiply(BigDecimal.valueOf(quantity));
   }
 
   /**
@@ -241,12 +206,16 @@ public class CartItem {
   }
 
   /**
-   * 최신 Dish 가격 이벤트를 CartItem 단가에 반영합니다.
+   * 최신 Dish 가격 이벤트를 CartItem의 정가와 단가에 반영합니다.
    *
+   * <p>정가도 함께 갱신하는 이유: 주문 시 절약 금액을 정가 - 판매가로 계산하므로, 정가가 낡으면 적립 통계가 조용히 틀어진다.
+   *
+   * @param dishPrice Dish의 현재 정가
    * @param unitPrice Dish의 현재 판매 가격
    * @param aggregateVersion Dish 가격 변경 이벤트 순서
    */
-  public void synchronizeDishPrice(BigDecimal unitPrice, long aggregateVersion) {
+  public void synchronizeDishPrice(
+      BigDecimal dishPrice, BigDecimal unitPrice, long aggregateVersion) {
 
     if (aggregateVersion <= this.lastAppliedDishPriceVersion) {
       return;
@@ -256,6 +225,11 @@ public class CartItem {
       throw new IllegalArgumentException("Dish 판매 가격은 0 이상이어야 합니다.");
     }
 
+    if (dishPrice == null || dishPrice.compareTo(unitPrice) < 0) {
+      throw new IllegalArgumentException("Dish 정가는 판매 가격 이상이어야 합니다.");
+    }
+
+    this.dishPrice = dishPrice;
     this.unitPrice = unitPrice;
     this.lastAppliedDishPriceVersion = aggregateVersion;
     this.updatedAt = LocalDateTime.now();

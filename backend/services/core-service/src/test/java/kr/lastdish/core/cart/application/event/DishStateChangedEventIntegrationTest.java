@@ -40,7 +40,6 @@ class DishStateChangedEventIntegrationTest {
                 "김치찌개",
                 BigDecimal.valueOf(8_000),
                 BigDecimal.valueOf(8_000),
-                BigDecimal.ZERO,
                 7L,
                 LocalTime.of(18, 0),
                 LocalTime.of(19, 0),

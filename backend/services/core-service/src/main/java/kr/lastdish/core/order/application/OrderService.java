@@ -32,6 +32,7 @@ public class OrderService {
   private static final int MAX_PICKUP_CODE_RETRY = 5;
   private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
+  // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
   public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
     Order order =
         Order.create(
@@ -42,8 +43,8 @@ public class OrderService {
             memberInfo.phone(),
             cartItem.dishName(),
             cartItem.quantity(),
+            cartItem.dishPrice(),
             cartItem.unitPrice(),
-            cartItem.totalSavedAmount(),
             cartItem.pickupStartAt(),
             cartItem.pickupEndAt(),
             pickupDeadline(cartItem));

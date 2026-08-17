@@ -85,6 +85,11 @@ public class Order {
   @Column(nullable = false)
   private BigDecimal unitPrice;
 
+  /**
+   * 이 주문으로 아낀 총 금액입니다. (정가 - 판매가) × 수량으로 주문 시점에 확정한다.
+   *
+   * <p>등급·적립률 통계의 근거라 파생값이지만 여기서는 저장한다 — 나중에 Dish 가격이 바뀌어도 이미 끝난 주문의 적립 근거는 흔들리면 안 되기 때문이다.
+   */
   @Column(nullable = false)
   private BigDecimal totalSavedAmount;
 
@@ -111,8 +116,8 @@ public class Order {
       String phone,
       String dishName,
       Long quantity,
+      BigDecimal dishPrice,
       BigDecimal unitPrice,
-      BigDecimal totalSavedAmount,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
       LocalDateTime pickupDeadline) {
@@ -128,7 +133,7 @@ public class Order {
     order.quantity = quantity;
     order.unitPrice = unitPrice;
     order.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
-    order.totalSavedAmount = totalSavedAmount;
+    order.totalSavedAmount = dishPrice.subtract(unitPrice).multiply(BigDecimal.valueOf(quantity));
     order.pickupStartAt = pickupStartAt;
     order.pickupEndAt = pickupEndAt;
     order.pickupDeadline = pickupDeadline;

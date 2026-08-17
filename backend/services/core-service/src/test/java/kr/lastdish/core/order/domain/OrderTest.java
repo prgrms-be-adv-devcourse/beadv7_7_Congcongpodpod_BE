@@ -92,7 +92,7 @@ class OrderTest {
         "김밥",
         2L,
         BigDecimal.valueOf(5_000),
-        BigDecimal.ZERO,
+        BigDecimal.valueOf(5_000),
         LocalTime.of(18, 0),
         LocalTime.of(19, 0),
         LocalDateTime.of(2026, 8, 10, 19, 0));

@@ -9,9 +9,8 @@ public record CartOrderSnapshot(
     Long dishId,
     String dishName,
     Long quantity,
+    BigDecimal dishPrice,
     BigDecimal unitPrice,
-    BigDecimal totalPrice,
-    BigDecimal totalSavedAmount,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
 
@@ -21,9 +20,8 @@ public record CartOrderSnapshot(
         cartItem.getDishId(),
         cartItem.getDishName(),
         cartItem.getQuantity(),
+        cartItem.getDishPrice(),
         cartItem.getUnitPrice(),
-        cartItem.getTotalPrice(),
-        cartItem.getTotalSavedAmount(),
         cartItem.getPickupStartAt(),
         cartItem.getPickupEndAt());
   }

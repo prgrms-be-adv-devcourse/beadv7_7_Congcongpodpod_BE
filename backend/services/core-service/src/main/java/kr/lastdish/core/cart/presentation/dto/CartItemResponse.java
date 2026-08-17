@@ -11,6 +11,7 @@ public record CartItemResponse(
     String dishName,
     BigDecimal unitPrice,
     Long quantity,
+    BigDecimal subtotalPrice,
     CartItemStatus status,
     boolean orderable) {
 
@@ -21,6 +22,7 @@ public record CartItemResponse(
         cartItem.getDishName(),
         cartItem.getUnitPrice(),
         cartItem.getQuantity(),
+        cartItem.getSubtotalPrice(),
         cartItem.getStatus(),
         cartItem.isOrderable());
   }

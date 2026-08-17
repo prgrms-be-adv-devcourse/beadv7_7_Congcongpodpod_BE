@@ -3,8 +3,6 @@
 CREATE TABLE public.dishes (
     discount_price numeric(38,2) NOT NULL,
     dish_price numeric(38,2) NOT NULL,
-    total_price numeric(38,2) NOT NULL,
-    saved_amount numeric(38,2) NOT NULL,
     is_deleted boolean NOT NULL,
     pickup_end_time time(0) without time zone NOT NULL,
     pickup_start_time time(0) without time zone NOT NULL,

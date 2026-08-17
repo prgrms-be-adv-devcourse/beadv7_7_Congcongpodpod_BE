@@ -20,7 +20,6 @@ class CartItemResponseTest {
             "김치찌개",
             BigDecimal.valueOf(8_000),
             BigDecimal.valueOf(8_000),
-            BigDecimal.ZERO,
             7L,
             null,
             null,

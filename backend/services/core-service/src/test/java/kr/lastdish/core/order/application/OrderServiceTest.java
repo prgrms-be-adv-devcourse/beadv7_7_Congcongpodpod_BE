@@ -60,9 +60,8 @@ class OrderServiceTest {
             3L,
             "DishName",
             4L,
+            BigDecimal.valueOf(6000),
             BigDecimal.valueOf(5000),
-            BigDecimal.valueOf(20000),
-            BigDecimal.valueOf(4000),
             LocalTime.of(18, 0),
             LocalTime.of(19, 0));
 
@@ -97,9 +96,8 @@ class OrderServiceTest {
             3L,
             "DishName",
             1L,
+            BigDecimal.valueOf(6000),
             BigDecimal.valueOf(5000),
-            BigDecimal.valueOf(5000),
-            BigDecimal.valueOf(1000),
             LocalTime.of(23, 0),
             LocalTime.of(1, 0));
     when(orderRepository.save(any(Order.class)))

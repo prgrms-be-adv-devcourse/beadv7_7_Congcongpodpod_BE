@@ -60,7 +60,7 @@ public class DishFacade {
         dish.getStoreId(),
         dish.getDishName(),
         dish.getDiscountPrice(),
-        dish.getSavedAmount(),
+        dish.getDishPrice(),
         dish.getStockQuantity(),
         dish.getPickupStartTime(),
         dish.getPickupEndTime(),
