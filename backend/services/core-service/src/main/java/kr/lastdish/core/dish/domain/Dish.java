@@ -43,6 +43,7 @@ public class Dish {
   @Column(nullable = false)
   private BigDecimal dishPrice;
 
+  @Column(nullable = false)
   private BigDecimal discountPrice;
 
   @Column(nullable = false)

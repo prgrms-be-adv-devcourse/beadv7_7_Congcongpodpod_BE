@@ -14,7 +14,9 @@ public record DishPriceChangedEvent(
     implements DomainEvent<DishPriceChangedPayload> {
 
   public static final String EVENT_TYPE = "DISH_PRICE_CHANGED";
-  public static final int SCHEMA_VERSION = 1;
+
+  /** v2에서 payload에 정가(dishPrice)가 추가됐습니다. v1 payload에는 판매가만 있습니다. */
+  public static final int SCHEMA_VERSION = 2;
 
   @Override
   public String eventType() {

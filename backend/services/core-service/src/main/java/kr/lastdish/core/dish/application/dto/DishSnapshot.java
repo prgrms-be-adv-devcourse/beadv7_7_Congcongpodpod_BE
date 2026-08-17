@@ -8,6 +8,7 @@ public record DishSnapshot(
     Long storeId,
     String dishName,
     BigDecimal unitPrice,
+    BigDecimal dishPrice,
     Long stockQuantity,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt,

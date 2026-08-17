@@ -37,11 +37,12 @@ class DishPriceChangedMessageHandlerTest {
 
   @Test
   void Payload를_Cart_가격_입력으로_변환한다() {
-    EventMessage message = createMessage("{\"unitPrice\":7000}");
+    EventMessage message = createMessage("{\"dishPrice\":10000,\"unitPrice\":7000}");
 
     handler.handle(message);
 
-    verify(synchronizer).synchronize(10L, BigDecimal.valueOf(7_000), 3L);
+    verify(synchronizer)
+        .synchronize(10L, BigDecimal.valueOf(10_000), BigDecimal.valueOf(7_000), 3L);
   }
 
   @Test
