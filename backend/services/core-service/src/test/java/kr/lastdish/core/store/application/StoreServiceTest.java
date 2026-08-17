@@ -1,35 +1,45 @@
 package kr.lastdish.core.store.application;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.event.DomainEvent;
+import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.store.application.dto.StoreResult;
+import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
+import kr.lastdish.core.store.domain.event.StoreChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class StoreServiceTest {
 
   @Mock private StoreRepository storeRepository;
   @Mock private StorePayoutAccountRepository payoutAccountRepository;
+  @Mock private OutboxEventWriter outboxEventWriter;
 
   private StoreService storeService;
 
   @BeforeEach
   void setUp() {
-    storeService = new StoreService(storeRepository, payoutAccountRepository);
+    storeService = new StoreService(storeRepository, payoutAccountRepository, outboxEventWriter);
   }
 
   @Test
@@ -76,5 +86,50 @@ class StoreServiceTest {
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
         Category.KOREAN);
+  }
+
+  @Test
+  void records_event_when_store_changes(){
+    Long storeId = 10L;
+    Store store = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(store, "id", storeId);
+
+    when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+    UpdateStoreCommand command =
+            new UpdateStoreCommand(
+                    "수정된 매장명",
+                    "서울특별시 강남구 테헤란로 123",
+                    "02-1234-5678",
+                    LocalTime.of(9, 0),
+                    LocalTime.of(21, 0),
+                    BigDecimal.valueOf(37.5),
+                    BigDecimal.valueOf(127.0),
+                    Category.KOREAN,
+                    List.of(DayOfWeek.MONDAY));
+
+    ArgumentCaptor<DomainEvent> eventArgumentCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    //when
+    StoreResult result = storeService.update(storeId, store.getMemberId(), command);
+
+    // then
+    verify(outboxEventWriter).append(eventArgumentCaptor.capture());
+
+    StoreChangedEvent event =
+            (StoreChangedEvent) eventArgumentCaptor.getValue();
+
+    assertThat(event.storeId()).isEqualTo(storeId);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
+
+    assertThat(event.payload().storeName()).isEqualTo("수정된 매장명");
+    assertThat(event.payload().storeAddress())
+            .isEqualTo("서울특별시 강남구 테헤란로 123");
+    assertThat(event.payload().storePhone()).isEqualTo("02-1234-5678");
+    assertThat(event.payload().latitude()).isEqualTo(BigDecimal.valueOf(37.5));
+    assertThat(event.payload().longitude()).isEqualTo(BigDecimal.valueOf(127.0));
+    assertThat(event.payload().category()).isEqualTo(Category.KOREAN);
+
+    assertThat(result.storeId()).isEqualTo(storeId);
   }
 }
