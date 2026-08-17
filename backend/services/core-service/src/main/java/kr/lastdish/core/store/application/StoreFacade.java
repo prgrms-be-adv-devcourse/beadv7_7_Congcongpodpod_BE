@@ -95,6 +95,10 @@ public class StoreFacade {
     return dishService.getDishByStoreId(storeId);
   }
 
+  public DishResponse getDishByStoreId(Long storeId){
+    return dishService.getDishByStoreId(storeId);
+  }
+
   public StorePageResult getNearbyStores(
       BigDecimal latitude,
       BigDecimal longitude,
