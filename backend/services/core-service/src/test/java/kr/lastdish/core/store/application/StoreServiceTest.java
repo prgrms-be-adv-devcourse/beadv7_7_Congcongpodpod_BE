@@ -15,11 +15,9 @@ import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
-import kr.lastdish.core.store.domain.Category;
-import kr.lastdish.core.store.domain.Store;
-import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
-import kr.lastdish.core.store.domain.StoreRepository;
+import kr.lastdish.core.store.domain.*;
 import kr.lastdish.core.store.domain.event.StoreChangedEvent;
+import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -116,8 +114,7 @@ class StoreServiceTest {
     // then
     verify(outboxEventWriter).append(eventArgumentCaptor.capture());
 
-    StoreChangedEvent event =
-            (StoreChangedEvent) eventArgumentCaptor.getValue();
+    StoreChangedEvent event = (StoreChangedEvent) eventArgumentCaptor.getValue();
 
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
@@ -131,5 +128,33 @@ class StoreServiceTest {
     assertThat(event.payload().category()).isEqualTo(Category.KOREAN);
 
     assertThat(result.storeId()).isEqualTo(storeId);
+  }
+
+  @Test
+  void records_event_when_store_status_changes() {
+    // given
+    Long storeId = 10L;
+
+    Store store = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(store, "id", storeId);
+
+    when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    // when
+    StoreResult result = storeService.changeStatus(storeId, store.getMemberId(), StoreStatus.CLOSED);
+
+    // then
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    StoreStatusChangedEvent event = (StoreStatusChangedEvent) eventCaptor.getValue();
+
+    assertThat(event.storeId()).isEqualTo(storeId);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
+    assertThat(event.payload().status()).isEqualTo(StoreStatus.CLOSED);
+
+    assertThat(result.storeId()).isEqualTo(storeId);
+    assertThat(result.status()).isEqualTo(StoreStatus.CLOSED);
   }
 }

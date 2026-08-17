@@ -16,6 +16,8 @@ import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import kr.lastdish.core.store.domain.event.StoreChangedEvent;
 import kr.lastdish.core.store.domain.event.StoreChangedPayload;
+import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
+import kr.lastdish.core.store.domain.event.StoreStatusChangedPayload;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +91,8 @@ public class StoreService {
     Store store = getOwnedStore(storeId, memberId);
 
     store.changeStatus(status);
+
+    appendStatusChangedEvent(store);
 
     return StoreResult.from(store);
   }
@@ -224,6 +228,24 @@ public class StoreService {
 
     StoreChangedEvent event =
             new StoreChangedEvent(
+                    UUID.randomUUID(),
+                    StoreChangedEvent.SCHEMA_VERSION,
+                    store.getId(),
+                    aggregateVersion,
+                    payload,
+                    Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  private void appendStatusChangedEvent(Store store){
+    StoreStatusChangedPayload payload =
+            new StoreStatusChangedPayload(store.getId(), store.getStatus());
+
+    long aggregateVersion = store.nextEventVersion();
+
+    StoreStatusChangedEvent event =
+            new StoreStatusChangedEvent(
                     UUID.randomUUID(),
                     StoreChangedEvent.SCHEMA_VERSION,
                     store.getId(),
