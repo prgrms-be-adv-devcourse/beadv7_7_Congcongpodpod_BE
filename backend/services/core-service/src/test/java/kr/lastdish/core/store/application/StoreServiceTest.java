@@ -17,6 +17,7 @@ import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.*;
 import kr.lastdish.core.store.domain.event.StoreChangedEvent;
+import kr.lastdish.core.store.domain.event.StoreDeletedEvent;
 import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -156,5 +157,32 @@ class StoreServiceTest {
 
     assertThat(result.storeId()).isEqualTo(storeId);
     assertThat(result.status()).isEqualTo(StoreStatus.CLOSED);
+  }
+
+  @Test
+  void records_event_when_store_is_deleted() {
+    // given
+    Long storeId = 10L;
+
+    Store store = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(store, "id", storeId);
+
+    when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    // when
+    storeService.deleteStore(storeId, store.getMemberId());
+
+    // then
+    assertThat(store.isDeleted()).isTrue();
+
+    verify(payoutAccountRepository).deleteByStoreId(storeId);
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    StoreDeletedEvent event = (StoreDeletedEvent) eventCaptor.getValue();
+
+    assertThat(event.storeId()).isEqualTo(storeId);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
   }
 }

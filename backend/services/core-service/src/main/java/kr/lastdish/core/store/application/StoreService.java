@@ -14,10 +14,7 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
-import kr.lastdish.core.store.domain.event.StoreChangedEvent;
-import kr.lastdish.core.store.domain.event.StoreChangedPayload;
-import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
-import kr.lastdish.core.store.domain.event.StoreStatusChangedPayload;
+import kr.lastdish.core.store.domain.event.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,6 +102,8 @@ public class StoreService {
 
     store.delete();
     payoutAccountRepository.deleteByStoreId(storeId);
+
+    appendDeletedEvent(store);
   }
 
   public Store getOwnedStore(Long storeId, Long memberId) {
@@ -247,7 +246,25 @@ public class StoreService {
     StoreStatusChangedEvent event =
             new StoreStatusChangedEvent(
                     UUID.randomUUID(),
-                    StoreChangedEvent.SCHEMA_VERSION,
+                    StoreStatusChangedEvent.SCHEMA_VERSION,
+                    store.getId(),
+                    aggregateVersion,
+                    payload,
+                    Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  private void appendDeletedEvent(Store store){
+    StoreDeletedPayload payload =
+            new StoreDeletedPayload(store.getId(), store.isDeleted());
+
+    long aggregateVersion = store.nextEventVersion();
+
+    StoreDeletedEvent event =
+            new StoreDeletedEvent(
+                    UUID.randomUUID(),
+                    StoreDeletedEvent.SCHEMA_VERSION,
                     store.getId(),
                     aggregateVersion,
                     payload,
