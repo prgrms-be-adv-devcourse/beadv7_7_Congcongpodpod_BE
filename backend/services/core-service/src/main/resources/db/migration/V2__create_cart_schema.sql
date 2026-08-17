@@ -3,6 +3,7 @@
 CREATE TABLE public.cart_items (
     pickup_end_at time(0) without time zone NOT NULL,
     pickup_start_at time(0) without time zone NOT NULL,
+    dish_price numeric(38,2) NOT NULL,
     unit_price numeric(38,2) NOT NULL,
     cart_id bigint NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,

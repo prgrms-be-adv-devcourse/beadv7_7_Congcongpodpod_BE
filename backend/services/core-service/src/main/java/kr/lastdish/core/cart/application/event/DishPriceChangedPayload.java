@@ -7,4 +7,4 @@ import java.math.BigDecimal;
  *
  * <p>Dish 식별자와 이벤트 버전은 EventMessage에서 가져옵니다.
  */
-public record DishPriceChangedPayload(BigDecimal unitPrice) {}
+public record DishPriceChangedPayload(BigDecimal dishPrice, BigDecimal unitPrice) {}
