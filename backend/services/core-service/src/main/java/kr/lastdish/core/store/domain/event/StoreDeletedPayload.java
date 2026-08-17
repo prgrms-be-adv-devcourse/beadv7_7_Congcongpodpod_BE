@@ -1,4 +1,3 @@
 package kr.lastdish.core.store.domain.event;
 
-public record StoreDeletedPayload(Long storeId, boolean deleted) {
-}
+public record StoreDeletedPayload(Long storeId, boolean deleted) {}

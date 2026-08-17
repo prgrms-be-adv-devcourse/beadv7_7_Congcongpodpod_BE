@@ -88,7 +88,7 @@ class StoreServiceTest {
   }
 
   @Test
-  void records_event_when_store_changes(){
+  void records_event_when_store_changes() {
     Long storeId = 10L;
     Store store = createStore(LocalTime.now(), LocalTime.now());
     ReflectionTestUtils.setField(store, "id", storeId);
@@ -96,20 +96,20 @@ class StoreServiceTest {
     when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
 
     UpdateStoreCommand command =
-            new UpdateStoreCommand(
-                    "수정된 매장명",
-                    "서울특별시 강남구 테헤란로 123",
-                    "02-1234-5678",
-                    LocalTime.of(9, 0),
-                    LocalTime.of(21, 0),
-                    BigDecimal.valueOf(37.5),
-                    BigDecimal.valueOf(127.0),
-                    Category.KOREAN,
-                    List.of(DayOfWeek.MONDAY));
+        new UpdateStoreCommand(
+            "수정된 매장명",
+            "서울특별시 강남구 테헤란로 123",
+            "02-1234-5678",
+            LocalTime.of(9, 0),
+            LocalTime.of(21, 0),
+            BigDecimal.valueOf(37.5),
+            BigDecimal.valueOf(127.0),
+            Category.KOREAN,
+            List.of(DayOfWeek.MONDAY));
 
     ArgumentCaptor<DomainEvent> eventArgumentCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
-    //when
+    // when
     StoreResult result = storeService.update(storeId, store.getMemberId(), command);
 
     // then
@@ -121,8 +121,7 @@ class StoreServiceTest {
     assertThat(event.aggregateVersion()).isEqualTo(1L);
 
     assertThat(event.payload().storeName()).isEqualTo("수정된 매장명");
-    assertThat(event.payload().storeAddress())
-            .isEqualTo("서울특별시 강남구 테헤란로 123");
+    assertThat(event.payload().storeAddress()).isEqualTo("서울특별시 강남구 테헤란로 123");
     assertThat(event.payload().storePhone()).isEqualTo("02-1234-5678");
     assertThat(event.payload().latitude()).isEqualTo(BigDecimal.valueOf(37.5));
     assertThat(event.payload().longitude()).isEqualTo(BigDecimal.valueOf(127.0));
@@ -144,7 +143,8 @@ class StoreServiceTest {
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
     // when
-    StoreResult result = storeService.changeStatus(storeId, store.getMemberId(), StoreStatus.CLOSED);
+    StoreResult result =
+        storeService.changeStatus(storeId, store.getMemberId(), StoreStatus.CLOSED);
 
     // then
     verify(outboxEventWriter).append(eventCaptor.capture());

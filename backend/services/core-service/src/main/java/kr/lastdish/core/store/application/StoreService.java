@@ -6,12 +6,10 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
-
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.store.application.dto.*;
 import kr.lastdish.core.store.domain.*;
 import kr.lastdish.core.store.domain.event.*;
@@ -78,7 +76,8 @@ public class StoreService {
     store.replaceHolidays(command.holidays());
     store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
-    appendChangedEvent(store);
+    //    TODO : 리스너 구현 시 주석 제거
+    //    appendChangedEvent(store);
 
     return StoreResult.from(store);
   }
@@ -89,7 +88,8 @@ public class StoreService {
 
     store.changeStatus(status);
 
-    appendStatusChangedEvent(store);
+    //    TODO : 리스너 구현 시 주석 제거
+    //    appendStatusChangedEvent(store);
 
     return StoreResult.from(store);
   }
@@ -103,7 +103,8 @@ public class StoreService {
     store.delete();
     payoutAccountRepository.deleteByStoreId(storeId);
 
-    appendDeletedEvent(store);
+    //    TODO : 리스너 구현 시 주석 제거
+    //    appendDeletedEvent(store);
   }
 
   public Store getOwnedStore(Long storeId, Long memberId) {
@@ -219,56 +220,63 @@ public class StoreService {
     return Math.floorMod(minutes, 24 * 60);
   }
 
-  private void appendChangedEvent(Store store){
+  private void appendChangedEvent(Store store) {
     StoreChangedPayload payload =
-            new StoreChangedPayload(store.getStoreName(), store.getStoreAddress(), store.getStorePhone(), store.getOpenTime(), store.getCloseTime(), store.getLatitude(), store.getLongitude(), store.getCategory());
+        new StoreChangedPayload(
+            store.getStoreName(),
+            store.getStoreAddress(),
+            store.getStorePhone(),
+            store.getOpenTime(),
+            store.getCloseTime(),
+            store.getLatitude(),
+            store.getLongitude(),
+            store.getCategory());
 
     long aggregateVersion = store.nextEventVersion();
 
     StoreChangedEvent event =
-            new StoreChangedEvent(
-                    UUID.randomUUID(),
-                    StoreChangedEvent.SCHEMA_VERSION,
-                    store.getId(),
-                    aggregateVersion,
-                    payload,
-                    Instant.now());
+        new StoreChangedEvent(
+            UUID.randomUUID(),
+            StoreChangedEvent.SCHEMA_VERSION,
+            store.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
 
     outboxEventWriter.append(event);
   }
 
-  private void appendStatusChangedEvent(Store store){
+  private void appendStatusChangedEvent(Store store) {
     StoreStatusChangedPayload payload =
-            new StoreStatusChangedPayload(store.getId(), store.getStatus());
+        new StoreStatusChangedPayload(store.getId(), store.getStatus());
 
     long aggregateVersion = store.nextEventVersion();
 
     StoreStatusChangedEvent event =
-            new StoreStatusChangedEvent(
-                    UUID.randomUUID(),
-                    StoreStatusChangedEvent.SCHEMA_VERSION,
-                    store.getId(),
-                    aggregateVersion,
-                    payload,
-                    Instant.now());
+        new StoreStatusChangedEvent(
+            UUID.randomUUID(),
+            StoreStatusChangedEvent.SCHEMA_VERSION,
+            store.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
 
     outboxEventWriter.append(event);
   }
 
-  private void appendDeletedEvent(Store store){
-    StoreDeletedPayload payload =
-            new StoreDeletedPayload(store.getId(), store.isDeleted());
+  private void appendDeletedEvent(Store store) {
+    StoreDeletedPayload payload = new StoreDeletedPayload(store.getId(), store.isDeleted());
 
     long aggregateVersion = store.nextEventVersion();
 
     StoreDeletedEvent event =
-            new StoreDeletedEvent(
-                    UUID.randomUUID(),
-                    StoreDeletedEvent.SCHEMA_VERSION,
-                    store.getId(),
-                    aggregateVersion,
-                    payload,
-                    Instant.now());
+        new StoreDeletedEvent(
+            UUID.randomUUID(),
+            StoreDeletedEvent.SCHEMA_VERSION,
+            store.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
 
     outboxEventWriter.append(event);
   }

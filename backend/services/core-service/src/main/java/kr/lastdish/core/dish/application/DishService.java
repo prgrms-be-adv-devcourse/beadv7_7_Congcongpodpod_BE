@@ -50,7 +50,8 @@ public class DishService {
 
     Dish savedDish = dishRepository.save(dish);
 
-    appendCreatedEvent(savedDish);
+    //    TODO : 리스너 구현 시 주석 제거
+    //    appendCreatedEvent(savedDish);
 
     return DishResponse.from(savedDish);
   }
@@ -250,13 +251,13 @@ public class DishService {
     long aggregateVersion = dish.nextAggregateVersion();
 
     DishCreatedEvent event =
-            new DishCreatedEvent(
-                    UUID.randomUUID(),
-                    DishCreatedEvent.SCHEMA_VERSION,
-                    dish.getId(),
-                    aggregateVersion,
-                    new DishCreatedPayload(dish),
-                    Instant.now());
+        new DishCreatedEvent(
+            UUID.randomUUID(),
+            DishCreatedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            new DishCreatedPayload(dish),
+            Instant.now());
 
     outboxEventWriter.append(event);
   }

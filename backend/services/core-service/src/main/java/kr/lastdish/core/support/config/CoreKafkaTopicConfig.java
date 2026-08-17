@@ -1,11 +1,7 @@
 package kr.lastdish.core.support.config;
 
-import kr.lastdish.core.dish.domain.event.DishCreatedEvent;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
-import kr.lastdish.core.store.domain.event.StoreChangedEvent;
-import kr.lastdish.core.store.domain.event.StoreDeletedEvent;
-import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

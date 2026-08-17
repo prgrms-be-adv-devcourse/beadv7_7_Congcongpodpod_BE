@@ -16,14 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/internal/v1/stores")
 @RequiredArgsConstructor
 public class InternalStoreController {
-    private final StoreService storeService;
-    private final StoreFacade storeFacade;
+  private final StoreService storeService;
+  private final StoreFacade storeFacade;
 
-    // 검색 전용 내부 API, 해당 매장의 매장 정보와 상품 정보를 합쳐 완성된 검색 문서를 반환
-    @GetMapping("/{storeId}/renewal")
-    public ApiResponse<InternalStoreResponse> getSearchDocoment(@PathVariable Long storeId) {
-        StoreResult store = storeService.getStore(storeId);
-        DishResponse dishResponse = storeFacade.getDishByStoreId(storeId);
-        return ApiResponse.ok(InternalStoreResponse.from(store, dishResponse));
-    }
+  // 검색 전용 내부 API, 해당 매장의 매장 정보와 상품 정보를 합쳐 완성된 검색 문서를 반환
+  @GetMapping("/{storeId}/renewal")
+  public ApiResponse<InternalStoreResponse> getSearchDocoment(@PathVariable Long storeId) {
+    StoreResult store = storeService.getStore(storeId);
+    DishResponse dishResponse = storeFacade.getDishByStoreId(storeId);
+    return ApiResponse.ok(InternalStoreResponse.from(store, dishResponse));
+  }
 }
