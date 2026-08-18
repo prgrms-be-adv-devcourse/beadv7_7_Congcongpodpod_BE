@@ -7,16 +7,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import kr.lastdish.common.storage.ObjectStorage;
 import kr.lastdish.common.storage.ObjectStorageException;
+import kr.lastdish.common.storage.PresignedDownloadUrl;
 import kr.lastdish.common.storage.PresignedUploadUrl;
 import kr.lastdish.common.storage.StoredObjectMetadata;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -37,6 +41,25 @@ public class S3ObjectStorage implements ObjectStorage {
     this.presigner = presigner;
     this.properties = properties;
     this.clock = clock;
+  }
+
+  @Override
+  public PresignedDownloadUrl issueGetUrl(String objectKey, Duration expiration) {
+    try {
+      GetObjectRequest getObjectRequest =
+          GetObjectRequest.builder().bucket(properties.bucket()).key(objectKey).build();
+      GetObjectPresignRequest presignRequest =
+          GetObjectPresignRequest.builder()
+              .signatureDuration(expiration)
+              .getObjectRequest(getObjectRequest)
+              .build();
+      PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
+
+      return new PresignedDownloadUrl(
+          objectKey, presignedRequest.url(), clock.instant().plus(expiration));
+    } catch (SdkException exception) {
+      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+    }
   }
 
   @Override

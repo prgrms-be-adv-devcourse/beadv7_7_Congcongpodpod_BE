@@ -25,20 +25,20 @@ class DishFacadeTest {
   @Mock private DishRepository dishRepository;
   @Mock private DishService dishService;
   @Mock private StoreService storeService;
-  @Mock private DishImageUploadService dishImageUploadService;
+  @Mock private DishImageService dishImageService;
 
   private DishFacade dishFacade;
 
   @BeforeEach
   void setUp() {
-    dishFacade = new DishFacade(dishRepository, dishService, storeService, dishImageUploadService);
+    dishFacade = new DishFacade(dishRepository, dishService, storeService, dishImageService);
   }
 
   @Test
   void Dish_등록시_매장_영업시간을_검증한_뒤_등록을_위임한다() {
     DishCreateRequest request = createRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
-    when(dishImageUploadService.confirmUpload(7L, request.storeId(), request.imageKey()))
+    when(dishImageService.confirmUpload(7L, request.storeId(), request.imageKey()))
         .thenReturn("dish/1/test.jpg");
     when(dishService.createDish(request, "dish/1/test.jpg")).thenReturn(expected);
 
@@ -48,7 +48,7 @@ class DishFacadeTest {
     verify(storeService)
         .validateDishPickupTime(
             request.storeId(), request.pickupStartTime(), request.pickupEndTime());
-    verify(dishImageUploadService).confirmUpload(7L, request.storeId(), request.imageKey());
+    verify(dishImageService).confirmUpload(7L, request.storeId(), request.imageKey());
     verify(dishService).createDish(request, "dish/1/test.jpg");
     assertThat(result).isSameAs(expected);
   }

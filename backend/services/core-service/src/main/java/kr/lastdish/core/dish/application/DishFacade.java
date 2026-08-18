@@ -20,7 +20,7 @@ public class DishFacade {
   private final DishRepository dishRepository;
   private final DishService dishService;
   private final StoreService storeService;
-  private final DishImageUploadService dishImageUploadService;
+  private final DishImageService dishImageService;
 
   @Transactional
   public DishResponse createDish(Long memberId, DishCreateRequest request) {
@@ -28,7 +28,7 @@ public class DishFacade {
     storeService.validateDishPickupTime(
         request.storeId(), request.pickupStartTime(), request.pickupEndTime());
     String finalImageKey =
-        dishImageUploadService.confirmUpload(memberId, request.storeId(), request.imageKey());
+        dishImageService.confirmUpload(memberId, request.storeId(), request.imageKey());
     return dishService.createDish(request, finalImageKey);
   }
 

@@ -167,6 +167,14 @@ public class DishService {
     return DishResponse.from(dish);
   }
 
+  public String getImageKey(Long dishId) {
+    String imageKey = getDish(dishId).getThumbnailUrl();
+    if (imageKey == null || imageKey.isBlank()) {
+      throw new BusinessException(ErrorCode.IMAGE_OBJECT_NOT_FOUND);
+    }
+    return imageKey;
+  }
+
   private Dish getDish(Long dishId) {
     return dishRepository.findByIdAndIsDeletedFalse(dishId);
   }

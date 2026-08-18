@@ -30,4 +30,19 @@ public record DishResponse(
         dish.getDishPrice(),
         dish.getDiscountPrice());
   }
+
+  public DishResponse withThumbnailUrl(String thumbnailUrl) {
+    return new DishResponse(
+        dishId,
+        storeId,
+        dishName,
+        registeredAt,
+        description,
+        category,
+        thumbnailUrl,
+        stockQuantity,
+        dishStatus,
+        dishPrice,
+        discountPrice);
+  }
 }

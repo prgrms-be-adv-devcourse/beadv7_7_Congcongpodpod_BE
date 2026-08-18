@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import kr.lastdish.common.storage.ObjectStorageException;
+import kr.lastdish.common.storage.PresignedDownloadUrl;
 import kr.lastdish.common.storage.PresignedUploadUrl;
 import kr.lastdish.common.storage.StoredObjectMetadata;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,28 @@ class S3ObjectStorageTest {
           Duration.ofMinutes(5),
           DataSize.ofMegabytes(10),
           null);
+
+  @Test
+  void 조회용_GET_URL을_발급한다() {
+    Instant now = Instant.parse("2026-08-14T00:00:00Z");
+
+    try (S3Presigner presigner =
+        S3Presigner.builder()
+            .region(Region.AP_NORTHEAST_2)
+            .credentialsProvider(
+                StaticCredentialsProvider.create(AwsBasicCredentials.create("access", "secret")))
+            .build()) {
+      S3ObjectStorage storage =
+          new S3ObjectStorage(
+              mock(S3Client.class), presigner, properties, Clock.fixed(now, ZoneOffset.UTC));
+
+      PresignedDownloadUrl result = storage.issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5));
+
+      assertThat(result.objectKey()).isEqualTo("dish/3/test.jpg");
+      assertThat(result.url().getPath()).endsWith("/dish/3/test.jpg");
+      assertThat(result.expiresAt()).isEqualTo(now.plus(Duration.ofMinutes(5)));
+    }
+  }
 
   @Test
   void ContentType과_정확한_파일_크기를_서명에_포함한다() {

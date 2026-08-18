@@ -2,6 +2,7 @@ package kr.lastdish.common.storage.s3;
 
 import java.util.Optional;
 import kr.lastdish.common.storage.ObjectStorage;
+import kr.lastdish.common.storage.download.application.PresignedDownloadService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,5 +40,11 @@ public class S3StorageAutoConfiguration {
   ObjectStorage objectStorage(
       S3Client s3Client, S3Presigner s3Presigner, S3StorageProperties properties) {
     return new S3ObjectStorage(s3Client, s3Presigner, properties);
+  }
+
+  @Bean
+  PresignedDownloadService presignedDownloadService(
+      Optional<ObjectStorage> objectStorage, S3StorageProperties properties) {
+    return new PresignedDownloadService(objectStorage, properties);
   }
 }

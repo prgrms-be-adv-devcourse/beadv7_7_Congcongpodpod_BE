@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.dish.application.DishFacade;
+import kr.lastdish.core.dish.application.DishImageService;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class DishController {
   private final DishFacade dishFacade;
   private final DishService dishService;
+  private final DishImageService dishImageService;
 
   @PostMapping
   public ApiResponse<DishResponse> createDish(
@@ -40,7 +42,8 @@ public class DishController {
 
   @GetMapping("/{dishId}")
   public ApiResponse<DishResponse> getEachDish(@PathVariable Long dishId) {
-    return ApiResponse.ok(dishService.getEachDish(dishId));
+    DishResponse dish = dishService.getEachDish(dishId);
+    return ApiResponse.ok(dishImageService.withDownloadUrl(dish));
   }
 
   @PatchMapping("/{dishId}/status")
@@ -51,6 +54,10 @@ public class DishController {
 
   @GetMapping()
   public ApiResponse<List<DishResponse>> getEachStoreDishes(@RequestParam Long storeId) {
-    return ApiResponse.ok(dishService.getOnSaleDishesByStoreId(storeId));
+    List<DishResponse> dishes =
+        dishService.getOnSaleDishesByStoreId(storeId).stream()
+            .map(dishImageService::withDownloadUrl)
+            .toList();
+    return ApiResponse.ok(dishes);
   }
 }
