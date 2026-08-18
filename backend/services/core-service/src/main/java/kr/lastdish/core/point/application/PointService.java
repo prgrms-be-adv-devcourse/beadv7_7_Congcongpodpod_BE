@@ -22,16 +22,15 @@ public class PointService {
     private final PointHistoryRepository pointHistoryRepository;
     private final LevelService levelService;
 
-    @Transactional
-    public Point getOrCreatePoint(Long memberId) {
-        return pointRepository
-                .findByMemberId(memberId)
-                .orElseGet(() -> pointRepository.save(Point.createDefault(memberId)));
+    @Transactional(readOnly = true)
+    public Point getOrDefaultPoint(Long memberId) {
+        return pointRepository.findByMemberId(memberId)
+                .orElseGet(() -> Point.createDefault(memberId));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PointBalanceResponse getPointBalance(Long memberId) {
-        return PointBalanceResponse.from(getOrCreatePoint(memberId));
+        return PointBalanceResponse.from(getOrDefaultPoint(memberId));
     }
 
     // 포인트 적립 (Level 적립률 * 최종 주문 금액)

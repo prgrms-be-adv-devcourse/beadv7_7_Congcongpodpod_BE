@@ -48,6 +48,6 @@ public class LevelService {
   // 회원의 현재 등급에 해당하는 적립률 조회 (Point 도메인이 적립 계산 시 사용)
   @Transactional(readOnly = true)
   public BigDecimal getPointEarningRate(Long memberId) {
-    return getOrDefaultLevel(memberId).getDishLevel().getPointPercent(); // 수정됨
+    return getOrDefaultLevel(memberId).getDishLevel().getPointPercent();
   }
 }

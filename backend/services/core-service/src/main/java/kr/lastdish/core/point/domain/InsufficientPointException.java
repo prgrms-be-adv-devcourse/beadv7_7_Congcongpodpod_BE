@@ -1,5 +1,6 @@
 package kr.lastdish.core.point.domain;
 
+import java.math.BigDecimal;
 
 public class InsufficientPointException extends RuntimeException {
     public InsufficientPointException(Long memberId, BigDecimal balance, BigDecimal amount) {
