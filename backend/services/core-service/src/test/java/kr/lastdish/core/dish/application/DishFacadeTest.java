@@ -1,6 +1,7 @@
 package kr.lastdish.core.dish.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,11 +12,13 @@ import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -54,30 +57,53 @@ class DishFacadeTest {
   }
 
   @Test
-  void Dish_수정시_실제_Dish의_매장_영업시간을_검증한_뒤_수정을_위임한다() {
+  void Dish_수정시_소유권과_매장_영업시간을_검증한_뒤_수정을_위임한다() {
     Dish dish = createDish();
     DishUpdateRequest request = updateRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
     when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
     when(dishService.updateDish(10L, request)).thenReturn(expected);
 
-    DishResponse result = dishFacade.updateDish(10L, request);
+    DishResponse result = dishFacade.updateDish(7L, 10L, request);
 
-    verify(storeService)
+    InOrder inOrder = inOrder(storeService, dishService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder
+        .verify(storeService)
         .validateDishPickupTime(
             dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
-    verify(dishService).updateDish(10L, request);
+    inOrder.verify(dishService).updateDish(10L, request);
     assertThat(result).isSameAs(expected);
   }
 
   @Test
-  void Dish_삭제가_완료되면_최종_이미지를_삭제한다() {
+  void Dish_상태_변경시_소유권을_검증한_뒤_변경을_위임한다() {
+    Dish dish = createDish();
+    DishStatusRequest request = org.mockito.Mockito.mock(DishStatusRequest.class);
+    DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
+    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishService.updateDishStatus(10L, request)).thenReturn(expected);
+
+    DishResponse result = dishFacade.updateDishStatus(7L, 10L, request);
+
+    InOrder inOrder = inOrder(storeService, dishService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder.verify(dishService).updateDishStatus(10L, request);
+    assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void Dish_삭제시_소유권을_검증한_뒤_Dish와_이미지를_삭제한다() {
+    Dish dish = createDish();
+    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
     when(dishService.deleteDish(10L)).thenReturn("dish/1/test.jpg");
 
-    dishFacade.deleteDish(10L);
+    dishFacade.deleteDish(7L, 10L);
 
-    verify(dishService).deleteDish(10L);
-    verify(dishImageService).deleteImage("dish/1/test.jpg");
+    InOrder inOrder = inOrder(storeService, dishService, dishImageService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder.verify(dishService).deleteDish(10L);
+    inOrder.verify(dishImageService).deleteImage("dish/1/test.jpg");
   }
 
   private DishCreateRequest createRequest() {

@@ -30,13 +30,16 @@ public class DishController {
 
   @PutMapping("/{dishId}")
   public ApiResponse<DishResponse> updateDish(
-      @PathVariable Long dishId, @Valid @RequestBody DishUpdateRequest request) {
-    return ApiResponse.ok(dishFacade.updateDish(dishId, request));
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PathVariable Long dishId,
+      @Valid @RequestBody DishUpdateRequest request) {
+    return ApiResponse.ok(dishFacade.updateDish(memberId, dishId, request));
   }
 
   @PatchMapping("/{dishId}")
-  public ApiResponse<Void> deleteDish(@PathVariable Long dishId) {
-    dishFacade.deleteDish(dishId);
+  public ApiResponse<Void> deleteDish(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long dishId) {
+    dishFacade.deleteDish(memberId, dishId);
     return ApiResponse.ok();
   }
 
@@ -48,8 +51,10 @@ public class DishController {
 
   @PatchMapping("/{dishId}/status")
   public ApiResponse<DishResponse> updateDishStatus(
-      @PathVariable Long dishId, @Valid @RequestBody DishStatusRequest request) {
-    return ApiResponse.ok(dishService.updateDishStatus(dishId, request));
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PathVariable Long dishId,
+      @Valid @RequestBody DishStatusRequest request) {
+    return ApiResponse.ok(dishFacade.updateDishStatus(memberId, dishId, request));
   }
 
   @GetMapping()

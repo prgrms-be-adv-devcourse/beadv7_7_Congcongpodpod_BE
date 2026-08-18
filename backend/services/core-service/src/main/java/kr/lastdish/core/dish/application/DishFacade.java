@@ -7,6 +7,7 @@ import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +34,23 @@ public class DishFacade {
   }
 
   @Transactional
-  public DishResponse updateDish(Long dishId, DishUpdateRequest request) {
+  public DishResponse updateDish(Long memberId, Long dishId, DishUpdateRequest request) {
     Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
+    storeService.validateSeller(dish.getStoreId(), memberId);
     storeService.validateDishPickupTime(
         dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
     return dishService.updateDish(dishId, request);
   }
 
-  public void deleteDish(Long dishId) {
+  public DishResponse updateDishStatus(Long memberId, Long dishId, DishStatusRequest request) {
+    Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
+    storeService.validateSeller(dish.getStoreId(), memberId);
+    return dishService.updateDishStatus(dishId, request);
+  }
+
+  public void deleteDish(Long memberId, Long dishId) {
+    Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
+    storeService.validateSeller(dish.getStoreId(), memberId);
     String imageKey = dishService.deleteDish(dishId);
     dishImageService.deleteImage(imageKey);
   }
