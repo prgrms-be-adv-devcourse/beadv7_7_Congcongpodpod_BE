@@ -19,6 +19,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+/**
+ * 공통 스토리지 기능을 Dish 정책에 맞게 연결하는 애플리케이션 서비스입니다.
+ *
+ * <p>SELLER·매장 소유권 검증, Dish 전용 Key 검증, 업로드 확정, 조회 URL 발급과 이미지 삭제 오류 변환을 담당합니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

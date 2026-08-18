@@ -4,6 +4,7 @@ import java.util.Optional;
 import kr.lastdish.common.storage.upload.domain.PresignedUpload;
 import kr.lastdish.common.storage.upload.domain.PresignedUploadRepository;
 
+/** 도메인 저장소 계약을 Spring Data JPA 저장소에 위임하는 어댑터입니다. */
 public class PresignedUploadRepositoryImpl implements PresignedUploadRepository {
 
   private final PresignedUploadJpaRepository presignedUploadJpaRepository;

@@ -25,6 +25,11 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+/**
+ * {@link ObjectStorage}를 AWS SDK의 S3Client와 S3Presigner로 구현한 어댑터입니다.
+ *
+ * <p>URL 서명은 S3 네트워크 호출 없이 계산하며, 메타데이터 조회·복사·삭제는 실제 S3 API를 호출합니다.
+ */
 public class S3ObjectStorage implements ObjectStorage {
 
   private final S3Client s3Client;

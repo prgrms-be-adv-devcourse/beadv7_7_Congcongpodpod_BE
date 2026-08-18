@@ -13,6 +13,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * Presigned PUT URL 발급 이력을 보관하는 엔티티입니다.
+ *
+ * <p>발급 회원, 리소스 종류, Object Key, 파일 조건, 만료 시각과 처리 상태를 저장해 실제 업로드 확정 시 검증에 사용합니다.
+ */
 @Getter
 @Entity
 @Table(name = "presigned_uploads")

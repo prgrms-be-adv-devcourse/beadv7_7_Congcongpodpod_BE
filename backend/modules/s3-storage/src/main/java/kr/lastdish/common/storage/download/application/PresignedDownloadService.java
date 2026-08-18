@@ -7,6 +7,7 @@ import kr.lastdish.common.storage.PresignedDownloadUrl;
 import kr.lastdish.common.storage.download.domain.PresignedDownloadException;
 import kr.lastdish.common.storage.s3.S3StorageProperties;
 
+/** 설정된 만료 시간을 적용해 조회용 Presigned GET URL을 발급하는 공통 애플리케이션 서비스입니다. */
 public class PresignedDownloadService {
 
   private final Optional<ObjectStorage> objectStorage;

@@ -17,6 +17,11 @@ import kr.lastdish.common.storage.upload.domain.UploadResourceType;
 import kr.lastdish.common.storage.upload.domain.UploadStatus;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 업로드용 Presigned URL 발급과 업로드 완료 확정을 담당하는 공통 애플리케이션 서비스입니다.
+ *
+ * <p>발급 시 파일 조건을 검증하고 이력을 저장하며, 확정 시 소유자·상태와 실제 객체 메타데이터를 검증한 뒤 최종 경로로 복사합니다.
+ */
 public class PresignedUploadService {
 
   private final Optional<ObjectStorage> objectStorage;

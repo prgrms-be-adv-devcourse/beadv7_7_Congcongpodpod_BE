@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/** JPA 환경에서 Presigned 업로드 저장소와 애플리케이션 서비스를 자동 등록합니다. */
 @AutoConfiguration(
     before = {HibernateJpaAutoConfiguration.class, DataJpaRepositoriesAutoConfiguration.class})
 @ConditionalOnClass({EntityManager.class, JpaRepository.class})

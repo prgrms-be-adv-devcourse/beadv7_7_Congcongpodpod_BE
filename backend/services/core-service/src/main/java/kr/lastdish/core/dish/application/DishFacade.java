@@ -14,6 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Dish 유스케이스의 도메인 검증과 DB·S3 작업 순서를 조율하는 Facade입니다.
+ *
+ * <p>이미지 확정 후 Dish 저장이 실패하면 최종 이미지를 보상 삭제하며, Dish 삭제 후에는 연결된 이미지를 정리합니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class DishFacade {

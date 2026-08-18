@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Dish 이미지 업로드용 Presigned PUT URL과 조회용 Presigned GET URL API를 제공합니다. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/dishes")

@@ -1,5 +1,6 @@
 package kr.lastdish.common.storage.upload.domain;
 
+/** 업로드 URL 발급·확정 과정의 검증 실패와 객체 저장소 오류를 사유별로 전달하는 예외입니다. */
 public class PresignedUploadException extends RuntimeException {
 
   private final Reason reason;

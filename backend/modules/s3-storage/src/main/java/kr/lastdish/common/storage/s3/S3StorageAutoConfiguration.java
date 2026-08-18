@@ -14,6 +14,11 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner.Builder;
 
+/**
+ * {@code storage.s3.enabled=true}일 때 AWS S3 클라이언트와 {@link ObjectStorage} 구현을 등록합니다.
+ *
+ * <p>기능이 비활성화된 환경에서도 조회 서비스를 생성해 명확한 비활성화 오류를 반환할 수 있게 합니다.
+ */
 @AutoConfiguration
 @EnableConfigurationProperties(S3StorageProperties.class)
 public class S3StorageAutoConfiguration {

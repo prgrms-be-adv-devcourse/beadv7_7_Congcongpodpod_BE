@@ -2,6 +2,7 @@ package kr.lastdish.common.storage.image;
 
 import java.util.Arrays;
 
+/** 업로드를 허용하는 이미지 MIME 타입과 해당 Object Key 확장자를 정의합니다. */
 public enum ImageContentType {
   JPEG("image/jpeg", "jpg"),
   PNG("image/png", "png"),
