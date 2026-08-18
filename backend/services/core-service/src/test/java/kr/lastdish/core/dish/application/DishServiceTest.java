@@ -237,6 +237,7 @@ class DishServiceTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
+        "한식",
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),

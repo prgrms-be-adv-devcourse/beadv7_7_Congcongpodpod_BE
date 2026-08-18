@@ -12,6 +12,7 @@ CREATE TABLE public.dishes (
     stock_quantity bigint NOT NULL,
     store_id bigint NOT NULL,
     description character varying(255) NOT NULL,
+    category character varying(100) NOT NULL,
     dish_name character varying(255) NOT NULL,
     dish_status character varying(255) NOT NULL,
     thumbnail_url character varying(255),

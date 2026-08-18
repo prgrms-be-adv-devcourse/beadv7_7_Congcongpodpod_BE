@@ -8,6 +8,7 @@ import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.storage.application.ImageUploadService;
 import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,12 +21,16 @@ public class DishFacade {
   private final DishRepository dishRepository;
   private final DishService dishService;
   private final StoreService storeService;
+  private final ImageUploadService imageUploadService;
 
   @Transactional
-  public DishResponse createDish(DishCreateRequest request) {
+  public DishResponse createDish(Long memberId, DishCreateRequest request) {
+    storeService.validateSeller(request.storeId(), memberId);
     storeService.validateDishPickupTime(
         request.storeId(), request.pickupStartTime(), request.pickupEndTime());
-    return dishService.createDish(request);
+    String finalImageKey =
+        imageUploadService.confirmDishUpload(memberId, request.storeId(), request.imageKey());
+    return dishService.createDish(request, finalImageKey);
   }
 
   @Transactional

@@ -10,6 +10,13 @@ import org.junit.jupiter.api.Test;
 class DishTest {
 
   @Test
+  void created_dish_keeps_category() {
+    Dish dish = createDish(10L);
+
+    assertThat(dish.getCategory()).isEqualTo("한식");
+  }
+
+  @Test
   void on_sale_dish_with_stock_is_available() {
     // given
     Dish dish = createDish(10L);
@@ -67,6 +74,7 @@ class DishTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
+        "한식",
         null,
         stockQuantity,
         BigDecimal.valueOf(10000),

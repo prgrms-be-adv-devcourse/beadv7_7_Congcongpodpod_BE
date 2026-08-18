@@ -144,6 +144,7 @@ class StoreControllerTest {
             dishName,
             LocalDateTime.now(),
             "테스트 상품",
+            "기타",
             null,
             10L,
             BigDecimal.valueOf(10_000),

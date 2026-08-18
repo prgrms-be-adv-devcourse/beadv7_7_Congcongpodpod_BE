@@ -9,6 +9,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Objects;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -75,5 +78,18 @@ public class PresignedUpload {
       Instant expiresAt) {
     return new PresignedUpload(
         memberId, resourceType, objectKey, contentType, contentLength, expiresAt);
+  }
+
+  public void validatePendingOwner(Long memberId, UploadResourceType resourceType) {
+    if (!Objects.equals(this.memberId, memberId)) {
+      throw new BusinessException(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED);
+    }
+    if (this.resourceType != resourceType || this.status != UploadStatus.PENDING) {
+      throw new BusinessException(ErrorCode.PRESIGNED_UPLOAD_INVALID_STATE);
+    }
+  }
+
+  public void confirm() {
+    this.status = UploadStatus.CONFIRMED;
   }
 }

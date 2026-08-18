@@ -20,8 +20,10 @@ public class DishController {
   private final DishService dishService;
 
   @PostMapping
-  public ApiResponse<DishResponse> createDish(@Valid @RequestBody DishCreateRequest request) {
-    return ApiResponse.ok(dishFacade.createDish(request));
+  public ApiResponse<DishResponse> createDish(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @Valid @RequestBody DishCreateRequest request) {
+    return ApiResponse.ok(dishFacade.createDish(memberId, request));
   }
 
   @PutMapping("/{dishId}")

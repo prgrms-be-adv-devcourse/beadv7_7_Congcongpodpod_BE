@@ -12,6 +12,7 @@ import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.storage.application.ImageUploadService;
 import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,26 +26,31 @@ class DishFacadeTest {
   @Mock private DishRepository dishRepository;
   @Mock private DishService dishService;
   @Mock private StoreService storeService;
+  @Mock private ImageUploadService imageUploadService;
 
   private DishFacade dishFacade;
 
   @BeforeEach
   void setUp() {
-    dishFacade = new DishFacade(dishRepository, dishService, storeService);
+    dishFacade = new DishFacade(dishRepository, dishService, storeService, imageUploadService);
   }
 
   @Test
   void Dish_등록시_매장_영업시간을_검증한_뒤_등록을_위임한다() {
     DishCreateRequest request = createRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
-    when(dishService.createDish(request)).thenReturn(expected);
+    when(imageUploadService.confirmDishUpload(7L, request.storeId(), request.imageKey()))
+        .thenReturn("dish/1/test.jpg");
+    when(dishService.createDish(request, "dish/1/test.jpg")).thenReturn(expected);
 
-    DishResponse result = dishFacade.createDish(request);
+    DishResponse result = dishFacade.createDish(7L, request);
 
+    verify(storeService).validateSeller(request.storeId(), 7L);
     verify(storeService)
         .validateDishPickupTime(
             request.storeId(), request.pickupStartTime(), request.pickupEndTime());
-    verify(dishService).createDish(request);
+    verify(imageUploadService).confirmDishUpload(7L, request.storeId(), request.imageKey());
+    verify(dishService).createDish(request, "dish/1/test.jpg");
     assertThat(result).isSameAs(expected);
   }
 
@@ -71,7 +77,8 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        null,
+        "한식",
+        "tmp/dish/1/test.jpg",
         10L,
         BigDecimal.valueOf(10_000),
         BigDecimal.valueOf(7_000),
@@ -99,6 +106,7 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
+        "한식",
         null,
         10L,
         BigDecimal.valueOf(10_000),

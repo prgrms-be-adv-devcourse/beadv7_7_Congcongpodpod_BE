@@ -29,12 +29,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.util.unit.DataSize;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 @ExtendWith(MockitoExtension.class)
 class ImageUploadServiceTest {
 
   @Mock private S3PresignedUploadUrlProvider provider;
   @Mock private PresignedUploadRepository presignedUploadRepository;
+  @Mock private S3Client s3Client;
 
   private ImageUploadService imageUploadService;
 
@@ -49,7 +54,8 @@ class ImageUploadServiceTest {
             DataSize.ofMegabytes(10),
             null);
     imageUploadService =
-        new ImageUploadService(Optional.of(provider), properties, presignedUploadRepository);
+        new ImageUploadService(
+            Optional.of(provider), properties, presignedUploadRepository, Optional.of(s3Client));
   }
 
   @Test
@@ -104,5 +110,61 @@ class ImageUploadServiceTest {
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.UNSUPPORTED_IMAGE_TYPE));
 
     verifyNoInteractions(provider, presignedUploadRepository);
+  }
+
+  @Test
+  void 업로드_이력과_S3_객체를_검증한_뒤_최종_key로_복사하고_확정한다() {
+    String temporaryKey = "tmp/dish/3/test-uuid.jpg";
+    PresignedUpload upload =
+        PresignedUpload.issue(
+            7L,
+            UploadResourceType.DISH,
+            temporaryKey,
+            "image/jpeg",
+            1024L,
+            Instant.parse("2026-08-14T00:05:00Z"));
+    when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
+        .thenReturn(Optional.of(upload));
+    when(s3Client.headObject(org.mockito.ArgumentMatchers.any(HeadObjectRequest.class)))
+        .thenReturn(
+            HeadObjectResponse.builder().contentType("image/jpeg").contentLength(1024L).build());
+
+    String finalKey = imageUploadService.confirmDishUpload(7L, 3L, temporaryKey);
+
+    assertThat(finalKey).isEqualTo("dish/3/test-uuid.jpg");
+    assertThat(upload.getStatus()).isEqualTo(UploadStatus.CONFIRMED);
+    verify(s3Client)
+        .copyObject(
+            org.mockito.ArgumentMatchers.argThat(
+                (CopyObjectRequest request) ->
+                    request.copySource().equals("test-bucket/" + temporaryKey)
+                        && request.destinationKey().equals(finalKey)));
+    verify(presignedUploadRepository).save(upload);
+  }
+
+  @Test
+  void S3_객체의_MIME이나_크기가_다르면_확정하지_않는다() {
+    String temporaryKey = "tmp/dish/3/test-uuid.jpg";
+    PresignedUpload upload =
+        PresignedUpload.issue(
+            7L,
+            UploadResourceType.DISH,
+            temporaryKey,
+            "image/jpeg",
+            1024L,
+            Instant.parse("2026-08-14T00:05:00Z"));
+    when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
+        .thenReturn(Optional.of(upload));
+    when(s3Client.headObject(org.mockito.ArgumentMatchers.any(HeadObjectRequest.class)))
+        .thenReturn(
+            HeadObjectResponse.builder().contentType("image/png").contentLength(2048L).build());
+
+    assertThatThrownBy(() -> imageUploadService.confirmDishUpload(7L, 3L, temporaryKey))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IMAGE_METADATA_MISMATCH));
+
+    assertThat(upload.getStatus()).isEqualTo(UploadStatus.PENDING);
   }
 }

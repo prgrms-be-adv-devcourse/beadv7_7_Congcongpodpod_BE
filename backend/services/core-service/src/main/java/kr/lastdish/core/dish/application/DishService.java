@@ -30,7 +30,7 @@ public class DishService {
   private final OutboxEventWriter outboxEventWriter;
 
   @Transactional
-  public DishResponse createDish(DishCreateRequest request) {
+  public DishResponse createDish(DishCreateRequest request, String finalImageKey) {
 
     // 할인율 검증
     validateDiscountRate(request.dishPrice(), request.discountPrice());
@@ -44,7 +44,8 @@ public class DishService {
             request.dishName(),
             request.registeredAt(),
             request.description(),
-            request.thumbnailUrl(),
+            request.category(),
+            finalImageKey,
             request.stockQuantity(),
             request.dishPrice(),
             request.discountPrice(),
