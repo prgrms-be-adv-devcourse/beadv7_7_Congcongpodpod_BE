@@ -70,6 +70,16 @@ class DishFacadeTest {
     assertThat(result).isSameAs(expected);
   }
 
+  @Test
+  void Dish_삭제가_완료되면_최종_이미지를_삭제한다() {
+    when(dishService.deleteDish(10L)).thenReturn("dish/1/test.jpg");
+
+    dishFacade.deleteDish(10L);
+
+    verify(dishService).deleteDish(10L);
+    verify(dishImageService).deleteImage("dish/1/test.jpg");
+  }
+
   private DishCreateRequest createRequest() {
     return new DishCreateRequest(
         1L,
@@ -91,7 +101,6 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        null,
         10L,
         BigDecimal.valueOf(10_000),
         BigDecimal.valueOf(7_000),

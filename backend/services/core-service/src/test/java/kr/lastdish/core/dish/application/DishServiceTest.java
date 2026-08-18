@@ -117,7 +117,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            null,
             10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.valueOf(7_000),
@@ -157,7 +156,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            null,
             10L,
             BigDecimal.valueOf(12_000),
             BigDecimal.ZERO,
@@ -194,7 +192,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            null,
             10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.ZERO,
@@ -219,7 +216,7 @@ class DishServiceTest {
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
     // when
-    dishService.deleteDish(10L);
+    String imageKey = dishService.deleteDish(10L);
 
     // then
     verify(outboxEventWriter).append(eventCaptor.capture());
@@ -229,6 +226,7 @@ class DishServiceTest {
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().available()).isFalse();
+    assertThat(imageKey).isEqualTo("dish/1/test.jpg");
   }
 
   private Dish createDish(Long stockQuantity) {
@@ -238,7 +236,7 @@ class DishServiceTest {
         LocalDateTime.now(),
         "상품 설명",
         "한식",
-        null,
+        "dish/1/test.jpg",
         stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,
@@ -252,7 +250,6 @@ class DishServiceTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        null,
         stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,

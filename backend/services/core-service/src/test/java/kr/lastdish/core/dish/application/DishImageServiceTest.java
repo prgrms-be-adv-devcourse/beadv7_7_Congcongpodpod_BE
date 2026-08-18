@@ -11,7 +11,9 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.storage.ObjectStorage;
 import kr.lastdish.common.storage.PresignedDownloadUrl;
 import kr.lastdish.common.storage.PresignedUploadUrl;
 import kr.lastdish.common.storage.download.application.PresignedDownloadService;
@@ -34,6 +36,7 @@ class DishImageServiceTest {
   @Mock private PresignedUploadService presignedUploadService;
   @Mock private PresignedDownloadService presignedDownloadService;
   @Mock private DishService dishService;
+  @Mock private ObjectStorage objectStorage;
 
   private DishImageService dishImageService;
 
@@ -41,7 +44,11 @@ class DishImageServiceTest {
   void setUp() {
     dishImageService =
         new DishImageService(
-            storeFacade, presignedUploadService, presignedDownloadService, dishService);
+            storeFacade,
+            presignedUploadService,
+            presignedDownloadService,
+            dishService,
+            Optional.of(objectStorage));
   }
 
   @Test
@@ -158,5 +165,23 @@ class DishImageServiceTest {
     assertThat(result.thumbnailUrl()).isEqualTo("https://example.com/download");
     assertThat(result.dishId()).isEqualTo(response.dishId());
     assertThat(result.dishName()).isEqualTo(response.dishName());
+  }
+
+  @Test
+  void Dish의_최종_이미지를_삭제한다() {
+    dishImageService.deleteImage("dish/3/test.jpg");
+
+    verify(objectStorage).delete("dish/3/test.jpg");
+  }
+
+  @Test
+  void 임시_이미지는_Dish_삭제_대상으로_허용하지_않는다() {
+    assertThatThrownBy(() -> dishImageService.deleteImage("tmp/dish/3/test.jpg"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IMAGE_OBJECT_NOT_FOUND));
+
+    verifyNoInteractions(objectStorage);
   }
 }

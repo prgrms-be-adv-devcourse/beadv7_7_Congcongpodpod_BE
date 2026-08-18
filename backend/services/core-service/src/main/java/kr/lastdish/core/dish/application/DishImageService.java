@@ -1,7 +1,10 @@
 package kr.lastdish.core.dish.application;
 
+import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.common.storage.ObjectStorage;
+import kr.lastdish.common.storage.ObjectStorageException;
 import kr.lastdish.common.storage.PresignedDownloadUrl;
 import kr.lastdish.common.storage.PresignedUploadUrl;
 import kr.lastdish.common.storage.download.application.PresignedDownloadService;
@@ -25,6 +28,7 @@ public class DishImageService {
   private final PresignedUploadService presignedUploadService;
   private final PresignedDownloadService presignedDownloadService;
   private final DishService dishService;
+  private final Optional<ObjectStorage> objectStorage;
 
   public PresignedUploadUrl issue(
       Long memberId, String role, Long storeId, String contentType, long fileSize) {
@@ -60,6 +64,26 @@ public class DishImageService {
   public DishResponse withDownloadUrl(DishResponse dishResponse) {
     PresignedDownloadUrl downloadUrl = issueDownloadUrl(dishResponse.thumbnailUrl());
     return dishResponse.withThumbnailUrl(downloadUrl.url().toExternalForm());
+  }
+
+  public void deleteImage(String objectKey) {
+    if (objectKey == null || objectKey.isBlank()) {
+      return;
+    }
+    if (!objectKey.startsWith("dish/")) {
+      throw new BusinessException(ErrorCode.IMAGE_OBJECT_NOT_FOUND);
+    }
+
+    ObjectStorage storage =
+        objectStorage.orElseThrow(
+            () ->
+                new BusinessException(
+                    CommonErrorCode.SERVICE_UNAVAILABLE, "이미지 삭제 기능이 비활성화되어 있습니다."));
+    try {
+      storage.delete(objectKey);
+    } catch (ObjectStorageException exception) {
+      throw new BusinessException(ErrorCode.IMAGE_STORAGE_ERROR);
+    }
   }
 
   private PresignedDownloadUrl issueDownloadUrl(String imageKey) {

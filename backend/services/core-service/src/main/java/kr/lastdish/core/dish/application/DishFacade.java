@@ -40,6 +40,11 @@ public class DishFacade {
     return dishService.updateDish(dishId, request);
   }
 
+  public void deleteDish(Long dishId) {
+    String imageKey = dishService.deleteDish(dishId);
+    dishImageService.deleteImage(imageKey);
+  }
+
   /**
    * 조회 가능한(판매중) Dish의 스냅샷을 가져온다.
    *

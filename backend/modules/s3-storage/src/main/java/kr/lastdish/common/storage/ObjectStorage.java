@@ -12,4 +12,6 @@ public interface ObjectStorage {
   StoredObjectMetadata getMetadata(String objectKey);
 
   void copy(String sourceKey, String destinationKey);
+
+  void delete(String objectKey);
 }

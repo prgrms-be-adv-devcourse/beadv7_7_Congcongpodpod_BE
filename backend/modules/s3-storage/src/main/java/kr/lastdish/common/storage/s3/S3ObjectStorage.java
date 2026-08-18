@@ -13,6 +13,7 @@ import kr.lastdish.common.storage.StoredObjectMetadata;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -123,6 +124,16 @@ public class S3ObjectStorage implements ObjectStorage {
               .destinationBucket(properties.bucket())
               .destinationKey(destinationKey)
               .build());
+    } catch (SdkException exception) {
+      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+    }
+  }
+
+  @Override
+  public void delete(String objectKey) {
+    try {
+      s3Client.deleteObject(
+          DeleteObjectRequest.builder().bucket(properties.bucket()).key(objectKey).build());
     } catch (SdkException exception) {
       throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
     }

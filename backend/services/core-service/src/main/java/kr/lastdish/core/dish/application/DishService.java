@@ -74,7 +74,6 @@ public class DishService {
         request.dishName(),
         request.registeredAt(),
         request.description(),
-        request.thumbnailUrl(),
         request.stockQuantity(),
         request.dishPrice(),
         request.discountPrice(),
@@ -151,7 +150,7 @@ public class DishService {
   }
 
   @Transactional
-  public void deleteDish(Long dishId) {
+  public String deleteDish(Long dishId) {
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 
     boolean availableBefore = dish.isAvailable();
@@ -160,6 +159,7 @@ public class DishService {
     dish.delete();
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    return dish.getThumbnailUrl();
   }
 
   public DishResponse getEachDish(Long dishId) {

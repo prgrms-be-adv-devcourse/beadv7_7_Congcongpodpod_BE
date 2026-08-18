@@ -22,6 +22,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -113,6 +114,21 @@ class S3ObjectStorageTest {
                     request.copySource().equals("test-bucket/tmp/dish/3/test.jpg")
                         && request.destinationBucket().equals("test-bucket")
                         && request.destinationKey().equals("dish/3/test.jpg")));
+  }
+
+  @Test
+  void 객체를_삭제한다() {
+    S3Client client = mock(S3Client.class);
+    S3ObjectStorage storage = new S3ObjectStorage(client, mock(S3Presigner.class), properties);
+
+    storage.delete("dish/3/test.jpg");
+
+    verify(client)
+        .deleteObject(
+            org.mockito.ArgumentMatchers.argThat(
+                (DeleteObjectRequest request) ->
+                    request.bucket().equals("test-bucket")
+                        && request.key().equals("dish/3/test.jpg")));
   }
 
   @Test

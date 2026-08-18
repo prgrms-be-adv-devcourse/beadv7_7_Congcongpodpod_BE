@@ -36,7 +36,7 @@ public class DishController {
 
   @PatchMapping("/{dishId}")
   public ApiResponse<Void> deleteDish(@PathVariable Long dishId) {
-    dishService.deleteDish(dishId);
+    dishFacade.deleteDish(dishId);
     return ApiResponse.ok();
   }
 

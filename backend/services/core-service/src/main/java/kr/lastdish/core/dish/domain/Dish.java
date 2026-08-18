@@ -96,7 +96,6 @@ public class Dish {
       String dishName,
       LocalDateTime registeredAt,
       String description,
-      String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
       BigDecimal discountPrice,
@@ -105,7 +104,6 @@ public class Dish {
     this.dishName = dishName;
     this.registeredAt = registeredAt;
     this.description = description;
-    this.thumbnailUrl = thumbnailUrl;
     this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
     this.discountPrice = discountPrice;
