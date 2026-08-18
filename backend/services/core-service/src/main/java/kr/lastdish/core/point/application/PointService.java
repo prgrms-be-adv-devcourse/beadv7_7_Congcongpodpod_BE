@@ -39,8 +39,10 @@ public class PointService {
         BigDecimal earningRate = levelService.getPointEarningRate(memberId);
         BigDecimal earnedAmount = finalOrderAmount.multiply(earningRate);
 
+        pointRepository.createDefaultIfAbsent(memberId);
         Point point = pointRepository.findWithLockByMemberId(memberId)
-                .orElseGet(() -> pointRepository.save(Point.createDefault(memberId)));
+                .orElseThrow(() -> new IllegalStateException("Point 생성 후 조회에 실패했습니다."));
+
 
         point.earn(earnedAmount);
 
@@ -68,7 +70,7 @@ public class PointService {
         return PointTransactionResult.from(history);
     }
 
-    // FIFO 소진 : remainingAmount 남은 EARN건을 오래된 순으로 소진
+    // FIFO 소진 : remainingAmount 남은 EARN 건을 오래된 순으로 소진
     private void consumeEarnHistories(Long memberId, BigDecimal amountToConsume) {
         List<PointHistory> usableHistories = pointHistoryRepository.findUsableEarnHistories(memberId);
         BigDecimal remainingToConsume = amountToConsume;

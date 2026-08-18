@@ -4,8 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -67,14 +66,15 @@ class PointServiceTest {
     }
 
     @Test
-    void earn_신규_회원이면_포인트를_생성한_후_적립한다() {
-        given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.empty());
-        given(pointRepository.save(any(Point.class))).willAnswer(inv -> inv.getArgument(0));
+    void earn_호출_시_createDefaultIfAbsent를_먼저_호출한다() {
+        Point point = Point.createDefault(1L);
+        given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
         given(levelService.getPointEarningRate(1L)).willReturn(new BigDecimal("0.05"));
 
         pointService.earn(1L, 100L, new BigDecimal("10000"));
 
-        verify(pointRepository).save(any(Point.class));
+        verify(pointRepository, times(1)).createDefaultIfAbsent(1L);
+        verify(pointRepository, never()).save(any(Point.class));
     }
 
     @Test

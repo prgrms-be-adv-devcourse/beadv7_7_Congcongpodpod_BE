@@ -7,6 +7,7 @@ public interface PointRepository {
     Point save(Point point);
     Optional<Point> findByMemberId(Long memberId);
     Optional<Point> findWithLockByMemberId(Long memberId);
+    void createDefaultIfAbsent(Long memberId);
     List<Point> findAll();
     void deleteAll();
 }

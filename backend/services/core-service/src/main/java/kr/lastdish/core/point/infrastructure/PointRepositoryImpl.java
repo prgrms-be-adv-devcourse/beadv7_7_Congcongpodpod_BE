@@ -29,6 +29,11 @@ public class PointRepositoryImpl implements PointRepository {
     }
 
     @Override
+    public void createDefaultIfAbsent(Long memberId) {
+        pointJpaRepository.createDefaultIfAbsent(memberId);
+    }
+
+    @Override
     public List<Point> findAll() {
         return pointJpaRepository.findAll();
     }
