@@ -11,8 +11,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 @Profile("local")
 @Configuration(proxyBeanMethods = false)
@@ -40,27 +41,18 @@ public class SwaggerConfig {
   }
 
   @Bean
-  WebMvcConfigurer swaggerCorsConfigurer(
+  CorsWebFilter swaggerCorsConfigurer(
       @Value("${swagger.cors.allowed-origin}") String allowedOrigin) {
-    return new WebMvcConfigurer() {
-      @Override
-      public void addCorsMappings(CorsRegistry registry) {
-        registry
-            .addMapping("/swagger-ui/**")
-            .allowedOrigins(allowedOrigin)
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*");
-        registry
-            .addMapping("/swagger-ui.html")
-            .allowedOrigins(allowedOrigin)
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*");
-        registry
-            .addMapping("/v3/api-docs/**")
-            .allowedOrigins(allowedOrigin)
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*");
-      }
-    };
+    CorsConfiguration config = new CorsConfiguration();
+    config.addAllowedOrigin(allowedOrigin);
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    config.addAllowedHeader("*");
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/swagger-ui/**", config);
+    source.registerCorsConfiguration("/swagger-ui.html", config);
+    source.registerCorsConfiguration("/v3/api-docs/**", config);
+
+    return new CorsWebFilter(source);
   }
 }
