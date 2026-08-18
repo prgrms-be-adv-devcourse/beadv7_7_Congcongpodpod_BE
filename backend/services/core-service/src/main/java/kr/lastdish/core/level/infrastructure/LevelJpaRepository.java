@@ -1,6 +1,5 @@
 package kr.lastdish.core.level.infrastructure;
 
-import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import kr.lastdish.core.level.domain.Level;
@@ -8,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface LevelJpaRepository extends JpaRepository<Level, Long> {
 
