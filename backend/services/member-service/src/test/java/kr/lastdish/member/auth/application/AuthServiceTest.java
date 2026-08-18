@@ -173,7 +173,7 @@ class AuthServiceTest {
     // then
     verify(valueOperations)
         .set(eq(accessToken), eq("blacklisted"), eq(10000L), eq(TimeUnit.MILLISECONDS));
-    verify(refreshTokenRepository).delete(savedToken);
+    verify(refreshTokenRepository).deleteByEmail("logout@example.com");
   }
 
   @Test

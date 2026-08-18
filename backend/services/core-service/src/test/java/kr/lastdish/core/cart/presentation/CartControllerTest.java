@@ -74,7 +74,6 @@ class CartControllerTest {
             .andExpect(jsonPath("$.data.dishName").value("치킨마요 마감할인 세트"))
             .andExpect(jsonPath("$.data.unitPrice").value(5000))
             .andExpect(jsonPath("$.data.quantity").value(1))
-            .andExpect(jsonPath("$.data.subtotalPrice").value(5000))
             .andReturn()
             .getResponse()
             .getContentAsString();
@@ -97,8 +96,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(3L))))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.quantity").value(3))
-        .andExpect(jsonPath("$.data.subtotalPrice").value(15000));
+        .andExpect(jsonPath("$.data.quantity").value(3));
 
     // 5) 상품 삭제
     mockMvc

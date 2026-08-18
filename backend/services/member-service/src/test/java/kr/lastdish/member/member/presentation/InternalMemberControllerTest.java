@@ -13,13 +13,15 @@ import kr.lastdish.member.member.application.MemberService;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(InternalMemberController.class)
-// @ImportAutoConfiguration(exclude = OAuth2ClientWebSecurityAutoConfiguration.class)
+@ImportAutoConfiguration(exclude = SecurityAutoConfiguration.class)
 class InternalMemberControllerTest {
 
   @Autowired MockMvc mockMvc;
