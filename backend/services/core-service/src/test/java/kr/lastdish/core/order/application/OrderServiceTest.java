@@ -60,6 +60,7 @@ class OrderServiceTest {
             3L,
             "DishName",
             4L,
+            BigDecimal.valueOf(6000),
             BigDecimal.valueOf(5000),
             LocalTime.of(18, 0),
             LocalTime.of(19, 0));
@@ -79,6 +80,7 @@ class OrderServiceTest {
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
+    assertThat(order.getTotalSavedAmount()).isEqualByComparingTo("4000");
     assertThat(order.getPickupDeadline())
         .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).atTime(cartItem.pickupEndAt()));
 
@@ -94,6 +96,7 @@ class OrderServiceTest {
             3L,
             "DishName",
             1L,
+            BigDecimal.valueOf(6000),
             BigDecimal.valueOf(5000),
             LocalTime.of(23, 0),
             LocalTime.of(1, 0));

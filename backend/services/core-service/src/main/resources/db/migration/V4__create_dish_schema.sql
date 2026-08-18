@@ -1,7 +1,7 @@
 -- core-service의 dish 도메인 스키마입니다.
 
 CREATE TABLE public.dishes (
-    discount_price numeric(38,2),
+    discount_price numeric(38,2) NOT NULL,
     dish_price numeric(38,2) NOT NULL,
     is_deleted boolean NOT NULL,
     pickup_end_time time(0) without time zone NOT NULL,

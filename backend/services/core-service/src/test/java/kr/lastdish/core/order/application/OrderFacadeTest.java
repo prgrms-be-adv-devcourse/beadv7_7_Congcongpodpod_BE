@@ -106,7 +106,14 @@ class OrderFacadeTest {
 
   private CartOrderSnapshot createCartOrderSnapshot() {
     return new CartOrderSnapshot(
-        1L, 100L, "김밥", 2L, BigDecimal.valueOf(5_000), LocalTime.of(18, 0), LocalTime.of(19, 0));
+        1L,
+        100L,
+        "김밥",
+        2L,
+        BigDecimal.valueOf(6_000),
+        BigDecimal.valueOf(5_000),
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
   }
 
   @Test

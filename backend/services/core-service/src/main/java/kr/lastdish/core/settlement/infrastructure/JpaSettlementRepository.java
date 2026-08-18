@@ -8,6 +8,7 @@ import kr.lastdish.core.settlement.domain.SettlementStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,4 +31,15 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
                 WHERE s.storeId IN :storeIds
                 """)
   List<Long> findSettledStoreIds(@Param("storeIds") List<Long> storeIds);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      value =
+          """
+                  TRUNCATE TABLE
+                    settlement_details, settlements
+                  RESTART IDENTITY
+                  """,
+      nativeQuery = true)
+  void truncateAllSettlementData();
 }

@@ -20,6 +20,7 @@ public class SettlementController {
   private final SettlementBatchService settlementBatchService;
   private final SettlementService settlementService;
 
+  // 스케쥴러 전환 시 제거
   @PostMapping("/jobs")
   public ApiResponse<MonthlySettlementJobResponse> runMonthlySettlement(
       @RequestBody MonthlySettlementJobRequest request) {
@@ -46,5 +47,12 @@ public class SettlementController {
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @RequestHeader("X-Authenticated-Role") String role) {
     return ApiResponse.ok(settlementService.getSettlement(memberId, role, settlementId));
+  }
+
+  // 정산 성능 테스트 완료 후 제거
+  @DeleteMapping("/test/initialize")
+  public ApiResponse<Void> initializeSettlementData() {
+    settlementService.initializeSettlement();
+    return ApiResponse.ok();
   }
 }

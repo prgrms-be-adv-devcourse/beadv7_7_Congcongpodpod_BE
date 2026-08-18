@@ -13,11 +13,13 @@ import kr.lastdish.core.settlement.domain.*;
 import kr.lastdish.core.settlement.presentation.dto.SettlementDetailResponse;
 import kr.lastdish.core.settlement.presentation.dto.SettlementResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SettlementService {
@@ -156,6 +158,13 @@ public class SettlementService {
     List<SettlementDetail> details = settlementDetailRepository.findAllBySettlementId(settlementId);
 
     return SettlementDetailResponse.of(settlement, details);
+  }
+
+  // 정산 테스트용 Truncate_테스트 후 제거 필수
+  @Transactional
+  public void initializeSettlement() {
+    settlementRepository.truncateAllSettlementData();
+    log.warn("-------------정산 성능 테스트용 데이터 전체 초기화 완료 settlements settlement_details---------------");
   }
 
   public List<Long> excludeSettledStore(List<Long> storeIds) {
