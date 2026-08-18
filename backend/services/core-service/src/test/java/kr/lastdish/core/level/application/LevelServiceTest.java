@@ -32,28 +32,39 @@ class LevelServiceTest {
   @InjectMocks private LevelService levelService;
 
   @Test
-  void getOrCreateLevel_기존_레벨이_없으면_기본값으로_생성한다() {
+  void getOrDefaultLevel_기존_레벨이_없으면_기본값을_반환하고_저장하지_않는다() { // 수정됨: 이름/검증 내용 변경
     Long memberId = 1L;
     given(levelRepository.findByMemberId(memberId)).willReturn(Optional.empty());
-    given(levelRepository.save(any(Level.class)))
-        .willAnswer(invocation -> invocation.getArgument(0));
 
-    Level result = levelService.getOrCreateLevel(memberId);
+    Level result = levelService.getOrDefaultLevel(memberId);
 
     assertThat(result.getDishLevel()).isEqualTo(DishLevel.LEVEL_1);
-    verify(levelRepository, times(1)).save(any(Level.class));
+    assertThat(result.getPurchaseCount()).isEqualTo(0);
+    verify(levelRepository, never()).save(any(Level.class)); // 수정됨: 저장 안 함을 검증
   }
 
   @Test
-  void getOrCreateLevel_기존_레벨이_있으면_그대로_반환한다() {
+  void getOrDefaultLevel_기존_레벨이_있으면_그대로_반환한다() { // 수정됨: 메서드명만 변경
     Long memberId = 1L;
     Level existing = Level.createDefault(memberId);
     given(levelRepository.findByMemberId(memberId)).willReturn(Optional.of(existing));
 
-    Level result = levelService.getOrCreateLevel(memberId);
+    Level result = levelService.getOrDefaultLevel(memberId);
 
     assertThat(result).isEqualTo(existing);
     verify(levelRepository, never()).save(any(Level.class));
+  }
+
+  @Test
+  void recordPurchase_회원의_레벨이_없으면_새로_생성하며_저장한다() { // 추가됨: recordPurchase가 유일한 저장 경로임을 검증
+    Long memberId = 1L;
+    given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.empty());
+    given(levelRepository.save(any(Level.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    levelService.recordPurchase(memberId, new BigDecimal("1000"));
+
+    verify(levelRepository, times(1)).save(any(Level.class));
   }
 
   @Test
@@ -65,7 +76,7 @@ class LevelServiceTest {
     }
     given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.of(level));
 
-    levelService.recordPurchase(memberId, new BigDecimal("1000")); // 수정됨 - discountAmount 파라미터 추가
+    levelService.recordPurchase(memberId, new BigDecimal("1000"));
 
     verify(levelHistoryRepository, times(1)).save(any(LevelHistory.class));
   }
@@ -77,12 +88,11 @@ class LevelServiceTest {
 
     given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.of(level));
 
-    levelService.recordPurchase(memberId, new BigDecimal("1000")); // 수정됨
+    levelService.recordPurchase(memberId, new BigDecimal("1000"));
 
     verify(levelHistoryRepository, never()).save(any(LevelHistory.class));
   }
 
-  // 아래부터 추가됨
   @Test
   void recordPurchase_호출하면_할인금액이_누적된다() {
     Long memberId = 1L;
@@ -109,17 +119,38 @@ class LevelServiceTest {
   }
 
   @Test
+  void getLevel_회원의_레벨이_없으면_기본값_기준으로_응답을_반환하고_저장하지_않는다() { // 추가됨
+    Long memberId = 1L;
+    given(levelRepository.findByMemberId(memberId)).willReturn(Optional.empty());
+
+    LevelResponse response = levelService.getLevel(memberId);
+
+    assertThat(response.dishLevel()).isEqualTo(DishLevel.LEVEL_1);
+    assertThat(response.purchaseCount()).isEqualTo(0);
+    verify(levelRepository, never()).save(any(Level.class));
+  }
+
+  @Test
+  void getPointEarningRate_회원의_레벨이_없어도_기본_적립률을_반환하고_저장하지_않는다() { // 추가됨
+    Long memberId = 1L;
+    given(levelRepository.findByMemberId(memberId)).willReturn(Optional.empty());
+
+    BigDecimal rate = levelService.getPointEarningRate(memberId);
+
+    assertThat(rate).isEqualByComparingTo(DishLevel.LEVEL_1.getPointPercent());
+    verify(levelRepository, never()).save(any(Level.class));
+  }
+
+  @Test
   void 구매를_20번_연속으로_하면_승급_시점에만_이력이_정확히_기록된다() {
     Long memberId = 1L;
     Level level = Level.createDefault(memberId);
     given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.of(level));
 
-    // 1회 ~ 20회까지 연속 구매
     for (int i = 1; i <= 20; i++) {
       levelService.recordPurchase(memberId, BigDecimal.ZERO);
     }
 
-    // 승급은 5, 10, 15, 20회 시점에 총 4번만 발생해야 함
     ArgumentCaptor<LevelHistory> captor = ArgumentCaptor.forClass(LevelHistory.class);
     verify(levelHistoryRepository, times(4)).save(captor.capture());
 
@@ -142,7 +173,6 @@ class LevelServiceTest {
     assertThat(savedHistories.get(3).getNewLevel()).isEqualTo(DishLevel.LEVEL_5);
     assertThat(savedHistories.get(3).getPurchaseCountAtChange()).isEqualTo(20);
 
-    // 최종 상태 확인
     assertThat(level.getDishLevel()).isEqualTo(DishLevel.LEVEL_5);
     assertThat(level.getPurchaseCount()).isEqualTo(20);
   }

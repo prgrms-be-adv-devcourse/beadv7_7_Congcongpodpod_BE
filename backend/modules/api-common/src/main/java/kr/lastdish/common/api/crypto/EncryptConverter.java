@@ -15,9 +15,7 @@ import javax.crypto.spec.SecretKeySpec;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
-@Component
 @Converter(autoApply = false)
 public class EncryptConverter implements AttributeConverter<String, String> {
   // AES/GCM 알고리즘 사용

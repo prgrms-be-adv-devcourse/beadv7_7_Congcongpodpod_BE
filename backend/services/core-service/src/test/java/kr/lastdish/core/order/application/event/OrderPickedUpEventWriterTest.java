@@ -29,6 +29,7 @@ class OrderPickedUpEventWriterTest {
     when(order.getMemberId()).thenReturn(20L);
     when(order.getStoreId()).thenReturn(30L);
     when(order.getTotalPrice()).thenReturn(new BigDecimal("12000"));
+    when(order.getTotalSavedAmount()).thenReturn(new BigDecimal("3000"));
     when(order.getPickupResultAt()).thenReturn(LocalDateTime.of(2026, 8, 13, 15, 30));
 
     writer.append(order, 4L);
@@ -45,6 +46,7 @@ class OrderPickedUpEventWriterTest {
     assertThat(event.eventId()).isNotNull();
     assertThat(event.occurredAt()).isEqualTo(Instant.parse("2026-08-13T06:30:00Z"));
     assertThat(event.payload())
-        .isEqualTo(new OrderPickedUpPayload(20L, 30L, new BigDecimal("12000")));
+        .isEqualTo(
+            new OrderPickedUpPayload(20L, 30L, new BigDecimal("12000"), new BigDecimal("3000")));
   }
 }

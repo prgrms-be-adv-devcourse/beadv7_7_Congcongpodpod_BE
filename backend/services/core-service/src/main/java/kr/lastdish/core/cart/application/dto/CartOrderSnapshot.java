@@ -9,6 +9,7 @@ public record CartOrderSnapshot(
     Long dishId,
     String dishName,
     Long quantity,
+    BigDecimal dishPrice,
     BigDecimal unitPrice,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
@@ -19,6 +20,7 @@ public record CartOrderSnapshot(
         cartItem.getDishId(),
         cartItem.getDishName(),
         cartItem.getQuantity(),
+        cartItem.getDishPrice(),
         cartItem.getUnitPrice(),
         cartItem.getPickupStartAt(),
         cartItem.getPickupEndAt());

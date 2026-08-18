@@ -42,6 +42,9 @@ public class DishPriceChangedMessageHandler implements InboxEventHandler {
     }
 
     synchronizer.synchronize(
-        message.aggregateId(), payload.unitPrice(), message.aggregateVersion());
+        message.aggregateId(),
+        payload.dishPrice(),
+        payload.unitPrice(),
+        message.aggregateVersion());
   }
 }

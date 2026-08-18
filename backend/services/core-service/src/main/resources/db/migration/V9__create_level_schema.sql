@@ -1,4 +1,4 @@
-﻿-- core-service의 level 도메인 스키마입니다.
+-- core-service의 level 도메인 스키마입니다.
 
 CREATE TABLE levels (
     level_id BIGSERIAL PRIMARY KEY,
@@ -19,3 +19,4 @@ CREATE TABLE level_history (
     created_at TIMESTAMP NOT NULL
 );
 
+CREATE INDEX idx_level_history_member_id ON level_history (member_id);
