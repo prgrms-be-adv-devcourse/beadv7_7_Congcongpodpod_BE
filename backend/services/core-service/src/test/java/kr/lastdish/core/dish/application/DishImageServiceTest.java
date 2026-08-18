@@ -2,6 +2,7 @@ package kr.lastdish.core.dish.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.storage.ObjectStorage;
+import kr.lastdish.common.storage.ObjectStorageException;
 import kr.lastdish.common.storage.PresignedDownloadUrl;
 import kr.lastdish.common.storage.PresignedUploadUrl;
 import kr.lastdish.common.storage.download.application.PresignedDownloadService;
@@ -170,6 +172,19 @@ class DishImageServiceTest {
   @Test
   void Dish의_최종_이미지를_삭제한다() {
     dishImageService.deleteImage("dish/3/test.jpg");
+
+    verify(objectStorage).delete("dish/3/test.jpg");
+  }
+
+  @Test
+  void Dish_이미지_삭제가_실패해도_예외를_전파하지_않는다() {
+    doThrow(
+            new ObjectStorageException(
+                ObjectStorageException.Reason.OPERATION_FAILED, new RuntimeException("S3 오류")))
+        .when(objectStorage)
+        .delete("dish/3/test.jpg");
+
+    dishImageService.deleteImageSafely("dish/3/test.jpg");
 
     verify(objectStorage).delete("dish/3/test.jpg");
   }

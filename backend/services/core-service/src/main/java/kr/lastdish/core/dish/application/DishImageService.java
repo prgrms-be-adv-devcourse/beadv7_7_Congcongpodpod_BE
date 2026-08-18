@@ -16,8 +16,10 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DishImageService {
@@ -83,6 +85,14 @@ public class DishImageService {
       storage.delete(objectKey);
     } catch (ObjectStorageException exception) {
       throw new BusinessException(ErrorCode.IMAGE_STORAGE_ERROR);
+    }
+  }
+
+  public void deleteImageSafely(String objectKey) {
+    try {
+      deleteImage(objectKey);
+    } catch (RuntimeException exception) {
+      log.error("Dish 이미지 삭제에 실패했습니다. 수동 정리가 필요합니다. objectKey={}", objectKey, exception);
     }
   }
 

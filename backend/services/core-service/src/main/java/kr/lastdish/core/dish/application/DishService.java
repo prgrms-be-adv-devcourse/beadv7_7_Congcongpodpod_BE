@@ -31,13 +31,6 @@ public class DishService {
 
   @Transactional
   public DishResponse createDish(DishCreateRequest request, String finalImageKey) {
-
-    // 할인율 검증
-    validateDiscountRate(request.dishPrice(), request.discountPrice());
-    if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
-      throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
-    }
-
     Dish dish =
         Dish.create(
             request.storeId(),
@@ -54,6 +47,13 @@ public class DishService {
 
     Dish savedDish = dishRepository.save(dish);
     return DishResponse.from(savedDish);
+  }
+
+  public void validateCreateDish(DishCreateRequest request) {
+    validateDiscountRate(request.dishPrice(), request.discountPrice());
+    if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
+      throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
+    }
   }
 
   @Transactional

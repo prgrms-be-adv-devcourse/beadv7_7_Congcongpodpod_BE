@@ -23,14 +23,24 @@ public class DishFacade {
   private final StoreService storeService;
   private final DishImageService dishImageService;
 
-  @Transactional
   public DishResponse createDish(Long memberId, DishCreateRequest request) {
     storeService.validateSeller(request.storeId(), memberId);
     storeService.validateDishPickupTime(
         request.storeId(), request.pickupStartTime(), request.pickupEndTime());
+    dishService.validateCreateDish(request);
+
+    // T1: 임시 이미지를 최종 경로로 확정합니다.
     String finalImageKey =
         dishImageService.confirmUpload(memberId, request.storeId(), request.imageKey());
-    return dishService.createDish(request, finalImageKey);
+
+    try {
+      // T2: Dish를 DB에 저장합니다. DishService의 트랜잭션은 메서드 반환 전에 커밋됩니다.
+      return dishService.createDish(request, finalImageKey);
+    } catch (RuntimeException exception) {
+      // C1: Dish 저장 실패 시 T1에서 생성한 최종 이미지를 보상 삭제합니다.
+      dishImageService.deleteImageSafely(finalImageKey);
+      throw exception;
+    }
   }
 
   @Transactional
@@ -51,8 +61,12 @@ public class DishFacade {
   public void deleteDish(Long memberId, Long dishId) {
     Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
     storeService.validateSeller(dish.getStoreId(), memberId);
+
+    // T1: DB에서 Dish를 소프트 삭제합니다.
     String imageKey = dishService.deleteDish(dishId);
-    dishImageService.deleteImage(imageKey);
+
+    // T2: S3 이미지를 정리합니다. 실패 여부가 불명확한 S3 삭제는 DB 복구로 보상하지 않습니다.
+    dishImageService.deleteImageSafely(imageKey);
   }
 
   /**
