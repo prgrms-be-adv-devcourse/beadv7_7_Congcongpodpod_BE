@@ -255,6 +255,9 @@ services:
       S3_ENABLED: ${S3_ENABLED:-false}
       S3_BUCKET: ${S3_BUCKET:-}
       AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
       S3_MAX_UPLOAD_SIZE: ${S3_MAX_UPLOAD_SIZE:-10MB}
       # dev/.env에서 읽는다. 누락 시 잘못된 설정으로 기동하지 않도록 즉시 실패시킨다.
