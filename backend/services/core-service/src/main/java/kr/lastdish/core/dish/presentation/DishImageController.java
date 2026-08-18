@@ -27,10 +27,6 @@ public class DishImageController {
     return ApiResponse.ok(
         DishImageUploadUrlResponse.from(
             dishImageService.issue(
-                memberId,
-                role,
-                request.storeId(),
-                request.contentType(),
-                request.fileSize())));
+                memberId, role, request.storeId(), request.contentType(), request.fileSize())));
   }
 }

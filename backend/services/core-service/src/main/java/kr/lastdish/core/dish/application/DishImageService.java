@@ -18,16 +18,14 @@ public class DishImageService {
   private final ImageUploadService imageUploadService;
 
   public PresignedUploadUrl issue(
-      Long memberId,
-      String role,
-      Long storeId,
-      String contentType,
-      long fileSize) {
+      Long memberId, String role, Long storeId, String contentType, long fileSize) {
+
+    // SELLER 검증
     if (!SELLER_ROLE.equals(role)) {
       throw new BusinessException(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED);
     }
-
+    // 본인 매장 검즐
     storeFacade.validateStoreOwner(storeId, memberId);
-    return imageUploadService.issueDishUploadUrl(storeId, contentType, fileSize);
+    return imageUploadService.issueDishUploadUrl(memberId, storeId, contentType, fileSize);
   }
 }

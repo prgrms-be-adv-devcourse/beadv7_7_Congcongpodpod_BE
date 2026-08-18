@@ -2,14 +2,15 @@ package kr.lastdish.core.storage.infrastructure;
 
 import java.time.Clock;
 import java.time.Instant;
-import kr.lastdish.core.storage.application.PresignedUploadUrlProvider;
+import java.util.Map;
+import java.util.stream.Collectors;
 import kr.lastdish.core.storage.application.dto.PresignedUploadUrl;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-public class S3PresignedUploadUrlProvider implements PresignedUploadUrlProvider {
+public class S3PresignedUploadUrlProvider {
 
   private final S3Presigner presigner;
   private final S3StorageProperties properties;
@@ -25,7 +26,6 @@ public class S3PresignedUploadUrlProvider implements PresignedUploadUrlProvider 
     this.clock = clock;
   }
 
-  @Override
   public PresignedUploadUrl issue(String objectKey, String contentType, long contentLength) {
     PutObjectRequest putObjectRequest =
         PutObjectRequest.builder()
@@ -50,8 +50,8 @@ public class S3PresignedUploadUrlProvider implements PresignedUploadUrlProvider 
         presignedRequest.signedHeaders().entrySet().stream()
             .filter(entry -> !entry.getKey().equalsIgnoreCase("host"))
             .collect(
-                java.util.stream.Collectors.toUnmodifiableMap(
-                    java.util.Map.Entry::getKey, entry -> String.join(",", entry.getValue()))),
+                Collectors.toUnmodifiableMap(
+                    Map.Entry::getKey, entry -> String.join(",", entry.getValue()))),
         expiresAt);
   }
 }

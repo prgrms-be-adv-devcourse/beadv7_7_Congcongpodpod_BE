@@ -40,18 +40,17 @@ class DishImageServiceTest {
             URI.create("https://example.com/upload").toURL(),
             Map.of(),
             Instant.parse("2026-08-14T00:05:00Z"));
-    when(imageUploadService.issueDishUploadUrl(3L, "menu.jpg", 1024L))
-        .thenReturn(expected);
+    when(imageUploadService.issueDishUploadUrl(7L, 3L, "image/jpeg", 1024L)).thenReturn(expected);
 
-    facade.issue(7L, "SELLER", 3L, "menu.jpg", 1024L);
+    facade.issue(7L, "SELLER", 3L, "image/jpeg", 1024L);
 
     verify(storeFacade).validateStoreOwner(3L, 7L);
-    verify(imageUploadService).issueDishUploadUrl(3L, "menu.jpg", 1024L);
+    verify(imageUploadService).issueDishUploadUrl(7L, 3L, "image/jpeg", 1024L);
   }
 
   @Test
   void SELLER가_아니면_소유권_조회도_하지_않는다() {
-    assertThatThrownBy(() -> facade.issue(7L, "MEMBER", 3L, "menu.jpg", 1024L))
+    assertThatThrownBy(() -> facade.issue(7L, "MEMBER", 3L, "image/jpeg", 1024L))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception ->
