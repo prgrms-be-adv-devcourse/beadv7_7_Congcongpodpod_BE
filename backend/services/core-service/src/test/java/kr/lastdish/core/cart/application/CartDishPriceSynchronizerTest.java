@@ -19,15 +19,16 @@ class CartDishPriceSynchronizerTest {
     CartItem first = mock(CartItem.class);
     CartItem second = mock(CartItem.class);
     CartDishPriceSynchronizer synchronizer = new CartDishPriceSynchronizer(repository);
+    BigDecimal dishPrice = BigDecimal.valueOf(10_000);
     BigDecimal unitPrice = BigDecimal.valueOf(7_000);
 
     when(repository.findAllByDishId(10L)).thenReturn(List.of(first, second));
 
     // when
-    synchronizer.synchronize(10L, unitPrice, 3L);
+    synchronizer.synchronize(10L, dishPrice, unitPrice, 3L);
 
     // then
-    verify(first).synchronizeDishPrice(unitPrice, 3L);
-    verify(second).synchronizeDishPrice(unitPrice, 3L);
+    verify(first).synchronizeDishPrice(dishPrice, unitPrice, 3L);
+    verify(second).synchronizeDishPrice(dishPrice, unitPrice, 3L);
   }
 }

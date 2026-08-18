@@ -1,7 +1,7 @@
 package kr.lastdish.core.settlement.infrastructure;
 
 import java.time.YearMonth;
-import java.util.Optional;
+import java.util.*;
 import kr.lastdish.core.settlement.domain.Settlement;
 import kr.lastdish.core.settlement.domain.SettlementRepository;
 import kr.lastdish.core.settlement.domain.SettlementStatus;
@@ -51,5 +51,19 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
   @Override
   public Optional<Settlement> findByIdAndStoreId(Long settlementId, Long storeId) {
     return jpaSettlementRepository.findByIdAndStoreId(settlementId, storeId);
+  }
+
+  @Override
+  public Set<Long> findSettledStoreIds(List<Long> storeIds) {
+    if (storeIds == null || storeIds.isEmpty()) {
+      return Set.of();
+    }
+
+    return new HashSet<>(jpaSettlementRepository.findSettledStoreIds(storeIds));
+  }
+
+  @Override
+  public void truncateAllSettlementData() {
+    jpaSettlementRepository.truncateAllSettlementData();
   }
 }

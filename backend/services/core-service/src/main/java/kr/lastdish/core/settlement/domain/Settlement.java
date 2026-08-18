@@ -163,6 +163,18 @@ public class Settlement {
     this.failureReason = null;
   }
 
+  public void updateCalculation(
+      int totalOrderCount, long grossAmount, long feeAmount, long settlementAmount) {
+    if (settlementStatus != SettlementStatus.PROCESSING) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "처리 중인 정산만 정산 결과를 재반영할 수 있습니다.");
+    }
+
+    this.totalOrderCount = totalOrderCount;
+    this.grossAmount = grossAmount;
+    this.feeAmount = feeAmount;
+    this.settlementAmount = settlementAmount;
+  }
+
   private void validate(
       Long storeId,
       YearMonth settlementMonth,

@@ -20,19 +20,21 @@ public class CartDishPriceSynchronizer {
   private final CartItemRepository cartItemRepository;
 
   /**
-   * 같은 Dish를 담고 있는 모든 CartItem의 판매 단가를 갱신합니다.
+   * 같은 Dish를 담고 있는 모든 CartItem의 정가와 판매 단가를 갱신합니다.
    *
    * @param dishId 변경된 Dish 식별자
+   * @param dishPrice Dish의 현재 정가
    * @param unitPrice Dish의 현재 판매 가격
    * @param aggregateVersion Dish 가격 변경 이벤트 순서
    */
   @Transactional
-  public void synchronize(Long dishId, BigDecimal unitPrice, long aggregateVersion) {
+  public void synchronize(
+      Long dishId, BigDecimal dishPrice, BigDecimal unitPrice, long aggregateVersion) {
 
     List<CartItem> cartItems = cartItemRepository.findAllByDishId(dishId);
 
     for (CartItem cartItem : cartItems) {
-      cartItem.synchronizeDishPrice(unitPrice, aggregateVersion);
+      cartItem.synchronizeDishPrice(dishPrice, unitPrice, aggregateVersion);
     }
   }
 }

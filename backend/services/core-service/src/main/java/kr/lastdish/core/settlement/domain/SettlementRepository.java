@@ -1,7 +1,9 @@
 package kr.lastdish.core.settlement.domain;
 
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -20,4 +22,8 @@ public interface SettlementRepository {
   Page<Settlement> findAllByStoreId(Long storeId, Pageable pageable);
 
   Optional<Settlement> findByIdAndStoreId(Long settlementId, Long storeId);
+
+  Set<Long> findSettledStoreIds(List<Long> storeIds);
+
+  void truncateAllSettlementData();
 }

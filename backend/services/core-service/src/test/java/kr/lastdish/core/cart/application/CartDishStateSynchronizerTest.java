@@ -30,9 +30,31 @@ class CartDishStateSynchronizerTest {
   @Test
   void Dish_재고를_기준으로_모든_CartItem_상태를_갱신한다() {
     // given
-    CartItem orderableItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 3L);
+    CartItem orderableItem =
+        CartItem.create(
+            1L,
+            10L,
+            null,
+            "김치찌개",
+            BigDecimal.valueOf(8_000),
+            BigDecimal.valueOf(8_000),
+            3L,
+            null,
+            null,
+            0L);
 
-    CartItem insufficientItem = CartItem.create(2L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 7L);
+    CartItem insufficientItem =
+        CartItem.create(
+            2L,
+            10L,
+            null,
+            "김치찌개",
+            BigDecimal.valueOf(8_000),
+            BigDecimal.valueOf(8_000),
+            7L,
+            null,
+            null,
+            0L);
 
     when(cartItemRepository.findAllByDishId(10L))
         .thenReturn(List.of(orderableItem, insufficientItem));
@@ -51,7 +73,18 @@ class CartDishStateSynchronizerTest {
   @Test
   void Dish가_판매불가이면_관련_CartItem을_판매불가로_변경한다() {
     // given
-    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 1L);
+    CartItem cartItem =
+        CartItem.create(
+            1L,
+            10L,
+            null,
+            "김치찌개",
+            BigDecimal.valueOf(8_000),
+            BigDecimal.valueOf(8_000),
+            1L,
+            null,
+            null,
+            0L);
 
     when(cartItemRepository.findAllByDishId(10L)).thenReturn(List.of(cartItem));
 
@@ -67,7 +100,18 @@ class CartDishStateSynchronizerTest {
   @Test
   void 이전_버전의_Dish_이벤트는_CartItem에_반영하지_않는다() {
     // given
-    CartItem cartItem = CartItem.create(1L, 10L, "김치찌개", BigDecimal.valueOf(8_000), 1L, 2L);
+    CartItem cartItem =
+        CartItem.create(
+            1L,
+            10L,
+            null,
+            "김치찌개",
+            BigDecimal.valueOf(8_000),
+            BigDecimal.valueOf(8_000),
+            1L,
+            null,
+            null,
+            2L);
 
     when(cartItemRepository.findAllByDishId(10L)).thenReturn(List.of(cartItem));
 

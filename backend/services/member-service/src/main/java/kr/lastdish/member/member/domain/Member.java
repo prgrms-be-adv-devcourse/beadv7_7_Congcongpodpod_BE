@@ -37,6 +37,13 @@ public class Member {
   @Column(name = "role", nullable = false, length = 20)
   private Role role;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "provider", nullable = false, length = 20)
+  private SocialProvider provider;
+
+  @Column(name = "provider_id", length = 100)
+  private String providerId;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
@@ -51,13 +58,22 @@ public class Member {
 
   @Builder
   public Member(
-      String userName, String password, String name, String phone, String email, Role role) {
+      String userName,
+      String password,
+      String name,
+      String phone,
+      String email,
+      Role role,
+      SocialProvider provider,
+      String providerId) {
     this.userName = userName;
     this.password = password;
     this.name = name;
     this.phone = phone;
     this.email = email;
     this.role = role;
+    this.provider = (provider != null) ? provider : SocialProvider.LOCAL;
+    this.providerId = providerId;
     this.createdAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
     this.isDeleted = false;
@@ -70,6 +86,12 @@ public class Member {
     this.name = name;
     this.phone = phone;
     this.email = email;
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public void linkSocialAccount(SocialProvider provider, String providerId) {
+    this.provider = provider;
+    this.providerId = providerId;
     this.updatedAt = LocalDateTime.now();
   }
 
