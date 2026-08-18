@@ -19,7 +19,7 @@ public class LevelService {
     return levelRepository.findByMemberId(memberId).orElseGet(() -> Level.createDefault(memberId));
   }
 
-  @Transactional
+  @Transactional(readOnly = true)
   public LevelResponse getLevel(Long memberId) {
     return LevelResponse.from(getOrDefaultLevel(memberId));
   }
@@ -27,10 +27,13 @@ public class LevelService {
   // 픽업완료 시 구매 횟수 증가, 등급 재계산 및 승급 처리, 승급 시 이력 기록
   @Transactional
   public void recordPurchase(Long memberId, BigDecimal discountAmount) {
+
+    levelRepository.createDefaultIfAbsent(memberId);
+
     Level level =
         levelRepository
             .findWithLockByMemberId(memberId)
-            .orElseGet(() -> levelRepository.save(Level.createDefault(memberId)));
+            .orElseThrow(() -> new IllegalStateException("Level 생성 후 조회에 실패했습니다."));
 
     level.addPurchase();
     level.addDiscountAmount(discountAmount);
@@ -48,6 +51,6 @@ public class LevelService {
   // 회원의 현재 등급에 해당하는 적립률 조회 (Point 도메인이 적립 계산 시 사용)
   @Transactional(readOnly = true)
   public BigDecimal getPointEarningRate(Long memberId) {
-    return getOrDefaultLevel(memberId).getDishLevel().getPointPercent(); // 수정됨
+    return getOrDefaultLevel(memberId).getDishLevel().getPointPercent();
   }
 }
