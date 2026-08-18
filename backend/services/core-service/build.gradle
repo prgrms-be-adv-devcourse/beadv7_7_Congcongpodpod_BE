@@ -17,13 +17,12 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation platform('software.amazon.awssdk:bom:2.31.54')
-
     implementation project(':modules:api-common')
     implementation project(':modules:mvc-common')
     implementation project(':modules:event-common')
     implementation project(':modules:outbox')
     implementation project(':modules:inbox')
+    implementation project(':modules:s3-storage')
 
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -42,8 +41,6 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-    implementation 'software.amazon.awssdk:s3'
 
     implementation 'org.springframework.boot:spring-boot-starter-batch'
 

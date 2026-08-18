@@ -9,9 +9,8 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.storage.PresignedUploadUrl;
 import kr.lastdish.core.common.exception.ErrorCode;
-import kr.lastdish.core.storage.application.ImageUploadService;
-import kr.lastdish.core.storage.application.dto.PresignedUploadUrl;
 import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,13 +22,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DishImageServiceTest {
 
   @Mock private StoreFacade storeFacade;
-  @Mock private ImageUploadService imageUploadService;
+  @Mock private DishImageUploadService dishImageUploadService;
 
   private DishImageService facade;
 
   @BeforeEach
   void setUp() {
-    facade = new DishImageService(storeFacade, imageUploadService);
+    facade = new DishImageService(storeFacade, dishImageUploadService);
   }
 
   @Test
@@ -40,12 +39,12 @@ class DishImageServiceTest {
             URI.create("https://example.com/upload").toURL(),
             Map.of(),
             Instant.parse("2026-08-14T00:05:00Z"));
-    when(imageUploadService.issueDishUploadUrl(7L, 3L, "image/jpeg", 1024L)).thenReturn(expected);
+    when(dishImageUploadService.issueUploadUrl(7L, 3L, "image/jpeg", 1024L)).thenReturn(expected);
 
     facade.issue(7L, "SELLER", 3L, "image/jpeg", 1024L);
 
     verify(storeFacade).validateStoreOwner(3L, 7L);
-    verify(imageUploadService).issueDishUploadUrl(7L, 3L, "image/jpeg", 1024L);
+    verify(dishImageUploadService).issueUploadUrl(7L, 3L, "image/jpeg", 1024L);
   }
 
   @Test
@@ -57,6 +56,6 @@ class DishImageServiceTest {
                 org.assertj.core.api.Assertions.assertThat(exception.getErrorCode())
                     .isEqualTo(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED));
 
-    verifyNoInteractions(storeFacade, imageUploadService);
+    verifyNoInteractions(storeFacade, dishImageUploadService);
   }
 }

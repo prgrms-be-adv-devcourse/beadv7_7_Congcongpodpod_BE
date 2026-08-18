@@ -12,7 +12,6 @@ import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
-import kr.lastdish.core.storage.application.ImageUploadService;
 import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,20 +25,20 @@ class DishFacadeTest {
   @Mock private DishRepository dishRepository;
   @Mock private DishService dishService;
   @Mock private StoreService storeService;
-  @Mock private ImageUploadService imageUploadService;
+  @Mock private DishImageUploadService dishImageUploadService;
 
   private DishFacade dishFacade;
 
   @BeforeEach
   void setUp() {
-    dishFacade = new DishFacade(dishRepository, dishService, storeService, imageUploadService);
+    dishFacade = new DishFacade(dishRepository, dishService, storeService, dishImageUploadService);
   }
 
   @Test
   void Dish_등록시_매장_영업시간을_검증한_뒤_등록을_위임한다() {
     DishCreateRequest request = createRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
-    when(imageUploadService.confirmDishUpload(7L, request.storeId(), request.imageKey()))
+    when(dishImageUploadService.confirmUpload(7L, request.storeId(), request.imageKey()))
         .thenReturn("dish/1/test.jpg");
     when(dishService.createDish(request, "dish/1/test.jpg")).thenReturn(expected);
 
@@ -49,7 +48,7 @@ class DishFacadeTest {
     verify(storeService)
         .validateDishPickupTime(
             request.storeId(), request.pickupStartTime(), request.pickupEndTime());
-    verify(imageUploadService).confirmDishUpload(7L, request.storeId(), request.imageKey());
+    verify(dishImageUploadService).confirmUpload(7L, request.storeId(), request.imageKey());
     verify(dishService).createDish(request, "dish/1/test.jpg");
     assertThat(result).isSameAs(expected);
   }

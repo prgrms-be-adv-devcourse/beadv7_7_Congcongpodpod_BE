@@ -2,7 +2,7 @@ package kr.lastdish.core.dish.presentation.dto;
 
 import java.time.Instant;
 import java.util.Map;
-import kr.lastdish.core.storage.application.dto.PresignedUploadUrl;
+import kr.lastdish.common.storage.PresignedUploadUrl;
 
 public record DishImageUploadUrlResponse(
     String key, String uploadUrl, Map<String, String> requiredHeaders, Instant expiresAt) {
