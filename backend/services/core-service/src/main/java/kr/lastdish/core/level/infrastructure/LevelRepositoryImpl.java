@@ -26,4 +26,9 @@ public class LevelRepositoryImpl implements LevelRepository {
   public Optional<Level> findWithLockByMemberId(Long memberId) {
     return levelJpaRepository.findWithLockByMemberId(memberId);
   }
+
+  @Override
+  public void createDefaultIfAbsent(Long memberId) {
+    levelJpaRepository.createDefaultIfAbsent(memberId);
+  }
 }

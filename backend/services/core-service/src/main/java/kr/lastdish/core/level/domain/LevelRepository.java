@@ -8,4 +8,6 @@ public interface LevelRepository {
   Optional<Level> findByMemberId(Long memberId);
 
   Optional<Level> findWithLockByMemberId(Long memberId);
+
+  void createDefaultIfAbsent(Long memberId);
 }

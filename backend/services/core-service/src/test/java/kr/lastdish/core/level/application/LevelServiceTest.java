@@ -1,6 +1,7 @@
 package kr.lastdish.core.level.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -32,7 +33,7 @@ class LevelServiceTest {
   @InjectMocks private LevelService levelService;
 
   @Test
-  void getOrDefaultLevel_기존_레벨이_없으면_기본값을_반환하고_저장하지_않는다() { // 수정됨: 이름/검증 내용 변경
+  void getOrDefaultLevel_기존_레벨이_없으면_기본값을_반환하고_저장하지_않는다() {
     Long memberId = 1L;
     given(levelRepository.findByMemberId(memberId)).willReturn(Optional.empty());
 
@@ -40,11 +41,11 @@ class LevelServiceTest {
 
     assertThat(result.getDishLevel()).isEqualTo(DishLevel.LEVEL_1);
     assertThat(result.getPurchaseCount()).isEqualTo(0);
-    verify(levelRepository, never()).save(any(Level.class)); // 수정됨: 저장 안 함을 검증
+    verify(levelRepository, never()).save(any(Level.class));
   }
 
   @Test
-  void getOrDefaultLevel_기존_레벨이_있으면_그대로_반환한다() { // 수정됨: 메서드명만 변경
+  void getOrDefaultLevel_기존_레벨이_있으면_그대로_반환한다() {
     Long memberId = 1L;
     Level existing = Level.createDefault(memberId);
     given(levelRepository.findByMemberId(memberId)).willReturn(Optional.of(existing));
@@ -56,15 +57,27 @@ class LevelServiceTest {
   }
 
   @Test
-  void recordPurchase_회원의_레벨이_없으면_새로_생성하며_저장한다() { // 추가됨: recordPurchase가 유일한 저장 경로임을 검증
+  void recordPurchase_호출하면_createDefaultIfAbsent를_먼저_호출한다() {
     Long memberId = 1L;
-    given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.empty());
-    given(levelRepository.save(any(Level.class)))
-        .willAnswer(invocation -> invocation.getArgument(0));
+    Level level = Level.createDefault(memberId);
+    given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.of(level));
 
     levelService.recordPurchase(memberId, new BigDecimal("1000"));
 
-    verify(levelRepository, times(1)).save(any(Level.class));
+    verify(levelRepository, times(1)).createDefaultIfAbsent(memberId);
+    verify(levelRepository, never()).save(any(Level.class));
+  }
+
+  @Test
+  void recordPurchase_생성_보장_이후에도_조회에_실패하면_예외가_발생한다() {
+    Long memberId = 1L;
+    given(levelRepository.findWithLockByMemberId(memberId)).willReturn(Optional.empty());
+
+    assertThrows(
+        IllegalStateException.class,
+        () -> levelService.recordPurchase(memberId, new BigDecimal("1000")));
+
+    verify(levelRepository, times(1)).createDefaultIfAbsent(memberId);
   }
 
   @Test
@@ -119,7 +132,7 @@ class LevelServiceTest {
   }
 
   @Test
-  void getLevel_회원의_레벨이_없으면_기본값_기준으로_응답을_반환하고_저장하지_않는다() { // 추가됨
+  void getLevel_회원의_레벨이_없으면_기본값_기준으로_응답을_반환하고_저장하지_않는다() {
     Long memberId = 1L;
     given(levelRepository.findByMemberId(memberId)).willReturn(Optional.empty());
 
@@ -131,7 +144,7 @@ class LevelServiceTest {
   }
 
   @Test
-  void getPointEarningRate_회원의_레벨이_없어도_기본_적립률을_반환하고_저장하지_않는다() { // 추가됨
+  void getPointEarningRate_회원의_레벨이_없어도_기본_적립률을_반환하고_저장하지_않는다() {
     Long memberId = 1L;
     given(levelRepository.findByMemberId(memberId)).willReturn(Optional.empty());
 
