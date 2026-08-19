@@ -189,4 +189,45 @@ class StoreServiceTest {
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     */
   }
+
+  @Test
+  void returns_store_when_store_is_not_deleted() {
+    // given
+    Long storeId = 10L;
+
+    Store store = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(store, "id", storeId);
+
+    assertThat(store.isDeleted()).isFalse();
+
+    when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+    // when
+    StoreResult result = storeService.getStore(storeId);
+
+    // then
+    assertThat(result.storeId()).isEqualTo(storeId);
+
+    verify(storeRepository).findById(storeId);
+  }
+
+  @Test
+  void throws_exception_when_store_is_soft_deleted() {
+    // given
+    Long storeId = 10L;
+
+    // 테스트 의도를 명확히 하기 위해 추가, Mockito 응답에 직접 사용되지는 않음
+    Store deletedStore = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(deletedStore, "id", storeId);
+    deletedStore.delete();
+
+    when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> storeService.getStore(storeId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("매장을 찾을 수 없습니다.");
+
+    verify(storeRepository).findById(storeId);
+  }
 }
