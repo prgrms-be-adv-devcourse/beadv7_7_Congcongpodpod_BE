@@ -3,10 +3,16 @@ package kr.lastdish.ai.presentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
+
+import jakarta.validation.Valid;
 import kr.lastdish.ai.application.AiService;
 import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.ai.presentation.dto.FoodClassificationResponse;
+import kr.lastdish.ai.presentation.dto.PresignedUploadRequest;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.storage.application.PresignedUrlService;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
+import kr.lastdish.common.storage.domain.UploadResourceType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -21,6 +27,25 @@ import org.springframework.web.multipart.MultipartFile;
 public class AiController {
 
   private final AiService aiService;
+  private final PresignedUrlService presignedUrlService;
+
+  @Operation(summary = "S3 이미지 업로드용 Presigned URL 발급")
+  @PostMapping("/images/presigned-url")
+  public ResponseEntity<PresignedUploadUrl> issueUploadUrl(
+          @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+          @Valid @RequestBody PresignedUploadRequest request) {
+
+    PresignedUploadUrl response =
+            presignedUrlService.issueUpload(
+                    memberId,
+                    UploadResourceType.AI_IMAGE,
+                    "ai-images/",
+                    request.contentType(),
+                    request.contentLength());
+
+    return ResponseEntity.ok(response);
+  }
+
 
   @Operation(summary = "S3 ObjectKey 기반 음식 카테고리 자동 분류")
   @PostMapping("/classify-s3")

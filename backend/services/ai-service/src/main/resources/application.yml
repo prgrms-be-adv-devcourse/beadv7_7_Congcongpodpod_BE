@@ -1,22 +1,11 @@
 server:
-  port: 8084
+  port: 8080
 
 spring:
   application:
     name: ai-service
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
-
-  datasource:
-    url: jdbc:postgresql://localhost:54322/ai_db
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 
   servlet:
     multipart:

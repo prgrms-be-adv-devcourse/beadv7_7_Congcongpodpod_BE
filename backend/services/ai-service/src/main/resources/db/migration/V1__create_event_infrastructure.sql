@@ -1,47 +1,45 @@
--- 모든 서비스가 공유하는 Outbox/Inbox 이벤트 인프라입니다.
--- 새 서비스 DB를 만들 때 이 파일을 그대로 복사합니다.
 
 CREATE TABLE public.outbox_events (
-    retry_count integer NOT NULL,
-    schema_version integer DEFAULT 1 NOT NULL,
-    aggregate_id bigint NOT NULL,
-    aggregate_version bigint DEFAULT 0 NOT NULL,
-    locked_at timestamp(6) with time zone,
-    occurred_at timestamp(6) with time zone NOT NULL,
-    published_at timestamp(6) with time zone,
-    event_id uuid NOT NULL,
-    status character varying(20) NOT NULL,
-    aggregate_type character varying(50) NOT NULL,
-    event_type character varying(100) NOT NULL,
-    last_error character varying(1000),
-    payload text NOT NULL,
-    CONSTRAINT outbox_events_pkey PRIMARY KEY (event_id),
-    CONSTRAINT outbox_events_status_check
-        CHECK (status IN ('PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED'))
+                                      retry_count integer NOT NULL,
+                                      schema_version integer DEFAULT 1 NOT NULL,
+                                      aggregate_id bigint NOT NULL,
+                                      aggregate_version bigint DEFAULT 0 NOT NULL,
+                                      locked_at timestamp(6) with time zone,
+                                      occurred_at timestamp(6) with time zone NOT NULL,
+                                      published_at timestamp(6) with time zone,
+                                      event_id uuid NOT NULL,
+                                      status character varying(20) NOT NULL,
+                                      aggregate_type character varying(50) NOT NULL,
+                                      event_type character varying(100) NOT NULL,
+                                      last_error character varying(1000),
+                                      payload text NOT NULL,
+                                      CONSTRAINT outbox_events_pkey PRIMARY KEY (event_id),
+                                      CONSTRAINT outbox_events_status_check
+                                          CHECK (status IN ('PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED'))
 );
 
 CREATE INDEX idx_outbox_status_occurred_at
     ON public.outbox_events (status, occurred_at);
 
 CREATE TABLE public.inbox_events (
-    consumer_id character varying(100) NOT NULL,
-    event_id uuid NOT NULL,
-    event_type character varying(100) NOT NULL,
-    aggregate_type character varying(50) NOT NULL,
-    aggregate_id bigint NOT NULL,
-    aggregate_version bigint NOT NULL,
-    schema_version integer NOT NULL,
-    payload text NOT NULL,
-    status character varying(20) NOT NULL,
-    retry_count integer DEFAULT 0 NOT NULL,
-    last_error character varying(1000),
-    occurred_at timestamp(6) with time zone NOT NULL,
-    received_at timestamp(6) with time zone NOT NULL,
-    locked_at timestamp(6) with time zone,
-    processed_at timestamp(6) with time zone,
-    CONSTRAINT inbox_events_pkey PRIMARY KEY (consumer_id, event_id),
-    CONSTRAINT inbox_events_status_check
-        CHECK (status IN ('RECEIVED', 'PROCESSING', 'PROCESSED', 'SKIPPED', 'FAILED'))
+                                     consumer_id character varying(100) NOT NULL,
+                                     event_id uuid NOT NULL,
+                                     event_type character varying(100) NOT NULL,
+                                     aggregate_type character varying(50) NOT NULL,
+                                     aggregate_id bigint NOT NULL,
+                                     aggregate_version bigint NOT NULL,
+                                     schema_version integer NOT NULL,
+                                     payload text NOT NULL,
+                                     status character varying(20) NOT NULL,
+                                     retry_count integer DEFAULT 0 NOT NULL,
+                                     last_error character varying(1000),
+                                     occurred_at timestamp(6) with time zone NOT NULL,
+                                     received_at timestamp(6) with time zone NOT NULL,
+                                     locked_at timestamp(6) with time zone,
+                                     processed_at timestamp(6) with time zone,
+                                     CONSTRAINT inbox_events_pkey PRIMARY KEY (consumer_id, event_id),
+                                     CONSTRAINT inbox_events_status_check
+                                         CHECK (status IN ('RECEIVED', 'PROCESSING', 'PROCESSED', 'SKIPPED', 'FAILED'))
 );
 
 CREATE INDEX idx_inbox_status_received_at
@@ -51,13 +49,38 @@ CREATE INDEX idx_inbox_aggregate_version
     ON public.inbox_events (consumer_id, aggregate_type, aggregate_id, aggregate_version);
 
 CREATE TABLE public.inbox_aggregate_versions (
-    consumer_id character varying(100) NOT NULL,
-    aggregate_type character varying(50) NOT NULL,
-    aggregate_id bigint NOT NULL,
-    last_processed_version bigint DEFAULT 0 NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL,
-    CONSTRAINT inbox_aggregate_versions_pkey
-        PRIMARY KEY (consumer_id, aggregate_type, aggregate_id),
-    CONSTRAINT inbox_aggregate_versions_non_negative_check
-        CHECK (last_processed_version >= 0)
+                                                 consumer_id character varying(100) NOT NULL,
+                                                 aggregate_type character varying(50) NOT NULL,
+                                                 aggregate_id bigint NOT NULL,
+                                                 last_processed_version bigint DEFAULT 0 NOT NULL,
+                                                 updated_at timestamp(6) with time zone NOT NULL,
+                                                 CONSTRAINT inbox_aggregate_versions_pkey
+                                                     PRIMARY KEY (consumer_id, aggregate_type, aggregate_id),
+                                                 CONSTRAINT inbox_aggregate_versions_non_negative_check
+                                                     CHECK (last_processed_version >= 0)
 );
+
+CREATE TABLE public.presigned_uploads (
+                                          id bigint GENERATED BY DEFAULT AS IDENTITY,
+                                          member_id bigint NOT NULL,
+                                          content_length bigint NOT NULL,
+                                          expires_at timestamp(6) with time zone NOT NULL,
+                                          created_at timestamp(6) with time zone NOT NULL,
+                                          resource_type character varying(30) NOT NULL,
+                                          status character varying(20) NOT NULL,
+                                          content_type character varying(100) NOT NULL,
+                                          object_key character varying(512) NOT NULL,
+                                          CONSTRAINT presigned_uploads_pkey PRIMARY KEY (id),
+                                          CONSTRAINT uk_presigned_uploads_object_key UNIQUE (object_key),
+                                          CONSTRAINT presigned_uploads_content_length_check CHECK (content_length > 0),
+                                          CONSTRAINT presigned_uploads_resource_type_check
+                                              CHECK (resource_type IN ('DISH')),
+                                          CONSTRAINT presigned_uploads_status_check
+                                              CHECK (status IN ('PENDING', 'CONFIRMED', 'EXPIRED'))
+);
+
+CREATE INDEX idx_presigned_uploads_member_created_at
+    ON public.presigned_uploads (member_id, created_at);
+
+CREATE INDEX idx_presigned_uploads_status_expires_at
+    ON public.presigned_uploads (status, expires_at);

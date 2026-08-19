@@ -56,3 +56,12 @@ inbox:
   batch-size: ${INBOX_BATCH_SIZE:100}
   max-retries: ${INBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
+
+storage:
+  s3:
+    enabled: ${S3_ENABLED:true}
+    bucket: ${S3_BUCKET}
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    expiration: ${S3_PRESIGNED_URL_EXPIRATION:5m}
