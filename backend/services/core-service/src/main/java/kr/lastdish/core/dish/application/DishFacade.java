@@ -1,5 +1,6 @@
 package kr.lastdish.core.dish.application;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
@@ -116,6 +117,10 @@ public class DishFacade {
 
   public void decreaseStock(Long dishId, Long quantity) {
     dishService.decreaseStock(dishId, quantity);
+  }
+
+  public void validateOrderPrice(Long dishId, BigDecimal cartUnitPrice) {
+    dishService.validateOrderPrice(dishId, cartUnitPrice);
   }
 
   public void increaseStock(Long dishId, Long quantity) {

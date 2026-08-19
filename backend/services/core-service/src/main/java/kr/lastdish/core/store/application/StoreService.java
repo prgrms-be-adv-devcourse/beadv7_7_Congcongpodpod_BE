@@ -107,6 +107,18 @@ public class StoreService {
     return store;
   }
 
+  /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. */
+  public void validateOpen(Long storeId) {
+    Store store =
+        storeRepository
+            .findById(storeId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_STORE_CLOSED));
+
+    if (store.getStatus() != StoreStatus.OPEN) {
+      throw new BusinessException(ErrorCode.ORDER_STORE_CLOSED);
+    }
+  }
+
   // Seller 본인 매장 조회 — 지금은 회원당 매장 1개 제약이라 0~1건이지만, 나중에 여러 개로 늘어나도
   // API 모양이 바뀌지 않도록 목록으로 반환한다.
   public List<StoreResult> getMyStores(Long memberId) {

@@ -13,6 +13,7 @@ import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
+import kr.lastdish.core.store.domain.StoreStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +63,36 @@ class StoreServiceTest {
     assertThatCode(
             () -> storeService.validateDishPickupTime(1L, LocalTime.of(23, 0), LocalTime.of(1, 0)))
         .doesNotThrowAnyException();
+  }
+
+  @Test
+  void OPEN_상태인_매장은_주문할_수_있다() {
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatCode(() -> storeService.validateOpen(1L)).doesNotThrowAnyException();
+  }
+
+  @Test
+  void 영업_상태가_아닌_매장은_주문할_수_없다() {
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    store.changeStatus(StoreStatus.CLOSED);
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatThrownBy(() -> storeService.validateOpen(1L))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
+  }
+
+  @Test
+  void 삭제됐거나_존재하지_않는_매장도_주문할_수_없다() {
+    when(storeRepository.findById(1L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> storeService.validateOpen(1L))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
   }
 
   private Store createStore(LocalTime openTime, LocalTime closeTime) {

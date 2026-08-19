@@ -122,6 +122,16 @@ public class DishService {
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
   }
 
+  /** 주문 직전 장바구니에 저장된 판매가와 현재 판매가가 같은지 잠금 상태에서 확인한다. */
+  @Transactional
+  public void validateOrderPrice(Long dishId, BigDecimal cartUnitPrice) {
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+
+    if (dish.getDiscountPrice().compareTo(cartUnitPrice) != 0) {
+      throw new BusinessException(ErrorCode.ORDER_PRICE_CHANGED);
+    }
+  }
+
   @Transactional
   public void increaseStock(Long dishId, Long quantity) {
 

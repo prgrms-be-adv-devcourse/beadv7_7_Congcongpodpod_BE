@@ -1,6 +1,7 @@
 package kr.lastdish.core.dish.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -12,8 +13,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
@@ -144,7 +147,7 @@ class DishServiceTest {
 
   @Test
   void 정가만_변경돼도_Dish_가격_이벤트를_기록한다() {
-    // given — Cart가 절약 금액을 정가 - 판매가로 계산하므로 정가만 바뀐 변경도 Cart에 전파돼야 한다.
+    // given — 가격 변경 사실은 전파하되 Cart에 저장된 사용자 확인 가격은 덮어쓰지 않는다.
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 
@@ -203,6 +206,28 @@ class DishServiceTest {
 
     // then
     verify(outboxEventWriter, never()).append(any(DishPriceChangedEvent.class));
+  }
+
+  @Test
+  void 장바구니_판매가와_현재_판매가가_같으면_주문_가격_검증을_통과한다() {
+    Dish dish = createDish(10L);
+    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+
+    dishService.validateOrderPrice(10L, new BigDecimal("0.00"));
+
+    verify(dishRepository).findWithLockByIdAndIsDeletedFalse(10L);
+  }
+
+  @Test
+  void 장바구니_판매가와_현재_판매가가_다르면_가격_변경_예외가_발생한다() {
+    Dish dish = createDish(10L);
+    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+
+    assertThatThrownBy(() -> dishService.validateOrderPrice(10L, BigDecimal.valueOf(7_000)))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ORDER_PRICE_CHANGED));
   }
 
   @Test

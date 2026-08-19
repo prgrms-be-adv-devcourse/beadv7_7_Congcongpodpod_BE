@@ -239,7 +239,7 @@ class CartItemTest {
   }
 
   @Test
-  void 최신_Dish_가격을_CartItem에_반영한다() {
+  void 가격이_변경되어도_장바구니에_담을_때의_가격을_보존한다() {
     // given
     CartItem cartItem =
         cartItem("김치찌개", BigDecimal.valueOf(10_000), BigDecimal.valueOf(8_000), 2L, 1L);
@@ -248,13 +248,14 @@ class CartItemTest {
     cartItem.synchronizeDishPrice(BigDecimal.valueOf(10_000), BigDecimal.valueOf(7_000), 2L);
 
     // then
-    assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("7000");
-    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo("14000");
+    assertThat(cartItem.getDishPrice()).isEqualByComparingTo("10000");
+    assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("8000");
+    assertThat(cartItem.getSubtotalPrice()).isEqualByComparingTo("16000");
     assertThat(cartItem.getLastAppliedDishPriceVersion()).isEqualTo(2L);
   }
 
   @Test
-  void 판매가가_그대로여도_정가가_바뀌면_CartItem에_반영한다() {
+  void 정가가_변경되어도_장바구니에_담을_때의_정가를_보존한다() {
     // given
     CartItem cartItem =
         cartItem("김치찌개", BigDecimal.valueOf(10_000), BigDecimal.valueOf(8_000), 2L, 1L);
@@ -262,8 +263,8 @@ class CartItemTest {
     // when
     cartItem.synchronizeDishPrice(BigDecimal.valueOf(12_000), BigDecimal.valueOf(8_000), 2L);
 
-    // then — 정가가 낡으면 주문 시 절약 금액이 그만큼 적게 잡힌다.
-    assertThat(cartItem.getDishPrice()).isEqualByComparingTo("12000");
+    // then
+    assertThat(cartItem.getDishPrice()).isEqualByComparingTo("10000");
     assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("8000");
   }
 
@@ -281,31 +282,29 @@ class CartItemTest {
   }
 
   @Test
-  void Dish_가격이_음수이면_예외가_발생한다() {
+  void 가격_이벤트의_값과_무관하게_장바구니_가격을_보존한다() {
     // given
     CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L, 1L);
 
-    // when & then
-    assertThatThrownBy(
-            () ->
-                cartItem.synchronizeDishPrice(
-                    BigDecimal.valueOf(8_000), BigDecimal.valueOf(-1), 2L))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Dish 판매 가격은 0 이상이어야 합니다.");
+    // when
+    cartItem.synchronizeDishPrice(BigDecimal.valueOf(8_000), BigDecimal.valueOf(-1), 2L);
+
+    // then
+    assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("8000");
+    assertThat(cartItem.getLastAppliedDishPriceVersion()).isEqualTo(2L);
   }
 
   @Test
-  void 정가가_판매가보다_낮으면_예외가_발생한다() {
+  void 가격_이벤트에서_정가가_판매가보다_낮아도_장바구니_가격을_보존한다() {
     // given
     CartItem cartItem = cartItem("김치찌개", BigDecimal.valueOf(8_000), 2L, 1L);
 
-    // when & then
-    assertThatThrownBy(
-            () ->
-                cartItem.synchronizeDishPrice(
-                    BigDecimal.valueOf(5_000), BigDecimal.valueOf(7_000), 2L))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Dish 정가는 판매 가격 이상이어야 합니다.");
+    // when
+    cartItem.synchronizeDishPrice(BigDecimal.valueOf(5_000), BigDecimal.valueOf(7_000), 2L);
+
+    // then
+    assertThat(cartItem.getDishPrice()).isEqualByComparingTo("8000");
+    assertThat(cartItem.getUnitPrice()).isEqualByComparingTo("8000");
   }
 
   @Test

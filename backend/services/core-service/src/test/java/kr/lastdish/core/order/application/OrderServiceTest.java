@@ -111,6 +111,46 @@ class OrderServiceTest {
   }
 
   @Test
+  void 픽업_시작_전이어도_마감_전이면_주문할_수_있다() {
+    CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
+
+    orderService.validatePickupDeadline(cartItem, LocalDateTime.of(2026, 8, 19, 12, 0));
+  }
+
+  @Test
+  void 픽업_마감이_지났으면_주문할_수_없다() {
+    CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
+
+    assertThatThrownBy(
+            () ->
+                orderService.validatePickupDeadline(
+                    cartItem, LocalDateTime.of(2026, 8, 19, 19, 0, 1)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
+  }
+
+  @Test
+  void 자정을_넘기는_픽업은_다음날_마감_전까지_주문할_수_있다() {
+    CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
+
+    orderService.validatePickupDeadline(cartItem, LocalDateTime.of(2026, 8, 19, 22, 0));
+  }
+
+  private CartOrderSnapshot createCartOrderSnapshot(
+      LocalTime pickupStartAt, LocalTime pickupEndAt) {
+    return new CartOrderSnapshot(
+        2L,
+        3L,
+        "DishName",
+        1L,
+        BigDecimal.valueOf(6000),
+        BigDecimal.valueOf(5000),
+        pickupStartAt,
+        pickupEndAt);
+  }
+
+  @Test
   void completePayment_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);

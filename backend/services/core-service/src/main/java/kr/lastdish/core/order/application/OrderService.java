@@ -55,13 +55,28 @@ public class OrderService {
   }
 
   private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
-    LocalDate pickupDate = LocalDate.now(BUSINESS_ZONE);
+    return pickupDeadline(cartItem, LocalDate.now(BUSINESS_ZONE));
+  }
+
+  private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem, LocalDate businessDate) {
+    LocalDate pickupDate = businessDate;
 
     if (cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt())) {
       pickupDate = pickupDate.plusDays(1);
     }
 
     return pickupDate.atTime(cartItem.pickupEndAt());
+  }
+
+  /** 픽업 시작 전 주문은 허용하고, 픽업 마감 일시가 지난 경우에만 주문을 중단한다. */
+  public void validatePickupDeadline(CartOrderSnapshot cartItem) {
+    validatePickupDeadline(cartItem, LocalDateTime.now(BUSINESS_ZONE));
+  }
+
+  void validatePickupDeadline(CartOrderSnapshot cartItem, LocalDateTime now) {
+    if (now.isAfter(pickupDeadline(cartItem, now.toLocalDate()))) {
+      throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
+    }
   }
 
   public OrderResult completePayment(Long orderId) {
