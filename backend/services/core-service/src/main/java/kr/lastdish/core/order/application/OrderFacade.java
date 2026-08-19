@@ -42,10 +42,7 @@ public class OrderFacade {
     OrderMemberInfo memberInfo = orderMemberQueryPort.getOrderMemberInfo(memberId);
     CartOrderSnapshot cartItem = cartFacade.getOrderSnapshot(memberId, cartItemId);
 
-    // 사용자가 장바구니에서 확인한 판매가와 현재 판매가가 다르면 결제를 진행하지 않는다.
-    dishFacade.validateOrderPrice(cartItem.dishId(), cartItem.unitPrice());
-    storeFacade.validateOpen(cartItem.storeId());
-    orderService.validatePickupDeadline(cartItem);
+    validateBeforeOrder(cartItem);
 
     // 주문 생성 및 저장
     Order order = orderService.createOrder(memberId, memberInfo, cartItem);
@@ -63,6 +60,11 @@ public class OrderFacade {
     cartFacade.removeOrderedItem(memberId, cartItemId);
 
     return result;
+  }
+
+  private void validateBeforeOrder(CartOrderSnapshot cartItem) {
+    storeFacade.validateOpen(cartItem.storeId());
+    orderService.validatePickupDeadline(cartItem);
   }
 
   // 주문 취소 - 재고 복구 - 결제 환불

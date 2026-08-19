@@ -28,7 +28,7 @@ class DishPriceChangedEventIntegrationTest {
   @Autowired private EntityManager entityManager;
 
   @Test
-  void Spring_Event가_전달되어도_사용자가_장바구니에_담은_가격을_보존한다() {
+  void Spring_Event가_Cart_Listener에_전달되어_CartItem_가격을_변경한다() {
     // given
     CartItem cartItem =
         cartItemRepository.save(
@@ -63,8 +63,8 @@ class DishPriceChangedEventIntegrationTest {
     CartItem updatedCartItem = cartItemRepository.findById(cartItem.getId()).orElseThrow();
 
     // then
-    assertThat(updatedCartItem.getUnitPrice()).isEqualByComparingTo("8000");
-    assertThat(updatedCartItem.getSubtotalPrice()).isEqualByComparingTo("16000");
+    assertThat(updatedCartItem.getUnitPrice()).isEqualByComparingTo("7000");
+    assertThat(updatedCartItem.getSubtotalPrice()).isEqualByComparingTo("14000");
     assertThat(updatedCartItem.getLastAppliedDishPriceVersion()).isEqualTo(2L);
   }
 }

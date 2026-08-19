@@ -59,7 +59,7 @@ class OrderFacadeTest {
   @InjectMocks private OrderFacade orderFacade;
 
   @Test
-  @DisplayName("주문 생성 시 재고를 차감하고 예치금을 사용한다")
+  @DisplayName("주문 직전 검증을 순서대로 통과하면 주문 생성, 재고 차감과 결제를 진행한다")
   void payAndCreateOrder_success() {
     // given
     Long memberId = 1L;
@@ -95,7 +95,6 @@ class OrderFacadeTest {
 
     inOrder.verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
     inOrder.verify(cartFacade).getOrderSnapshot(memberId, cartItemId);
-    inOrder.verify(dishFacade).validateOrderPrice(100L, BigDecimal.valueOf(5_000));
     inOrder.verify(storeFacade).validateOpen(1L);
     inOrder.verify(orderService).validatePickupDeadline(cartItem);
     inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem);
@@ -106,30 +105,6 @@ class OrderFacadeTest {
 
     inOrder.verify(orderService).completePayment(10L);
     inOrder.verify(cartFacade).removeOrderedItem(memberId, cartItemId);
-  }
-
-  @Test
-  @DisplayName("장바구니에 담은 뒤 판매가가 변경되면 주문과 결제를 진행하지 않는다")
-  void payAndCreateOrder_priceChanged() {
-    Long memberId = 1L;
-    Long cartItemId = 1L;
-    CartOrderSnapshot cartItem = createCartOrderSnapshot();
-    OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
-
-    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
-    doThrow(
-            new kr.lastdish.common.api.exception.BusinessException(
-                kr.lastdish.core.common.exception.ErrorCode.ORDER_PRICE_CHANGED))
-        .when(dishFacade)
-        .validateOrderPrice(cartItem.dishId(), cartItem.unitPrice());
-
-    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId))
-        .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
-        .hasMessage("상품 가격이 변경되었습니다. 장바구니에 다시 담아 주세요.");
-
-    verifyNoInteractions(orderService, depositFacade);
-    verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
 
   @Test
@@ -152,7 +127,7 @@ class OrderFacadeTest {
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("매장이 영업 중이 아닙니다.");
 
-    verify(dishFacade).validateOrderPrice(cartItem.dishId(), cartItem.unitPrice());
+    verify(orderService, never()).validatePickupDeadline(any());
     verifyNoInteractions(orderService, depositFacade);
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
@@ -177,7 +152,6 @@ class OrderFacadeTest {
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("상품의 픽업 마감 시간이 지났습니다.");
 
-    verify(dishFacade).validateOrderPrice(cartItem.dishId(), cartItem.unitPrice());
     verify(storeFacade).validateOpen(cartItem.storeId());
     verify(orderService, never()).createOrder(anyLong(), any(), any());
     verifyNoInteractions(depositFacade);

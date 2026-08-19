@@ -6,11 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.stream.Stream;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
@@ -25,9 +26,13 @@ import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -48,9 +53,30 @@ class OrderServiceTest {
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
-  @InjectMocks private OrderService orderService;
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
+  private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
+
+  private OrderService orderService;
+
+  @BeforeEach
+  void setUp() {
+    setCurrentTime(FIXED_NOW);
+  }
+
+  private void setCurrentTime(LocalDateTime now) {
+    Clock clock = Clock.fixed(now.atZone(BUSINESS_ZONE).toInstant(), BUSINESS_ZONE);
+    orderService =
+        new OrderService(
+            orderRepository,
+            orderStatusChangedEventWriter,
+            orderPickedUpEventWriter,
+            orderNoShowEventWriter,
+            pickupCodeGenerator,
+            clock);
+  }
 
   @Test
+  @DisplayName("장바구니 스냅샷과 회원 정보로 주문을 생성한다")
   void createOrder_success() {
     Long memberId = 1L;
     OrderMemberInfo memberInfo = new OrderMemberInfo("테스트 회원", "010-1234-5678");
@@ -82,59 +108,67 @@ class OrderServiceTest {
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
     assertThat(order.getTotalSavedAmount()).isEqualByComparingTo("4000");
     assertThat(order.getPickupDeadline())
-        .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).atTime(cartItem.pickupEndAt()));
+        .isEqualTo(FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt()));
 
     verify(orderRepository, times(1)).save(any(Order.class));
     verify(orderStatusChangedEventWriter).append(order);
   }
 
-  @Test
-  void createOrder_setsPickupDeadlineToNextDayWhenPickupCrossesMidnight() {
-    CartOrderSnapshot cartItem =
-        new CartOrderSnapshot(
-            2L,
-            3L,
-            "DishName",
-            1L,
-            BigDecimal.valueOf(6000),
-            BigDecimal.valueOf(5000),
-            LocalTime.of(23, 0),
-            LocalTime.of(1, 0));
+  @ParameterizedTest(name = "현재 {0}이면 픽업 마감은 {1}")
+  @MethodSource("crossMidnightDeadlineCases")
+  @DisplayName("자정을 넘기는 픽업의 마감 일시를 계산한다")
+  void 자정을_넘기는_픽업의_마감_일시를_계산한다(LocalDateTime now, LocalDateTime expectedDeadline) {
+    setCurrentTime(now);
+    CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     Order order =
         orderService.createOrder(1L, new OrderMemberInfo("테스트 회원", "010-1234-5678"), cartItem);
 
-    assertThat(order.getPickupDeadline())
-        .isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1).atTime(LocalTime.of(1, 0)));
+    assertThat(order.getPickupDeadline()).isEqualTo(expectedDeadline);
+  }
+
+  private static Stream<Arguments> crossMidnightDeadlineCases() {
+    return Stream.of(
+        Arguments.of(LocalDateTime.of(2026, 8, 19, 12, 0), LocalDateTime.of(2026, 8, 20, 1, 0)),
+        Arguments.of(LocalDateTime.of(2026, 8, 20, 0, 30), LocalDateTime.of(2026, 8, 20, 1, 0)));
+  }
+
+  @ParameterizedTest(name = "현재 {0}, 픽업 {1}~{2}이면 주문 가능")
+  @MethodSource("orderablePickupDeadlineCases")
+  @DisplayName("픽업 마감 전이면 주문할 수 있다")
+  void 픽업_마감_전이면_주문할_수_있다(LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
+    setCurrentTime(now);
+    CartOrderSnapshot cartItem = createCartOrderSnapshot(pickupStartAt, pickupEndAt);
+
+    orderService.validatePickupDeadline(cartItem);
+  }
+
+  private static Stream<Arguments> orderablePickupDeadlineCases() {
+    return Stream.of(
+        Arguments.of(
+            LocalDateTime.of(2026, 8, 19, 12, 0), LocalTime.of(11, 0), LocalTime.of(13, 0)),
+        Arguments.of(
+            LocalDateTime.of(2026, 8, 19, 12, 0), LocalTime.of(18, 0), LocalTime.of(19, 0)),
+        Arguments.of(LocalDateTime.of(2026, 8, 19, 12, 0), LocalTime.of(23, 0), LocalTime.of(1, 0)),
+        Arguments.of(
+            LocalDateTime.of(2026, 8, 19, 23, 30), LocalTime.of(23, 0), LocalTime.of(1, 0)),
+        Arguments.of(
+            LocalDateTime.of(2026, 8, 20, 0, 30), LocalTime.of(23, 0), LocalTime.of(1, 0)));
   }
 
   @Test
-  void 픽업_시작_전이어도_마감_전이면_주문할_수_있다() {
-    CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
-
-    orderService.validatePickupDeadline(cartItem, LocalDateTime.of(2026, 8, 19, 12, 0));
-  }
-
-  @Test
+  @DisplayName("픽업 마감이 지나면 주문할 수 없다")
   void 픽업_마감이_지났으면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
 
-    assertThatThrownBy(
-            () ->
-                orderService.validatePickupDeadline(
-                    cartItem, LocalDateTime.of(2026, 8, 19, 19, 0, 1)))
+    setCurrentTime(LocalDateTime.of(2026, 8, 19, 19, 0, 1));
+
+    assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
-  }
-
-  @Test
-  void 자정을_넘기는_픽업은_다음날_마감_전까지_주문할_수_있다() {
-    CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
-
-    orderService.validatePickupDeadline(cartItem, LocalDateTime.of(2026, 8, 19, 22, 0));
   }
 
   private CartOrderSnapshot createCartOrderSnapshot(
@@ -151,6 +185,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("결제 대기 주문을 결제 완료로 변경한다")
   void completePayment_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
@@ -164,6 +199,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("주문을 취소한다")
   void cancelOrder_success() {
     Long memberId = 1L;
     Long orderId = 2L;
@@ -180,6 +216,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("주문을 접수하고 픽업 코드를 발급한다")
   void acceptOrder_success() {
     Long orderId = 1L;
     Long storeId = 2L;
@@ -205,6 +242,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("픽업 코드가 중복되면 사용 가능한 코드를 다시 발급한다")
   void acceptOrder_regeneratesPickupCodeWhenDuplicated() {
     Long orderId = 1L;
     Long storeId = 2L;
@@ -232,6 +270,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("픽업 코드 생성 재시도 횟수를 초과하면 예외가 발생한다")
   void acceptOrder_throwsExceptionWhenPickupCodeGenerationExceedsMaxRetry() {
     Long orderId = 1L;
     Long storeId = 2L;
@@ -255,6 +294,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("주문을 픽업 완료 상태로 변경한다")
   void updatePickupStatus_pickedUp_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
@@ -274,6 +314,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("주문을 노쇼 상태로 변경한다")
   void updatePickupStatus_noShow_success() {
     Long orderId = 1L;
     Order order = mock(Order.class);
@@ -294,6 +335,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("허용되지 않는 픽업 상태 변경 요청은 거부한다")
   void updatePickupStatus_invalidStatus() {
     assertThatThrownBy(() -> new UpdatePickupStatusCommand(OrderStatus.RESERVED))
         .isInstanceOf(IllegalArgumentException.class)
@@ -307,6 +349,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("회원의 주문 한 건을 조회한다")
   void getEachOrder_success() {
     Long orderId = 1L;
     Long memberId = 1L;
@@ -324,6 +367,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("상태 조건으로 회원 주문 목록을 조회한다")
   void getMyOrders_success() {
     Long memberId = 1L;
     OrderStatus status = OrderStatus.RESERVED;
@@ -341,6 +385,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("상태 조건 없이 회원 주문 목록을 조회한다")
   void getMyOrders_withoutStatus_success() {
     Long memberId = 1L;
     Pageable pageable = PageRequest.of(0, 20);
@@ -355,6 +400,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("상태 조건으로 매장 주문 목록을 조회한다")
   void getStoreOrders_success() {
     Long storeId = 1L;
     OrderStatus status = OrderStatus.PICKUP_READY;
@@ -372,6 +418,7 @@ class OrderServiceTest {
   }
 
   @Test
+  @DisplayName("상태 조건 없이 매장 주문 목록을 조회한다")
   void getStoreOrders_withoutStatus_success() {
     Long storeId = 1L;
     Pageable pageable = PageRequest.of(0, 20);

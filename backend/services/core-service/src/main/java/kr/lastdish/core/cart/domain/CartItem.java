@@ -219,9 +219,9 @@ public class CartItem {
   }
 
   /**
-   * 최신 Dish 가격 이벤트의 버전만 기록하고, 사용자가 상품을 담을 때 확인한 가격은 보존합니다.
+   * 최신 Dish 가격 이벤트를 CartItem의 정가와 단가에 반영합니다.
    *
-   * <p>주문 직전에 이 가격과 Dish의 현재 판매가를 비교하며, 다르면 사용자가 다시 담도록 주문을 중단합니다.
+   * <p>정가도 함께 갱신하는 이유: 주문 시 절약 금액을 정가 - 판매가로 계산하므로, 정가가 낡으면 적립 통계가 조용히 틀어진다.
    *
    * @param dishPrice Dish의 현재 정가
    * @param unitPrice Dish의 현재 판매 가격
@@ -234,7 +234,12 @@ public class CartItem {
       return;
     }
 
+    validatePrices(dishPrice, unitPrice);
+
+    this.dishPrice = dishPrice;
+    this.unitPrice = unitPrice;
     this.lastAppliedDishPriceVersion = aggregateVersion;
+    this.updatedAt = LocalDateTime.now();
   }
 
   public boolean isOrderable() {

@@ -1,8 +1,7 @@
 package kr.lastdish.core.order.application;
 
-import java.time.LocalDate;
+import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -29,8 +28,8 @@ public class OrderService {
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
+  private final Clock clock;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
-  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
   public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
@@ -55,26 +54,23 @@ public class OrderService {
   }
 
   private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
-    return pickupDeadline(cartItem, LocalDate.now(BUSINESS_ZONE));
-  }
+    LocalDateTime now = LocalDateTime.now(clock);
+    var pickupDate = now.toLocalDate();
 
-  private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem, LocalDate businessDate) {
-    LocalDate pickupDate = businessDate;
+    boolean crossesMidnight = cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt());
+    boolean beforePickupDayStarts = now.toLocalTime().isAfter(cartItem.pickupEndAt());
 
-    if (cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt())) {
+    if (crossesMidnight && beforePickupDayStarts) {
       pickupDate = pickupDate.plusDays(1);
     }
 
     return pickupDate.atTime(cartItem.pickupEndAt());
   }
 
-  /** 픽업 시작 전 주문은 허용하고, 픽업 마감 일시가 지난 경우에만 주문을 중단한다. */
+  /** 픽업 마감 일시가 지난 경우에만 주문을 중단한다. */
   public void validatePickupDeadline(CartOrderSnapshot cartItem) {
-    validatePickupDeadline(cartItem, LocalDateTime.now(BUSINESS_ZONE));
-  }
-
-  void validatePickupDeadline(CartOrderSnapshot cartItem, LocalDateTime now) {
-    if (now.isAfter(pickupDeadline(cartItem, now.toLocalDate()))) {
+    LocalDateTime now = LocalDateTime.now(clock);
+    if (now.isAfter(pickupDeadline(cartItem))) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
   }
@@ -141,10 +137,10 @@ public class OrderService {
 
     switch (command.status()) {
       case PICKED_UP -> {
-        order.completePickup(LocalDateTime.now(BUSINESS_ZONE));
+        order.completePickup(LocalDateTime.now(clock));
       }
       case NO_SHOW -> {
-        order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
+        order.markNoShow(LocalDateTime.now(clock));
       }
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }

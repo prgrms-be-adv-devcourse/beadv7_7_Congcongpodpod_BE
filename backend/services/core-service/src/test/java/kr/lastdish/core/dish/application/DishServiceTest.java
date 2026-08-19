@@ -209,28 +209,6 @@ class DishServiceTest {
   }
 
   @Test
-  void 장바구니_판매가와_현재_판매가가_같으면_주문_가격_검증을_통과한다() {
-    Dish dish = createDish(10L);
-    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
-
-    dishService.validateOrderPrice(10L, new BigDecimal("0.00"));
-
-    verify(dishRepository).findWithLockByIdAndIsDeletedFalse(10L);
-  }
-
-  @Test
-  void 장바구니_판매가와_현재_판매가가_다르면_가격_변경_예외가_발생한다() {
-    Dish dish = createDish(10L);
-    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
-
-    assertThatThrownBy(() -> dishService.validateOrderPrice(10L, BigDecimal.valueOf(7_000)))
-        .isInstanceOfSatisfying(
-            BusinessException.class,
-            exception ->
-                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ORDER_PRICE_CHANGED));
-  }
-
-  @Test
   void records_event_when_available_dish_is_deleted() {
     // given
     Dish dish = createDish(10L);
