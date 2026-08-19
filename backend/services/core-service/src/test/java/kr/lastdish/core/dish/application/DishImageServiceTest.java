@@ -14,14 +14,13 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
-import kr.lastdish.common.storage.ObjectStorage;
-import kr.lastdish.common.storage.ObjectStorageException;
-import kr.lastdish.common.storage.PresignedDownloadUrl;
-import kr.lastdish.common.storage.PresignedUploadUrl;
-import kr.lastdish.common.storage.download.application.PresignedDownloadService;
-import kr.lastdish.common.storage.upload.application.PresignedUploadService;
-import kr.lastdish.common.storage.upload.domain.PresignedUploadException;
-import kr.lastdish.common.storage.upload.domain.UploadResourceType;
+import kr.lastdish.common.storage.application.PresignedUrlService;
+import kr.lastdish.common.storage.domain.ObjectStorage;
+import kr.lastdish.common.storage.domain.ObjectStorageException;
+import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
+import kr.lastdish.common.storage.domain.PresignedUploadUrl;
+import kr.lastdish.common.storage.domain.PresignedUrlException;
+import kr.lastdish.common.storage.domain.UploadResourceType;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
@@ -35,8 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DishImageServiceTest {
 
   @Mock private StoreFacade storeFacade;
-  @Mock private PresignedUploadService presignedUploadService;
-  @Mock private PresignedDownloadService presignedDownloadService;
+  @Mock private PresignedUrlService presignedUrlService;
   @Mock private DishService dishService;
   @Mock private ObjectStorage objectStorage;
 
@@ -46,11 +44,7 @@ class DishImageServiceTest {
   void setUp() {
     dishImageService =
         new DishImageService(
-            storeFacade,
-            presignedUploadService,
-            presignedDownloadService,
-            dishService,
-            Optional.of(objectStorage));
+            storeFacade, presignedUrlService, dishService, Optional.of(objectStorage));
   }
 
   @Test
@@ -61,7 +55,7 @@ class DishImageServiceTest {
             URI.create("https://example.com/upload").toURL(),
             Map.of(),
             Instant.parse("2026-08-14T00:05:00Z"));
-    when(presignedUploadService.issue(
+    when(presignedUrlService.issueUpload(
             7L, UploadResourceType.DISH, "tmp/dish/3/", "image/jpeg", 1024L))
         .thenReturn(expected);
 
@@ -69,8 +63,8 @@ class DishImageServiceTest {
 
     assertThat(result).isSameAs(expected);
     verify(storeFacade).validateStoreOwner(3L, 7L);
-    verify(presignedUploadService)
-        .issue(7L, UploadResourceType.DISH, "tmp/dish/3/", "image/jpeg", 1024L);
+    verify(presignedUrlService)
+        .issueUpload(7L, UploadResourceType.DISH, "tmp/dish/3/", "image/jpeg", 1024L);
   }
 
   @Test
@@ -82,13 +76,13 @@ class DishImageServiceTest {
                 assertThat(exception.getErrorCode())
                     .isEqualTo(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED));
 
-    verifyNoInteractions(storeFacade, presignedUploadService);
+    verifyNoInteractions(storeFacade, presignedUrlService);
   }
 
   @Test
   void 임시_key를_Dish_최종_key로_확정한다() {
     String temporaryKey = "tmp/dish/3/test.jpg";
-    when(presignedUploadService.confirm(
+    when(presignedUrlService.confirmUpload(
             7L, UploadResourceType.DISH, temporaryKey, "dish/3/test.jpg"))
         .thenReturn("dish/3/test.jpg");
 
@@ -106,15 +100,15 @@ class DishImageServiceTest {
                 assertThat(exception.getErrorCode())
                     .isEqualTo(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED));
 
-    verifyNoInteractions(presignedUploadService);
+    verifyNoInteractions(presignedUrlService);
   }
 
   @Test
   void 공통_업로드_오류를_Core_오류로_변환한다() {
-    when(presignedUploadService.issue(
+    when(presignedUrlService.issueUpload(
             7L, UploadResourceType.DISH, "tmp/dish/3/", "image/gif", 1024L))
         .thenThrow(
-            new PresignedUploadException(PresignedUploadException.Reason.UNSUPPORTED_CONTENT_TYPE));
+            new PresignedUrlException(PresignedUrlException.Reason.UNSUPPORTED_CONTENT_TYPE));
 
     assertThatThrownBy(() -> dishImageService.issue(7L, "SELLER", 3L, "image/gif", 1024L))
         .isInstanceOfSatisfying(
@@ -131,13 +125,13 @@ class DishImageServiceTest {
             URI.create("https://example.com/download").toURL(),
             Instant.parse("2026-08-14T00:05:00Z"));
     when(dishService.getImageKey(10L)).thenReturn("dish/3/test.jpg");
-    when(presignedDownloadService.issue("dish/3/test.jpg")).thenReturn(expected);
+    when(presignedUrlService.issueDownload("dish/3/test.jpg")).thenReturn(expected);
 
     PresignedDownloadUrl result = dishImageService.issueDownloadUrl(10L);
 
     assertThat(result).isSameAs(expected);
     verify(dishService).getImageKey(10L);
-    verify(presignedDownloadService).issue("dish/3/test.jpg");
+    verify(presignedUrlService).issueDownload("dish/3/test.jpg");
   }
 
   @Test
@@ -155,7 +149,7 @@ class DishImageServiceTest {
             "ON_SALE",
             BigDecimal.valueOf(10_000),
             BigDecimal.valueOf(7_000));
-    when(presignedDownloadService.issue("dish/3/test.jpg"))
+    when(presignedUrlService.issueDownload("dish/3/test.jpg"))
         .thenReturn(
             new PresignedDownloadUrl(
                 "dish/3/test.jpg",

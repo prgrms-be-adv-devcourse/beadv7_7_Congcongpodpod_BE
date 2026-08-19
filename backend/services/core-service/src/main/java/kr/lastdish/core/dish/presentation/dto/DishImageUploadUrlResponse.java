@@ -2,7 +2,7 @@ package kr.lastdish.core.dish.presentation.dto;
 
 import java.time.Instant;
 import java.util.Map;
-import kr.lastdish.common.storage.PresignedUploadUrl;
+import kr.lastdish.common.storage.domain.PresignedUploadUrl;
 
 /** 클라이언트가 S3에 직접 업로드할 때 사용할 Object Key, URL, 필수 헤더와 만료 시각을 반환합니다. */
 public record DishImageUploadUrlResponse(
