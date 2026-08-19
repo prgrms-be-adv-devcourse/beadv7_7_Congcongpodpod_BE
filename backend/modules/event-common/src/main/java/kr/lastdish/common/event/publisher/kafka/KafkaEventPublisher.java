@@ -1,4 +1,4 @@
-package kr.lastdish.common.event.kafka;
+package kr.lastdish.common.event.publisher.kafka;
 
 import java.util.concurrent.TimeUnit;
 import kr.lastdish.common.event.EventMessage;

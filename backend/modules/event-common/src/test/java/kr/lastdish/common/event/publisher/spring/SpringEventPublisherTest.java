@@ -1,4 +1,4 @@
-package kr.lastdish.common.event.spring;
+package kr.lastdish.common.event.publisher.spring;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;

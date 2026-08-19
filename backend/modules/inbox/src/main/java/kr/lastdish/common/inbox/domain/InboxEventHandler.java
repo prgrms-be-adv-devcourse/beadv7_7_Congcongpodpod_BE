@@ -1,16 +1,10 @@
 package kr.lastdish.common.inbox.domain;
 
-import kr.lastdish.common.event.EventMessage;
+import kr.lastdish.common.event.EventHandler;
 
-public interface InboxEventHandler {
-
-  String consumerId();
-
-  String eventType();
+public interface InboxEventHandler extends EventHandler {
 
   default InboxProcessingPolicy processingPolicy() {
     return InboxProcessingPolicy.IDEMPOTENT;
   }
-
-  void handle(EventMessage message);
 }
