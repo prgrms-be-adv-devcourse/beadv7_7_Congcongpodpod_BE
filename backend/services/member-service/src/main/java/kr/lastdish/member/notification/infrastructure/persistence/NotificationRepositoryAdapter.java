@@ -1,14 +1,13 @@
 package kr.lastdish.member.notification.infrastructure.persistence;
 
+import java.util.Optional;
+import java.util.UUID;
 import kr.lastdish.member.notification.domain.Notification;
 import kr.lastdish.member.notification.domain.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor

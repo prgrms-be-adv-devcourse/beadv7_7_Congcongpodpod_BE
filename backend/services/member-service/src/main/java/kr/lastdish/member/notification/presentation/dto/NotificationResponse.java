@@ -1,8 +1,7 @@
 package kr.lastdish.member.notification.presentation.dto;
 
-import kr.lastdish.member.notification.domain.Notification;
-
 import java.time.LocalDateTime;
+import kr.lastdish.member.notification.domain.Notification;
 
 public record NotificationResponse(
     Long id,

@@ -19,8 +19,7 @@ public class RedisSseEventPublisher implements SseEventPublisher {
   @Override
   public void publish(NotificationSseEvent event) {
     try {
-      notificationRedisTemplate.convertAndSend(
-          CHANNEL, objectMapper.writeValueAsString(event));
+      notificationRedisTemplate.convertAndSend(CHANNEL, objectMapper.writeValueAsString(event));
     } catch (Exception exception) {
       throw new IllegalStateException("알림 SSE 메시지 직렬화 실패", exception);
     }

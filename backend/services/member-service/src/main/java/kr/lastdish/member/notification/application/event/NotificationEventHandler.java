@@ -36,14 +36,15 @@ public class NotificationEventHandler implements EventHandler {
     } catch (Exception exception) {
       throw new IllegalStateException("알림 이벤트 payload 역직렬화 실패", exception);
     }
-    notificationService.createNotification(new CreateNotificationCommand(
-        payload.memberId(),
-        payload.type(),
-        payload.title(),
-        payload.body(),
-        payload.data(),
-        payload.linkTarget(),
-        payload.linkId(),
-        message.eventId()));
+    notificationService.createNotification(
+        new CreateNotificationCommand(
+            payload.memberId(),
+            payload.type(),
+            payload.title(),
+            payload.body(),
+            payload.data(),
+            payload.linkTarget(),
+            payload.linkId(),
+            message.eventId()));
   }
 }
