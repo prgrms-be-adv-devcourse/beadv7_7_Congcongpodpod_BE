@@ -3,9 +3,7 @@ package kr.lastdish.core.store.presentation.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
-import kr.lastdish.core.dish.domain.Dish;
 
 public record InternalDishResponse(
     Long dishId,

@@ -1,5 +1,13 @@
 package kr.lastdish.core.store.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.domain.Dish;
@@ -14,120 +22,102 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class StoreFacadeTest {
-    @Mock
-    private StoreService storeService;
+  @Mock private StoreService storeService;
 
-    @Mock
-    private DishService dishService;
+  @Mock private DishService dishService;
 
-    @InjectMocks
-    private StoreFacade storeFacade;
+  @InjectMocks private StoreFacade storeFacade;
 
-    @Test
-    void returns_store_and_null_dish_when_store_exists_without_dish() {
-        // given
-        Long storeId = 10L;
+  @Test
+  void returns_store_and_null_dish_when_store_exists_without_dish() {
+    // given
+    Long storeId = 10L;
 
-        StoreResult storeResult = createStoreResult(storeId);
+    StoreResult storeResult = createStoreResult(storeId);
 
-        when(storeService.getStore(storeId))
-                .thenReturn(storeResult);
-        when(dishService.getDishByStoreIdForRenewal(storeId))
-                .thenReturn(null);
+    when(storeService.getStore(storeId)).thenReturn(storeResult);
+    when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(null);
 
-        // when
-        InternalStoreResponse response =
-                storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
+    // when
+    InternalStoreResponse response = storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
 
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.storeId()).isEqualTo(storeId);
-        assertThat(response.dish()).isNull();
+    // then
+    assertThat(response).isNotNull();
+    assertThat(response.storeId()).isEqualTo(storeId);
+    assertThat(response.dish()).isNull();
 
-        verify(storeService).getStore(storeId);
-        verify(dishService).getDishByStoreIdForRenewal(storeId);
-    }
+    verify(storeService).getStore(storeId);
+    verify(dishService).getDishByStoreIdForRenewal(storeId);
+  }
 
-    @Test
-    void returns_store_and_dish_when_both_exist() {
-        // given
-        Long storeId = 10L;
+  @Test
+  void returns_store_and_dish_when_both_exist() {
+    // given
+    Long storeId = 10L;
 
-        StoreResult storeResult = createStoreResult(storeId);
-        InternalDishResult dishResult = createDishResult(storeId);
+    StoreResult storeResult = createStoreResult(storeId);
+    InternalDishResult dishResult = createDishResult(storeId);
 
-        when(storeService.getStore(storeId))
-                .thenReturn(storeResult);
-        when(dishService.getDishByStoreIdForRenewal(storeId))
-                .thenReturn(dishResult);
+    when(storeService.getStore(storeId)).thenReturn(storeResult);
+    when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(dishResult);
 
-        // when
-        InternalStoreResponse response =
-                storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
+    // when
+    InternalStoreResponse response = storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
 
-        // then
-        assertThat(response).isNotNull();
+    // then
+    assertThat(response).isNotNull();
 
-        assertThat(response.storeId()).isEqualTo(storeId);
+    assertThat(response.storeId()).isEqualTo(storeId);
 
-        assertThat(response.dish()).isNotNull();
-        assertThat(response.dish().dishId()).isEqualTo(dishResult.dishId());
-        assertThat(response.dish().storeId()).isEqualTo(storeId);
+    assertThat(response.dish()).isNotNull();
+    assertThat(response.dish().dishId()).isEqualTo(dishResult.dishId());
+    assertThat(response.dish().storeId()).isEqualTo(storeId);
 
-        verify(storeService).getStore(storeId);
-        verify(dishService).getDishByStoreIdForRenewal(storeId);
-    }
+    verify(storeService).getStore(storeId);
+    verify(dishService).getDishByStoreIdForRenewal(storeId);
+  }
 
-    private StoreResult createStoreResult(Long storeId) {
-        Store store = createStore(LocalTime.now(), LocalTime.now());
-        ReflectionTestUtils.setField(store, "id", storeId);
+  private StoreResult createStoreResult(Long storeId) {
+    Store store = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(store, "id", storeId);
 
-        return StoreResult.from(store);
-    }
+    return StoreResult.from(store);
+  }
 
-    private InternalDishResult createDishResult(Long storeId) {
-        Dish dish = createDish(storeId);
-        ReflectionTestUtils.setField(dish, "id", 100L);
+  private InternalDishResult createDishResult(Long storeId) {
+    Dish dish = createDish(storeId);
+    ReflectionTestUtils.setField(dish, "id", 100L);
 
-        return InternalDishResult.from(dish);
-    }
+    return InternalDishResult.from(dish);
+  }
 
-    private Store createStore(LocalTime openTime, LocalTime closeTime) {
-        return new Store(
-                1L,
-                "테스트 매장",
-                "123-45-67890",
-                "서울시 강남구",
-                "02-1234-5678",
-                openTime,
-                closeTime,
-                BigDecimal.valueOf(37.5),
-                BigDecimal.valueOf(127.0),
-                Category.KOREAN);
-    }
+  private Store createStore(LocalTime openTime, LocalTime closeTime) {
+    return new Store(
+        1L,
+        "테스트 매장",
+        "123-45-67890",
+        "서울시 강남구",
+        "02-1234-5678",
+        openTime,
+        closeTime,
+        BigDecimal.valueOf(37.5),
+        BigDecimal.valueOf(127.0),
+        Category.KOREAN);
+  }
 
-    private Dish createDish(Long storeId) {
-        return Dish.create(
-                storeId,
-                "김치찌개",
-                LocalDateTime.now(),
-                "상품 설명",
-                null,
-                10L,
-                BigDecimal.valueOf(10_000),
-                BigDecimal.valueOf(7_000),
-                LocalTime.of(18, 0),
-                LocalTime.of(19, 0));
-    }
+  private Dish createDish(Long storeId) {
+    return Dish.create(
+        storeId,
+        "김치찌개",
+        LocalDateTime.now(),
+        "상품 설명",
+        null,
+        10L,
+        BigDecimal.valueOf(10_000),
+        BigDecimal.valueOf(7_000),
+        LocalTime.of(18, 0),
+        LocalTime.of(19, 0));
+  }
 }

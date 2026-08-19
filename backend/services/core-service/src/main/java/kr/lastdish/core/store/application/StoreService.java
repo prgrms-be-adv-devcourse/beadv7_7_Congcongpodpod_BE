@@ -160,7 +160,8 @@ public class StoreService {
     Store store =
         storeRepository
             .findById(storeId)
-            .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
 
     return StoreResult.from(store);
   }
@@ -247,7 +248,7 @@ public class StoreService {
   private void appendChangedEvent(Store store) {
     StoreChangedPayload payload =
         new StoreChangedPayload(
-                store.getId(),
+            store.getId(),
             store.getStoreName(),
             store.getStoreAddress(),
             store.getStorePhone(),

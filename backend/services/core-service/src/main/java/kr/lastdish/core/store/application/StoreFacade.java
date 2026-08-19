@@ -8,7 +8,6 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
-import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
 import kr.lastdish.core.store.application.dto.NearbyStoreResult;

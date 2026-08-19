@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
-
-import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.StoreStatus;

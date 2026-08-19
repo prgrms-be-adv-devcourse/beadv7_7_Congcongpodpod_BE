@@ -3,8 +3,6 @@ package kr.lastdish.core.store.presentation;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.application.StoreService;
-import kr.lastdish.core.store.application.dto.StoreResult;
-import kr.lastdish.core.store.presentation.dto.InternalDishResponse;
 import kr.lastdish.core.store.presentation.dto.InternalStoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

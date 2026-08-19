@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
@@ -18,7 +17,6 @@ import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
-import kr.lastdish.core.store.presentation.dto.InternalDishResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -252,7 +250,8 @@ public class DishService {
 
   private void appendCreatedEvent(Dish dish) {
     long aggregateVersion = dish.nextAggregateVersion();
-    DishCreatedPayload payload = new DishCreatedPayload(
+    DishCreatedPayload payload =
+        new DishCreatedPayload(
             dish.getId(),
             dish.getStoreId(),
             dish.getDishName(),
@@ -272,7 +271,7 @@ public class DishService {
             DishCreatedEvent.SCHEMA_VERSION,
             dish.getId(),
             aggregateVersion,
-                payload,
+            payload,
             Instant.now());
 
     outboxEventWriter.append(event);
@@ -293,10 +292,8 @@ public class DishService {
   }
 
   public InternalDishResult getDishByStoreIdForRenewal(Long storeId) {
-    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId)
-            .orElse(null);
-    if (dish == null)
-      return null;
+    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId).orElse(null);
+    if (dish == null) return null;
     return InternalDishResult.from(dish);
   }
 }
