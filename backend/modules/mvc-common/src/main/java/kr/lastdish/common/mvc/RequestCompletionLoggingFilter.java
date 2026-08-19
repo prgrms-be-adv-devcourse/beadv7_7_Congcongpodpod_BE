@@ -6,10 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import kr.lastdish.common.api.tracing.RequestIdSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerMapping;
@@ -48,19 +46,13 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
 
     // 이 줄에 도달했다는 것은 응답이 정상적으로 만들어졌다는 뜻이다.
     // 예외가 빠져나가면 최종 상태를 알 수 없으므로 완료 로그를 남기지 않고 그대로 전파한다.
+    // requestId는 RequestIdFilter가 올린 MDC를 통해 로그 필드로 붙으므로 메시지에 넣지 않는다.
     log.info(
-        "요청 처리가 완료되었습니다. requestId={}, method={}, pathPattern={}, status={}, durationMs={}",
-        resolveRequestId(),
+        "요청 처리가 완료되었습니다. method={}, pathPattern={}, status={}, durationMs={}",
         request.getMethod(),
         resolvePathPattern(request),
         response.getStatus(),
         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
-  }
-
-  /** RequestIdFilter가 MDC에 올린 번호를 읽는다. 확정 전 단계에서 실행됐다면 값이 없을 수 있다. */
-  private String resolveRequestId() {
-    String requestId = MDC.get(RequestIdSupport.KEY);
-    return requestId != null ? requestId : RequestIdSupport.UNKNOWN;
   }
 
   /** DispatcherServlet이 남긴 매칭 패턴만 사용한다. 없으면 실제 URI 대신 unmatched를 남긴다. */

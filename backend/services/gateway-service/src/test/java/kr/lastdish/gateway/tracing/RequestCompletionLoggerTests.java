@@ -51,8 +51,9 @@ class RequestCompletionLoggerTests {
 
     assertThat(appender.list).hasSize(1);
     assertThat(appender.list.getFirst().getLevel()).isEqualTo(Level.INFO);
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-276-gw");
     assertThat(appender.list.getFirst().getFormattedMessage())
-        .contains("requestId=req-276-gw")
         .contains("method=GET")
         .contains("pathPattern=/api/v1/orders/**")
         .contains("status=200")

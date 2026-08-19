@@ -1,7 +1,6 @@
 package kr.lastdish.gateway.tracing;
 
 import java.util.concurrent.TimeUnit;
-import kr.lastdish.common.api.tracing.RequestIdSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
@@ -46,18 +45,15 @@ public class RequestCompletionLogger {
       return;
     }
 
-    log.info(
-        "요청 처리가 완료되었습니다. requestId={}, method={}, pathPattern={}, status={}, durationMs={}",
-        resolveRequestId(exchange),
-        exchange.getRequest().getMethod(),
-        RequestPathPatternResolver.resolve(exchange),
-        status.value(),
-        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
-  }
-
-  /** RequestIdFilter가 exchange에 남긴 번호를 읽는다. 확정 전 단계에서 호출됐다면 값이 없을 수 있다. */
-  private String resolveRequestId(ServerWebExchange exchange) {
-    Object requestId = exchange.getAttribute(RequestIdSupport.KEY);
-    return requestId != null ? requestId.toString() : RequestIdSupport.UNKNOWN;
+    // 예외 핸들러에서 호출되면 Reactor 컨텍스트 밖이라 MDC가 비어 있다. 번호를 직접 올린 채 남긴다.
+    RequestIdMdc.with(
+        exchange,
+        () ->
+            log.info(
+                "요청 처리가 완료되었습니다. method={}, pathPattern={}, status={}, durationMs={}",
+                exchange.getRequest().getMethod(),
+                RequestPathPatternResolver.resolve(exchange),
+                status.value(),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)));
   }
 }

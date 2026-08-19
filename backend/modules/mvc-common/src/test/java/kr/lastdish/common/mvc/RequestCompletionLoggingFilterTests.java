@@ -64,8 +64,9 @@ class RequestCompletionLoggingFilterTests {
 
     filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-276-001");
     assertThat(appender.list.getFirst().getFormattedMessage())
-        .contains("requestId=req-276-001")
         .contains("method=GET")
         .contains("pathPattern=/api/v1/orders/{orderId}")
         .contains("status=200")
@@ -120,7 +121,8 @@ class RequestCompletionLoggingFilterTests {
 
     filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
-    assertThat(appender.list.getFirst().getFormattedMessage()).contains("requestId=unknown");
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .doesNotContainKey(RequestIdSupport.KEY);
   }
 
   @Test

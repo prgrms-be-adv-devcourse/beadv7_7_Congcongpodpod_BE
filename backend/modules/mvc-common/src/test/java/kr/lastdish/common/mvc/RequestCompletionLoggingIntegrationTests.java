@@ -69,8 +69,9 @@ class RequestCompletionLoggingIntegrationTests {
         .andExpect(status().isOk());
 
     assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-276-integration");
     assertThat(appender.list.getFirst().getFormattedMessage())
-        .contains("requestId=req-276-integration")
         .contains("method=GET")
         .contains("pathPattern=/api/v1/orders/{orderId}")
         .contains("status=200")
