@@ -50,7 +50,7 @@ public class DishService {
 
     Dish savedDish = dishRepository.save(dish);
 
-    //    TODO : 리스너 구현 시 주석 제거
+    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     //    appendCreatedEvent(savedDish);
 
     return DishResponse.from(savedDish);

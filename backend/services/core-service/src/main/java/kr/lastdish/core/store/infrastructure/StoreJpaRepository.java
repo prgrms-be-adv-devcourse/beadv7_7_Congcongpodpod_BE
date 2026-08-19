@@ -4,16 +4,20 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface StoreJpaRepository extends JpaRepository<Store, Long> {
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
   Optional<Store> findWithLockByIdAndDeletedFalse(Long storeId);
 
   boolean existsByMemberId(Long memberId);
