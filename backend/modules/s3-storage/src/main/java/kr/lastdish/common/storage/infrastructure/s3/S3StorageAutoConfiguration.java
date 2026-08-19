@@ -12,10 +12,7 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner.Builder;
 
-/**
- * {@code storage.s3.enabled=true}일 때 AWS S3 클라이언트와 저장소를 등록합니다.
- *
- */
+/** {@code storage.s3.enabled=true}일 때 AWS S3 클라이언트와 저장소를 등록합니다. */
 @AutoConfiguration
 @EnableConfigurationProperties(S3StorageProperties.class)
 public class S3StorageAutoConfiguration {

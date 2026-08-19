@@ -13,8 +13,6 @@ final class PresignedUploadAutoConfigurationPackagesRegistrar
   public void registerBeanDefinitions(
       AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
     AutoConfigurationPackages.register(
-        registry,
-        "kr.lastdish.common.storage.domain",
-        "kr.lastdish.common.storage.infrastructure");
+        registry, "kr.lastdish.common.storage.domain", "kr.lastdish.common.storage.infrastructure");
   }
 }

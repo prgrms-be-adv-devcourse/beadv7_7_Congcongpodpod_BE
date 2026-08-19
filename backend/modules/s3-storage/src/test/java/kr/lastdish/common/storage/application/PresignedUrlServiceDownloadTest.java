@@ -12,8 +12,8 @@ import java.util.Optional;
 import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
 import kr.lastdish.common.storage.domain.PresignedUploadRepository;
 import kr.lastdish.common.storage.domain.PresignedUrlException;
-import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
 import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
+import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -37,7 +37,8 @@ class PresignedUrlServiceDownloadTest {
             "dish/3/test.jpg",
             URI.create("https://example.com/download").toURL(),
             Instant.parse("2026-08-14T00:05:00Z"));
-    when(s3ObjectStorage.issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5))).thenReturn(expected);
+    when(s3ObjectStorage.issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5)))
+        .thenReturn(expected);
 
     PresignedDownloadUrl result = service.issueDownload("dish/3/test.jpg");
 

@@ -13,9 +13,9 @@ import kr.lastdish.common.storage.domain.UploadResourceType;
 import kr.lastdish.common.storage.domain.UploadStatus;
 import kr.lastdish.common.storage.image.ImageContentType;
 import kr.lastdish.common.storage.image.UnsupportedImageContentTypeException;
-import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
 import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageException;
+import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Presigned 업로드 URL 발급·확정과 다운로드 URL 발급을 담당하는 공통 서비스입니다. */
@@ -77,8 +77,7 @@ public class PresignedUrlService {
         presignedUploadRepository
             .findByObjectKeyForUpdate(objectKey)
             .orElseThrow(
-                () ->
-                    new PresignedUrlException(PresignedUrlException.Reason.UPLOAD_NOT_FOUND));
+                () -> new PresignedUrlException(PresignedUrlException.Reason.UPLOAD_NOT_FOUND));
     validatePendingOwner(upload, memberId, resourceType);
 
     S3ObjectStorage storage = getStorage();
