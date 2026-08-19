@@ -122,7 +122,7 @@ Gateway를 우회하므로 Gateway의 인증, 인가, 사용자 헤더 주입을
 /api/v1/auth/**, /api/v1/members/** -> member-service
 /api/v1/carts/**, /api/v1/orders/**, /api/v1/stores/**,
 /api/v1/dishes/**, /api/v1/payments/**, /api/v1/settlements/**,
-/api/v1/deposits/**                -> core-service
+/api/v1/deposits/**,  /api/v1/levels/**, /api/v1/points/**               -> core-service
 ```
 
 권한은 URI에 `seller` 같은 역할명을 넣지 않고 Gateway에서 HTTP Method와 리소스 경로를

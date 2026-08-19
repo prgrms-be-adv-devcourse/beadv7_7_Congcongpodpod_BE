@@ -3,6 +3,7 @@ package kr.lastdish.core.point.infrastructure;
 import java.util.List;
 import kr.lastdish.core.point.domain.PointHistory;
 import kr.lastdish.core.point.domain.PointHistoryRepository;
+import kr.lastdish.core.point.domain.PointType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +21,11 @@ public class PointHistoryRepositoryImpl implements PointHistoryRepository {
   @Override
   public List<PointHistory> findUsableEarnHistories(Long memberId) {
     return pointHistoryJpaRepository.findUsableEarnHistories(memberId);
+  }
+
+  @Override
+  public boolean existsByOrderIdAndType(Long orderId, PointType type) {
+    return pointHistoryJpaRepository.existsByOrderIdAndType(orderId, type);
   }
 
   @Override

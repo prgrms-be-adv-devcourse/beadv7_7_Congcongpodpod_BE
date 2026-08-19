@@ -98,6 +98,18 @@ class PointServiceTest {
   }
 
   @Test
+  void earn_이미_동일한_orderId로_적립된_이력이_있으면_예외가_발생한다() {
+    Point point = Point.createDefault(1L);
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.existsByOrderIdAndType(100L, PointType.EARN)).willReturn(true);
+
+    assertThatThrownBy(() -> pointService.earn(1L, 100L, new BigDecimal("10000")))
+            .isInstanceOf(BusinessException.class);
+
+    verify(pointHistoryRepository, never()).save(any());
+  }
+
+  @Test
   void use_포인트_정보가_없는_회원이면_예외가_발생한다() {
     given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.empty());
 
@@ -167,5 +179,18 @@ class PointServiceTest {
 
     assertThatThrownBy(() -> pointService.use(1L, 200L, new BigDecimal("800")))
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void use_이미_동일한_orderId로_사용된_이력이_있으면_예외가_발생한다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("1000"));
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.USE)).willReturn(true);
+
+    assertThatThrownBy(() -> pointService.use(1L, 200L, new BigDecimal("300")))
+            .isInstanceOf(BusinessException.class);
+
+    verify(pointHistoryRepository, never()).save(any());
   }
 }

@@ -8,11 +8,7 @@ import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.level.application.LevelService;
 import kr.lastdish.core.point.application.dto.PointBalanceResponse;
 import kr.lastdish.core.point.application.dto.PointTransactionResult;
-import kr.lastdish.core.point.domain.Point;
-import kr.lastdish.core.point.domain.PointHistory;
-import kr.lastdish.core.point.domain.PointHistoryRepository;
-import kr.lastdish.core.point.domain.PointNotFoundException;
-import kr.lastdish.core.point.domain.PointRepository;
+import kr.lastdish.core.point.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,35 +35,35 @@ public class PointService {
   @Transactional
   public PointTransactionResult earn(Long memberId, Long orderId, BigDecimal finalOrderAmount) {
     if (finalOrderAmount == null || finalOrderAmount.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new BusinessException(
-          CommonErrorCode.INVALID_INPUT, "주문 금액은 0보다 커야 합니다. finalOrderAmount=" + finalOrderAmount);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "주문 금액은 0보다 커야 합니다. finalOrderAmount=" + finalOrderAmount);
+    }
+
+    pointRepository.createDefaultIfAbsent(memberId);
+    Point point = pointRepository.findWithLockByMemberId(memberId)
+            .orElseThrow(() -> new IllegalStateException("Point 생성 후 조회에 실패했습니다."));
+
+    if (pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.EARN)) {
+      throw new BusinessException(CommonErrorCode.INVALID_STATE, "이미 포인트 적립 처리된 주문입니다. orderId=" + orderId);
     }
 
     BigDecimal earningRate = levelService.getPointEarningRate(memberId);
-    BigDecimal earnedAmount = finalOrderAmount.multiply(earningRate).setScale(0, RoundingMode.DOWN);
-
-    pointRepository.createDefaultIfAbsent(memberId);
-    Point point =
-        pointRepository
-            .findWithLockByMemberId(memberId)
-            .orElseThrow(() -> new IllegalStateException("Point 생성 후 조회에 실패했습니다."));
-
+    BigDecimal earnedAmount = finalOrderAmount.multiply(earningRate);
     point.earn(earnedAmount);
 
-    PointHistory history =
-        pointHistoryRepository.save(
+    PointHistory history = pointHistoryRepository.save(
             PointHistory.recordEarn(memberId, orderId, earnedAmount, point.getBalance()));
-
     return PointTransactionResult.from(history);
   }
 
   // 포인트 사용 (전체 잔액 차감 + FIFO 개별 적립건 소진)
   @Transactional
   public PointTransactionResult use(Long memberId, Long orderId, BigDecimal amountToUse) {
-    Point point =
-        pointRepository
-            .findWithLockByMemberId(memberId)
+    Point point = pointRepository.findWithLockByMemberId(memberId)
             .orElseThrow(() -> new PointNotFoundException(memberId));
+
+    if (pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.USE)) {
+      throw new BusinessException(CommonErrorCode.INVALID_STATE, "이미 포인트 사용 처리된 주문입니다. orderId=" + orderId);
+    }
 
     point.use(amountToUse); // 잔액 부족 시 예외 발생
 
