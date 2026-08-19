@@ -1,5 +1,6 @@
 package kr.lastdish.common.storage.application;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -120,7 +121,9 @@ public class PresignedUrlService {
     if (!Objects.equals(upload.getMemberId(), memberId)) {
       throw new PresignedUrlException(PresignedUrlException.Reason.ACCESS_DENIED);
     }
-    if (upload.getResourceType() != resourceType || upload.getStatus() != UploadStatus.PENDING) {
+    if (upload.getResourceType() != resourceType
+        || upload.getStatus() != UploadStatus.PENDING
+        || !upload.getExpiresAt().isAfter(Instant.now())) {
       throw new PresignedUrlException(PresignedUrlException.Reason.INVALID_STATE);
     }
   }

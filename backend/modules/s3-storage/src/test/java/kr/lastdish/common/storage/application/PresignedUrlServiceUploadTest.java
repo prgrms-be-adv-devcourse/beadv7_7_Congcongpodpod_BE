@@ -112,7 +112,7 @@ class PresignedUrlServiceUploadTest {
             temporaryKey,
             "image/jpeg",
             1024L,
-            Instant.parse("2026-08-14T00:05:00Z"));
+            Instant.parse("2099-08-14T00:05:00Z"));
     when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
         .thenReturn(Optional.of(upload));
     when(s3ObjectStorage.getMetadata(temporaryKey))
@@ -137,7 +137,7 @@ class PresignedUrlServiceUploadTest {
             temporaryKey,
             "image/jpeg",
             1024L,
-            Instant.parse("2026-08-14T00:05:00Z"));
+            Instant.parse("2099-08-14T00:05:00Z"));
     when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
         .thenReturn(Optional.of(upload));
     when(s3ObjectStorage.getMetadata(temporaryKey))
@@ -154,5 +154,32 @@ class PresignedUrlServiceUploadTest {
                     .isEqualTo(PresignedUrlException.Reason.METADATA_MISMATCH));
 
     assertThat(upload.getStatus()).isEqualTo(UploadStatus.PENDING);
+  }
+
+  @Test
+  void 만료된_업로드는_확정하지_않는다() {
+    String temporaryKey = "tmp/dish/3/test.jpg";
+    PresignedUpload upload =
+        PresignedUpload.issue(
+            7L,
+            UploadResourceType.DISH,
+            temporaryKey,
+            "image/jpeg",
+            1024L,
+            Instant.parse("2020-01-01T00:00:00Z"));
+    when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
+        .thenReturn(Optional.of(upload));
+
+    assertThatThrownBy(
+            () ->
+                presignedUrlService.confirmUpload(
+                    7L, UploadResourceType.DISH, temporaryKey, "dish/3/test.jpg"))
+        .isInstanceOfSatisfying(
+            PresignedUrlException.class,
+            exception ->
+                assertThat(exception.getReason())
+                    .isEqualTo(PresignedUrlException.Reason.INVALID_STATE));
+
+    verifyNoInteractions(s3ObjectStorage);
   }
 }
