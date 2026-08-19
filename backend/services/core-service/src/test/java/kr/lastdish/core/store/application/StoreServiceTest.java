@@ -225,7 +225,7 @@ class StoreServiceTest {
 
     // when & then
     assertThatThrownBy(() -> storeService.getStore(storeId))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(BusinessException.class)
         .hasMessage("매장을 찾을 수 없습니다.");
 
     verify(storeRepository).findById(storeId);
