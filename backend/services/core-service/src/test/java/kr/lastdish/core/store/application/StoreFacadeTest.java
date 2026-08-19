@@ -56,9 +56,10 @@ class StoreFacadeTest {
   void returns_store_and_dish_when_both_exist() {
     // given
     Long storeId = 10L;
+    Long stockQuantity = 100L;
 
     StoreResult storeResult = createStoreResult(storeId);
-    InternalDishResult dishResult = createDishResult(storeId);
+    InternalDishResult dishResult = createDishResult(stockQuantity);
 
     when(storeService.getStore(storeId)).thenReturn(storeResult);
     when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(dishResult);
@@ -86,9 +87,9 @@ class StoreFacadeTest {
     return StoreResult.from(store);
   }
 
-  private InternalDishResult createDishResult(Long storeId) {
-    Dish dish = createDish(storeId);
-    ReflectionTestUtils.setField(dish, "id", 100L);
+  private InternalDishResult createDishResult(Long stockQuantity) {
+    Dish dish = createDish(stockQuantity);
+    ReflectionTestUtils.setField(dish, "id", 10L);
 
     return InternalDishResult.from(dish);
   }
@@ -107,16 +108,16 @@ class StoreFacadeTest {
         Category.KOREAN);
   }
 
-  private Dish createDish(Long storeId) {
+  private Dish createDish(Long stockQuantity) {
     return Dish.create(
-        storeId,
+        10L,
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
         null,
-        10L,
-        BigDecimal.valueOf(10_000),
-        BigDecimal.valueOf(7_000),
+        stockQuantity,
+        BigDecimal.valueOf(10000),
+        BigDecimal.ZERO,
         LocalTime.of(18, 0),
         LocalTime.of(19, 0));
   }
