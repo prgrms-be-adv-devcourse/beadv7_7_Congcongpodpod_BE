@@ -5,11 +5,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
-import kr.lastdish.common.storage.domain.ObjectStorage;
-import kr.lastdish.common.storage.domain.ObjectStorageException;
-import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
-import kr.lastdish.common.storage.domain.PresignedUploadUrl;
-import kr.lastdish.common.storage.domain.StoredObjectMetadata;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
+import kr.lastdish.common.storage.application.dto.StoredObjectMetadata;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
@@ -26,11 +24,11 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 /**
- * {@link ObjectStorage}를 AWS SDK의 S3Client와 S3Presigner로 구현한 어댑터입니다.
+ * AWS SDK의 S3Client와 S3Presigner를 이용해 객체 저장소 기능을 제공합니다.
  *
  * <p>URL 서명은 S3 네트워크 호출 없이 계산하며, 메타데이터 조회·복사·삭제는 실제 S3 API를 호출합니다.
  */
-public class S3ObjectStorage implements ObjectStorage {
+public class S3ObjectStorage {
 
   private final S3Client s3Client;
   private final S3Presigner presigner;
@@ -49,7 +47,6 @@ public class S3ObjectStorage implements ObjectStorage {
     this.clock = clock;
   }
 
-  @Override
   public PresignedDownloadUrl issueGetUrl(String objectKey, Duration expiration) {
     try {
       GetObjectRequest getObjectRequest =
@@ -64,11 +61,10 @@ public class S3ObjectStorage implements ObjectStorage {
       return new PresignedDownloadUrl(
           objectKey, presignedRequest.url(), clock.instant().plus(expiration));
     } catch (SdkException exception) {
-      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+      throw new S3StorageException(S3StorageException.Reason.OPERATION_FAILED, exception);
     }
   }
 
-  @Override
   public PresignedUploadUrl issuePutUrl(
       String objectKey, String contentType, long contentLength, Duration expiration) {
     try {
@@ -99,11 +95,10 @@ public class S3ObjectStorage implements ObjectStorage {
                       Map.Entry::getKey, entry -> String.join(",", entry.getValue()))),
           expiresAt);
     } catch (SdkException exception) {
-      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+      throw new S3StorageException(S3StorageException.Reason.OPERATION_FAILED, exception);
     }
   }
 
-  @Override
   public StoredObjectMetadata getMetadata(String objectKey) {
     try {
       HeadObjectResponse response =
@@ -112,15 +107,14 @@ public class S3ObjectStorage implements ObjectStorage {
       return new StoredObjectMetadata(response.contentType(), response.contentLength());
     } catch (S3Exception exception) {
       if (exception.statusCode() == 404) {
-        throw new ObjectStorageException(ObjectStorageException.Reason.OBJECT_NOT_FOUND, exception);
+        throw new S3StorageException(S3StorageException.Reason.OBJECT_NOT_FOUND, exception);
       }
-      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+      throw new S3StorageException(S3StorageException.Reason.OPERATION_FAILED, exception);
     } catch (SdkException exception) {
-      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+      throw new S3StorageException(S3StorageException.Reason.OPERATION_FAILED, exception);
     }
   }
 
-  @Override
   public void copy(String sourceKey, String destinationKey) {
     try {
       s3Client.copyObject(
@@ -130,17 +124,16 @@ public class S3ObjectStorage implements ObjectStorage {
               .destinationKey(destinationKey)
               .build());
     } catch (SdkException exception) {
-      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+      throw new S3StorageException(S3StorageException.Reason.OPERATION_FAILED, exception);
     }
   }
 
-  @Override
   public void delete(String objectKey) {
     try {
       s3Client.deleteObject(
           DeleteObjectRequest.builder().bucket(properties.bucket()).key(objectKey).build());
     } catch (SdkException exception) {
-      throw new ObjectStorageException(ObjectStorageException.Reason.OPERATION_FAILED, exception);
+      throw new S3StorageException(S3StorageException.Reason.OPERATION_FAILED, exception);
     }
   }
 }

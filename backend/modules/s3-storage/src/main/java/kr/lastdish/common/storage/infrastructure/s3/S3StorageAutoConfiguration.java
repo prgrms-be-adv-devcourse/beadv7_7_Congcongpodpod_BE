@@ -1,7 +1,6 @@
 package kr.lastdish.common.storage.infrastructure.s3;
 
 import java.util.Optional;
-import kr.lastdish.common.storage.domain.ObjectStorage;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,7 +13,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner.Builder;
 
 /**
- * {@code storage.s3.enabled=true}일 때 AWS S3 클라이언트와 {@link ObjectStorage} 구현을 등록합니다.
+ * {@code storage.s3.enabled=true}일 때 AWS S3 클라이언트와 저장소를 등록합니다.
  *
  */
 @AutoConfiguration
@@ -38,9 +37,9 @@ public class S3StorageAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(ObjectStorage.class)
+  @ConditionalOnMissingBean(S3ObjectStorage.class)
   @ConditionalOnProperty(prefix = "storage.s3", name = "enabled", havingValue = "true")
-  ObjectStorage objectStorage(
+  S3ObjectStorage s3ObjectStorage(
       S3Client s3Client, S3Presigner s3Presigner, S3StorageProperties properties) {
     return new S3ObjectStorage(s3Client, s3Presigner, properties);
   }

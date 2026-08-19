@@ -13,15 +13,15 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import kr.lastdish.common.storage.domain.ObjectStorage;
-import kr.lastdish.common.storage.domain.PresignedUploadUrl;
-import kr.lastdish.common.storage.domain.StoredObjectMetadata;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
+import kr.lastdish.common.storage.application.dto.StoredObjectMetadata;
 import kr.lastdish.common.storage.domain.PresignedUpload;
 import kr.lastdish.common.storage.domain.PresignedUploadRepository;
 import kr.lastdish.common.storage.domain.PresignedUrlException;
 import kr.lastdish.common.storage.domain.UploadResourceType;
 import kr.lastdish.common.storage.domain.UploadStatus;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
+import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +33,7 @@ import org.springframework.util.unit.DataSize;
 @ExtendWith(MockitoExtension.class)
 class PresignedUrlServiceUploadTest {
 
-  @Mock private ObjectStorage objectStorage;
+  @Mock private S3ObjectStorage s3ObjectStorage;
   @Mock private PresignedUploadRepository presignedUploadRepository;
 
   private PresignedUrlService presignedUrlService;
@@ -50,13 +50,13 @@ class PresignedUrlServiceUploadTest {
             null);
     presignedUrlService =
         new PresignedUrlService(
-            Optional.of(objectStorage), properties, presignedUploadRepository);
+            Optional.of(s3ObjectStorage), properties, presignedUploadRepository);
   }
 
   @Test
   void MIME에_맞는_key와_URL을_발급하고_이력을_저장한다() throws Exception {
     Instant expiresAt = Instant.parse("2026-08-14T00:05:00Z");
-    when(objectStorage.issuePutUrl(
+    when(s3ObjectStorage.issuePutUrl(
             anyString(), eq("image/jpeg"), eq(1024L), eq(Duration.ofMinutes(5))))
         .thenAnswer(
             invocation ->
@@ -99,7 +99,7 @@ class PresignedUrlServiceUploadTest {
                 assertThat(exception.getReason())
                     .isEqualTo(PresignedUrlException.Reason.INVALID_FILE_SIZE));
 
-    verifyNoInteractions(objectStorage, presignedUploadRepository);
+    verifyNoInteractions(s3ObjectStorage, presignedUploadRepository);
   }
 
   @Test
@@ -115,7 +115,7 @@ class PresignedUrlServiceUploadTest {
             Instant.parse("2026-08-14T00:05:00Z"));
     when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
         .thenReturn(Optional.of(upload));
-    when(objectStorage.getMetadata(temporaryKey))
+    when(s3ObjectStorage.getMetadata(temporaryKey))
         .thenReturn(new StoredObjectMetadata("image/jpeg", 1024L));
 
     String result =
@@ -124,7 +124,7 @@ class PresignedUrlServiceUploadTest {
 
     assertThat(result).isEqualTo("dish/3/test.jpg");
     assertThat(upload.getStatus()).isEqualTo(UploadStatus.CONFIRMED);
-    verify(objectStorage).copy(temporaryKey, "dish/3/test.jpg");
+    verify(s3ObjectStorage).copy(temporaryKey, "dish/3/test.jpg");
   }
 
   @Test
@@ -140,7 +140,7 @@ class PresignedUrlServiceUploadTest {
             Instant.parse("2026-08-14T00:05:00Z"));
     when(presignedUploadRepository.findByObjectKeyForUpdate(temporaryKey))
         .thenReturn(Optional.of(upload));
-    when(objectStorage.getMetadata(temporaryKey))
+    when(s3ObjectStorage.getMetadata(temporaryKey))
         .thenReturn(new StoredObjectMetadata("image/png", 2048L));
 
     assertThatThrownBy(

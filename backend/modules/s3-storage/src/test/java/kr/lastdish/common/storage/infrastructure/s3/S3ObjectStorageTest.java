@@ -11,10 +11,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import kr.lastdish.common.storage.domain.ObjectStorageException;
-import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
-import kr.lastdish.common.storage.domain.PresignedUploadUrl;
-import kr.lastdish.common.storage.domain.StoredObjectMetadata;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
+import kr.lastdish.common.storage.application.dto.StoredObjectMetadata;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.unit.DataSize;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -140,9 +139,9 @@ class S3ObjectStorageTest {
 
     assertThatThrownBy(() -> storage.getMetadata("missing.jpg"))
         .isInstanceOfSatisfying(
-            ObjectStorageException.class,
+            S3StorageException.class,
             exception ->
                 assertThat(exception.getReason())
-                    .isEqualTo(ObjectStorageException.Reason.OBJECT_NOT_FOUND));
+                    .isEqualTo(S3StorageException.Reason.OBJECT_NOT_FOUND));
   }
 }

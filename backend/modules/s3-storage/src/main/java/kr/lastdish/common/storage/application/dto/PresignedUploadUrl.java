@@ -1,4 +1,4 @@
-package kr.lastdish.common.storage.domain;
+package kr.lastdish.common.storage.application.dto;
 
 import java.net.URL;
 import java.time.Instant;

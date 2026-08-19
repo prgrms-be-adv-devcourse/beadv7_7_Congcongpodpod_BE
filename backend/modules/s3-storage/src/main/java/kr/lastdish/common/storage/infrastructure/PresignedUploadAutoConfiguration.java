@@ -3,8 +3,8 @@ package kr.lastdish.common.storage.infrastructure;
 import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import kr.lastdish.common.storage.application.PresignedUrlService;
-import kr.lastdish.common.storage.domain.ObjectStorage;
 import kr.lastdish.common.storage.domain.PresignedUploadRepository;
+import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -29,9 +29,9 @@ public class PresignedUploadAutoConfiguration {
 
   @Bean
   PresignedUrlService presignedUrlService(
-      Optional<ObjectStorage> objectStorage,
+      Optional<S3ObjectStorage> s3ObjectStorage,
       S3StorageProperties properties,
       PresignedUploadRepository presignedUploadRepository) {
-    return new PresignedUrlService(objectStorage, properties, presignedUploadRepository);
+    return new PresignedUrlService(s3ObjectStorage, properties, presignedUploadRepository);
   }
 }

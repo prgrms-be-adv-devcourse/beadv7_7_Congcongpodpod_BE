@@ -3,11 +3,9 @@ package kr.lastdish.common.storage.application;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import kr.lastdish.common.storage.domain.ObjectStorage;
-import kr.lastdish.common.storage.domain.ObjectStorageException;
-import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
-import kr.lastdish.common.storage.domain.PresignedUploadUrl;
-import kr.lastdish.common.storage.domain.StoredObjectMetadata;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
+import kr.lastdish.common.storage.application.dto.StoredObjectMetadata;
 import kr.lastdish.common.storage.domain.PresignedUpload;
 import kr.lastdish.common.storage.domain.PresignedUploadRepository;
 import kr.lastdish.common.storage.domain.PresignedUrlException;
@@ -16,20 +14,22 @@ import kr.lastdish.common.storage.domain.UploadStatus;
 import kr.lastdish.common.storage.image.ImageContentType;
 import kr.lastdish.common.storage.image.UnsupportedImageContentTypeException;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
+import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
+import kr.lastdish.common.storage.infrastructure.s3.S3StorageException;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Presigned 업로드 URL 발급·확정과 다운로드 URL 발급을 담당하는 공통 서비스입니다. */
 public class PresignedUrlService {
 
-  private final Optional<ObjectStorage> objectStorage;
+  private final Optional<S3ObjectStorage> s3ObjectStorage;
   private final S3StorageProperties properties;
   private final PresignedUploadRepository presignedUploadRepository;
 
   public PresignedUrlService(
-      Optional<ObjectStorage> objectStorage,
+      Optional<S3ObjectStorage> s3ObjectStorage,
       S3StorageProperties properties,
       PresignedUploadRepository presignedUploadRepository) {
-    this.objectStorage = objectStorage;
+    this.s3ObjectStorage = s3ObjectStorage;
     this.properties = properties;
     this.presignedUploadRepository = presignedUploadRepository;
   }
@@ -49,13 +49,13 @@ public class PresignedUrlService {
     PresignedUploadUrl result;
     try {
       result =
-          getUploadStorage()
+          getStorage()
               .issuePutUrl(
                   objectKey,
                   imageContentType.mediaType(),
                   contentLength,
                   properties.presignedUrlExpiration());
-    } catch (ObjectStorageException exception) {
+    } catch (S3StorageException exception) {
       throw new PresignedUrlException(PresignedUrlException.Reason.STORAGE_ERROR, exception);
     }
 
@@ -81,7 +81,7 @@ public class PresignedUrlService {
                     new PresignedUrlException(PresignedUrlException.Reason.UPLOAD_NOT_FOUND));
     validatePendingOwner(upload, memberId, resourceType);
 
-    ObjectStorage storage = getUploadStorage();
+    S3ObjectStorage storage = getStorage();
     StoredObjectMetadata metadata = getMetadata(storage, objectKey);
     if (metadata.contentLength() != upload.getContentLength()
         || !upload.getContentType().equalsIgnoreCase(metadata.contentType())) {
@@ -95,8 +95,8 @@ public class PresignedUrlService {
 
   public PresignedDownloadUrl issueDownload(String objectKey) {
     try {
-      return getDownloadStorage().issueGetUrl(objectKey, properties.presignedUrlExpiration());
-    } catch (ObjectStorageException exception) {
+      return getStorage().issueGetUrl(objectKey, properties.presignedUrlExpiration());
+    } catch (S3StorageException exception) {
       throw new PresignedUrlException(PresignedUrlException.Reason.STORAGE_ERROR, exception);
     }
   }
@@ -126,31 +126,26 @@ public class PresignedUrlService {
     }
   }
 
-  private ObjectStorage getUploadStorage() {
-    return objectStorage.orElseThrow(
+  private S3ObjectStorage getStorage() {
+    return s3ObjectStorage.orElseThrow(
         () -> new PresignedUrlException(PresignedUrlException.Reason.STORAGE_DISABLED));
   }
 
-  private ObjectStorage getDownloadStorage() {
-    return objectStorage.orElseThrow(
-        () -> new PresignedUrlException(PresignedUrlException.Reason.STORAGE_DISABLED));
-  }
-
-  private StoredObjectMetadata getMetadata(ObjectStorage storage, String objectKey) {
+  private StoredObjectMetadata getMetadata(S3ObjectStorage storage, String objectKey) {
     try {
       return storage.getMetadata(objectKey);
-    } catch (ObjectStorageException exception) {
-      if (exception.getReason() == ObjectStorageException.Reason.OBJECT_NOT_FOUND) {
+    } catch (S3StorageException exception) {
+      if (exception.getReason() == S3StorageException.Reason.OBJECT_NOT_FOUND) {
         throw new PresignedUrlException(PresignedUrlException.Reason.OBJECT_NOT_FOUND, exception);
       }
       throw new PresignedUrlException(PresignedUrlException.Reason.STORAGE_ERROR, exception);
     }
   }
 
-  private void copy(ObjectStorage storage, String sourceKey, String destinationKey) {
+  private void copy(S3ObjectStorage storage, String sourceKey, String destinationKey) {
     try {
       storage.copy(sourceKey, destinationKey);
-    } catch (ObjectStorageException exception) {
+    } catch (S3StorageException exception) {
       throw new PresignedUrlException(PresignedUrlException.Reason.STORAGE_ERROR, exception);
     }
   }

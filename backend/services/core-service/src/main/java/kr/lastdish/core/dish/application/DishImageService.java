@@ -4,12 +4,12 @@ import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.common.storage.application.PresignedUrlService;
-import kr.lastdish.common.storage.domain.ObjectStorage;
-import kr.lastdish.common.storage.domain.ObjectStorageException;
-import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
-import kr.lastdish.common.storage.domain.PresignedUploadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
 import kr.lastdish.common.storage.domain.PresignedUrlException;
 import kr.lastdish.common.storage.domain.UploadResourceType;
+import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
+import kr.lastdish.common.storage.infrastructure.s3.S3StorageException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
@@ -32,7 +32,7 @@ public class DishImageService {
   private final StoreFacade storeFacade;
   private final PresignedUrlService presignedUrlService;
   private final DishService dishService;
-  private final Optional<ObjectStorage> objectStorage;
+  private final Optional<S3ObjectStorage> s3ObjectStorage;
 
   public PresignedUploadUrl issue(
       Long memberId, String role, Long storeId, String contentType, long fileSize) {
@@ -67,8 +67,14 @@ public class DishImageService {
   }
 
   public DishResponse withDownloadUrl(DishResponse dishResponse) {
-    PresignedDownloadUrl downloadUrl = issueDownloadUrl(dishResponse.thumbnailUrl());
-    return dishResponse.withThumbnailUrl(downloadUrl.url().toExternalForm());
+    String imageKey = dishResponse.thumbnailUrl();
+    try {
+      PresignedDownloadUrl downloadUrl = presignedUrlService.issueDownload(imageKey);
+      return dishResponse.withThumbnailUrl(downloadUrl.url().toExternalForm());
+    } catch (PresignedUrlException exception) {
+      log.warn("Dish 이미지 조회 URL 발급에 실패했습니다. imageKey={}", imageKey, exception);
+      return dishResponse.withThumbnailUrl(null);
+    }
   }
 
   public void deleteImage(String objectKey) {
@@ -79,14 +85,14 @@ public class DishImageService {
       throw new BusinessException(ErrorCode.IMAGE_OBJECT_NOT_FOUND);
     }
 
-    ObjectStorage storage =
-        objectStorage.orElseThrow(
+    S3ObjectStorage storage =
+        s3ObjectStorage.orElseThrow(
             () ->
                 new BusinessException(
                     CommonErrorCode.SERVICE_UNAVAILABLE, "이미지 삭제 기능이 비활성화되어 있습니다."));
     try {
       storage.delete(objectKey);
-    } catch (ObjectStorageException exception) {
+    } catch (S3StorageException exception) {
       throw new BusinessException(ErrorCode.IMAGE_STORAGE_ERROR);
     }
   }

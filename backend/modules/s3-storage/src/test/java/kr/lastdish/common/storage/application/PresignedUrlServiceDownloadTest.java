@@ -9,11 +9,11 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import kr.lastdish.common.storage.domain.ObjectStorage;
-import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
 import kr.lastdish.common.storage.domain.PresignedUploadRepository;
 import kr.lastdish.common.storage.domain.PresignedUrlException;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
+import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,7 +23,7 @@ import org.springframework.util.unit.DataSize;
 @ExtendWith(MockitoExtension.class)
 class PresignedUrlServiceDownloadTest {
 
-  @Mock private ObjectStorage objectStorage;
+  @Mock private S3ObjectStorage s3ObjectStorage;
   @Mock private PresignedUploadRepository presignedUploadRepository;
 
   @Test
@@ -31,18 +31,18 @@ class PresignedUrlServiceDownloadTest {
     S3StorageProperties properties = properties();
     PresignedUrlService service =
         new PresignedUrlService(
-            Optional.of(objectStorage), properties, presignedUploadRepository);
+            Optional.of(s3ObjectStorage), properties, presignedUploadRepository);
     PresignedDownloadUrl expected =
         new PresignedDownloadUrl(
             "dish/3/test.jpg",
             URI.create("https://example.com/download").toURL(),
             Instant.parse("2026-08-14T00:05:00Z"));
-    when(objectStorage.issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5))).thenReturn(expected);
+    when(s3ObjectStorage.issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5))).thenReturn(expected);
 
     PresignedDownloadUrl result = service.issueDownload("dish/3/test.jpg");
 
     assertThat(result).isSameAs(expected);
-    verify(objectStorage).issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5));
+    verify(s3ObjectStorage).issueGetUrl("dish/3/test.jpg", Duration.ofMinutes(5));
   }
 
   @Test

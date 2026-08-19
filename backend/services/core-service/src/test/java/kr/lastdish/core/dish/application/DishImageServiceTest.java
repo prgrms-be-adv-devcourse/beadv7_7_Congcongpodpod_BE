@@ -15,12 +15,12 @@ import java.util.Map;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.storage.application.PresignedUrlService;
-import kr.lastdish.common.storage.domain.ObjectStorage;
-import kr.lastdish.common.storage.domain.ObjectStorageException;
-import kr.lastdish.common.storage.domain.PresignedDownloadUrl;
-import kr.lastdish.common.storage.domain.PresignedUploadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
+import kr.lastdish.common.storage.application.dto.PresignedUploadUrl;
 import kr.lastdish.common.storage.domain.PresignedUrlException;
 import kr.lastdish.common.storage.domain.UploadResourceType;
+import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
+import kr.lastdish.common.storage.infrastructure.s3.S3StorageException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
@@ -36,7 +36,7 @@ class DishImageServiceTest {
   @Mock private StoreFacade storeFacade;
   @Mock private PresignedUrlService presignedUrlService;
   @Mock private DishService dishService;
-  @Mock private ObjectStorage objectStorage;
+  @Mock private S3ObjectStorage s3ObjectStorage;
 
   private DishImageService dishImageService;
 
@@ -44,7 +44,7 @@ class DishImageServiceTest {
   void setUp() {
     dishImageService =
         new DishImageService(
-            storeFacade, presignedUrlService, dishService, Optional.of(objectStorage));
+            storeFacade, presignedUrlService, dishService, Optional.of(s3ObjectStorage));
   }
 
   @Test
@@ -136,19 +136,7 @@ class DishImageServiceTest {
 
   @Test
   void Dish_조회_응답의_이미지_key를_조회_URL로_변환한다() throws Exception {
-    DishResponse response =
-        new DishResponse(
-            10L,
-            3L,
-            "김치찌개",
-            LocalDateTime.parse("2026-08-18T18:00:00"),
-            "상품 설명",
-            "한식",
-            "dish/3/test.jpg",
-            10L,
-            "ON_SALE",
-            BigDecimal.valueOf(10_000),
-            BigDecimal.valueOf(7_000));
+    DishResponse response = dishResponse("dish/3/test.jpg");
     when(presignedUrlService.issueDownload("dish/3/test.jpg"))
         .thenReturn(
             new PresignedDownloadUrl(
@@ -167,20 +155,20 @@ class DishImageServiceTest {
   void Dish의_최종_이미지를_삭제한다() {
     dishImageService.deleteImage("dish/3/test.jpg");
 
-    verify(objectStorage).delete("dish/3/test.jpg");
+    verify(s3ObjectStorage).delete("dish/3/test.jpg");
   }
 
   @Test
   void Dish_이미지_삭제가_실패해도_예외를_전파하지_않는다() {
     doThrow(
-            new ObjectStorageException(
-                ObjectStorageException.Reason.OPERATION_FAILED, new RuntimeException("S3 오류")))
-        .when(objectStorage)
+            new S3StorageException(
+                S3StorageException.Reason.OPERATION_FAILED, new RuntimeException("S3 오류")))
+        .when(s3ObjectStorage)
         .delete("dish/3/test.jpg");
 
     dishImageService.deleteImageSafely("dish/3/test.jpg");
 
-    verify(objectStorage).delete("dish/3/test.jpg");
+    verify(s3ObjectStorage).delete("dish/3/test.jpg");
   }
 
   @Test
@@ -191,6 +179,21 @@ class DishImageServiceTest {
             exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IMAGE_OBJECT_NOT_FOUND));
 
-    verifyNoInteractions(objectStorage);
+    verifyNoInteractions(s3ObjectStorage);
+  }
+
+  private DishResponse dishResponse(String thumbnailUrl) {
+    return new DishResponse(
+        10L,
+        3L,
+        "김치찌개",
+        LocalDateTime.parse("2026-08-18T18:00:00"),
+        "상품 설명",
+        "한식",
+        thumbnailUrl,
+        10L,
+        "ON_SALE",
+        BigDecimal.valueOf(10_000),
+        BigDecimal.valueOf(7_000));
   }
 }
