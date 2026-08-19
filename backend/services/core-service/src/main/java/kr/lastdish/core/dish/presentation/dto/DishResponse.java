@@ -10,6 +10,7 @@ public record DishResponse(
     String dishName,
     LocalDateTime registeredAt,
     String description,
+    String category,
     String thumbnailUrl,
     Long stockQuantity,
     String dishStatus,
@@ -22,10 +23,26 @@ public record DishResponse(
         dish.getDishName(),
         dish.getRegisteredAt(),
         dish.getDescription(),
+        dish.getCategory(),
         dish.getThumbnailUrl(),
         dish.getStockQuantity(),
         dish.getDishStatus().name(),
         dish.getDishPrice(),
         dish.getDiscountPrice());
+  }
+
+  public DishResponse withThumbnailUrl(String thumbnailUrl) {
+    return new DishResponse(
+        dishId,
+        storeId,
+        dishName,
+        registeredAt,
+        description,
+        category,
+        thumbnailUrl,
+        stockQuantity,
+        dishStatus,
+        dishPrice,
+        discountPrice);
   }
 }

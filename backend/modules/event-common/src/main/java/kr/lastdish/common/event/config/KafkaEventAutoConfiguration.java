@@ -1,8 +1,8 @@
-package kr.lastdish.common.event.kafka.configureration;
+package kr.lastdish.common.event.config;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
-import kr.lastdish.common.event.kafka.KafkaEventPublisher;
+import kr.lastdish.common.event.publisher.kafka.KafkaEventPublisher;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -12,7 +12,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 @AutoConfiguration
 @ConditionalOnClass(KafkaTemplate.class)
-@ConditionalOnProperty(name = "event.publisher", havingValue = "kafka")
+@ConditionalOnProperty(name = "event.publisher", havingValue = "kafka", matchIfMissing = true)
 public class KafkaEventAutoConfiguration {
 
   @Bean

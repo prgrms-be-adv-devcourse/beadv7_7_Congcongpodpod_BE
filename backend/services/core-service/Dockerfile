@@ -16,6 +16,7 @@ COPY modules/mvc-common/build.gradle modules/mvc-common/build.gradle
 COPY modules/event-common/build.gradle modules/event-common/build.gradle
 COPY modules/outbox/build.gradle modules/outbox/build.gradle
 COPY modules/inbox/build.gradle modules/inbox/build.gradle
+COPY modules/s3-storage/build.gradle modules/s3-storage/build.gradle
 
 RUN sed -i 's/\r$//' gradlew \
     && chmod +x gradlew \
@@ -26,6 +27,7 @@ COPY modules/mvc-common/src modules/mvc-common/src
 COPY modules/event-common/src modules/event-common/src
 COPY modules/outbox/src modules/outbox/src
 COPY modules/inbox/src modules/inbox/src
+COPY modules/s3-storage/src modules/s3-storage/src
 COPY services/core-service/src services/core-service/src
 
 RUN ./gradlew :services:core-service:bootJar --no-daemon
