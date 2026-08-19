@@ -52,7 +52,7 @@ public class EncryptConverter implements AttributeConverter<String, String> {
       // DB에 문자열로 저장
       return Base64.getEncoder().encodeToString(result);
     } catch (GeneralSecurityException e) {
-      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "암호화 처리 중 오류가 발생했습니다.");
+      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "암호화 처리 중 오류가 발생했습니다.", e);
     }
   }
 
@@ -78,7 +78,8 @@ public class EncryptConverter implements AttributeConverter<String, String> {
 
       return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
     } catch (GeneralSecurityException | IllegalArgumentException | BufferUnderflowException e) {
-      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "복호화 처리 중 오류가 발생했습니다.");
+
+      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "복호화 처리 중 오류가 발생했습니다.", e);
     }
   }
 }

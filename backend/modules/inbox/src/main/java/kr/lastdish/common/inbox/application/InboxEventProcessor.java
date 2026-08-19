@@ -1,6 +1,7 @@
 package kr.lastdish.common.inbox.application;
 
 import java.time.Instant;
+import kr.lastdish.common.event.EventHandlerRegistry;
 import kr.lastdish.common.inbox.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InboxEventProcessor {
 
   private final InboxEventRepository repository;
-  private final InboxEventHandlerRegistry registry;
+  private final EventHandlerRegistry registry;
   private final InboxAggregateVersionRepository aggregateVersionRepository;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -23,7 +24,10 @@ public class InboxEventProcessor {
       throw new IllegalStateException("PROCESSING Inbox만 처리할 수 있습니다: " + id);
     }
 
-    InboxEventHandler handler = registry.get(id.getConsumerId(), inbox.getEventType());
+    if (!(registry.get(id.getConsumerId(), inbox.getEventType())
+        instanceof InboxEventHandler handler)) {
+      throw new IllegalStateException("InboxEventHandler만 처리할 수 있습니다: " + id.getConsumerId());
+    }
 
     Instant now = Instant.now();
 

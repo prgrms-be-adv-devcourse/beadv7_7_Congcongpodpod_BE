@@ -1,21 +1,28 @@
 package kr.lastdish.core.dish.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -25,44 +32,118 @@ class DishFacadeTest {
   @Mock private DishRepository dishRepository;
   @Mock private DishService dishService;
   @Mock private StoreService storeService;
+  @Mock private DishImageService dishImageService;
 
   private DishFacade dishFacade;
 
   @BeforeEach
   void setUp() {
-    dishFacade = new DishFacade(dishRepository, dishService, storeService);
+    dishFacade = new DishFacade(dishRepository, dishService, storeService, dishImageService);
   }
 
   @Test
-  void Dish_등록시_매장_영업시간을_검증한_뒤_등록을_위임한다() {
+  void Dish_생성시_검증_이미지_확정_DB_저장_순서로_실행한다() {
     DishCreateRequest request = createRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
-    when(dishService.createDish(request)).thenReturn(expected);
+    when(dishImageService.confirmUpload(7L, 1L, request.imageKey())).thenReturn("dish/1/test.jpg");
+    when(dishService.createDish(request, "dish/1/test.jpg")).thenReturn(expected);
 
-    DishResponse result = dishFacade.createDish(request);
+    DishResponse result = dishFacade.createDish(7L, request);
 
-    verify(storeService)
-        .validateDishPickupTime(
-            request.storeId(), request.pickupStartTime(), request.pickupEndTime());
-    verify(dishService).createDish(request);
+    InOrder inOrder = inOrder(storeService, dishService, dishImageService);
+    inOrder.verify(storeService).validateSeller(1L, 7L);
+    inOrder
+        .verify(storeService)
+        .validateDishPickupTime(1L, request.pickupStartTime(), request.pickupEndTime());
+    inOrder.verify(dishService).validateCreateDish(request);
+    inOrder.verify(dishImageService).confirmUpload(7L, 1L, request.imageKey());
+    inOrder.verify(dishService).createDish(request, "dish/1/test.jpg");
     assertThat(result).isSameAs(expected);
   }
 
   @Test
-  void Dish_수정시_실제_Dish의_매장_영업시간을_검증한_뒤_수정을_위임한다() {
+  void Dish_DB_저장이_실패하면_확정한_이미지를_보상_삭제한다() {
+    DishCreateRequest request = createRequest();
+    RuntimeException databaseException = new RuntimeException("DB 저장 실패");
+    when(dishImageService.confirmUpload(7L, 1L, request.imageKey())).thenReturn("dish/1/test.jpg");
+    when(dishService.createDish(request, "dish/1/test.jpg")).thenThrow(databaseException);
+
+    assertThatThrownBy(() -> dishFacade.createDish(7L, request)).isSameAs(databaseException);
+
+    verify(dishImageService).deleteImageSafely("dish/1/test.jpg");
+  }
+
+  @Test
+  void 이미지_확정_DB_커밋이_실패하면_최종_이미지를_보상_삭제한다() {
+    DishCreateRequest request = createRequest();
+    RuntimeException commitException = new RuntimeException("업로드 확정 DB 커밋 실패");
+    when(dishImageService.confirmUpload(7L, 1L, request.imageKey())).thenThrow(commitException);
+
+    assertThatThrownBy(() -> dishFacade.createDish(7L, request)).isSameAs(commitException);
+
+    verify(dishImageService).deleteImageSafely("dish/1/test.jpg");
+  }
+
+  @Test
+  void 이미지_확정_검증이_실패하면_최종_이미지를_삭제하지_않는다() {
+    DishCreateRequest request = createRequest();
+    BusinessException validationException =
+        new BusinessException(ErrorCode.PRESIGNED_UPLOAD_INVALID_STATE);
+    when(dishImageService.confirmUpload(7L, 1L, request.imageKey())).thenThrow(validationException);
+
+    assertThatThrownBy(() -> dishFacade.createDish(7L, request)).isSameAs(validationException);
+
+    verify(dishImageService, never()).deleteImageSafely("dish/1/test.jpg");
+  }
+
+  @Test
+  void Dish_수정시_소유권과_매장_영업시간을_검증한_뒤_수정을_위임한다() {
     Dish dish = createDish();
     DishUpdateRequest request = updateRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
     when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
     when(dishService.updateDish(10L, request)).thenReturn(expected);
 
-    DishResponse result = dishFacade.updateDish(10L, request);
+    DishResponse result = dishFacade.updateDish(7L, 10L, request);
 
-    verify(storeService)
+    InOrder inOrder = inOrder(storeService, dishService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder
+        .verify(storeService)
         .validateDishPickupTime(
             dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
-    verify(dishService).updateDish(10L, request);
+    inOrder.verify(dishService).updateDish(10L, request);
     assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void Dish_상태_변경시_소유권을_검증한_뒤_변경을_위임한다() {
+    Dish dish = createDish();
+    DishStatusRequest request = org.mockito.Mockito.mock(DishStatusRequest.class);
+    DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
+    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishService.updateDishStatus(10L, request)).thenReturn(expected);
+
+    DishResponse result = dishFacade.updateDishStatus(7L, 10L, request);
+
+    InOrder inOrder = inOrder(storeService, dishService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder.verify(dishService).updateDishStatus(10L, request);
+    assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void Dish_삭제시_소유권_검증_DB_삭제_S3_정리_순서로_실행한다() {
+    Dish dish = createDish();
+    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishService.deleteDish(10L)).thenReturn("dish/1/test.jpg");
+
+    dishFacade.deleteDish(7L, 10L);
+
+    InOrder inOrder = inOrder(storeService, dishService, dishImageService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder.verify(dishService).deleteDish(10L);
+    inOrder.verify(dishImageService).deleteImageSafely("dish/1/test.jpg");
   }
 
   private DishCreateRequest createRequest() {
@@ -71,7 +152,8 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        null,
+        "한식",
+        "tmp/dish/1/test.jpg",
         10L,
         BigDecimal.valueOf(10_000),
         BigDecimal.valueOf(7_000),
@@ -85,7 +167,6 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        null,
         10L,
         BigDecimal.valueOf(10_000),
         BigDecimal.valueOf(7_000),
@@ -99,6 +180,7 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
+        "한식",
         null,
         10L,
         BigDecimal.valueOf(10_000),

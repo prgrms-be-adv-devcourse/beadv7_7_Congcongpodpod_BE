@@ -1,0 +1,48 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { colors, fonts, shadow } from '@/constants/theme';
+import { getStoreImageSource } from '@/lib/food-image';
+import { getStoreCategoryVisual } from '@/lib/store-category';
+import type { Store } from '@/types/store';
+
+type Props = { store: Store; onPress?: () => void; favorite?: boolean; compact?: boolean };
+
+export function StoreCard({ store, onPress, favorite, compact = false }: Props) {
+  const firstDish = store.dishes[0];
+  return (
+    <Pressable accessibilityHint="매장 상세를 엽니다" accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, compact && styles.compactRow, pressed && styles.pressed]}>
+      <View style={[styles.media, compact && styles.compactMedia]}>
+        <Image source={getStoreImageSource(store)} style={[styles.image, compact && styles.compactImage]} />
+        <View style={styles.openBadge}><Text style={styles.openText}>픽업 가능</Text></View>
+      </View>
+      <View style={styles.copy}>
+        <View style={styles.titleRow}>
+          <Text numberOfLines={1} style={styles.title}>{store.storeName}</Text>
+          {favorite ? <Ionicons name="heart" size={18} color={colors.green700} /> : null}
+        </View>
+        <Text style={styles.time}>{getStoreCategoryVisual(store.category).label} · {store.closeTime ? `${store.closeTime.slice(0, 5)} 마감` : '오늘 픽업'}</Text>
+        <Text numberOfLines={1} style={styles.address}>{store.address || '주소 정보 없음'}</Text>
+        <Text numberOfLines={1} style={styles.price}>{firstDish ? `${firstDish.discountPrice.toLocaleString()}원부터` : '마감 할인 상품 보기'}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: { minHeight: 138, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.white, ...shadow.card },
+  compactRow: { minHeight: 92, gap: 11, paddingHorizontal: 0, paddingVertical: 11, borderWidth: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, borderRadius: 0, shadowOpacity: 0, elevation: 0 },
+  pressed: { opacity: 0.72, transform: [{ scale: 0.992 }] },
+  media: { width: 118, height: 118 },
+  compactMedia: { width: 68, height: 68 },
+  image: { width: 118, height: 118, borderRadius: 9, backgroundColor: colors.canvas },
+  compactImage: { width: 68, height: 68, borderRadius: 10 },
+  openBadge: { position: 'absolute', right: 5, bottom: 5, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 5, backgroundColor: 'rgba(25,34,28,0.76)' },
+  openText: { color: colors.white, fontFamily: fonts.body, fontSize: 9, fontWeight: '700' },
+  copy: { flex: 1, minWidth: 0 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  title: { flex: 1, color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '800', letterSpacing: -0.45 },
+  time: { marginTop: 5, color: colors.green700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' },
+  address: { marginTop: 4, color: colors.ink700, fontFamily: fonts.body, fontSize: 12 },
+  price: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '700' },
+});

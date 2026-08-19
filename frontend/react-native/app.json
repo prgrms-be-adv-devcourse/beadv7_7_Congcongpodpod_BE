@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "라스트디시",
+    "slug": "lastdish",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/brand/lastdish-app-icon.png",
+    "scheme": "lastdish",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/images/brand/lastdish-app-icon.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F8F6",
+        "foregroundImage": "./assets/images/brand/lastdish-logo.png",
+        "monochromeImage": "./assets/images/brand/lastdish-logo.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/brand/lastdish-app-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FAFAF8",
+          "image": "./assets/images/brand/lastdish-logo.png",
+          "imageWidth": 132,
+          "android": {
+            "image": "./assets/images/brand/lastdish-logo.png",
+            "imageWidth": 132
+          }
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

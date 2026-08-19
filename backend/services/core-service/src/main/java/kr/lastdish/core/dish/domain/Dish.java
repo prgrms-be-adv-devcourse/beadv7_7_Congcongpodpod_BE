@@ -31,6 +31,9 @@ public class Dish {
   @Column(nullable = false)
   private String description;
 
+  // AI 추천 카테고리
+  private String category;
+
   private String thumbnailUrl;
 
   @Column(nullable = false)
@@ -64,6 +67,7 @@ public class Dish {
       String dishName,
       LocalDateTime registeredAt,
       String description,
+      String category,
       String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
@@ -75,6 +79,7 @@ public class Dish {
     dish.dishName = dishName;
     dish.registeredAt = registeredAt;
     dish.description = description;
+    dish.category = category;
     dish.thumbnailUrl = thumbnailUrl;
     dish.stockQuantity = stockQuantity;
     dish.dishStatus = DishStatus.ON_SALE;
@@ -91,7 +96,6 @@ public class Dish {
       String dishName,
       LocalDateTime registeredAt,
       String description,
-      String thumbnailUrl,
       Long stockQuantity,
       BigDecimal dishPrice,
       BigDecimal discountPrice,
@@ -100,7 +104,6 @@ public class Dish {
     this.dishName = dishName;
     this.registeredAt = registeredAt;
     this.description = description;
-    this.thumbnailUrl = thumbnailUrl;
     this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
     this.discountPrice = discountPrice;
