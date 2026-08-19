@@ -1,6 +1,7 @@
 package kr.lastdish.core.dish.application;
 
 import java.util.Optional;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
@@ -34,15 +35,23 @@ public class DishFacade {
         request.storeId(), request.pickupStartTime(), request.pickupEndTime());
     dishService.validateCreateDish(request);
 
-    // T1: 임시 이미지를 최종 경로로 확정합니다.
-    String finalImageKey =
-        dishImageService.confirmUpload(memberId, request.storeId(), request.imageKey());
+    String finalImageKey = DishImageService.resolveFinalKey(request.storeId(), request.imageKey());
+    boolean uploadConfirmed = false;
 
     try {
+      // T1: 임시 이미지를 최종 경로로 확정합니다.
+      dishImageService.confirmUpload(memberId, request.storeId(), request.imageKey());
+      uploadConfirmed = true;
+
       // T2: Dish를 DB에 저장합니다. DishService의 트랜잭션은 메서드 반환 전에 커밋됩니다.
       return dishService.createDish(request, finalImageKey);
+    } catch (BusinessException exception) {
+      if (uploadConfirmed) {
+        dishImageService.deleteImageSafely(finalImageKey);
+      }
+      throw exception;
     } catch (RuntimeException exception) {
-      // C1: Dish 저장 실패 시 T1에서 생성한 최종 이미지를 보상 삭제합니다.
+      // C1: 이미지 확정 DB 커밋 또는 Dish 저장 실패 시 최종 이미지를 보상 삭제합니다.
       dishImageService.deleteImageSafely(finalImageKey);
       throw exception;
     }

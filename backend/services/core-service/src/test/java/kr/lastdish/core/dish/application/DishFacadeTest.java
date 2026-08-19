@@ -3,12 +3,15 @@ package kr.lastdish.core.dish.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
@@ -68,6 +71,29 @@ class DishFacadeTest {
     assertThatThrownBy(() -> dishFacade.createDish(7L, request)).isSameAs(databaseException);
 
     verify(dishImageService).deleteImageSafely("dish/1/test.jpg");
+  }
+
+  @Test
+  void 이미지_확정_DB_커밋이_실패하면_최종_이미지를_보상_삭제한다() {
+    DishCreateRequest request = createRequest();
+    RuntimeException commitException = new RuntimeException("업로드 확정 DB 커밋 실패");
+    when(dishImageService.confirmUpload(7L, 1L, request.imageKey())).thenThrow(commitException);
+
+    assertThatThrownBy(() -> dishFacade.createDish(7L, request)).isSameAs(commitException);
+
+    verify(dishImageService).deleteImageSafely("dish/1/test.jpg");
+  }
+
+  @Test
+  void 이미지_확정_검증이_실패하면_최종_이미지를_삭제하지_않는다() {
+    DishCreateRequest request = createRequest();
+    BusinessException validationException =
+        new BusinessException(ErrorCode.PRESIGNED_UPLOAD_INVALID_STATE);
+    when(dishImageService.confirmUpload(7L, 1L, request.imageKey())).thenThrow(validationException);
+
+    assertThatThrownBy(() -> dishFacade.createDish(7L, request)).isSameAs(validationException);
+
+    verify(dishImageService, never()).deleteImageSafely("dish/1/test.jpg");
   }
 
   @Test

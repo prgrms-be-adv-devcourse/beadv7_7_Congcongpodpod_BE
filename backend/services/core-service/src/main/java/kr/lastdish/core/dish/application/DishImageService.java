@@ -47,18 +47,21 @@ public class DishImageService {
   }
 
   public String confirmUpload(Long memberId, Long storeId, String objectKey) {
-    String expectedPrefix = "tmp/dish/%d/".formatted(storeId);
-    if (objectKey == null || !objectKey.startsWith(expectedPrefix)) {
-      throw new BusinessException(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED);
-    }
-
-    String finalKey = objectKey.substring("tmp/".length());
+    String finalKey = resolveFinalKey(storeId, objectKey);
     try {
       return presignedUrlService.confirmUpload(
           memberId, UploadResourceType.DISH, objectKey, finalKey);
     } catch (PresignedUrlException exception) {
       throw toBusinessException(exception);
     }
+  }
+
+  static String resolveFinalKey(Long storeId, String objectKey) {
+    String expectedPrefix = "tmp/dish/%d/".formatted(storeId);
+    if (objectKey == null || !objectKey.startsWith(expectedPrefix)) {
+      throw new BusinessException(ErrorCode.IMAGE_UPLOAD_ACCESS_DENIED);
+    }
+    return objectKey.substring("tmp/".length());
   }
 
   public PresignedDownloadUrl issueDownloadUrl(Long dishId) {
