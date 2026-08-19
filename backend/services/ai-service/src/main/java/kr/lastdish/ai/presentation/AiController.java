@@ -2,16 +2,17 @@ package kr.lastdish.ai.presentation;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.io.IOException;
 import kr.lastdish.ai.application.AiService;
+import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.ai.presentation.dto.FoodClassificationResponse;
+import kr.lastdish.common.api.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "AI Classification API", description = "음식 이미지 분류 도메인 API")
 @RestController
@@ -23,28 +24,25 @@ public class AiController {
 
   @Operation(summary = "음식 카테고리 자동 분류")
   @PostMapping(value = "/classify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public Mono<ResponseEntity<FoodClassificationResponse>> classify(
-      @RequestPart("image") FilePart image,
+  public ResponseEntity<FoodClassificationResponse> classify(
+      @RequestPart("image") MultipartFile image,
       @RequestParam(value = "imageUrl", required = false) String imageUrl) {
 
-    return DataBufferUtils.join(image.content())
-        .flatMap(
-            dataBuffer -> {
-              byte[] bytes = new byte[dataBuffer.readableByteCount()];
-              dataBuffer.read(bytes);
-              DataBufferUtils.release(dataBuffer);
+    try {
+      ByteArrayResource resource =
+          new ByteArrayResource(image.getBytes()) {
+            @Override
+            public String getFilename() {
+              return image.getOriginalFilename();
+            }
+          };
 
-              // FastAPI가 파일명을 다룰 수 있도록 getFilename() 지정
-              ByteArrayResource resource =
-                  new ByteArrayResource(bytes) {
-                    @Override
-                    public String getFilename() {
-                      return image.filename();
-                    }
-                  };
+      FoodClassificationResponse response = aiService.classify(resource, imageUrl);
+      return ResponseEntity.ok(response);
 
-              return aiService.classify(resource, imageUrl);
-            })
-        .map(ResponseEntity::ok);
+    } catch (IOException e) {
+      // 이미지 파일 변환/읽기 실패 시 정확한 에러 코드로 전달
+      throw new BusinessException(AiErrorCode.INVALID_IMAGE_FILE);
+    }
   }
 }

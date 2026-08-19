@@ -18,8 +18,10 @@ spring:
       ddl-auto: update
     show-sql: true
 
-  codec:
-    max-in-memory-size: 10MB
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 ai:
   engine:

@@ -1,7 +1,5 @@
 package kr.lastdish.ai.infrastructure.client;
 
-import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 import kr.lastdish.ai.domain.model.CategoryResult;
 import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.ai.infrastructure.client.dto.FastApiResponse;
@@ -13,52 +11,49 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
 
-/**
- * FastAPI AI 엔진 통신 클라이언트
- *
- * <p>Spring WebClient를 사용해 외부 FastAPI 서버로 이미지 분석 요청을 전송하고 응답을 받음
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class FastApiClient {
 
-  private final WebClient webClient;
+  private final RestClient restClient;
 
   @Value("${ai.engine.url}")
   private String aiEngineUrl;
 
-  public Mono<CategoryResult> classifyImage(Resource imageResource) {
+  public CategoryResult classifyImage(Resource imageResource) {
     MultipartBodyBuilder builder = new MultipartBodyBuilder();
     builder.part("image", imageResource);
 
-    return webClient
-        .post()
-        .uri(aiEngineUrl + "/api/v1/classify-food")
-        .contentType(MediaType.MULTIPART_FORM_DATA)
-        .body(BodyInserters.fromMultipartData(builder.build()))
-        .retrieve()
-        .bodyToMono(FastApiResponse.class)
-        .map(FastApiResponse::toDomain)
-        // 1. 응답 대기 시간 제한 (3초)
-        .timeout(Duration.ofSeconds(3))
-        // 2. 타임아웃 발생 시
-        .onErrorResume(
-            TimeoutException.class,
-            e -> {
-              log.warn("FastAPI 응답 시간 초과 (3초)");
-              return Mono.error(new BusinessException(AiErrorCode.TIMEOUT_ERROR));
-            })
-        // 3. 기타 네트워크/통신 에러 발생 시
-        .onErrorResume(
-            Exception.class,
-            e -> {
-              log.error("FastAPI 통신 실패 - Error: {}", e.getMessage());
-              return Mono.error(new BusinessException(AiErrorCode.AI_SERVER_ERROR));
-            });
+    try {
+      FastApiResponse response =
+          restClient
+              .post()
+              .uri(aiEngineUrl + "/api/v1/classify-food")
+              .contentType(MediaType.MULTIPART_FORM_DATA)
+              .body(builder.build())
+              .retrieve()
+              .body(FastApiResponse.class);
+
+      if (response == null) {
+        throw new BusinessException(AiErrorCode.AI_SERVER_ERROR);
+      }
+
+      return response.toDomain();
+
+    } catch (BusinessException e) {
+      // 이미 정의된 비즈니스 예외는 그대로 재전파
+      throw e;
+    } catch (ResourceAccessException e) {
+      // 읽기/연결 타임아웃 발생 시
+      log.warn("FastAPI 응답 시간 초과 또는 연결 실패: {}", e.getMessage());
+      throw new BusinessException(AiErrorCode.TIMEOUT_ERROR);
+    } catch (Exception e) {
+      log.error("FastAPI 통신 실패 - Error: {}", e.getMessage());
+      throw new BusinessException(AiErrorCode.AI_SERVER_ERROR);
+    }
   }
 }
