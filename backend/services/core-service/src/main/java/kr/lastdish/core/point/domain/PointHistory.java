@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -107,7 +110,7 @@ public class PointHistory {
 
   private static void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new IllegalArgumentException("금액은 0보다 커야 합니다. amount=" + amount);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
     }
   }
 }

@@ -3,6 +3,9 @@ package kr.lastdish.core.point.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -52,9 +55,9 @@ public class Point {
     this.updatedAt = LocalDateTime.now();
   }
 
-  private void validatePositiveAmount(BigDecimal amount) {
+  private static void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new IllegalArgumentException("금액은 0보다 커야 합니다. amount=" + amount);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
     }
   }
 }
