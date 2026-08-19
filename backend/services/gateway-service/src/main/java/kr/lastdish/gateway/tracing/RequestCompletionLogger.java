@@ -25,6 +25,9 @@ public class RequestCompletionLogger {
       RequestCompletionLogger.class.getName() + ".startedAt";
   private static final String LOGGED_ATTR = RequestCompletionLogger.class.getName() + ".logged";
 
+  /** 인프라가 주기적으로 호출하는 경로. 정상 응답이면 완료 로그를 남기지 않는다. */
+  private static final String INFRASTRUCTURE_PATH_PREFIX = "/actuator";
+
   /** 요청 처리 시작 시각을 남긴다. 이 표시가 없으면 처리 시간을 알 수 없어 완료 로그를 남기지 않는다. */
   public void markStarted(ServerWebExchange exchange) {
     exchange.getAttributes().putIfAbsent(STARTED_AT_ATTR, System.nanoTime());
@@ -37,6 +40,10 @@ public class RequestCompletionLogger {
 
     // 시작 시각이나 최종 상태를 모르면 추측하지 않고 기록을 포기한다.
     if (startedAt == null || status == null) {
+      return;
+    }
+
+    if (isRoutineInfrastructureCall(exchange, status)) {
       return;
     }
 
@@ -55,5 +62,16 @@ public class RequestCompletionLogger {
                 RequestPathPatternResolver.resolve(exchange),
                 status.value(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)));
+  }
+
+  /**
+   * 인프라가 주기적으로 부르는 경로이면서 정상 응답이면 기록할 가치가 없다고 본다.
+   *
+   * <p>Gateway의 actuator 요청은 라우트에 매칭되지 않아 경로 패턴이 {@code unmatched}로만 남는다. 그래서 판단에는 실제 경로의 접두사를 쓰되,
+   * 그 경로를 로그에 남기지는 않는다.
+   */
+  private boolean isRoutineInfrastructureCall(ServerWebExchange exchange, HttpStatusCode status) {
+    return exchange.getRequest().getPath().value().startsWith(INFRASTRUCTURE_PATH_PREFIX)
+        && !status.isError();
   }
 }

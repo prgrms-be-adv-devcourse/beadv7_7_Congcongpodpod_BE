@@ -74,6 +74,41 @@ class RequestCompletionLoggingFilterTests {
   }
 
   @Test
+  void 정상적인_상태확인_요청은_완료_로그를_남기지_않는다() throws Exception {
+    MockHttpServletRequest request = 요청("GET", "/actuator/health");
+    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/actuator/health/**");
+
+    filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+    assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  void 정상적인_메트릭_수집_요청도_완료_로그를_남기지_않는다() throws Exception {
+    MockHttpServletRequest request = 요청("GET", "/actuator/prometheus");
+    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/actuator/prometheus");
+
+    filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+    assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  void 상태확인이_실패하면_완료_로그를_남긴다() throws Exception {
+    MockHttpServletRequest request = 요청("GET", "/actuator/health");
+    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/actuator/health/**");
+
+    FilterChain 오백삼응답체인 = (req, res) -> ((HttpServletResponse) res).setStatus(503);
+
+    filter.doFilter(request, new MockHttpServletResponse(), 오백삼응답체인);
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage())
+        .contains("pathPattern=/actuator/health/**")
+        .contains("status=503");
+  }
+
+  @Test
   void 사백번대_응답도_INFO_완료_로그로만_남긴다() throws Exception {
     MockHttpServletRequest request = 요청("POST", "/api/v1/orders");
     request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/orders");
