@@ -14,13 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PointController {
 
-    private final PointService pointService;
+  private final PointService pointService;
 
-    @GetMapping("/balance")
-    public ResponseEntity<PointBalanceResponse> getPointBalance(
-            @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+  @GetMapping("/balance")
+  public ResponseEntity<PointBalanceResponse> getPointBalance(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
 
-        PointBalanceResponse response = pointService.getPointBalance(memberId);
-        return ResponseEntity.ok(response);
-    }
+    PointBalanceResponse response = pointService.getPointBalance(memberId);
+    return ResponseEntity.ok(response);
+  }
 }

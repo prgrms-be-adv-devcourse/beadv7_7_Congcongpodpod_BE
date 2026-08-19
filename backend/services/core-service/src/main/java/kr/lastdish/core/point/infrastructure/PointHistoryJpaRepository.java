@@ -8,7 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, Long> {
 
-    @Query("""
+  @Query(
+      """
       SELECT h FROM PointHistory h
       WHERE h.memberId = :memberId
         AND h.type = kr.lastdish.core.point.domain.PointType.EARN
@@ -16,5 +17,5 @@ public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, L
         AND h.expiresAt > CURRENT_TIMESTAMP
       ORDER BY h.createdAt ASC
       """)
-    List<PointHistory> findUsableEarnHistories(@Param("memberId") Long memberId);
+  List<PointHistory> findUsableEarnHistories(@Param("memberId") Long memberId);
 }

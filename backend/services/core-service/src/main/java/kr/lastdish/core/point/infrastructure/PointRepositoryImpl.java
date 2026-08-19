@@ -11,35 +11,35 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class PointRepositoryImpl implements PointRepository {
 
-    private final PointJpaRepository pointJpaRepository;
+  private final PointJpaRepository pointJpaRepository;
 
-    @Override
-    public Point save(Point point) {
-        return pointJpaRepository.save(point);
-    }
+  @Override
+  public Point save(Point point) {
+    return pointJpaRepository.save(point);
+  }
 
-    @Override
-    public Optional<Point> findByMemberId(Long memberId) {
-        return pointJpaRepository.findByMemberId(memberId);
-    }
+  @Override
+  public Optional<Point> findByMemberId(Long memberId) {
+    return pointJpaRepository.findByMemberId(memberId);
+  }
 
-    @Override
-    public Optional<Point> findWithLockByMemberId(Long memberId) {
-        return pointJpaRepository.findWithLockByMemberId(memberId);
-    }
+  @Override
+  public Optional<Point> findWithLockByMemberId(Long memberId) {
+    return pointJpaRepository.findWithLockByMemberId(memberId);
+  }
 
-    @Override
-    public void createDefaultIfAbsent(Long memberId) {
-        pointJpaRepository.createDefaultIfAbsent(memberId);
-    }
+  @Override
+  public void createDefaultIfAbsent(Long memberId) {
+    pointJpaRepository.createDefaultIfAbsent(memberId);
+  }
 
-    @Override
-    public List<Point> findAll() {
-        return pointJpaRepository.findAll();
-    }
+  @Override
+  public List<Point> findAll() {
+    return pointJpaRepository.findAll();
+  }
 
-    @Override
-    public void deleteAll() {
-        pointJpaRepository.deleteAll();
-    }
+  @Override
+  public void deleteAll() {
+    pointJpaRepository.deleteAll();
+  }
 }

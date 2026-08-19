@@ -1,4 +1,5 @@
 package kr.lastdish.core.point.infrastructure;
+
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import kr.lastdish.core.point.domain.Point;
@@ -10,14 +11,15 @@ import org.springframework.data.repository.query.Param;
 
 public interface PointJpaRepository extends JpaRepository<Point, Long> {
 
-    Optional<Point> findByMemberId(Long memberId);
+  Optional<Point> findByMemberId(Long memberId);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Point> findWithLockByMemberId(Long memberId);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<Point> findWithLockByMemberId(Long memberId);
 
-    @Modifying(flushAutomatically = true)
-    @Query(
-            value = """
+  @Modifying(flushAutomatically = true)
+  @Query(
+      value =
+          """
           INSERT INTO points (
               member_id,
               balance,
@@ -26,6 +28,6 @@ public interface PointJpaRepository extends JpaRepository<Point, Long> {
           VALUES (:memberId, 0, NOW())
           ON CONFLICT (member_id) DO NOTHING
           """,
-            nativeQuery = true)
-    void createDefaultIfAbsent(@Param("memberId") Long memberId);
+      nativeQuery = true)
+  void createDefaultIfAbsent(@Param("memberId") Long memberId);
 }

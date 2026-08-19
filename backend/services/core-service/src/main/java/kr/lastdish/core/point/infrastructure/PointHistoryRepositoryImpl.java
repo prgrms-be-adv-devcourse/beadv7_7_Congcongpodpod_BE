@@ -10,25 +10,25 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class PointHistoryRepositoryImpl implements PointHistoryRepository {
 
-    private final PointHistoryJpaRepository pointHistoryJpaRepository;
+  private final PointHistoryJpaRepository pointHistoryJpaRepository;
 
-    @Override
-    public PointHistory save(PointHistory pointHistory) {
-        return pointHistoryJpaRepository.save(pointHistory);
-    }
+  @Override
+  public PointHistory save(PointHistory pointHistory) {
+    return pointHistoryJpaRepository.save(pointHistory);
+  }
 
-    @Override
-    public List<PointHistory> findUsableEarnHistories(Long memberId) {
-        return pointHistoryJpaRepository.findUsableEarnHistories(memberId);
-    }
+  @Override
+  public List<PointHistory> findUsableEarnHistories(Long memberId) {
+    return pointHistoryJpaRepository.findUsableEarnHistories(memberId);
+  }
 
-    @Override
-    public List<PointHistory> findAll() {
-        return pointHistoryJpaRepository.findAll();
-    }
+  @Override
+  public List<PointHistory> findAll() {
+    return pointHistoryJpaRepository.findAll();
+  }
 
-    @Override
-    public void deleteAll() {
-        pointHistoryJpaRepository.deleteAll();
-    }
+  @Override
+  public void deleteAll() {
+    pointHistoryJpaRepository.deleteAll();
+  }
 }
