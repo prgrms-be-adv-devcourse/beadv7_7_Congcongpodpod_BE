@@ -277,9 +277,8 @@ public class DishService {
   }
 
   public DishResponse getDishByStoreIdForRenewal(Long storeId) {
-    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId)
-            .orElse(null);
-    if (dish == null){
+    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId).orElse(null);
+    if (dish == null) {
       return null;
     }
     return DishResponse.from(dish);

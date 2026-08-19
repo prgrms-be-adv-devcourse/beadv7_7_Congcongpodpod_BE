@@ -61,8 +61,11 @@ public class StoreService {
 
   @Transactional
   public StoreResult update(Long storeId, Long memberId, UpdateStoreCommand command) {
-    Store store = storeRepository.findWithLockById(storeId)
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store =
+        storeRepository
+            .findWithLockById(storeId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
@@ -89,8 +92,11 @@ public class StoreService {
 
   @Transactional
   public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
-    Store store = storeRepository.findWithLockById(storeId)
-            .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store =
+        storeRepository
+            .findWithLockById(storeId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
@@ -108,8 +114,11 @@ public class StoreService {
   // 매장 soft delete 시 휴무일 hard delete
   @Transactional
   public void deleteStore(Long storeId, Long memberId) {
-    Store store = storeRepository.findWithLockById(storeId)
-            .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store =
+        storeRepository
+            .findWithLockById(storeId)
+            .orElseThrow(
+                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");

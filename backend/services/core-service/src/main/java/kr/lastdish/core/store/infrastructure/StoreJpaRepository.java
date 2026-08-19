@@ -1,11 +1,10 @@
 package kr.lastdish.core.store.infrastructure;
 
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import jakarta.persistence.LockModeType;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreStatus;
