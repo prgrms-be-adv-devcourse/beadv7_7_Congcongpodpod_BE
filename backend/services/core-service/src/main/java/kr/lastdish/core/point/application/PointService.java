@@ -19,6 +19,7 @@ public class PointService {
   private final PointRepository pointRepository;
   private final PointHistoryRepository pointHistoryRepository;
   private final LevelService levelService;
+  private final PointExpirationService pointExpirationService;
 
   @Transactional(readOnly = true)
   public Point getOrDefaultPoint(Long memberId) {
@@ -66,6 +67,8 @@ public class PointService {
         pointRepository
             .findWithLockByMemberId(memberId)
             .orElseThrow(() -> new PointNotFoundException(memberId));
+
+    pointExpirationService.expireDueHistories(point);  // 사용 직전, 기한 만료 소멸 대상이면 소멸 처리
 
     if (pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.USE)) {
       throw new BusinessException(

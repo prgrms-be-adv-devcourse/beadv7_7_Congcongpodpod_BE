@@ -11,7 +11,6 @@ public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, L
 
   @Query(
       """
-
                   SELECT h FROM PointHistory h
       WHERE h.memberId = :memberId
         AND h.type = kr.lastdish.core.point.domain.PointType.EARN
@@ -22,4 +21,23 @@ public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, L
   List<PointHistory> findUsableEarnHistories(@Param("memberId") Long memberId);
 
   boolean existsByOrderIdAndType(Long orderId, PointType type);
+
+  @Query("""
+    SELECT DISTINCT h.memberId
+    FROM PointHistory h
+    WHERE h.expiresAt <= CURRENT_TIMESTAMP
+      AND h.remainingAmount > 0
+      AND h.type = kr.lastdish.core.point.domain.PointType.EARN
+    """)
+  List<Long> findMembersWithExpiringPoints();
+
+  @Query("""
+    SELECT h
+    FROM PointHistory h
+    WHERE h.memberId = :memberId
+      AND h.expiresAt <= CURRENT_TIMESTAMP
+      AND h.remainingAmount > 0
+      AND h.type = kr.lastdish.core.point.domain.PointType.EARN
+    """)
+  List<PointHistory> findExpiringHistoriesByMember(@Param("memberId") Long memberId);
 }

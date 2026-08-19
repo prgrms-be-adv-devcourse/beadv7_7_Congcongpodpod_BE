@@ -29,6 +29,16 @@ public class PointHistoryRepositoryImpl implements PointHistoryRepository {
   }
 
   @Override
+  public List<Long> findMembersWithExpiringPoints() {
+    return pointHistoryJpaRepository.findMembersWithExpiringPoints();
+  }
+
+  @Override
+  public List<PointHistory> findExpiringHistoriesByMember(Long memberId) {
+    return pointHistoryJpaRepository.findExpiringHistoriesByMember(memberId);
+  }
+
+  @Override
   public List<PointHistory> findAll() {
     return pointHistoryJpaRepository.findAll();
   }

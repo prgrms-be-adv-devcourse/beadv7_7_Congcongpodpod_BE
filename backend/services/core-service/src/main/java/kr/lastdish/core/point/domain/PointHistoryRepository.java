@@ -9,6 +9,10 @@ public interface PointHistoryRepository {
 
   boolean existsByOrderIdAndType(Long orderId, PointType type);
 
+  List<Long> findMembersWithExpiringPoints();
+
+  List<PointHistory> findExpiringHistoriesByMember(Long memberId);
+
   List<PointHistory> findAll();
 
   void deleteAll();
