@@ -95,8 +95,8 @@ public class StoreFacade {
     return dishService.getDishByStoreId(storeId);
   }
 
-  public DishResponse getDishByStoreId(Long storeId) {
-    return dishService.getDishByStoreId(storeId);
+  public DishResponse getDishByStoreIdForRenewal(Long storeId) {
+    return dishService.getDishByStoreIdForRenewal(storeId);
   }
 
   public StorePageResult getNearbyStores(

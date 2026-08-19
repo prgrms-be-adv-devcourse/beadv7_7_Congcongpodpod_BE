@@ -275,4 +275,13 @@ public class DishService {
 
     return DishResponse.from(dish);
   }
+
+  public DishResponse getDishByStoreIdForRenewal(Long storeId) {
+    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId)
+            .orElse(null);
+    if (dish == null){
+      return null;
+    }
+    return DishResponse.from(dish);
+  }
 }
