@@ -10,6 +10,7 @@ import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.event.*;
@@ -17,6 +18,7 @@ import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.store.presentation.dto.InternalDishResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -277,7 +279,11 @@ public class DishService {
     return DishResponse.from(dish);
   }
 
-  public Optional<Dish> getDishByStoreIdForRenewal(Long storeId) {
-    return dishRepository.findByStoreIdAndIsDeletedFalse(storeId);
+  public InternalDishResult getDishByStoreIdForRenewal(Long storeId) {
+    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId)
+            .orElse(null);
+    if (dish == null)
+      return null;
+    return InternalDishResult.from(dish);
   }
 }

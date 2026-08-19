@@ -7,6 +7,7 @@ import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.dish.application.DishService;
+import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
@@ -20,6 +21,7 @@ import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import kr.lastdish.core.store.presentation.dto.InternalDishResponse;
+import kr.lastdish.core.store.presentation.dto.InternalStoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -97,12 +99,13 @@ public class StoreFacade {
     return dishService.getDishByStoreId(storeId);
   }
 
-  public InternalDishResponse getDishByStoreIdForRenewal(Long storeId) {
-    Dish dish = dishService.getDishByStoreIdForRenewal(storeId).orElse(null);
-    if (dish == null) {
-      return null;
-    }
-    return InternalDishResponse.from(dish);
+  public InternalStoreResponse getDishAndStoreByStoreIdForRenewal(Long storeId) {
+    StoreResult store = storeService.getStore(storeId);
+    InternalDishResult dishResult = dishService.getDishByStoreIdForRenewal(storeId);
+
+    InternalDishResponse dish = dishResult == null ? null : InternalDishResponse.from(dishResult);
+
+    return InternalStoreResponse.from(store, dish);
   }
 
   public StorePageResult getNearbyStores(

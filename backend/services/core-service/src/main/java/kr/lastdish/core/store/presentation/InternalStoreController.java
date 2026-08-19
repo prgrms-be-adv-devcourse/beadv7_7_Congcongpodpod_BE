@@ -22,8 +22,6 @@ public class InternalStoreController {
   // 검색 전용 내부 API, 해당 매장의 매장 정보와 상품 정보를 합쳐 완성된 검색 문서를 반환
   @GetMapping("/{storeId}/renewal")
   public ApiResponse<InternalStoreResponse> getSearchDoc(@PathVariable Long storeId) {
-    StoreResult store = storeService.getStore(storeId);
-    InternalDishResponse dish = storeFacade.getDishByStoreIdForRenewal(storeId);
-    return ApiResponse.ok(InternalStoreResponse.from(store, dish));
+    return ApiResponse.ok(storeFacade.getDishAndStoreByStoreIdForRenewal(storeId));
   }
 }

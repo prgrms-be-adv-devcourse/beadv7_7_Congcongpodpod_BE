@@ -3,6 +3,8 @@ package kr.lastdish.core.store.presentation.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+
+import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.domain.Dish;
 
 public record InternalDishResponse(
@@ -18,19 +20,19 @@ public record InternalDishResponse(
     BigDecimal discountPrice,
     LocalTime pickupStartTime,
     LocalTime pickupEndTime) {
-  public static InternalDishResponse from(Dish dish) {
+  public static InternalDishResponse from(InternalDishResult dish) {
     return new InternalDishResponse(
-        dish.getId(),
-        dish.getStoreId(),
-        dish.getDishName(),
-        dish.getRegisteredAt(),
-        dish.getDescription(),
-        dish.getThumbnailUrl(),
-        dish.getStockQuantity(),
-        dish.getDishStatus().name(),
-        dish.getDishPrice(),
-        dish.getDiscountPrice(),
-        dish.getPickupStartTime(),
-        dish.getPickupEndTime());
+        dish.dishId(),
+        dish.storeId(),
+        dish.dishName(),
+        dish.registeredAt(),
+        dish.description(),
+        dish.thumbnailUrl(),
+        dish.stockQuantity(),
+        dish.dishStatus(),
+        dish.dishPrice(),
+        dish.discountPrice(),
+        dish.pickupStartTime(),
+        dish.pickupEndTime());
   }
 }
