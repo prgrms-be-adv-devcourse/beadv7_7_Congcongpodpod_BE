@@ -11,6 +11,11 @@ import org.springframework.kafka.config.TopicBuilder;
 public class CoreKafkaTopicConfig {
 
   @Bean
+  NewTopic notificationTopic() {
+    return TopicBuilder.name("NOTIFICATION").partitions(3).replicas(1).build();
+  }
+
+  @Bean
   NewTopic dishStateChangedTopic() {
     return TopicBuilder.name(DishStateChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
