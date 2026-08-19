@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import kr.lastdish.core.store.domain.Category;
 
 public record StoreChangedPayload(
+        Long storeId,
     String storeName,
     String storeAddress,
     String storePhone,
