@@ -3,7 +3,6 @@ package kr.lastdish.core.point.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.level.application.LevelService;
@@ -40,13 +39,12 @@ public class PointService {
   @Transactional
   public PointTransactionResult earn(Long memberId, Long orderId, BigDecimal finalOrderAmount) {
     if (finalOrderAmount == null || finalOrderAmount.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT,
-              "주문 금액은 0보다 커야 합니다. finalOrderAmount=" + finalOrderAmount);
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, "주문 금액은 0보다 커야 합니다. finalOrderAmount=" + finalOrderAmount);
     }
 
     BigDecimal earningRate = levelService.getPointEarningRate(memberId);
-    BigDecimal earnedAmount = finalOrderAmount.multiply(earningRate)
-            .setScale(0, RoundingMode.DOWN);
+    BigDecimal earnedAmount = finalOrderAmount.multiply(earningRate).setScale(0, RoundingMode.DOWN);
 
     pointRepository.createDefaultIfAbsent(memberId);
     Point point =

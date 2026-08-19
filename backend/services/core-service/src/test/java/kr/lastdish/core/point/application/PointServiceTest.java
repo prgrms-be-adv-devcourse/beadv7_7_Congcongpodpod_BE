@@ -9,6 +9,7 @@ import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.level.application.LevelService;
 import kr.lastdish.core.point.application.dto.PointTransactionResult;
 import kr.lastdish.core.point.domain.*;
@@ -84,16 +85,16 @@ class PointServiceTest {
   @Test
   void earn_주문금액이_null이면_예외가_발생한다() {
     assertThatThrownBy(() -> pointService.earn(1L, 100L, null))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
   }
 
   @Test
   void earn_주문금액이_0이하이면_예외가_발생한다() {
     assertThatThrownBy(() -> pointService.earn(1L, 100L, BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
 
     assertThatThrownBy(() -> pointService.earn(1L, 100L, new BigDecimal("-100")))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
   }
 
   @Test

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import kr.lastdish.common.api.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
 class PointTest {
@@ -30,7 +31,7 @@ class PointTest {
     Point point = Point.createDefault(1L);
 
     assertThatThrownBy(() -> point.earn(BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class); // IllegalArgumentException → BusinessException
   }
 
   @Test

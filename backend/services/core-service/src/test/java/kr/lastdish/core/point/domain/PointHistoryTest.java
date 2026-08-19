@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import kr.lastdish.common.api.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
 class PointHistoryTest {
@@ -26,13 +27,13 @@ class PointHistoryTest {
   @Test
   void recordEarn_금액이_0이하이면_예외가_발생한다() {
     assertThatThrownBy(() -> PointHistory.recordEarn(1L, 100L, BigDecimal.ZERO, BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
   }
 
   @Test
   void recordUse_금액이_null이면_예외가_발생한다() {
     assertThatThrownBy(() -> PointHistory.recordUse(1L, 100L, null, BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
   }
 
   @Test
@@ -70,6 +71,6 @@ class PointHistoryTest {
         PointHistory.recordEarn(1L, 100L, new BigDecimal("500"), new BigDecimal("500"));
 
     assertThatThrownBy(() -> history.consume(BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
   }
 }
