@@ -28,21 +28,15 @@ public class DishService {
   private final OutboxEventWriter outboxEventWriter;
 
   @Transactional
-  public DishResponse createDish(DishCreateRequest request) {
-
-    // 할인율 검증
-    validateDiscountRate(request.dishPrice(), request.discountPrice());
-    if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
-      throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
-    }
-
+  public DishResponse createDish(DishCreateRequest request, String finalImageKey) {
     Dish dish =
         Dish.create(
             request.storeId(),
             request.dishName(),
             request.registeredAt(),
             request.description(),
-            request.thumbnailUrl(),
+            request.category(),
+            finalImageKey,
             request.stockQuantity(),
             request.dishPrice(),
             request.discountPrice(),
@@ -55,6 +49,13 @@ public class DishService {
     //    appendCreatedEvent(savedDish);
 
     return DishResponse.from(savedDish);
+  }
+
+  public void validateCreateDish(DishCreateRequest request) {
+    validateDiscountRate(request.dishPrice(), request.discountPrice());
+    if (dishRepository.existsByStoreIdAndIsDeletedFalse(request.storeId())) {
+      throw new BusinessException(ErrorCode.DISH_ALREADY_EXISTS);
+    }
   }
 
   @Transactional
@@ -75,7 +76,6 @@ public class DishService {
         request.dishName(),
         request.registeredAt(),
         request.description(),
-        request.thumbnailUrl(),
         request.stockQuantity(),
         request.dishPrice(),
         request.discountPrice(),
@@ -152,7 +152,7 @@ public class DishService {
   }
 
   @Transactional
-  public void deleteDish(Long dishId) {
+  public String deleteDish(Long dishId) {
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 
     boolean availableBefore = dish.isAvailable();
@@ -161,11 +161,20 @@ public class DishService {
     dish.delete();
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    return dish.getThumbnailUrl();
   }
 
   public DishResponse getEachDish(Long dishId) {
     Dish dish = getDish(dishId);
     return DishResponse.from(dish);
+  }
+
+  public String getImageKey(Long dishId) {
+    String imageKey = getDish(dishId).getThumbnailUrl();
+    if (imageKey == null || imageKey.isBlank()) {
+      throw new BusinessException(ErrorCode.IMAGE_OBJECT_NOT_FOUND);
+    }
+    return imageKey;
   }
 
   private Dish getDish(Long dishId) {

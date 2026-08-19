@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lastdish.common.event.EventHandlerRegistry;
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.inbox.domain.InboxAggregateVersion;
 import kr.lastdish.common.inbox.domain.InboxAggregateVersionId;
@@ -35,7 +36,7 @@ class InboxEventProcessorTest {
   private static final Instant NOW = Instant.parse("2026-08-12T00:00:00Z");
 
   @Mock private InboxEventRepository repository;
-  @Mock private InboxEventHandlerRegistry registry;
+  @Mock private EventHandlerRegistry registry;
   @Mock private InboxAggregateVersionRepository aggregateVersionRepository;
   @Mock private InboxEventHandler handler;
 
