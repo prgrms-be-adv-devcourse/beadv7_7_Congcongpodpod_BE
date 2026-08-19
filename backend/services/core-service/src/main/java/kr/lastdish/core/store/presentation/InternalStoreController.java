@@ -1,10 +1,10 @@
 package kr.lastdish.core.store.presentation;
 
 import kr.lastdish.common.api.response.ApiResponse;
-import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.application.StoreService;
 import kr.lastdish.core.store.application.dto.StoreResult;
+import kr.lastdish.core.store.presentation.dto.InternalDishResponse;
 import kr.lastdish.core.store.presentation.dto.InternalStoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +23,7 @@ public class InternalStoreController {
   @GetMapping("/{storeId}/renewal")
   public ApiResponse<InternalStoreResponse> getSearchDoc(@PathVariable Long storeId) {
     StoreResult store = storeService.getStore(storeId);
-    DishResponse dishResponse = storeFacade.getDishByStoreIdForRenewal(storeId);
-    return ApiResponse.ok(InternalStoreResponse.from(store, dishResponse));
+    InternalDishResponse dish = storeFacade.getDishByStoreIdForRenewal(storeId);
+    return ApiResponse.ok(InternalStoreResponse.from(store, dish));
   }
 }

@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
@@ -276,11 +277,7 @@ public class DishService {
     return DishResponse.from(dish);
   }
 
-  public DishResponse getDishByStoreIdForRenewal(Long storeId) {
-    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId).orElse(null);
-    if (dish == null) {
-      return null;
-    }
-    return DishResponse.from(dish);
+  public Optional<Dish> getDishByStoreIdForRenewal(Long storeId) {
+    return dishRepository.findByStoreIdAndIsDeletedFalse(storeId);
   }
 }

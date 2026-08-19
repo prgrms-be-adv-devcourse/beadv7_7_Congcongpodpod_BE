@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
-import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.StoreStatus;
@@ -21,9 +20,9 @@ public record InternalStoreResponse(
     BigDecimal longitude,
     Category category,
     List<DayOfWeek> holidays,
-    DishResponse dish) {
+    InternalDishResponse dish) {
 
-  public static InternalStoreResponse from(StoreResult store, DishResponse dish) {
+  public static InternalStoreResponse from(StoreResult store, InternalDishResponse dish) {
     return new InternalStoreResponse(
         store.storeId(),
         store.memberId(),
