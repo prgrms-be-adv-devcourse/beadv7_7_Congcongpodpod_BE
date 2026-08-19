@@ -22,6 +22,15 @@ public class AiController {
 
   private final AiService aiService;
 
+  @Operation(summary = "S3 ObjectKey 기반 음식 카테고리 자동 분류")
+  @PostMapping("/classify-s3")
+  public ResponseEntity<FoodClassificationResponse> classifyByObjectKey(
+      @RequestParam("objectKey") String objectKey) {
+
+    FoodClassificationResponse response = aiService.classifyByObjectKey(objectKey);
+    return ResponseEntity.ok(response);
+  }
+
   @Operation(summary = "음식 카테고리 자동 분류")
   @PostMapping(value = "/classify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodClassificationResponse> classify(

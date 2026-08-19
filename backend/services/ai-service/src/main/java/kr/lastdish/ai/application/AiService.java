@@ -8,8 +8,11 @@ import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.ai.infrastructure.client.FastApiClient;
 import kr.lastdish.ai.presentation.dto.FoodClassificationResponse;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.storage.application.PresignedUrlService;
+import kr.lastdish.common.storage.application.dto.PresignedDownloadUrl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +21,26 @@ public class AiService {
 
   private final FastApiClient aiClient;
   private final ClassificationLogRepository logRepository;
+  private final PresignedUrlService presignedUrlService;
+
+  public FoodClassificationResponse classifyByObjectKey(String objectKey) {
+    try {
+      // 1. S3 Presigned Download URL 발급
+      PresignedDownloadUrl downloadUrl = presignedUrlService.issueDownload(objectKey);
+
+      // 2. Presigned GET URL을 Spring Resource(UrlResource)로 변환
+      Resource imageResource = new UrlResource(downloadUrl.url());
+
+      // 3. 기존 classify 메서드 호출
+      return classify(imageResource, downloadUrl.url().toString());
+
+    } catch (BusinessException e) {
+      throw e;
+    } catch (Exception e) {
+      // UrlResource 생성 실패 or S3 조회 실패 예외 처리
+      throw new BusinessException(AiErrorCode.INVALID_IMAGE_FILE);
+    }
+  }
 
   public FoodClassificationResponse classify(Resource imageResource, String imageUrl) {
     // 1. FastAPI 통신
