@@ -11,6 +11,7 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.LastModifiedDate;
 
 @Getter
 @Entity
@@ -58,6 +59,7 @@ public class Store {
   private BigDecimal longitude;
 
   @Column(name = "updated_at")
+  @LastModifiedDate
   private LocalDateTime updatedAt;
 
   @Column(name = "event_version", nullable = false)
@@ -121,7 +123,6 @@ public class Store {
     this.latitude = latitude;
     this.longitude = longitude;
     this.category = category;
-    this.updatedAt = LocalDateTime.now();
   }
 
   // 기존 휴무일 제거 후 새로운 휴무일로 교체
@@ -129,7 +130,6 @@ public class Store {
     holidays.clear();
 
     daysOfWeek.forEach(this::addHoliday);
-    this.updatedAt = LocalDateTime.now();
   }
 
   /** 영업시간과 정기 휴무일을 기준으로 기준 시각 이후의 가장 가까운 마감 일시를 계산한다. */
@@ -170,14 +170,12 @@ public class Store {
 
   public void changeStatus(StoreStatus status) {
     this.status = status;
-    this.updatedAt = LocalDateTime.now();
   }
 
   public void delete() {
     this.status = StoreStatus.STOPPED;
     this.holidays.clear();
     this.deleted = true;
-    this.updatedAt = LocalDateTime.now();
   }
 
   public long nextEventVersion() {
