@@ -21,7 +21,7 @@ import org.springframework.mock.web.server.MockServerWebExchange;
 
 class RequestCompletionLoggerTests {
 
-  private final RequestCompletionLogger completionLogger = new RequestCompletionLogger();
+  private final RequestCompletionLogger completionLogger = new RequestCompletionLogger(true);
 
   private ch.qos.logback.classic.Logger 로거;
   private ListAppender<ILoggingEvent> appender;

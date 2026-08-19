@@ -38,7 +38,7 @@ class GatewayGlobalExceptionHandlerTests {
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
-    completionLogger = new RequestCompletionLogger();
+    completionLogger = new RequestCompletionLogger(true);
     handler = new GatewayGlobalExceptionHandler(objectMapper, completionLogger);
 
     logger =

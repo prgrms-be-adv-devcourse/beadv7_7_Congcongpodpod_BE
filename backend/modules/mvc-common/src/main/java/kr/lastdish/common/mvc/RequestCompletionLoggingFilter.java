@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerMapping;
@@ -39,6 +40,18 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
 
   /** 이 값 미만이면 정상 처리로 본다. */
   private static final int FIRST_FAILURE_STATUS = 400;
+
+  private final boolean skipSuccessfulActuatorCalls;
+
+  /**
+   * @param skipSuccessfulActuatorCalls 정상 {@code /actuator} 요청의 완료 로그를 생략할지. 이 로그에 기대는 대시보드나 알림이
+   *     드러나면 재배포 없이 설정만 바꿔 되돌릴 수 있도록 열어둔다.
+   */
+  public RequestCompletionLoggingFilter(
+      @Value("${request-log.skip-successful-actuator-calls:true}")
+          boolean skipSuccessfulActuatorCalls) {
+    this.skipSuccessfulActuatorCalls = skipSuccessfulActuatorCalls;
+  }
 
   @Override
   public int getOrder() {
@@ -72,7 +85,9 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
 
   /** 인프라가 주기적으로 부르는 경로이면서 정상 응답이면 기록할 가치가 없다고 본다. */
   private boolean isRoutineInfrastructureCall(String pathPattern, int status) {
-    return pathPattern.startsWith(INFRASTRUCTURE_PATH_PREFIX) && status < FIRST_FAILURE_STATUS;
+    return skipSuccessfulActuatorCalls
+        && pathPattern.startsWith(INFRASTRUCTURE_PATH_PREFIX)
+        && status < FIRST_FAILURE_STATUS;
   }
 
   /** DispatcherServlet이 남긴 매칭 패턴만 사용한다. 없으면 실제 URI 대신 unmatched를 남긴다. */

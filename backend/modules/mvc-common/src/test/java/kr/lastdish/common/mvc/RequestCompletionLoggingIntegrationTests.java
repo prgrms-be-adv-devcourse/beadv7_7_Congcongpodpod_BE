@@ -93,7 +93,7 @@ class RequestCompletionLoggingIntegrationTests {
   private MockMvc 서버를_띄운다() {
     return MockMvcBuilders.standaloneSetup(new 시험용주문컨트롤러())
         .setControllerAdvice(new GlobalExceptionHandler())
-        .addFilters(new RequestIdFilter(), new RequestCompletionLoggingFilter())
+        .addFilters(new RequestIdFilter(), new RequestCompletionLoggingFilter(true))
         .build();
   }
 

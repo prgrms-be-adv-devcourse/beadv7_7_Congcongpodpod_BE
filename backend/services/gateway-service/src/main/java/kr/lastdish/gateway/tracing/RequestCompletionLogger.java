@@ -3,6 +3,7 @@ package kr.lastdish.gateway.tracing;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -27,6 +28,18 @@ public class RequestCompletionLogger {
 
   /** 인프라가 주기적으로 호출하는 경로. 정상 응답이면 완료 로그를 남기지 않는다. */
   private static final String INFRASTRUCTURE_PATH_PREFIX = "/actuator";
+
+  private final boolean skipSuccessfulActuatorCalls;
+
+  /**
+   * @param skipSuccessfulActuatorCalls 정상 {@code /actuator} 요청의 완료 로그를 생략할지. 이 로그에 기대는 대시보드나 알림이
+   *     드러나면 재배포 없이 설정만 바꿔 되돌릴 수 있도록 열어둔다.
+   */
+  public RequestCompletionLogger(
+      @Value("${request-log.skip-successful-actuator-calls:true}")
+          boolean skipSuccessfulActuatorCalls) {
+    this.skipSuccessfulActuatorCalls = skipSuccessfulActuatorCalls;
+  }
 
   /** 요청 처리 시작 시각을 남긴다. 이 표시가 없으면 처리 시간을 알 수 없어 완료 로그를 남기지 않는다. */
   public void markStarted(ServerWebExchange exchange) {
@@ -71,7 +84,8 @@ public class RequestCompletionLogger {
    * 그 경로를 로그에 남기지는 않는다.
    */
   private boolean isRoutineInfrastructureCall(ServerWebExchange exchange, HttpStatusCode status) {
-    return exchange.getRequest().getPath().value().startsWith(INFRASTRUCTURE_PATH_PREFIX)
+    return skipSuccessfulActuatorCalls
+        && exchange.getRequest().getPath().value().startsWith(INFRASTRUCTURE_PATH_PREFIX)
         && !status.isError();
   }
 }

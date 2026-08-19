@@ -21,7 +21,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 class RequestCompletionLoggingFilterTests {
 
-  private final RequestCompletionLoggingFilter filter = new RequestCompletionLoggingFilter();
+  private final RequestCompletionLoggingFilter filter = new RequestCompletionLoggingFilter(true);
 
   private ch.qos.logback.classic.Logger logger;
   private ListAppender<ILoggingEvent> appender;
@@ -91,6 +91,17 @@ class RequestCompletionLoggingFilterTests {
     filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
     assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  void 설정을_끄면_정상적인_상태확인_요청도_완료_로그를_남긴다() throws Exception {
+    RequestCompletionLoggingFilter 끈필터 = new RequestCompletionLoggingFilter(false);
+    MockHttpServletRequest request = 요청("GET", "/actuator/health");
+    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/actuator/health/**");
+
+    끈필터.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+    assertThat(appender.list).hasSize(1);
   }
 
   @Test
