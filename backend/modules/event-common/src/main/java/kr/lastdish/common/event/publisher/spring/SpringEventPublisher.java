@@ -1,4 +1,4 @@
-package kr.lastdish.common.event.spring;
+package kr.lastdish.common.event.publisher.spring;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
