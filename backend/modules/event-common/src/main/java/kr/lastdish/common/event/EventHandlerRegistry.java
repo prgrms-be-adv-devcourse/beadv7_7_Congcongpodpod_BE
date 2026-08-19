@@ -1,12 +1,11 @@
 package kr.lastdish.common.event;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
 @Component
 public class EventHandlerRegistry {
