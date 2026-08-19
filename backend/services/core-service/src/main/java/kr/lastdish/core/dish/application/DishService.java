@@ -252,6 +252,19 @@ public class DishService {
 
   private void appendCreatedEvent(Dish dish) {
     long aggregateVersion = dish.nextAggregateVersion();
+    DishCreatedPayload payload = new DishCreatedPayload(
+            dish.getId(),
+            dish.getStoreId(),
+            dish.getDishName(),
+            dish.getRegisteredAt(),
+            dish.getDescription(),
+            dish.getThumbnailUrl(),
+            dish.getStockQuantity(),
+            dish.getDishStatus(),
+            dish.getDishPrice(),
+            dish.getDiscountPrice(),
+            dish.getPickupStartTime(),
+            dish.getPickupEndTime());
 
     DishCreatedEvent event =
         new DishCreatedEvent(
@@ -259,7 +272,7 @@ public class DishService {
             DishCreatedEvent.SCHEMA_VERSION,
             dish.getId(),
             aggregateVersion,
-            new DishCreatedPayload(dish),
+                payload,
             Instant.now());
 
     outboxEventWriter.append(event);
