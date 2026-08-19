@@ -55,6 +55,14 @@ services:
   member:
     base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
 
+storage:
+  s3:
+    enabled: ${S3_ENABLED:false}
+    bucket: ${S3_BUCKET:}
+    region: ${AWS_REGION:ap-northeast-2}
+    presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:5m}
+    max-upload-size: ${S3_MAX_UPLOAD_SIZE:10MB}
+
 event:
   publisher: ${EVENT_PUBLISHER:kafka}
 

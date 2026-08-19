@@ -1,0 +1,2 @@
+kr.lastdish.common.storage.infrastructure.s3.S3StorageAutoConfiguration
+kr.lastdish.common.storage.infrastructure.PresignedUploadAutoConfiguration
