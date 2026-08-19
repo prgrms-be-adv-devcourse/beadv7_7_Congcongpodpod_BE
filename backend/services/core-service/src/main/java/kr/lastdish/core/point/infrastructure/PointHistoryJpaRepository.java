@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, Long> {
 
   @Query(
-          """
+      """
 
                   SELECT h FROM PointHistory h
       WHERE h.memberId = :memberId
@@ -20,5 +20,6 @@ public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, L
       ORDER BY h.createdAt ASC
       """)
   List<PointHistory> findUsableEarnHistories(@Param("memberId") Long memberId);
+
   boolean existsByOrderIdAndType(Long orderId, PointType type);
 }

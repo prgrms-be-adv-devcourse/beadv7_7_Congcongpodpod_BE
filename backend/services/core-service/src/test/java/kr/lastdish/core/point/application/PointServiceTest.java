@@ -104,7 +104,7 @@ class PointServiceTest {
     given(pointHistoryRepository.existsByOrderIdAndType(100L, PointType.EARN)).willReturn(true);
 
     assertThatThrownBy(() -> pointService.earn(1L, 100L, new BigDecimal("10000")))
-            .isInstanceOf(BusinessException.class);
+        .isInstanceOf(BusinessException.class);
 
     verify(pointHistoryRepository, never()).save(any());
   }
@@ -189,7 +189,7 @@ class PointServiceTest {
     given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.USE)).willReturn(true);
 
     assertThatThrownBy(() -> pointService.use(1L, 200L, new BigDecimal("300")))
-            .isInstanceOf(BusinessException.class);
+        .isInstanceOf(BusinessException.class);
 
     verify(pointHistoryRepository, never()).save(any());
   }
