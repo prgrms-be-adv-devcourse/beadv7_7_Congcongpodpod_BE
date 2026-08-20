@@ -22,63 +22,66 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PointExpirationServiceTest {
 
-    @Mock private PointRepository pointRepository;
-    @Mock private PointHistoryRepository pointHistoryRepository;
+  @Mock private PointRepository pointRepository;
+  @Mock private PointHistoryRepository pointHistoryRepository;
 
-    @InjectMocks private PointExpirationService pointExpirationService;
+  @InjectMocks private PointExpirationService pointExpirationService;
 
-    @Test
-    void expireMemberPoints_만료된_적립건이_있으면_잔액이_차감되고_EXPIRE_이력이_기록된다() {
-        Point point = Point.createDefault(1L);
-        point.earn(new BigDecimal("500"));
-        given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+  @Test
+  void expireMemberPoints_만료된_적립건이_있으면_잔액이_차감되고_EXPIRE_이력이_기록된다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("500"));
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
 
-        PointHistory expired = PointHistory.recordEarn(1L, 100L, new BigDecimal("500"), new BigDecimal("500"));
-        given(pointHistoryRepository.findExpiringHistoriesByMember(1L)).willReturn(List.of(expired));
-        given(pointHistoryRepository.save(any(PointHistory.class)))
-                .willAnswer(invocation -> invocation.getArgument(0));
+    PointHistory expired =
+        PointHistory.recordEarn(1L, 100L, new BigDecimal("500"), new BigDecimal("500"));
+    given(pointHistoryRepository.findExpiringHistoriesByMember(1L)).willReturn(List.of(expired));
+    given(pointHistoryRepository.save(any(PointHistory.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
 
-        pointExpirationService.expireMemberPoints(1L);
+    pointExpirationService.expireMemberPoints(1L);
 
-        assertThat(point.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(expired.getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-    }
+    assertThat(point.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(expired.getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+  }
 
-    @Test
-    void expireMemberPoints_만료건이_없으면_아무것도_하지_않는다() {
-        Point point = Point.createDefault(1L);
-        given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
-        given(pointHistoryRepository.findExpiringHistoriesByMember(1L)).willReturn(List.of());
+  @Test
+  void expireMemberPoints_만료건이_없으면_아무것도_하지_않는다() {
+    Point point = Point.createDefault(1L);
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.findExpiringHistoriesByMember(1L)).willReturn(List.of());
 
-        pointExpirationService.expireMemberPoints(1L);
+    pointExpirationService.expireMemberPoints(1L);
 
-        verify(pointHistoryRepository, never()).save(any());
-    }
+    verify(pointHistoryRepository, never()).save(any());
+  }
 
-    @Test
-    void expireMemberPoints_Point가_없으면_예외가_발생한다() {
-        given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.empty());
+  @Test
+  void expireMemberPoints_Point가_없으면_예외가_발생한다() {
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pointExpirationService.expireMemberPoints(1L))
-                .isInstanceOf(IllegalStateException.class);
-    }
+    assertThatThrownBy(() -> pointExpirationService.expireMemberPoints(1L))
+        .isInstanceOf(IllegalStateException.class);
+  }
 
-    @Test
-    void expireMemberPoints_여러_건이_만료되면_합산되어_한_번에_차감된다() {
-        Point point = Point.createDefault(1L);
-        point.earn(new BigDecimal("1000"));
-        given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+  @Test
+  void expireMemberPoints_여러_건이_만료되면_합산되어_한_번에_차감된다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("1000"));
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
 
-        PointHistory h1 = PointHistory.recordEarn(1L, 100L, new BigDecimal("300"), new BigDecimal("300"));
-        PointHistory h2 = PointHistory.recordEarn(1L, 101L, new BigDecimal("200"), new BigDecimal("500"));
-        given(pointHistoryRepository.findExpiringHistoriesByMember(1L)).willReturn(List.of(h1, h2));
-        given(pointHistoryRepository.save(any(PointHistory.class)))
-                .willAnswer(invocation -> invocation.getArgument(0));
+    PointHistory h1 =
+        PointHistory.recordEarn(1L, 100L, new BigDecimal("300"), new BigDecimal("300"));
+    PointHistory h2 =
+        PointHistory.recordEarn(1L, 101L, new BigDecimal("200"), new BigDecimal("500"));
+    given(pointHistoryRepository.findExpiringHistoriesByMember(1L)).willReturn(List.of(h1, h2));
+    given(pointHistoryRepository.save(any(PointHistory.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
 
-        pointExpirationService.expireMemberPoints(1L);
+    pointExpirationService.expireMemberPoints(1L);
 
-        assertThat(point.getBalance()).isEqualByComparingTo(new BigDecimal("500"));
-        assertThat(h1.getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(h2.getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-    }
+    assertThat(point.getBalance()).isEqualByComparingTo(new BigDecimal("500"));
+    assertThat(h1.getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(h2.getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+  }
 }

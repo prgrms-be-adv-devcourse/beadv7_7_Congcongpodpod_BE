@@ -76,7 +76,8 @@ class PointHistoryTest {
 
   @Test
   void recordExpire_호출하면_EXPIRE_이력이_생성된다() {
-    PointHistory history = PointHistory.recordExpire(1L, new BigDecimal("300"), new BigDecimal("700"));
+    PointHistory history =
+        PointHistory.recordExpire(1L, new BigDecimal("300"), new BigDecimal("700"));
 
     assertThat(history.getType()).isEqualTo(PointType.EXPIRE);
     assertThat(history.getOrderId()).isNull();

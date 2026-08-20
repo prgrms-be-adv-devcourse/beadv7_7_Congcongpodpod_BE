@@ -69,6 +69,6 @@ class PointTest {
     point.earn(new BigDecimal("100"));
 
     assertThatThrownBy(() -> point.expire(new BigDecimal("200")))
-            .isInstanceOf(IllegalStateException.class);
+        .isInstanceOf(IllegalStateException.class);
   }
 }

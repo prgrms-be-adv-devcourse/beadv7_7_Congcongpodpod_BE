@@ -22,7 +22,8 @@ public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, L
 
   boolean existsByOrderIdAndType(Long orderId, PointType type);
 
-  @Query("""
+  @Query(
+      """
     SELECT DISTINCT h.memberId
     FROM PointHistory h
     WHERE h.expiresAt <= CURRENT_TIMESTAMP
@@ -31,7 +32,8 @@ public interface PointHistoryJpaRepository extends JpaRepository<PointHistory, L
     """)
   List<Long> findMembersWithExpiringPoints();
 
-  @Query("""
+  @Query(
+      """
     SELECT h
     FROM PointHistory h
     WHERE h.memberId = :memberId

@@ -13,32 +13,32 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PointExpirationScheduler {
 
-    private final PointHistoryRepository pointHistoryRepository;
-    private final PointExpirationService pointExpirationService;
+  private final PointHistoryRepository pointHistoryRepository;
+  private final PointExpirationService pointExpirationService;
 
-    @Scheduled(cron = "0 0 0 * * *")
-    public void runExpirationBatch() {
-        log.info("포인트 소멸 배치 시작");
+  @Scheduled(cron = "0 0 0 * * *")
+  public void runExpirationBatch() {
+    log.info("포인트 소멸 배치 시작");
 
-        List<Long> targetMemberIds = pointHistoryRepository.findMembersWithExpiringPoints();
-        if (targetMemberIds.isEmpty()) {
-            log.info("만료 대상 포인트가 없습니다.");
-            return;
-        }
-
-        int successCount = 0;
-        int failCount = 0;
-
-        for (Long memberId : targetMemberIds) {
-            try {
-                pointExpirationService.expireMemberPoints(memberId);
-                successCount++;
-            } catch (Exception e) {
-                failCount++;
-                log.error("회원 포인트 소멸 처리 실패. memberId={}", memberId, e);
-            }
-        }
-
-        log.info("포인트 소멸 배치 종료. 성공: {}건, 실패: {}건", successCount, failCount);
+    List<Long> targetMemberIds = pointHistoryRepository.findMembersWithExpiringPoints();
+    if (targetMemberIds.isEmpty()) {
+      log.info("만료 대상 포인트가 없습니다.");
+      return;
     }
+
+    int successCount = 0;
+    int failCount = 0;
+
+    for (Long memberId : targetMemberIds) {
+      try {
+        pointExpirationService.expireMemberPoints(memberId);
+        successCount++;
+      } catch (Exception e) {
+        failCount++;
+        log.error("회원 포인트 소멸 처리 실패. memberId={}", memberId, e);
+      }
+    }
+
+    log.info("포인트 소멸 배치 종료. 성공: {}건, 실패: {}건", successCount, failCount);
+  }
 }

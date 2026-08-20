@@ -68,7 +68,7 @@ public class PointService {
             .findWithLockByMemberId(memberId)
             .orElseThrow(() -> new PointNotFoundException(memberId));
 
-    pointExpirationService.expireDueHistories(point);  // 사용 직전, 기한 만료 소멸 대상이면 소멸 처리
+    pointExpirationService.expireDueHistories(point); // 사용 직전, 기한 만료 소멸 대상이면 소멸 처리
 
     if (pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.USE)) {
       throw new BusinessException(

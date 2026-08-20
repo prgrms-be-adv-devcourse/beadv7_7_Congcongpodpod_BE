@@ -214,14 +214,17 @@ class PointServiceTest {
     given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
 
     // expireDueHistories가 호출되면 500 전액이 소멸되도록 stub
-    doAnswer(invocation -> {
-      Point p = invocation.getArgument(0);
-      p.expire(new BigDecimal("500"));
-      return null;
-    }).when(pointExpirationService).expireDueHistories(point);
+    doAnswer(
+            invocation -> {
+              Point p = invocation.getArgument(0);
+              p.expire(new BigDecimal("500"));
+              return null;
+            })
+        .when(pointExpirationService)
+        .expireDueHistories(point);
 
     // 만료 반영 후 잔액은 0인데 300을 사용하려고 시도
     assertThatThrownBy(() -> pointService.use(1L, 200L, new BigDecimal("300")))
-            .isInstanceOf(InsufficientPointException.class);
+        .isInstanceOf(InsufficientPointException.class);
   }
 }
