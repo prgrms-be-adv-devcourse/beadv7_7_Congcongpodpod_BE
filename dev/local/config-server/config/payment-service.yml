@@ -1,10 +1,10 @@
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:redis_local_password}
+      password: ${REDIS_PASSWORD}
       connect-timeout: 1s
       timeout: 1s
   cache:
@@ -14,22 +14,20 @@ spring:
       cache-null-values: false
       key-prefix: "payment-service:"
   datasource:
-    # 같은 PostgreSQL 인스턴스의 독립 논리 DB인 payment_db에 연결합니다.
-    url: ${PAYMENT_DB_URL:jdbc:postgresql://localhost:54322/payment_db}
-    username: ${PAYMENT_DB_USERNAME:payment}
-    password: ${PAYMENT_DB_PASSWORD:payment_local_password}
+    url: ${PAYMENT_DB_URL}
+    username: ${PAYMENT_DB_USERNAME}
+    password: ${PAYMENT_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: none
     open-in-view: false
   flyway:
-    # payment_db의 결제 테이블과 outbox_events는 Payment Flyway가 담당합니다.
     enabled: true
     validate-on-migrate: true
     clean-disabled: true
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP:payment-service}
 
@@ -40,9 +38,9 @@ outbox:
   scheduler:
     enabled: ${OUTBOX_SCHEDULER_ENABLED:true}
   polling-delay-ms: ${OUTBOX_POLLING_DELAY_MS:1000}
-  batch-size: 100
-  lock-timeout-seconds: 60
-  max-retries: 5
+  batch-size: ${OUTBOX_BATCH_SIZE:100}
+  max-retries: ${OUTBOX_MAX_RETRIES:5}
+  lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
 
 inbox:
   scheduler:
@@ -53,5 +51,12 @@ inbox:
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
 
 toss:
-  client-key: ${TOSS_CLIENT_KEY:test_ck_placeholder}
-  secret-key: ${TOSS_SECRET_KEY:test_sk_placeholder}
+  client-key: ${TOSS_CLIENT_KEY}
+  secret-key: ${TOSS_SECRET_KEY}
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_PAYMENT_DIRECT_URL:http://localhost:8083}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}

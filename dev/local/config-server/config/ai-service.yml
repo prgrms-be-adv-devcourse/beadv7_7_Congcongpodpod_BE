@@ -1,10 +1,10 @@
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:redis_local_password}
+      password: ${REDIS_PASSWORD}
       connect-timeout: 1s
       timeout: 1s
   cache:
@@ -14,29 +14,26 @@ spring:
       cache-null-values: false
       key-prefix: "ai-service:"
   datasource:
-    # AI 전용 논리 DB입니다. Core·Payment 데이터는 API나 이벤트로 전달받아 가공합니다.
-    url: ${AI_DB_URL:jdbc:postgresql://localhost:54322/ai_db}
-    username: ${AI_DB_USERNAME:ai}
-    password: ${AI_DB_PASSWORD:ai_local_password}
+    url: ${AI_DB_URL}
+    username: ${AI_DB_USERNAME}
+    password: ${AI_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
-    # 아직 AI 영속 모델과 마이그레이션이 없으므로 자동 DDL을 금지합니다.
     hibernate:
       ddl-auto: none
     open-in-view: false
   flyway:
-    # ai_db의 AI 테이블과 outbox_events는 AI Flyway만 관리합니다.
     enabled: true
     validate-on-migrate: true
     clean-disabled: true
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP:ai-service}
   elasticsearch:
-    uris: ${ELASTICSEARCH_URL:http://localhost:9200}
+    uris: ${ELASTICSEARCH_URL}
     username: ${ELASTICSEARCH_USERNAME:elastic}
-    password: ${ELASTICSEARCH_PASSWORD:elastic_local_password}
+    password: ${ELASTICSEARCH_PASSWORD}
 
 event:
   publisher: ${EVENT_PUBLISHER:kafka}
@@ -45,9 +42,9 @@ outbox:
   scheduler:
     enabled: ${OUTBOX_SCHEDULER_ENABLED:true}
   polling-delay-ms: ${OUTBOX_POLLING_DELAY_MS:1000}
-  batch-size: 100
-  lock-timeout-seconds: 60
-  max-retries: 5
+  batch-size: ${OUTBOX_BATCH_SIZE:100}
+  max-retries: ${OUTBOX_MAX_RETRIES:5}
+  lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
 
 inbox:
   scheduler:
@@ -56,3 +53,10 @@ inbox:
   batch-size: ${INBOX_BATCH_SIZE:100}
   max-retries: ${INBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_AI_DIRECT_URL:http://localhost:8084}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
