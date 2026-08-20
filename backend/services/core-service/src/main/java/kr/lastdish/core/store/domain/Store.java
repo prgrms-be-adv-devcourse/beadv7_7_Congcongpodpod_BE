@@ -13,11 +13,14 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Entity
 @Table(name = "stores")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class Store {
 
   @Id
@@ -59,6 +62,13 @@ public class Store {
   @Column(name = "longitude", nullable = false)
   private BigDecimal longitude;
 
+  @Column(name = "updated_at")
+  @LastModifiedDate
+  private LocalDateTime updatedAt;
+
+  @Column(name = "event_version", nullable = false)
+  private long eventVersion;
+
   @Column(name = "is_deleted", nullable = false)
   private boolean deleted;
 
@@ -93,6 +103,7 @@ public class Store {
     this.longitude = longitude;
     this.category = category;
     this.status = StoreStatus.OPEN;
+    this.eventVersion = 0L;
     this.deleted = false;
   }
 
@@ -205,5 +216,9 @@ public class Store {
     this.status = StoreStatus.STOPPED;
     this.holidays.clear();
     this.deleted = true;
+  }
+
+  public long nextEventVersion() {
+    return ++this.eventVersion;
   }
 }
