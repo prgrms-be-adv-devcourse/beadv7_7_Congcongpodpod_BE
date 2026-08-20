@@ -63,6 +63,7 @@ class StoreFacadeTest {
     // then
     assertThat(response).isNotNull();
     assertThat(response.storeId()).isEqualTo(storeId);
+    assertThat(response.nextClosingAt()).isEqualTo(storeResult.nextClosingAt());
     assertThat(response.dish()).isNull();
 
     verify(storeService).getStore(storeId);
@@ -88,6 +89,7 @@ class StoreFacadeTest {
     assertThat(response).isNotNull();
 
     assertThat(response.storeId()).isEqualTo(storeId);
+    assertThat(response.nextClosingAt()).isEqualTo(storeResult.nextClosingAt());
 
     assertThat(response.dish()).isNotNull();
     assertThat(response.dish().dishId()).isEqualTo(dishResult.dishId());
