@@ -33,15 +33,19 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
 
   @Query(
       """
-        SELECT o
-        FROM Order o
-        WHERE o.storeId = :storeId
-          AND o.status IN :orderStatuses
-          AND o.updatedAt >= :periodStart
-          AND o.updatedAt < :periodEnd
-        ORDER BY o.updatedAt ASC, o.id ASC
-        """)
-  List<Order> findSettlementTargetOrders(
+            SELECT
+              o.id AS id,
+              o.storeId AS storeId,
+              o.totalPrice AS totalPrice,
+              o.updatedAt AS updatedAt
+            FROM Order o
+            WHERE o.storeId = :storeId
+              AND o.status IN :orderStatuses
+              AND o.updatedAt >= :periodStart
+              AND o.updatedAt < :periodEnd
+            ORDER BY o.updatedAt ASC, o.id ASC
+            """)
+  List<OrderSettlementProjection> findSettlementTargetOrders(
       @Param("storeId") Long storeId,
       @Param("orderStatuses") List<OrderStatus> orderStatuses,
       @Param("periodStart") LocalDateTime periodStart,
