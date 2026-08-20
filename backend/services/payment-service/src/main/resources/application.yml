@@ -1,8 +1,23 @@
 server:
   port: 8080
+  tomcat:
+    # Tomcat 스레드풀 지표(tomcat_threads_busy_threads/current_threads/config_max_threads)는 JMX MBean으로 수집된다.
+    # 이 값이 꺼져 있으면 MBean이 등록되지 않아 세션 지표만 나오고 스레드풀 지표가 통째로 빠진다
+    # (로컬 실측: 끄면 tomcat_ 6줄, 켜면 24줄). 부하 시 무엇이 먼저 고갈되는지 보려면 필요하다.
+    # 환경별 튜닝 값이 아니라 관측 스위치라 이미지와 함께 배포되도록 여기에 둔다.
+    mbeanregistry:
+      enabled: true
 
 spring:
   application:
     name: payment-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+logging:
+  level:
+    # Hibernate는 SQL 오류를 예외로 올리기 전에 WARN으로 먼저 남기는데, 그 메시지에 제약을 위반한
+    # 값이 그대로 들어 있다(로컬 PostgreSQL로 확인). 값이 로그에 새지 않도록 이 로거만 올린다.
+    # 예외는 그대로 전파되므로 DataIntegrityExceptionHandler가 제약 이름을 남긴다.
+    # 보안 통제라 운영 config가 아니라 서비스와 함께 배포되도록 여기에 둔다.
+    org.hibernate.orm.jdbc.error: ERROR

@@ -20,6 +20,10 @@ import reactor.core.publisher.Mono;
  * Security의 {@code SecurityWebFilterChain}(WebFilter)과 핸들러 매핑보다 나중이라 인증 실패(401/403)·라우트 미매칭(404)
  * 응답과 그 경로에서 발생하는 예외에는 requestId가 붙지 않는다. WebFilter로 구현하면 이 필터가 가장 먼저 실행되어 모든 경로를 포함한다.
  *
+ * <p>같은 값을 Reactor 컨텍스트에도 싣는다. WebFlux는 한 요청을 여러 스레드가 나눠 처리해 MDC에 직접 넣으면 값이 따라가지 않는다. 컨텍스트에 실어두면
+ * {@code spring.reactor.context-propagation=auto}와 {@link RequestIdThreadLocalAccessor}가 연산자 실행
+ * 시점마다 MDC를 채워주고, 구조화 로깅이 그 MDC를 읽어 {@code requestId} 필드를 남긴다.
+ *
  * <p>응답 헤더는 프록시가 완료된 뒤, 응답이 실제로 커밋되기 직전에 설정한다. 하위 서비스도 같은 이름의 헤더를 자기 응답에 남기는데, Gateway가 그 응답을 프록시하며
  * 헤더를 그대로 실어 보내면 미리 설정해둔 값과 합쳐져 같은 값이 두 줄로 남는다. 커밋 직전에 설정하면 그 사이 무엇이 섞여 있었든 마지막에 하나로 정리된다.
  */
@@ -56,7 +60,9 @@ public class RequestIdFilter implements WebFilter, Ordered {
               return Mono.empty();
             });
 
-    return chain.filter(mutatedExchange);
+    return chain
+        .filter(mutatedExchange)
+        .contextWrite(context -> context.put(RequestIdSupport.KEY, requestId));
   }
 
   private String resolveRequestId(ServerHttpRequest request) {

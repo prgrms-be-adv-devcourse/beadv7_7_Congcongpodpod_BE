@@ -4,5 +4,27 @@ server:
 spring:
   application:
     name: gateway-service
+  reactor:
+    # Reactor가 연산자 실행 시점마다 ThreadLocal을 복원하게 한다. RequestIdThreadLocalAccessor가
+    # 이 시점에 requestId를 MDC로 옮기므로, 이 값이 없으면 Gateway 로그에 requestId 필드가 남지 않는다.
+    context-propagation: auto
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Gateway 요청 시간과 Netty 연결 풀 지표를 노출한다.
+          # 환경별 튜닝 값이 아니라 관측 스위치라 이미지와 함께 배포되도록 여기에 둔다.
+          httpclient:
+            pool:
+              metrics: true
+          metrics:
+            enabled: true
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+management:
+  metrics:
+    distribution:
+      # Gateway 요청 시간의 bucket을 노출해 Prometheus에서 routeId별 p95·p99를 계산한다.
+      percentiles-histogram:
+        spring.cloud.gateway.requests: true
