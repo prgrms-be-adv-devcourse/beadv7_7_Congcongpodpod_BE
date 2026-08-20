@@ -26,6 +26,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.3'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    // Reactor 컨텍스트의 requestId를 MDC로 되살리기 위해 필요하다. WebFlux는 스레드가 고정되지 않아 MDC만으로는 값이 유지되지 않는다.
+    implementation 'io.micrometer:context-propagation'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

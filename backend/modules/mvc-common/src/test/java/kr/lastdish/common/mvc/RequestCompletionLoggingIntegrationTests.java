@@ -69,8 +69,9 @@ class RequestCompletionLoggingIntegrationTests {
         .andExpect(status().isOk());
 
     assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-276-integration");
     assertThat(appender.list.getFirst().getFormattedMessage())
-        .contains("requestId=req-276-integration")
         .contains("method=GET")
         .contains("pathPattern=/api/v1/orders/{orderId}")
         .contains("status=200")
@@ -92,7 +93,7 @@ class RequestCompletionLoggingIntegrationTests {
   private MockMvc 서버를_띄운다() {
     return MockMvcBuilders.standaloneSetup(new 시험용주문컨트롤러())
         .setControllerAdvice(new GlobalExceptionHandler())
-        .addFilters(new RequestIdFilter(), new RequestCompletionLoggingFilter())
+        .addFilters(new RequestIdFilter(), new RequestCompletionLoggingFilter(true))
         .build();
   }
 

@@ -182,6 +182,7 @@ services:
       context: ../backend
       dockerfile: services/config-server/Dockerfile
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: native
       CONFIG_NATIVE_SEARCH_LOCATIONS: file:/config
     volumes:
@@ -202,6 +203,7 @@ services:
       context: ../backend
       dockerfile: services/member-service/Dockerfile
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       MEMBER_DB_URL: jdbc:postgresql://member-db:5432/member_db
@@ -241,6 +243,7 @@ services:
       context: ../backend
       dockerfile: services/core-service/Dockerfile
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
@@ -283,6 +286,7 @@ services:
       context: ../backend
       dockerfile: services/payment-service/Dockerfile
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       PAYMENT_DB_URL: jdbc:postgresql://core-db:5432/payment_db
@@ -315,6 +319,7 @@ services:
       context: ../backend
       dockerfile: services/ai-service/Dockerfile
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       AI_DB_URL: jdbc:postgresql://core-db:5432/ai_db
@@ -350,6 +355,7 @@ services:
       context: ../backend
       dockerfile: services/gateway-service/Dockerfile
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
       CONFIG_SERVER_URL: http://config-server:8888
       JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem

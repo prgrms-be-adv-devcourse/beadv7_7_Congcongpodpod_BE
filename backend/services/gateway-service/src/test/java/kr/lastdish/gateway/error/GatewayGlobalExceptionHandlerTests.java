@@ -38,7 +38,7 @@ class GatewayGlobalExceptionHandlerTests {
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
-    completionLogger = new RequestCompletionLogger();
+    completionLogger = new RequestCompletionLogger(true);
     handler = new GatewayGlobalExceptionHandler(objectMapper, completionLogger);
 
     logger =
@@ -202,7 +202,8 @@ class GatewayGlobalExceptionHandlerTests {
     handler.handle(exchange, new IllegalStateException("unexpected")).block();
 
     assertThat(appender.list).hasSize(1);
-    assertThat(appender.list.getFirst().getFormattedMessage()).contains("req-abc-123");
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-abc-123");
   }
 
   @Test
@@ -211,7 +212,9 @@ class GatewayGlobalExceptionHandlerTests {
     handler.handle(exchange(), new IllegalStateException("unexpected")).block();
 
     assertThat(appender.list).hasSize(1);
-    assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
+    // 예외 핸들러는 번호를 모를 때도 필드를 비우지 않고 unknown을 남긴다.
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, RequestIdSupport.UNKNOWN);
   }
 
   @Test
@@ -276,8 +279,9 @@ class GatewayGlobalExceptionHandlerTests {
       handler.handle(exchange, new ConnectException("연결 실패")).block();
 
       assertThat(완료수집기.list).hasSize(1);
+      assertThat(완료수집기.list.getFirst().getMDCPropertyMap())
+          .containsEntry(RequestIdSupport.KEY, "req-276-gw-error");
       assertThat(완료수집기.list.getFirst().getFormattedMessage())
-          .contains("requestId=req-276-gw-error")
           .contains("status=503")
           .contains("pathPattern=unmatched")
           .doesNotContain("8817342");
