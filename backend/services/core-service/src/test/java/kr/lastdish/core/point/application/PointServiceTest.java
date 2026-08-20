@@ -26,6 +26,7 @@ class PointServiceTest {
   @Mock private PointRepository pointRepository;
   @Mock private PointHistoryRepository pointHistoryRepository;
   @Mock private LevelService levelService;
+  @Mock private PointExpirationService pointExpirationService;
 
   @InjectMocks private PointService pointService;
 
@@ -192,5 +193,43 @@ class PointServiceTest {
         .isInstanceOf(BusinessException.class);
 
     verify(pointHistoryRepository, never()).save(any());
+  }
+
+  @Test
+  void use_호출하면_사용_전에_만료_처리를_먼저_수행한다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("1000"));
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+
+    PointHistory earnHistory =
+        PointHistory.recordEarn(1L, 100L, new BigDecimal("1000"), new BigDecimal("1000"));
+    given(pointHistoryRepository.findUsableEarnHistories(1L)).willReturn(List.of(earnHistory));
+    given(pointHistoryRepository.save(any(PointHistory.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    pointService.use(1L, 200L, new BigDecimal("300"));
+
+    verify(pointExpirationService).expireDueHistories(point);
+  }
+
+  @Test
+  void use_이미_만료된_포인트는_사용_전에_소멸되어_잔액에서_제외된다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("500")); // balance = 500이지만 실제로는 이미 만료된 상태라고 가정
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+
+    // expireDueHistories가 호출되면 500 전액이 소멸되도록 stub
+    doAnswer(
+            invocation -> {
+              Point p = invocation.getArgument(0);
+              p.expire(new BigDecimal("500"));
+              return null;
+            })
+        .when(pointExpirationService)
+        .expireDueHistories(point);
+
+    // 만료 반영 후 잔액은 0인데 300을 사용하려고 시도
+    assertThatThrownBy(() -> pointService.use(1L, 200L, new BigDecimal("300")))
+        .isInstanceOf(InsufficientPointException.class);
   }
 }

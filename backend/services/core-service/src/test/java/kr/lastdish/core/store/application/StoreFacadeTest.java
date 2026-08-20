@@ -122,7 +122,8 @@ class StoreFacadeTest {
         closeTime,
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
-        Category.KOREAN);
+        Category.KOREAN,
+        LocalDateTime.of(2026, 8, 20, 12, 0));
   }
 
   private Dish createDish(Long stockQuantity) {

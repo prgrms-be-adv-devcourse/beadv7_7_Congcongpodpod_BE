@@ -66,7 +66,8 @@ class StoreJpaRepositoryTest {
             LocalTime.of(22, 0),
             BigDecimal.valueOf(37.5),
             BigDecimal.valueOf(127.0),
-            Category.KOREAN);
+            Category.KOREAN,
+            LocalDateTime.of(2026, 8, 10, 12, 0));
     ReflectionTestUtils.setField(store, "nextClosingAt", nextClosingAt);
     return store;
   }

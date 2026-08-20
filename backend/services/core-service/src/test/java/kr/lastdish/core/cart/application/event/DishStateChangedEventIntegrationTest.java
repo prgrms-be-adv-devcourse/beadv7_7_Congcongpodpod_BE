@@ -36,7 +36,7 @@ class DishStateChangedEventIntegrationTest {
             CartItem.create(
                 1L,
                 10L,
-                null,
+                100L,
                 "김치찌개",
                 BigDecimal.valueOf(8_000),
                 BigDecimal.valueOf(8_000),

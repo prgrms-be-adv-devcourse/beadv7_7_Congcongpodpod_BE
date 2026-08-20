@@ -13,7 +13,8 @@ public record CartItemResponse(
     Long quantity,
     BigDecimal subtotalPrice,
     CartItemStatus status,
-    boolean orderable) {
+    boolean orderable,
+    Long lastAppliedDishPriceVersion) {
 
   public static CartItemResponse from(CartItem cartItem) {
     return new CartItemResponse(
@@ -24,6 +25,7 @@ public record CartItemResponse(
         cartItem.getQuantity(),
         cartItem.getSubtotalPrice(),
         cartItem.getStatus(),
-        cartItem.isOrderable());
+        cartItem.isOrderable(),
+        cartItem.getLastAppliedDishPriceVersion());
   }
 }
