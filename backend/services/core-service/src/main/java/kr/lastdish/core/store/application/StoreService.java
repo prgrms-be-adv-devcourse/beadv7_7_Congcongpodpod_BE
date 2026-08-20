@@ -61,15 +61,7 @@ public class StoreService {
 
   @Transactional
   public StoreResult update(Long storeId, Long memberId, UpdateStoreCommand command) {
-    Store store =
-        storeRepository
-            .findWithLockById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
-
-    if (!store.isOwnedBy(memberId)) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
-    }
+    Store store = getOwnedStoreWithLock(storeId, memberId);
 
     store.update(
         command.storeName(),
@@ -92,15 +84,7 @@ public class StoreService {
 
   @Transactional
   public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
-    Store store =
-        storeRepository
-            .findWithLockById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
-
-    if (!store.isOwnedBy(memberId)) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
-    }
+    Store store = getOwnedStoreWithLock(storeId, memberId);
 
     store.changeStatus(status);
 
@@ -114,6 +98,17 @@ public class StoreService {
   // 매장 soft delete 시 휴무일 hard delete
   @Transactional
   public void deleteStore(Long storeId, Long memberId) {
+    Store store = getOwnedStoreWithLock(storeId, memberId);
+
+    store.delete();
+    payoutAccountRepository.deleteByStoreId(storeId);
+
+    //    TODO : 리스너 구현 시 이벤트 발행 활성화
+    //    appendDeletedEvent(store);
+  }
+
+  // 이벤트를 발행하는 변경 메서드용 — 행 잠금으로 eventVersion 경합을 막고 소유권을 검증한다.
+  private Store getOwnedStoreWithLock(Long storeId, Long memberId) {
     Store store =
         storeRepository
             .findWithLockById(storeId)
@@ -124,11 +119,7 @@ public class StoreService {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
     }
 
-    store.delete();
-    payoutAccountRepository.deleteByStoreId(storeId);
-
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendDeletedEvent(store);
+    return store;
   }
 
   public Store getOwnedStore(Long storeId, Long memberId) {
