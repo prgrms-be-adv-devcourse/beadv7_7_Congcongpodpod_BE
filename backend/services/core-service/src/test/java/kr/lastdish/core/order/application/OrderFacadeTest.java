@@ -22,7 +22,7 @@ import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.payment.application.deposit.DepositFacade;
+import kr.lastdish.core.deposit.application.DepositFacade;
 import kr.lastdish.core.store.application.StoreFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
