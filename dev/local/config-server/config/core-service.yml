@@ -35,7 +35,7 @@ spring:
       key-prefix: "core-service:"
   datasource:
     # Core는 core_db의 public 스키마만 소유합니다. Payment 데이터는 별도 payment_db에 있습니다.
-    url: ${CORE_DB_URL:jdbc:postgresql://localhost:54322/core_db}
+    url: ${CORE_DB_URL:jdbc:postgresql://localhost:54322/core_db?reWriteBatchedInserts=true}
     username: ${CORE_DB_USERNAME:core}
     password: ${CORE_DB_PASSWORD:core_local_password}
     driver-class-name: org.postgresql.Driver
