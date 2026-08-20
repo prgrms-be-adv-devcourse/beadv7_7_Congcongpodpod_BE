@@ -1,5 +1,6 @@
 package kr.lastdish.core.point.infrastructure;
 
+import java.math.BigDecimal;
 import java.util.List;
 import kr.lastdish.core.point.domain.PointHistory;
 import kr.lastdish.core.point.domain.PointHistoryRepository;
@@ -46,5 +47,10 @@ public class PointHistoryRepositoryImpl implements PointHistoryRepository {
   @Override
   public void deleteAll() {
     pointHistoryJpaRepository.deleteAll();
+  }
+
+  @Override
+  public BigDecimal sumExpiringAmountByMember(Long memberId) {
+    return pointHistoryJpaRepository.sumExpiringAmountByMember(memberId);
   }
 }

@@ -28,7 +28,13 @@ public class PointService {
 
   @Transactional(readOnly = true)
   public PointBalanceResponse getPointBalance(Long memberId) {
-    return PointBalanceResponse.from(getOrDefaultPoint(memberId));
+    Point point = getOrDefaultPoint(memberId);
+
+    BigDecimal expiringAmount = pointHistoryRepository.sumExpiringAmountByMember(memberId);
+
+    BigDecimal usableBalance = point.getBalance().subtract(expiringAmount);
+
+    return new PointBalanceResponse(usableBalance);
   }
 
   // 포인트 적립 (Level 적립률 * 최종 주문 금액)
