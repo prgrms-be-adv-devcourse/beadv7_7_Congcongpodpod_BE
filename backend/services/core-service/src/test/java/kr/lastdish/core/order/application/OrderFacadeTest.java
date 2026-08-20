@@ -79,7 +79,7 @@ class OrderFacadeTest {
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
     LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(orderService.validatePickupDeadline(cartItem)).thenReturn(pickupDeadline);
+    when(orderService.validatePickupDeadline(eq(cartItem), any())).thenReturn(pickupDeadline);
     when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
         .thenReturn(order);
 
@@ -99,8 +99,8 @@ class OrderFacadeTest {
 
     inOrder.verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
-    inOrder.verify(storeFacade).validateOpen(1L);
-    inOrder.verify(orderService).validatePickupDeadline(cartItem);
+    inOrder.verify(storeFacade).validateOpen(eq(1L), any());
+    inOrder.verify(orderService).validatePickupDeadline(eq(cartItem), any());
     inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem, pickupDeadline);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
@@ -125,13 +125,13 @@ class OrderFacadeTest {
             new kr.lastdish.common.api.exception.BusinessException(
                 kr.lastdish.core.common.exception.ErrorCode.ORDER_STORE_CLOSED))
         .when(storeFacade)
-        .validateOpen(cartItem.storeId());
+        .validateOpen(eq(cartItem.storeId()), any());
 
     assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("매장이 영업 중이 아닙니다.");
 
-    verify(orderService, never()).validatePickupDeadline(any());
+    verify(orderService, never()).validatePickupDeadline(any(), any());
     verifyNoInteractions(orderService, depositFacade);
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
@@ -150,13 +150,13 @@ class OrderFacadeTest {
             new kr.lastdish.common.api.exception.BusinessException(
                 kr.lastdish.core.common.exception.ErrorCode.ORDER_PICKUP_DEADLINE_PASSED))
         .when(orderService)
-        .validatePickupDeadline(cartItem);
+        .validatePickupDeadline(eq(cartItem), any());
 
     assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("상품의 픽업 마감 시간이 지났습니다.");
 
-    verify(storeFacade).validateOpen(cartItem.storeId());
+    verify(storeFacade).validateOpen(eq(cartItem.storeId()), any());
     verify(orderService, never()).createOrder(anyLong(), any(), any(), any());
     verifyNoInteractions(depositFacade);
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
@@ -217,7 +217,7 @@ class OrderFacadeTest {
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
     LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(orderService.validatePickupDeadline(cartItem)).thenReturn(pickupDeadline);
+    when(orderService.validatePickupDeadline(eq(cartItem), any())).thenReturn(pickupDeadline);
     when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
         .thenReturn(order);
 

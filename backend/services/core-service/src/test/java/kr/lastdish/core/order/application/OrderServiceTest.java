@@ -8,9 +8,7 @@ import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
@@ -35,7 +33,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -58,7 +55,6 @@ class OrderServiceTest {
   @Mock private StoreService storeService;
 
   private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
-  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   private OrderService orderService;
 
@@ -123,8 +119,7 @@ class OrderServiceTest {
     when(storeService.calculatePickupDeadline(
             cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now))
         .thenReturn(expectedDeadline);
-    LocalDateTime pickupDeadline =
-        withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem));
+    LocalDateTime pickupDeadline = orderService.validatePickupDeadline(cartItem, now);
 
     assertThat(pickupDeadline).isEqualTo(expectedDeadline);
   }
@@ -143,7 +138,7 @@ class OrderServiceTest {
     when(storeService.calculatePickupDeadline(cartItem.storeId(), pickupStartAt, pickupEndAt, now))
         .thenReturn(now.toLocalDate().atTime(pickupEndAt));
 
-    withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem));
+    orderService.validatePickupDeadline(cartItem, now);
   }
 
   private static Stream<Arguments> orderablePickupDeadlineCases() {
@@ -165,8 +160,7 @@ class OrderServiceTest {
             cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now))
         .thenReturn(LocalDateTime.of(2026, 8, 19, 19, 0));
 
-    assertThatThrownBy(
-            () -> withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem)))
+    assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem, now))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
@@ -183,23 +177,6 @@ class OrderServiceTest {
         BigDecimal.valueOf(5000),
         pickupStartAt,
         pickupEndAt);
-  }
-
-  private <T> T withCurrentTime(LocalDateTime now, Supplier<T> action) {
-    try (MockedStatic<LocalDateTime> mockedDateTime =
-        mockStatic(LocalDateTime.class, CALLS_REAL_METHODS)) {
-      mockedDateTime.when(() -> LocalDateTime.now(BUSINESS_ZONE)).thenReturn(now);
-      return action.get();
-    }
-  }
-
-  private void withCurrentTime(LocalDateTime now, Runnable action) {
-    withCurrentTime(
-        now,
-        () -> {
-          action.run();
-          return null;
-        });
   }
 
   @Test

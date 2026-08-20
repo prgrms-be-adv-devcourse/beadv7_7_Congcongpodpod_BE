@@ -44,8 +44,8 @@ public class StoreFacade {
     storeService.validateSeller(storeId, memberId);
   }
 
-  public void validateOpen(Long storeId) {
-    storeService.validateOpen(storeId);
+  public void validateOpen(Long storeId, LocalDateTime now) {
+    storeService.validateOpen(storeId, now);
   }
 
   public List<Long> findSettlementTargetStoreIds() {

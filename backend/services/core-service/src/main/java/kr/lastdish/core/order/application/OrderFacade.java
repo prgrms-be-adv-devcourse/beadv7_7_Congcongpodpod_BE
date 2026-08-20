@@ -1,6 +1,7 @@
 package kr.lastdish.core.order.application;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.application.CartFacade;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class OrderFacade {
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
@@ -45,7 +47,9 @@ public class OrderFacade {
     CartOrderSnapshot cartItem =
         cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, dishPriceVersion);
 
-    LocalDateTime pickupDeadline = validateBeforeOrder(cartItem);
+    // 영업 여부와 픽업 마감을 같은 기준 시각으로 판단한다. 각자 now()를 부르면 자정 근처에서 두 판정이 갈린다.
+    LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
+    LocalDateTime pickupDeadline = validateBeforeOrder(cartItem, now);
 
     // 주문 생성 및 저장
     Order order = orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline);
@@ -65,9 +69,9 @@ public class OrderFacade {
     return result;
   }
 
-  private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem) {
-    storeFacade.validateOpen(cartItem.storeId());
-    return orderService.validatePickupDeadline(cartItem);
+  private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem, LocalDateTime now) {
+    storeFacade.validateOpen(cartItem.storeId(), now);
+    return orderService.validatePickupDeadline(cartItem, now);
   }
 
   // 주문 취소 - 재고 복구 - 결제 환불
