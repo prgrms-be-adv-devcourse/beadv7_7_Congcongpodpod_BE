@@ -44,10 +44,10 @@ public class StoreService {
             command.closeTime(),
             command.latitude(),
             command.longitude(),
-            command.category());
+            command.category(),
+            LocalDateTime.now(BUSINESS_ZONE));
 
     command.holidays().forEach(store::addHoliday);
-    store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
     Store savedStore = storeRepository.save(store);
 
@@ -105,6 +105,18 @@ public class StoreService {
     }
 
     return store;
+  }
+
+  /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. 영업 상태 플래그와 영업시간을 함께 본다. */
+  public void validateOpen(Long storeId, LocalDateTime now) {
+    Store store =
+        storeRepository
+            .findById(storeId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_STORE_CLOSED));
+
+    if (!store.isOpenAt(now)) {
+      throw new BusinessException(ErrorCode.ORDER_STORE_CLOSED);
+    }
   }
 
   // Seller 본인 매장 조회 — 지금은 회원당 매장 1개 제약이라 0~1건이지만, 나중에 여러 개로 늘어나도
@@ -183,26 +195,24 @@ public class StoreService {
 
   public void validateDishPickupTime(
       Long storeId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
-
-    int businessDuration = forwardMinutes(store.getOpenTime(), store.getCloseTime());
-    int pickupStartOffset = forwardMinutes(store.getOpenTime(), pickupStartTime);
-    int pickupEndOffset = forwardMinutes(store.getOpenTime(), pickupEndTime);
-
-    boolean isWithinBusinessHours =
-        pickupEndOffset <= businessDuration && pickupStartOffset <= pickupEndOffset;
-
-    if (!isWithinBusinessHours) {
-      throw new BusinessException(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
-    }
+    findStore(storeId).validatePickupTime(pickupStartTime, pickupEndTime);
   }
 
-  private int forwardMinutes(LocalTime from, LocalTime to) {
-    int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
-    return Math.floorMod(minutes, 24 * 60);
+  /**
+   * 매장 영업일 기준으로 픽업 마감 일시를 확정한다.
+   *
+   * <p>픽업 창이 영업시간 안에 있는지는 다시 보지 않는다 — 그 불변식은 Dish 등록·수정 시점에 이미 검증되며, 주문 시점에 다시 던지면 구매자가 상품 등록용
+   * 에러(DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS)를 받게 된다.
+   */
+  public LocalDateTime calculatePickupDeadline(
+      Long storeId, LocalTime pickupEndTime, LocalDateTime now) {
+    return findStore(storeId).calculatePickupDeadline(now, pickupEndTime);
+  }
+
+  private Store findStore(Long storeId) {
+    return storeRepository
+        .findById(storeId)
+        .orElseThrow(
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
   }
 }

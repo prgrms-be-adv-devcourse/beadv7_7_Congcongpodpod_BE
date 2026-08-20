@@ -5,6 +5,7 @@ import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.order.application.OrderFacade;
 import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.order.domain.OrderStatus;
+import kr.lastdish.core.order.presentation.dto.request.OrderCreateRequest;
 import kr.lastdish.core.order.presentation.dto.request.OrderRejectRequest;
 import kr.lastdish.core.order.presentation.dto.request.PickupStatusRequest;
 import kr.lastdish.core.order.presentation.dto.response.*;
@@ -24,8 +25,12 @@ public class OrderController {
 
   @PostMapping("/cartItems/{cartItemId}")
   public ApiResponse<OrderResponse> createOrder(
-      @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long cartItemId) {
-    return ApiResponse.ok(OrderResponse.from(orderFacade.payAndCreateOrder(memberId, cartItemId)));
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PathVariable Long cartItemId,
+      @RequestBody @Valid OrderCreateRequest request) {
+    return ApiResponse.ok(
+        OrderResponse.from(
+            orderFacade.payAndCreateOrder(memberId, cartItemId, request.dishPriceVersion())));
   }
 
   @PatchMapping("/{orderId}/cancel")
