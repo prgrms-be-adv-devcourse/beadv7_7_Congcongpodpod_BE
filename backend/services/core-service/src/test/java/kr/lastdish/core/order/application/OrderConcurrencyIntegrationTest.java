@@ -239,7 +239,7 @@ class OrderConcurrencyIntegrationTest {
   private Throwable orderAfterSignal(CountDownLatch start, Long memberId, Long cartItemId) {
     try {
       start.await();
-      orderFacade.payAndCreateOrder(memberId, cartItemId);
+      orderFacade.payAndCreateOrder(memberId, cartItemId, 0L);
       return null;
     } catch (Throwable throwable) {
       return throwable;

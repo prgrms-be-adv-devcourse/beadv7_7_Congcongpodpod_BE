@@ -74,7 +74,7 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
-    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
     when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
@@ -84,7 +84,7 @@ class OrderFacadeTest {
     when(orderService.completePayment(10L)).thenReturn(expectedResponse);
 
     // when
-    OrderResult response = orderFacade.payAndCreateOrder(memberId, cartItemId);
+    OrderResult response = orderFacade.payAndCreateOrder(memberId, cartItemId, 3L);
 
     // then
     assertThat(response).isSameAs(expectedResponse);
@@ -94,7 +94,7 @@ class OrderFacadeTest {
             orderMemberQueryPort, cartFacade, orderService, dishFacade, storeFacade, depositFacade);
 
     inOrder.verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
-    inOrder.verify(cartFacade).getOrderSnapshot(memberId, cartItemId);
+    inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
     inOrder.verify(storeFacade).validateOpen(1L);
     inOrder.verify(orderService).validatePickupDeadline(cartItem);
     inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem);
@@ -116,14 +116,14 @@ class OrderFacadeTest {
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
 
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     doThrow(
             new kr.lastdish.common.api.exception.BusinessException(
                 kr.lastdish.core.common.exception.ErrorCode.ORDER_STORE_CLOSED))
         .when(storeFacade)
         .validateOpen(cartItem.storeId());
 
-    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId))
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("매장이 영업 중이 아닙니다.");
 
@@ -141,14 +141,14 @@ class OrderFacadeTest {
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
 
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     doThrow(
             new kr.lastdish.common.api.exception.BusinessException(
                 kr.lastdish.core.common.exception.ErrorCode.ORDER_PICKUP_DEADLINE_PASSED))
         .when(orderService)
         .validatePickupDeadline(cartItem);
 
-    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId))
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("상품의 픽업 마감 시간이 지났습니다.");
 
@@ -156,6 +156,30 @@ class OrderFacadeTest {
     verify(orderService, never()).createOrder(anyLong(), any(), any());
     verifyNoInteractions(depositFacade);
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
+  }
+
+  @Test
+  @DisplayName("프론트의 가격 버전과 장바구니에 적용된 가격 버전이 다르면 주문하지 않는다")
+  void payAndCreateOrder_dishPriceChanged() {
+    Long memberId = 1L;
+    Long cartItemId = 1L;
+    CartOrderSnapshot cartItem = createCartOrderSnapshot();
+    OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
+
+    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 2L))
+        .thenThrow(
+            new kr.lastdish.common.api.exception.BusinessException(
+                kr.lastdish.core.common.exception.ErrorCode.ORDER_DISH_PRICE_CHANGED));
+
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 2L))
+        .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(kr.lastdish.core.common.exception.ErrorCode.ORDER_DISH_PRICE_CHANGED);
+
+    verify(orderService, never()).createOrder(anyLong(), any(), any());
+    verify(dishFacade, never()).decreaseStock(anyLong(), anyLong());
+    verifyNoInteractions(depositFacade);
   }
 
   private CartOrderSnapshot createCartOrderSnapshot() {
@@ -185,7 +209,7 @@ class OrderFacadeTest {
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
-    when(cartFacade.getOrderSnapshot(memberId, cartItemId)).thenReturn(cartItem);
+    when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
     when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
@@ -195,7 +219,7 @@ class OrderFacadeTest {
         .use(memberId, 10L, BigDecimal.valueOf(10_000));
 
     // when & then
-    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId))
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("예치금 잔액이 부족합니다.");
 

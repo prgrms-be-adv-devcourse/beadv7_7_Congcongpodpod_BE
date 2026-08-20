@@ -37,10 +37,13 @@ public class OrderFacade {
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResult payAndCreateOrder(Long memberId, Long cartItemId) {
+  public OrderResult payAndCreateOrder(Long memberId, Long cartItemId, Long dishPriceVersion) {
     // 외부 회원 서비스 호출을 먼저 완료해 CartItem DB 잠금 시간을 최소화한다.
     OrderMemberInfo memberInfo = orderMemberQueryPort.getOrderMemberInfo(memberId);
-    CartOrderSnapshot cartItem = cartFacade.getOrderSnapshot(memberId, cartItemId);
+
+    // 가격 변경 검증
+    CartOrderSnapshot cartItem =
+        cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, dishPriceVersion);
 
     validateBeforeOrder(cartItem);
 

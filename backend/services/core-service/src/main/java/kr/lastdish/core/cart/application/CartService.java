@@ -116,8 +116,13 @@ public class CartService {
   }
 
   @Transactional(readOnly = true)
-  public CartOrderSnapshot getOrderSnapshot(Long memberId, Long cartItemId) {
+  public CartOrderSnapshot getValidatedOrderSnapshot(
+      Long memberId, Long cartItemId, long expectedDishPriceVersion) {
     CartItem cartItem = getOwnedOrderCartItemWithLock(memberId, cartItemId);
+
+    if (cartItem.getLastAppliedDishPriceVersion() != expectedDishPriceVersion) {
+      throw new BusinessException(ErrorCode.ORDER_DISH_PRICE_CHANGED);
+    }
 
     if (!cartItem.isOrderable()) {
       throw new BusinessException(ErrorCode.CART_ITEM_NOT_ORDERABLE);
