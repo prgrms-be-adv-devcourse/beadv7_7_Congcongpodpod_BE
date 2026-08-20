@@ -42,6 +42,18 @@ class StoreJpaRepositoryTest {
     assertThat(saved.getUpdatedAt()).isNotNull();
   }
 
+  @Test
+  void 소프트_삭제된_매장은_조회되지_않는다() {
+    Store store =
+        storeJpaRepository.saveAndFlush(
+            store("666-66-66666", LocalDateTime.of(2026, 8, 10, 22, 0)));
+
+    store.delete();
+    storeJpaRepository.flush();
+
+    assertThat(storeJpaRepository.findByIdAndDeletedFalse(store.getId())).isEmpty();
+  }
+
   private Store store(String businessNumber, LocalDateTime nextClosingAt) {
     Store store =
         new Store(

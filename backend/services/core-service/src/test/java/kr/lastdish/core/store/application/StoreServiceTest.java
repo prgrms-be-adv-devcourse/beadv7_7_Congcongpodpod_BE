@@ -216,14 +216,9 @@ class StoreServiceTest {
   }
 
   @Test
-  void throws_exception_when_store_is_soft_deleted() {
+  void throws_exception_when_store_not_found() {
     // given
     Long storeId = 10L;
-
-    // 테스트 의도를 명확히 하기 위해 추가, Mockito 응답에 직접 사용되지는 않음
-    Store deletedStore = createStore(LocalTime.now(), LocalTime.now());
-    ReflectionTestUtils.setField(deletedStore, "id", storeId);
-    deletedStore.delete();
 
     when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
 
