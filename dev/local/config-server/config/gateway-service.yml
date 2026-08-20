@@ -5,8 +5,8 @@ spring:
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
       password: ${REDIS_PASSWORD}
-      connect-timeout: 1s
-      timeout: 1s
+      connect-timeout: 5s
+      timeout: 5s
   cloud:
     gateway:
       server:
