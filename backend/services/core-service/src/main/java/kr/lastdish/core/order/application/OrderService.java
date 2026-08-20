@@ -1,6 +1,5 @@
 package kr.lastdish.core.order.application;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -28,7 +27,6 @@ public class OrderService {
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
-  private final Clock clock;
   private static final int MAX_PICKUP_CODE_RETRY = 5;
 
   // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
@@ -54,7 +52,7 @@ public class OrderService {
   }
 
   private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
-    LocalDateTime now = LocalDateTime.now(clock);
+    LocalDateTime now = LocalDateTime.now();
     var pickupDate = now.toLocalDate();
 
     boolean crossesMidnight = cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt());
@@ -69,7 +67,7 @@ public class OrderService {
 
   /** 픽업 마감 일시가 지난 경우에만 주문을 중단한다. */
   public void validatePickupDeadline(CartOrderSnapshot cartItem) {
-    LocalDateTime now = LocalDateTime.now(clock);
+    LocalDateTime now = LocalDateTime.now();
     if (now.isAfter(pickupDeadline(cartItem))) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
@@ -137,10 +135,10 @@ public class OrderService {
 
     switch (command.status()) {
       case PICKED_UP -> {
-        order.completePickup(LocalDateTime.now(clock));
+        order.completePickup(LocalDateTime.now());
       }
       case NO_SHOW -> {
-        order.markNoShow(LocalDateTime.now(clock));
+        order.markNoShow(LocalDateTime.now());
       }
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }

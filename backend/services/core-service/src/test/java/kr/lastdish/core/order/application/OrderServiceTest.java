@@ -6,11 +6,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
@@ -34,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -53,26 +53,19 @@ class OrderServiceTest {
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
-  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
   private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
 
   private OrderService orderService;
 
   @BeforeEach
   void setUp() {
-    setCurrentTime(FIXED_NOW);
-  }
-
-  private void setCurrentTime(LocalDateTime now) {
-    Clock clock = Clock.fixed(now.atZone(BUSINESS_ZONE).toInstant(), BUSINESS_ZONE);
     orderService =
         new OrderService(
             orderRepository,
             orderStatusChangedEventWriter,
             orderPickedUpEventWriter,
             orderNoShowEventWriter,
-            pickupCodeGenerator,
-            clock);
+            pickupCodeGenerator);
   }
 
   @Test
@@ -94,7 +87,8 @@ class OrderServiceTest {
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    Order order = orderService.createOrder(memberId, memberInfo, cartItem);
+    Order order =
+        withCurrentTime(FIXED_NOW, () -> orderService.createOrder(memberId, memberInfo, cartItem));
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
@@ -118,13 +112,16 @@ class OrderServiceTest {
   @MethodSource("crossMidnightDeadlineCases")
   @DisplayName("자정을 넘기는 픽업의 마감 일시를 계산한다")
   void 자정을_넘기는_픽업의_마감_일시를_계산한다(LocalDateTime now, LocalDateTime expectedDeadline) {
-    setCurrentTime(now);
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     Order order =
-        orderService.createOrder(1L, new OrderMemberInfo("테스트 회원", "010-1234-5678"), cartItem);
+        withCurrentTime(
+            now,
+            () ->
+                orderService.createOrder(
+                    1L, new OrderMemberInfo("테스트 회원", "010-1234-5678"), cartItem));
 
     assertThat(order.getPickupDeadline()).isEqualTo(expectedDeadline);
   }
@@ -139,10 +136,9 @@ class OrderServiceTest {
   @MethodSource("orderablePickupDeadlineCases")
   @DisplayName("픽업 마감 전이면 주문할 수 있다")
   void 픽업_마감_전이면_주문할_수_있다(LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
-    setCurrentTime(now);
     CartOrderSnapshot cartItem = createCartOrderSnapshot(pickupStartAt, pickupEndAt);
 
-    orderService.validatePickupDeadline(cartItem);
+    withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem));
   }
 
   private static Stream<Arguments> orderablePickupDeadlineCases() {
@@ -163,9 +159,11 @@ class OrderServiceTest {
   void 픽업_마감이_지났으면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
 
-    setCurrentTime(LocalDateTime.of(2026, 8, 19, 19, 0, 1));
-
-    assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem))
+    assertThatThrownBy(
+            () ->
+                withCurrentTime(
+                    LocalDateTime.of(2026, 8, 19, 19, 0, 1),
+                    () -> orderService.validatePickupDeadline(cartItem)))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
@@ -182,6 +180,23 @@ class OrderServiceTest {
         BigDecimal.valueOf(5000),
         pickupStartAt,
         pickupEndAt);
+  }
+
+  private <T> T withCurrentTime(LocalDateTime now, Supplier<T> action) {
+    try (MockedStatic<LocalDateTime> mockedDateTime =
+        mockStatic(LocalDateTime.class, CALLS_REAL_METHODS)) {
+      mockedDateTime.when(LocalDateTime::now).thenReturn(now);
+      return action.get();
+    }
+  }
+
+  private void withCurrentTime(LocalDateTime now, Runnable action) {
+    withCurrentTime(
+        now,
+        () -> {
+          action.run();
+          return null;
+        });
   }
 
   @Test
