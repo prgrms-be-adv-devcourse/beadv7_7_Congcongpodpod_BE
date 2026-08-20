@@ -56,6 +56,9 @@ public class StoreService {
 
     Store savedStore = storeRepository.save(store);
 
+    //    TODO : 리스너 구현 시 이벤트 발행 활성화
+    //    appendCreatedEvent(savedStore);
+
     return StoreResult.from(savedStore);
   }
 
@@ -244,6 +247,23 @@ public class StoreService {
         .findById(storeId)
         .orElseThrow(
             () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+  }
+
+  // 검색 문서 생성을 요청하는 매장 생성 이벤트를 Outbox에 기록한다.
+  private void appendCreatedEvent(Store store) {
+    long aggregateVersion = store.nextEventVersion();
+    StoreCreatedPayload payload = new StoreCreatedPayload(store.getId());
+
+    StoreCreatedEvent event =
+        new StoreCreatedEvent(
+            UUID.randomUUID(),
+            StoreCreatedEvent.SCHEMA_VERSION,
+            store.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
   }
 
   // 검색 문서 갱신을 요청하는 매장 정보 변경 이벤트를 Outbox에 기록한다.

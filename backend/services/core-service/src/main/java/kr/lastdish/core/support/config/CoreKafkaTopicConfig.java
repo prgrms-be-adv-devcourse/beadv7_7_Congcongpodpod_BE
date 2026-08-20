@@ -29,6 +29,14 @@ public class CoreKafkaTopicConfig {
   아래 토픽은 리스너 구현 시 주석을 해제한다.
 
   @Bean
+  NewTopic storeCreatedTopic() {
+    return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreCreatedEvent.EVENT_TYPE)
+        .partitions(3)
+        .replicas(1)
+        .build();
+  }
+
+  @Bean
   NewTopic dishCreatedTopic() {
     return TopicBuilder.name(kr.lastdish.core.dish.domain.event.DishCreatedEvent.EVENT_TYPE)
         .partitions(3)
