@@ -44,10 +44,10 @@ public class StoreService {
             command.closeTime(),
             command.latitude(),
             command.longitude(),
-            command.category());
+            command.category(),
+            LocalDateTime.now(BUSINESS_ZONE));
 
     command.holidays().forEach(store::addHoliday);
-    store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
     Store savedStore = storeRepository.save(store);
 
@@ -195,26 +195,20 @@ public class StoreService {
 
   public void validateDishPickupTime(
       Long storeId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
-
-    int businessDuration = forwardMinutes(store.getOpenTime(), store.getCloseTime());
-    int pickupStartOffset = forwardMinutes(store.getOpenTime(), pickupStartTime);
-    int pickupEndOffset = forwardMinutes(store.getOpenTime(), pickupEndTime);
-
-    boolean isWithinBusinessHours =
-        pickupEndOffset <= businessDuration && pickupStartOffset <= pickupEndOffset;
-
-    if (!isWithinBusinessHours) {
-      throw new BusinessException(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
-    }
+    findStore(storeId).validatePickupTime(pickupStartTime, pickupEndTime);
   }
 
-  private int forwardMinutes(LocalTime from, LocalTime to) {
-    int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
-    return Math.floorMod(minutes, 24 * 60);
+  public LocalDateTime calculatePickupDeadline(
+      Long storeId, LocalTime pickupStartTime, LocalTime pickupEndTime, LocalDateTime now) {
+    Store store = findStore(storeId);
+    store.validatePickupTime(pickupStartTime, pickupEndTime);
+    return store.calculatePickupDeadline(now, pickupEndTime);
+  }
+
+  private Store findStore(Long storeId) {
+    return storeRepository
+        .findById(storeId)
+        .orElseThrow(
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
   }
 }

@@ -29,6 +29,18 @@ class StoreTest {
     assertThat(store.getNextClosingAt()).isEqualTo(LocalDateTime.of(2026, 8, 11, 2, 0));
   }
 
+  @Test
+  void calculatesPickupDeadlineFromBusinessDate() {
+    Store store = store(LocalTime.of(22, 0), LocalTime.of(2, 0));
+
+    assertThat(
+            store.calculatePickupDeadline(LocalDateTime.of(2026, 8, 20, 3, 0), LocalTime.of(2, 0)))
+        .isEqualTo(LocalDateTime.of(2026, 8, 20, 2, 0));
+    assertThat(
+            store.calculatePickupDeadline(LocalDateTime.of(2026, 8, 20, 1, 0), LocalTime.of(2, 0)))
+        .isEqualTo(LocalDateTime.of(2026, 8, 20, 2, 0));
+  }
+
   private Store store(LocalTime openTime, LocalTime closeTime) {
     return new Store(
         1L,
@@ -40,6 +52,7 @@ class StoreTest {
         closeTime,
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
-        Category.KOREAN);
+        Category.KOREAN,
+        LocalDateTime.of(2026, 8, 10, 12, 0));
   }
 }

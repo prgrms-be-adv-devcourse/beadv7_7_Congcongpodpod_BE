@@ -26,6 +26,7 @@ import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
+import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,8 @@ class OrderServiceTest {
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
+  @Mock private StoreService storeService;
+
   private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
   private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
@@ -67,7 +70,8 @@ class OrderServiceTest {
             orderStatusChangedEventWriter,
             orderPickedUpEventWriter,
             orderNoShowEventWriter,
-            pickupCodeGenerator);
+            pickupCodeGenerator,
+            storeService);
   }
 
   @Test
@@ -90,7 +94,8 @@ class OrderServiceTest {
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     Order order =
-        withCurrentTime(FIXED_NOW, () -> orderService.createOrder(memberId, memberInfo, cartItem));
+        orderService.createOrder(
+            memberId, memberInfo, cartItem, FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt()));
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
@@ -115,22 +120,18 @@ class OrderServiceTest {
   @DisplayName("자정을 넘기는 픽업의 마감 일시를 계산한다")
   void 자정을_넘기는_픽업의_마감_일시를_계산한다(LocalDateTime now, LocalDateTime expectedDeadline) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
-    when(orderRepository.save(any(Order.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
+    when(storeService.calculatePickupDeadline(
+            cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now))
+        .thenReturn(expectedDeadline);
+    LocalDateTime pickupDeadline =
+        withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem));
 
-    Order order =
-        withCurrentTime(
-            now,
-            () ->
-                orderService.createOrder(
-                    1L, new OrderMemberInfo("테스트 회원", "010-1234-5678"), cartItem));
-
-    assertThat(order.getPickupDeadline()).isEqualTo(expectedDeadline);
+    assertThat(pickupDeadline).isEqualTo(expectedDeadline);
   }
 
   private static Stream<Arguments> crossMidnightDeadlineCases() {
     return Stream.of(
-        Arguments.of(LocalDateTime.of(2026, 8, 19, 12, 0), LocalDateTime.of(2026, 8, 20, 1, 0)),
+        Arguments.of(LocalDateTime.of(2026, 8, 19, 0, 30), LocalDateTime.of(2026, 8, 19, 1, 0)),
         Arguments.of(LocalDateTime.of(2026, 8, 20, 0, 30), LocalDateTime.of(2026, 8, 20, 1, 0)));
   }
 
@@ -139,6 +140,8 @@ class OrderServiceTest {
   @DisplayName("픽업 마감 전이면 주문할 수 있다")
   void 픽업_마감_전이면_주문할_수_있다(LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(pickupStartAt, pickupEndAt);
+    when(storeService.calculatePickupDeadline(cartItem.storeId(), pickupStartAt, pickupEndAt, now))
+        .thenReturn(now.toLocalDate().atTime(pickupEndAt));
 
     withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem));
   }
@@ -149,9 +152,6 @@ class OrderServiceTest {
             LocalDateTime.of(2026, 8, 19, 12, 0), LocalTime.of(11, 0), LocalTime.of(13, 0)),
         Arguments.of(
             LocalDateTime.of(2026, 8, 19, 12, 0), LocalTime.of(18, 0), LocalTime.of(19, 0)),
-        Arguments.of(LocalDateTime.of(2026, 8, 19, 12, 0), LocalTime.of(23, 0), LocalTime.of(1, 0)),
-        Arguments.of(
-            LocalDateTime.of(2026, 8, 19, 23, 30), LocalTime.of(23, 0), LocalTime.of(1, 0)),
         Arguments.of(
             LocalDateTime.of(2026, 8, 20, 0, 30), LocalTime.of(23, 0), LocalTime.of(1, 0)));
   }
@@ -160,12 +160,13 @@ class OrderServiceTest {
   @DisplayName("픽업 마감이 지나면 주문할 수 없다")
   void 픽업_마감이_지났으면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
+    LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0, 1);
+    when(storeService.calculatePickupDeadline(
+            cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now))
+        .thenReturn(LocalDateTime.of(2026, 8, 19, 19, 0));
 
     assertThatThrownBy(
-            () ->
-                withCurrentTime(
-                    LocalDateTime.of(2026, 8, 19, 19, 0, 1),
-                    () -> orderService.validatePickupDeadline(cartItem)))
+            () -> withCurrentTime(now, () -> orderService.validatePickupDeadline(cartItem)))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);

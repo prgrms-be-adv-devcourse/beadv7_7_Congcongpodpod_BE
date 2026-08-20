@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -77,7 +79,8 @@ public class Store {
       LocalTime closeTime,
       BigDecimal latitude,
       BigDecimal longitude,
-      Category category) {
+      Category category,
+      LocalDateTime now) {
     this.memberId = memberId;
     this.storeName = storeName;
     this.businessNumber = businessNumber;
@@ -85,7 +88,7 @@ public class Store {
     this.storePhone = storePhone;
     this.openTime = openTime;
     this.closeTime = closeTime;
-    this.nextClosingAt = calculateNextClosingAt(LocalDateTime.now());
+    this.nextClosingAt = calculateNextClosingAt(now);
     this.latitude = latitude;
     this.longitude = longitude;
     this.category = category;
@@ -126,6 +129,27 @@ public class Store {
   /** 영업시간과 정기 휴무일을 기준으로 기준 시각 이후의 가장 가까운 마감 일시를 계산한다. */
   public void rescheduleNextClosingAt(LocalDateTime from) {
     this.nextClosingAt = calculateNextClosingAt(from);
+  }
+
+  public void validatePickupTime(LocalTime pickupStartTime, LocalTime pickupEndTime) {
+    int businessDuration = forwardMinutes(openTime, closeTime);
+    int pickupStartOffset = forwardMinutes(openTime, pickupStartTime);
+    int pickupEndOffset = forwardMinutes(openTime, pickupEndTime);
+
+    if (pickupEndOffset > businessDuration || pickupStartOffset > pickupEndOffset) {
+      throw new BusinessException(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
+    }
+  }
+
+  public LocalDateTime calculatePickupDeadline(LocalDateTime now, LocalTime pickupEndTime) {
+    LocalDate businessDate =
+        now.toLocalTime().isBefore(openTime) ? now.toLocalDate().minusDays(1) : now.toLocalDate();
+    return businessDate.atTime(openTime).plusMinutes(forwardMinutes(openTime, pickupEndTime));
+  }
+
+  private int forwardMinutes(LocalTime from, LocalTime to) {
+    int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
+    return Math.floorMod(minutes, 24 * 60);
   }
 
   private LocalDateTime calculateNextClosingAt(LocalDateTime from) {

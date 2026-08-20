@@ -89,7 +89,8 @@ class OrderConcurrencyIntegrationTest {
                           LocalTime.of(23, 59, 59),
                           BigDecimal.valueOf(37.5),
                           BigDecimal.valueOf(127.0),
-                          Category.KOREAN));
+                          Category.KOREAN,
+                          LocalDateTime.now()));
               Dish dish =
                   dishJpaRepository.save(
                       Dish.create(

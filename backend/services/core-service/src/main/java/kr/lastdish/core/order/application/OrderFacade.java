@@ -45,10 +45,10 @@ public class OrderFacade {
     CartOrderSnapshot cartItem =
         cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, dishPriceVersion);
 
-    validateBeforeOrder(cartItem);
+    LocalDateTime pickupDeadline = validateBeforeOrder(cartItem);
 
     // 주문 생성 및 저장
-    Order order = orderService.createOrder(memberId, memberInfo, cartItem);
+    Order order = orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline);
 
     // 재고 차감
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
@@ -65,9 +65,9 @@ public class OrderFacade {
     return result;
   }
 
-  private void validateBeforeOrder(CartOrderSnapshot cartItem) {
+  private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem) {
     storeFacade.validateOpen(cartItem.storeId());
-    orderService.validatePickupDeadline(cartItem);
+    return orderService.validatePickupDeadline(cartItem);
   }
 
   // 주문 취소 - 재고 복구 - 결제 환불

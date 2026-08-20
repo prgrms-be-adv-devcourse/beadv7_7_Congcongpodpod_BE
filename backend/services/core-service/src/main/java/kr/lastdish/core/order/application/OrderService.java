@@ -14,6 +14,7 @@ import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
+import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,9 +32,14 @@ public class OrderService {
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
+  private final StoreService storeService;
 
   // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
-  public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
+  public Order createOrder(
+      Long memberId,
+      OrderMemberInfo memberInfo,
+      CartOrderSnapshot cartItem,
+      LocalDateTime pickupDeadline) {
     Order order =
         Order.create(
             memberId,
@@ -47,33 +53,24 @@ public class OrderService {
             cartItem.unitPrice(),
             cartItem.pickupStartAt(),
             cartItem.pickupEndAt(),
-            pickupDeadline(cartItem));
+            pickupDeadline);
 
     Order savedOrder = orderRepository.save(order);
     orderStatusChangedEventWriter.append(savedOrder);
     return savedOrder;
   }
 
-  private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
+  /** 픽업 마감 일시를 한 번 계산해 검증하고 주문 생성에 사용할 값으로 반환한다. */
+  public LocalDateTime validatePickupDeadline(CartOrderSnapshot cartItem) {
     LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
-    var pickupDate = now.toLocalDate();
-
-    boolean crossesMidnight = cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt());
-    boolean beforePickupDayStarts = now.toLocalTime().isAfter(cartItem.pickupEndAt());
-
-    if (crossesMidnight && beforePickupDayStarts) {
-      pickupDate = pickupDate.plusDays(1);
-    }
-
-    return pickupDate.atTime(cartItem.pickupEndAt());
-  }
-
-  /** 픽업 마감 일시가 지난 경우에만 주문을 중단한다. */
-  public void validatePickupDeadline(CartOrderSnapshot cartItem) {
-    LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
-    if (now.isAfter(pickupDeadline(cartItem))) {
+    LocalDateTime pickupDeadline =
+        storeService.calculatePickupDeadline(
+            cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now);
+    if (now.isAfter(pickupDeadline)) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
+
+    return pickupDeadline;
   }
 
   public OrderResult completePayment(Long orderId) {

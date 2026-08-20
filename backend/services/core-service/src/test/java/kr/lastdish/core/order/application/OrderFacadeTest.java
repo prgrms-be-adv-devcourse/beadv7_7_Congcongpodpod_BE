@@ -5,6 +5,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.core.cart.application.CartFacade;
@@ -76,8 +77,11 @@ class OrderFacadeTest {
 
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
+    LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
+    when(orderService.validatePickupDeadline(cartItem)).thenReturn(pickupDeadline);
+    when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
+        .thenReturn(order);
 
     OrderResult expectedResponse = mock(OrderResult.class);
 
@@ -97,7 +101,7 @@ class OrderFacadeTest {
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
     inOrder.verify(storeFacade).validateOpen(1L);
     inOrder.verify(orderService).validatePickupDeadline(cartItem);
-    inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem);
+    inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem, pickupDeadline);
 
     inOrder.verify(dishFacade).decreaseStock(100L, 2L);
 
@@ -153,7 +157,7 @@ class OrderFacadeTest {
         .hasMessage("상품의 픽업 마감 시간이 지났습니다.");
 
     verify(storeFacade).validateOpen(cartItem.storeId());
-    verify(orderService, never()).createOrder(anyLong(), any(), any());
+    verify(orderService, never()).createOrder(anyLong(), any(), any(), any());
     verifyNoInteractions(depositFacade);
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
@@ -177,7 +181,7 @@ class OrderFacadeTest {
         .extracting("errorCode")
         .isEqualTo(kr.lastdish.core.common.exception.ErrorCode.ORDER_DISH_PRICE_CHANGED);
 
-    verify(orderService, never()).createOrder(anyLong(), any(), any());
+    verify(orderService, never()).createOrder(anyLong(), any(), any(), any());
     verify(dishFacade, never()).decreaseStock(anyLong(), anyLong());
     verifyNoInteractions(depositFacade);
   }
@@ -211,8 +215,11 @@ class OrderFacadeTest {
 
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
+    LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
     when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
-    when(orderService.createOrder(memberId, memberInfo, cartItem)).thenReturn(order);
+    when(orderService.validatePickupDeadline(cartItem)).thenReturn(pickupDeadline);
+    when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
+        .thenReturn(order);
 
     doThrow(new RuntimeException("예치금 잔액이 부족합니다."))
         .when(depositFacade)

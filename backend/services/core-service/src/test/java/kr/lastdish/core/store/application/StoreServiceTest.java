@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -106,6 +107,7 @@ class StoreServiceTest {
         closeTime,
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
-        Category.KOREAN);
+        Category.KOREAN,
+        LocalDateTime.of(2026, 8, 10, 12, 0));
   }
 }
