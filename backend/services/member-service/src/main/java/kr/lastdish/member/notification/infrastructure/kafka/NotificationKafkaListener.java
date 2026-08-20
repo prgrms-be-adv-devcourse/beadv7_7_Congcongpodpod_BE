@@ -15,7 +15,10 @@ public class NotificationKafkaListener {
 
   private final EventHandlerRegistry handlerRegistry;
 
-  @KafkaListener(topics = TOPIC, groupId = CONSUMER_ID)
+  @KafkaListener(
+      topics = TOPIC,
+      groupId = CONSUMER_ID,
+      autoStartup = "${event.kafka.listener-auto-startup:true}")
   public void consume(EventMessage message) {
     handlerRegistry.get(CONSUMER_ID, message.eventType()).handle(message);
   }
