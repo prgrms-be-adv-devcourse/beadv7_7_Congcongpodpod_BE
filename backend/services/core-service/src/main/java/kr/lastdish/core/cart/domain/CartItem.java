@@ -24,7 +24,8 @@ public class CartItem {
   @Column(nullable = false)
   private Long dishId;
 
-  @Column private Long storeId;
+  @Column(nullable = false)
+  private Long storeId;
 
   @Column(nullable = false)
   private String dishName;

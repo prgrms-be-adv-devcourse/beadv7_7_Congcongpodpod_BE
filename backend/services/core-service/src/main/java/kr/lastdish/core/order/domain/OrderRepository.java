@@ -12,7 +12,7 @@ public interface OrderRepository {
 
   Order findWithLockByIdAndIsDeletedFalse(Long orderId);
 
-  List<Order> findSettlementTargetOrders(
+  List<OrderSettlementTarget> findSettlementTargetOrders(
       Long storeId,
       List<OrderStatus> orderStatuses,
       LocalDateTime periodStart,

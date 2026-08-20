@@ -11,6 +11,7 @@ import { NetworkStatusProvider } from '@/components/network-status-provider';
 import { colors, layout } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { CartProvider } from '@/providers/cart-provider';
+import { NotificationProvider } from '@/providers/notification-provider';
 
 const STARTUP_MIN_DURATION_MS = 1_500;
 
@@ -30,7 +31,7 @@ function AppBootstrap() {
 
   return (
     <AppOverlayProvider>
-      <CartProvider>
+      <NotificationProvider><CartProvider>
         <View style={styles.stage}>
           <Stack
             screenOptions={{
@@ -40,7 +41,7 @@ function AppBootstrap() {
           />
         </View>
         <LoginRequiredModal />
-      </CartProvider>
+      </CartProvider></NotificationProvider>
     </AppOverlayProvider>
   );
 }

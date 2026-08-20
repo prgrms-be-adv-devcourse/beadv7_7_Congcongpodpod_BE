@@ -17,6 +17,8 @@ dependencyManagement {
 
 dependencies {
     api 'org.springframework:spring-web'
+    // 구조화 로그 커스터마이저가 쓰는 타입. 서비스 런타임에는 스타터로 이미 들어오므로 컴파일 시점에만 필요하다.
+    compileOnly 'org.springframework.boot:spring-boot'
     api 'com.fasterxml.jackson.core:jackson-annotations'
 
     compileOnly 'org.projectlombok:lombok'

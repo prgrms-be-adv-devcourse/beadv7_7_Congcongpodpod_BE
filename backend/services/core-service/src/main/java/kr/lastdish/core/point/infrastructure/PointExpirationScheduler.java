@@ -16,7 +16,7 @@ public class PointExpirationScheduler {
   private final PointHistoryRepository pointHistoryRepository;
   private final PointExpirationService pointExpirationService;
 
-  @Scheduled(cron = "0 0 0 * * *")
+  @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
   public void runExpirationBatch() {
     log.info("포인트 소멸 배치 시작");
 

@@ -25,7 +25,13 @@ public enum ErrorCode implements ErrorCodeSpec {
   CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD006", "주문할 장바구니 상품을 찾을 수 없습니다."),
   CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다."),
   ORDER_PICKUP_TIME_NOT_ENDED(HttpStatus.CONFLICT, "ORD008", "픽업 종료 시간 이후에 노쇼 처리할 수 있습니다."),
+<<<<<<< HEAD
   INVALID_ORDER_PAYMENT_STATUS(HttpStatus.CONFLICT, "ORD009", "결제 대기 상태에서만 결제 완료 처리할 수 있습니다."),
+=======
+  ORDER_STORE_CLOSED(HttpStatus.CONFLICT, "ORD010", "매장이 영업 중이 아닙니다."),
+  ORDER_PICKUP_DEADLINE_PASSED(HttpStatus.CONFLICT, "ORD011", "상품의 픽업 마감 시간이 지났습니다."),
+  ORDER_DISH_PRICE_CHANGED(HttpStatus.CONFLICT, "ORD012", "상품 가격이 변경되었습니다. 다시 확인해 주세요."),
+>>>>>>> origin/develop
   INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "PT001", "포인트 잔액이 부족합니다."),
   IMAGE_UPLOAD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "IMG001", "이미지를 업로드할 권한이 없습니다."),
   UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "IMG002", "지원하지 않는 이미지 형식입니다."),

@@ -92,7 +92,9 @@ class GlobalExceptionHandlerTests {
       MDC.remove(RequestIdSupport.KEY);
     }
 
-    assertThat(appender.list.getFirst().getFormattedMessage()).contains("req-abc-123");
+    // requestId는 메시지가 아니라 MDC를 통해 구조화 로그의 필드로 남는다.
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-abc-123");
   }
 
   @Test
@@ -102,6 +104,8 @@ class GlobalExceptionHandlerTests {
 
     handler.handleException(new RuntimeException("DB 커넥션을 얻지 못했습니다"));
 
-    assertThat(appender.list.getFirst().getFormattedMessage()).contains("unknown");
+    // MDC가 비어 있으면 필드 자체가 남지 않는다. 값이 없다는 사실은 필드의 부재로 드러난다.
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .doesNotContainKey(RequestIdSupport.KEY);
   }
 }

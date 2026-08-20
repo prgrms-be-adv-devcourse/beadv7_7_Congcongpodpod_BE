@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -13,6 +14,7 @@ import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
+import kr.lastdish.core.store.domain.StoreStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +66,68 @@ class StoreServiceTest {
         .doesNotThrowAnyException();
   }
 
+  @Test
+  void 영업시간_안이고_OPEN_상태인_매장은_주문할_수_있다() {
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatCode(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 12, 0)))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void 개점_전이면_OPEN_상태여도_주문할_수_없다() {
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 8, 0)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
+  }
+
+  @Test
+  void 마감_후면_OPEN_상태여도_주문할_수_없다() {
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 22, 30)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
+  }
+
+  @Test
+  void 자정을_넘는_영업시간이면_새벽에도_주문할_수_있다() {
+    Store store = createStore(LocalTime.of(18, 0), LocalTime.of(2, 0));
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatCode(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 1, 0)))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void 영업_상태가_아닌_매장은_주문할_수_없다() {
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    store.changeStatus(StoreStatus.CLOSED);
+    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 12, 0)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
+  }
+
+  @Test
+  void 삭제됐거나_존재하지_않는_매장도_주문할_수_없다() {
+    when(storeRepository.findById(1L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 12, 0)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
+  }
+
   private Store createStore(LocalTime openTime, LocalTime closeTime) {
     return new Store(
         1L,
@@ -75,6 +139,7 @@ class StoreServiceTest {
         closeTime,
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
-        Category.KOREAN);
+        Category.KOREAN,
+        LocalDateTime.of(2026, 8, 10, 12, 0));
   }
 }

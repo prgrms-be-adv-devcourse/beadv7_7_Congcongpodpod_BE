@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import kr.lastdish.common.api.exception.ErrorCodeSpec;
 import kr.lastdish.common.api.response.ApiResponse;
-import kr.lastdish.common.api.tracing.RequestIdSupport;
 import kr.lastdish.gateway.tracing.RequestCompletionLogger;
+import kr.lastdish.gateway.tracing.RequestIdMdc;
 import kr.lastdish.gateway.tracing.RequestPathPatternResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,12 +82,16 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
    */
   private void logFailure(
       ServerWebExchange exchange, ErrorCodeSpec errorCode, Throwable exception) {
-    String requestId = resolveRequestId(exchange);
+    // 이 핸들러는 필터 체인 바깥에서 실행되어 MDC가 비어 있다. 번호를 직접 올린 채 남긴다.
+    RequestIdMdc.with(exchange, () -> logFailureDetail(exchange, errorCode, exception));
+  }
 
+  /** 오류 코드에 따라 남길 수준과 내용을 가른다. requestId는 MDC를 통해 로그 필드로 붙는다. */
+  private void logFailureDetail(
+      ServerWebExchange exchange, ErrorCodeSpec errorCode, Throwable exception) {
     if (errorCode == GatewayErrorCode.INTERNAL_ERROR) {
       log.error(
-          "Gateway 요청 처리 중 오류가 발생했습니다. requestId={}, method={}, pathPattern={}, errorCode={}, exceptionClass={}",
-          requestId,
+          "Gateway 요청 처리 중 오류가 발생했습니다. method={}, pathPattern={}, errorCode={}, exceptionClass={}",
           exchange.getRequest().getMethod(),
           RequestPathPatternResolver.resolve(exchange),
           errorCode.getCode(),
@@ -100,8 +104,7 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
     if (isDependencyFailure(errorCode)) {
       // 부하 상황에서 반복될 수 있으므로 스택 없이 남기고, 원인 판별에 사용한 예외 종류만 함께 기록한다.
       log.warn(
-          "하위 서비스 호출에 실패했습니다. requestId={}, method={}, pathPattern={}, errorCode={}, exceptionClass={}",
-          requestId,
+          "하위 서비스 호출에 실패했습니다. method={}, pathPattern={}, errorCode={}, exceptionClass={}",
           exchange.getRequest().getMethod(),
           RequestPathPatternResolver.resolve(exchange),
           errorCode.getCode(),
@@ -113,12 +116,6 @@ public class GatewayGlobalExceptionHandler implements ErrorWebExceptionHandler {
     return errorCode == GatewayErrorCode.GATEWAY_TIMEOUT
         || errorCode == GatewayErrorCode.SERVICE_UNAVAILABLE
         || errorCode == GatewayErrorCode.BAD_GATEWAY;
-  }
-
-  /** RequestIdFilter보다 앞선 단계에서 예외가 나면 requestId가 없을 수 있다. 그 경우 값이 없다는 사실 자체를 로그에 남긴다. */
-  private String resolveRequestId(ServerWebExchange exchange) {
-    Object requestId = exchange.getAttribute(RequestIdSupport.KEY);
-    return requestId != null ? requestId.toString() : RequestIdSupport.UNKNOWN;
   }
 
   /** 오류 코드를 결정한 실제 원인 예외의 클래스명을 찾는다. 원인을 특정하지 못하면 전달받은 예외의 클래스명을 사용한다. */

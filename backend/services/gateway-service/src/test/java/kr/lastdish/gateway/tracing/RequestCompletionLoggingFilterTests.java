@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 class RequestCompletionLoggingFilterTests {
 
   private final RequestCompletionLoggingFilter filter =
-      new RequestCompletionLoggingFilter(new RequestCompletionLogger());
+      new RequestCompletionLoggingFilter(new RequestCompletionLogger(true));
 
   private ch.qos.logback.classic.Logger 로거;
   private ListAppender<ILoggingEvent> appender;
@@ -48,9 +48,9 @@ class RequestCompletionLoggingFilterTests {
     filter.filter(exchange, 정상체인).block();
 
     assertThat(appender.list).hasSize(1);
-    assertThat(appender.list.getFirst().getFormattedMessage())
-        .contains("requestId=req-276-gw")
-        .contains("status=200");
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-276-gw");
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("status=200");
   }
 
   @Test

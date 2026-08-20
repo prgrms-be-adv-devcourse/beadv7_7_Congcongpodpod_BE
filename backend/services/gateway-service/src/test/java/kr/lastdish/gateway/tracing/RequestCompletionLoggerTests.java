@@ -21,7 +21,7 @@ import org.springframework.mock.web.server.MockServerWebExchange;
 
 class RequestCompletionLoggerTests {
 
-  private final RequestCompletionLogger completionLogger = new RequestCompletionLogger();
+  private final RequestCompletionLogger completionLogger = new RequestCompletionLogger(true);
 
   private ch.qos.logback.classic.Logger 로거;
   private ListAppender<ILoggingEvent> appender;
@@ -51,8 +51,9 @@ class RequestCompletionLoggerTests {
 
     assertThat(appender.list).hasSize(1);
     assertThat(appender.list.getFirst().getLevel()).isEqualTo(Level.INFO);
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestIdSupport.KEY, "req-276-gw");
     assertThat(appender.list.getFirst().getFormattedMessage())
-        .contains("requestId=req-276-gw")
         .contains("method=GET")
         .contains("pathPattern=/api/v1/orders/**")
         .contains("status=200")
@@ -135,6 +136,51 @@ class RequestCompletionLoggerTests {
         .doesNotContain("token")
         .doesNotContain("super-secret")
         .doesNotContain("someone@example.com");
+  }
+
+  @Test
+  void 정상적인_상태확인_요청은_완료_로그를_남기지_않는다() {
+    MockServerWebExchange exchange = 요청("/actuator/health");
+    exchange.getResponse().setStatusCode(HttpStatus.OK);
+    completionLogger.markStarted(exchange);
+
+    completionLogger.logCompletion(exchange);
+
+    assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  void 정상적인_메트릭_수집_요청도_완료_로그를_남기지_않는다() {
+    MockServerWebExchange exchange = 요청("/actuator/prometheus");
+    exchange.getResponse().setStatusCode(HttpStatus.OK);
+    completionLogger.markStarted(exchange);
+
+    completionLogger.logCompletion(exchange);
+
+    assertThat(appender.list).isEmpty();
+  }
+
+  @Test
+  void 상태확인이_실패하면_완료_로그를_남긴다() {
+    MockServerWebExchange exchange = 요청("/actuator/health");
+    exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
+    completionLogger.markStarted(exchange);
+
+    completionLogger.logCompletion(exchange);
+
+    assertThat(appender.list).hasSize(1);
+    assertThat(appender.list.getFirst().getFormattedMessage()).contains("status=503");
+  }
+
+  @Test
+  void 상태확인_제외_판단에_쓴_실제_경로는_로그에_남기지_않는다() {
+    MockServerWebExchange exchange = 요청("/actuator/health");
+    exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
+    completionLogger.markStarted(exchange);
+
+    completionLogger.logCompletion(exchange);
+
+    assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("/actuator/health");
   }
 
   private MockServerWebExchange 요청(String uri) {
