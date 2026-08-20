@@ -11,6 +11,16 @@ export function cacheAccessToken(token: string | null) {
   cachedAccessToken = token;
 }
 
+export function getApiBaseUrl() {
+  return baseUrl;
+}
+
+export async function getAccessToken() {
+  const token = cachedAccessToken === undefined ? await storage.getItem('accessToken') : cachedAccessToken;
+  cachedAccessToken = token;
+  return token;
+}
+
 export class NetworkUnavailableError extends Error {
   constructor() {
     super('네트워크 연결이 필요합니다. 연결 상태를 확인해주세요.');
