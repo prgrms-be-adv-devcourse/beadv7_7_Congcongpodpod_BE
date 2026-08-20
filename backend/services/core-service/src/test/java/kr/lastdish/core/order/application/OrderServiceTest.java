@@ -116,8 +116,7 @@ class OrderServiceTest {
   @DisplayName("자정을 넘기는 픽업의 마감 일시를 계산한다")
   void 자정을_넘기는_픽업의_마감_일시를_계산한다(LocalDateTime now, LocalDateTime expectedDeadline) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
-    when(storeService.calculatePickupDeadline(
-            cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now))
+    when(storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now))
         .thenReturn(expectedDeadline);
     LocalDateTime pickupDeadline = orderService.validatePickupDeadline(cartItem, now);
 
@@ -135,7 +134,7 @@ class OrderServiceTest {
   @DisplayName("픽업 마감 전이면 주문할 수 있다")
   void 픽업_마감_전이면_주문할_수_있다(LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(pickupStartAt, pickupEndAt);
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), pickupStartAt, pickupEndAt, now))
+    when(storeService.calculatePickupDeadline(cartItem.storeId(), pickupEndAt, now))
         .thenReturn(now.toLocalDate().atTime(pickupEndAt));
 
     orderService.validatePickupDeadline(cartItem, now);
@@ -156,8 +155,7 @@ class OrderServiceTest {
   void 픽업_마감이_지났으면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
     LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0, 1);
-    when(storeService.calculatePickupDeadline(
-            cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now))
+    when(storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now))
         .thenReturn(LocalDateTime.of(2026, 8, 19, 19, 0));
 
     assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem, now))

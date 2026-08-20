@@ -63,8 +63,7 @@ public class OrderService {
   /** 픽업 마감 일시를 한 번 계산해 검증하고 주문 생성에 사용할 값으로 반환한다. */
   public LocalDateTime validatePickupDeadline(CartOrderSnapshot cartItem, LocalDateTime now) {
     LocalDateTime pickupDeadline =
-        storeService.calculatePickupDeadline(
-            cartItem.storeId(), cartItem.pickupStartAt(), cartItem.pickupEndAt(), now);
+        storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now);
     if (now.isAfter(pickupDeadline)) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
