@@ -60,6 +60,8 @@ jobs:
           --no-daemon
 
       - name: Set up Docker Buildx
+        # PR은 이미지를 배포하지 않으므로 빌드 자체를 건너뛴다. 이미지 검증은 main push(배포) 때 수행한다.
+        if: inputs.publish
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
@@ -72,20 +74,22 @@ jobs:
 
       - name: Extract image metadata
         id: metadata
+        if: inputs.publish
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/lastdish-${{ inputs.service-name }}
           tags: |
-            type=raw,value=dev,enable=${{ inputs.publish }}
+            type=raw,value=dev
             type=sha,prefix=sha-
 
-      - name: Build and optionally push image
+      - name: Build and push image
+        if: inputs.publish
         uses: docker/build-push-action@v7
         with:
           context: backend/services/${{ inputs.service-name }}/build/libs
           file: backend/services/${{ inputs.service-name }}/Dockerfile.runtime
           platforms: linux/amd64
-          push: ${{ inputs.publish }}
+          push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=${{ inputs.service-name }}
