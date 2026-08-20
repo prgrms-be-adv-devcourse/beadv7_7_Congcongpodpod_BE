@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -54,6 +55,7 @@ class OrderServiceTest {
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
   private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
 
   private OrderService orderService;
 
@@ -185,7 +187,7 @@ class OrderServiceTest {
   private <T> T withCurrentTime(LocalDateTime now, Supplier<T> action) {
     try (MockedStatic<LocalDateTime> mockedDateTime =
         mockStatic(LocalDateTime.class, CALLS_REAL_METHODS)) {
-      mockedDateTime.when(LocalDateTime::now).thenReturn(now);
+      mockedDateTime.when(() -> LocalDateTime.now(BUSINESS_ZONE)).thenReturn(now);
       return action.get();
     }
   }
