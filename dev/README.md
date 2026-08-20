@@ -20,6 +20,16 @@ Copy-Item dev/.env.example dev/.env
 
 실제 Toss 결제 테스트가 필요하면 `dev/.env`의 `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY`를 테스트 키로 교체합니다. `dev/.env`는 Git에서 제외됩니다.
 
+`dev/.env.example`의 `SPRING_FLYWAY_LOCATIONS`는 개발·시연 seed를 활성화합니다. 전체 초기화 후 Member 300명, 실제 서울 매장·상품 300개, 주문 300,000건, 정산 30,000건이 동일하게 생성됩니다. seed 없이 빈 스키마만 사용하려면 다음처럼 바꿉니다.
+
+시연 서버에서도 Member·Core·Payment Deployment에 같은 `SPRING_FLYWAY_LOCATIONS` 값을 설정한 뒤 DB를 초기화하면 동일한 데이터가 생성됩니다. 운영 환경에는 seed location을 설정하지 않습니다.
+
+```dotenv
+SPRING_FLYWAY_LOCATIONS=classpath:db/migration
+```
+
+시연 계정은 `seller001@seed.lastdish.kr`부터 `seller300@seed.lastdish.kr`까지이며 공통 비밀번호는 `LastDish!2026`입니다. 사용자 1~150의 최종 예치금은 10,000,000원, 사용자 151~300은 0원이고 주문 사용·환불 원장과 일치합니다. 공개 매장명·주소·좌표는 [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)의 2026-08-20 스냅샷이며, 실제 개인정보 대신 가상 소유자·전화·계좌 정보를 사용합니다.
+
 ## 2. 실행
 
 | 작업 | macOS·Linux | Windows PowerShell |
