@@ -40,7 +40,6 @@ CREATE TEMP TABLE demo_store_source (
 
 -- BEGIN GENERATED DEMO STORES
 -- Generated from OpenStreetMap via Overpass API. Do not edit manually.
--- Regenerate with: node scripts/generate-demo-store-values.mjs
 INSERT INTO demo_store_source (seed_id, source_id, source_area, store_name, store_address, category, latitude, longitude) VALUES
   (1, 'node/12076553406', '남부터미널역', '강남 짬뽕', '서울특별시 서초구 효령로 289', 'KOREAN', 37.485140, 127.015831),
   (2, 'node/12079212367', '남부터미널역', '벨랄라 커피', '서울특별시 서초구 효령로 289', 'CAFE_DESSERT', 37.485138, 127.015810),
