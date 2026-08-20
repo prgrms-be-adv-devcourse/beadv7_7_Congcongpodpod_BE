@@ -16,6 +16,7 @@ import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
+import kr.lastdish.core.store.domain.StoreRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,7 +30,22 @@ class StoreFacadeTest {
 
   @Mock private DishService dishService;
 
+  @Mock private StoreRepository storeRepository;
+
   @InjectMocks private StoreFacade storeFacade;
+
+  @Test
+  void reschedules_next_closing_at_through_locked_lookup() {
+    Long storeId = 10L;
+    LocalDateTime now = LocalDateTime.of(2026, 8, 20, 22, 0);
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+
+    when(storeRepository.findWithLockById(storeId)).thenReturn(Optional.of(store));
+
+    storeFacade.rescheduleNextClosingAt(storeId, now);
+
+    verify(storeRepository).findWithLockById(storeId);
+  }
 
   @Test
   void returns_store_and_null_dish_when_store_exists_without_dish() {

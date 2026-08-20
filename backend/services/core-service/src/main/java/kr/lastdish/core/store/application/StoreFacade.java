@@ -65,10 +65,11 @@ public class StoreFacade {
     rescheduleNextClosingAt(storeId, now, "마감 실패 매장을 찾을 수 없습니다.");
   }
 
+  // 매장 행을 잠근 뒤 다음 마감 시각을 갱신한다.
   private void rescheduleNextClosingAt(Long storeId, LocalDateTime now, String notFoundMessage) {
     Store store =
         storeRepository
-            .findById(storeId)
+            .findWithLockById(storeId)
             .orElseThrow(
                 () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, notFoundMessage));
     store.rescheduleNextClosingAt(now);
