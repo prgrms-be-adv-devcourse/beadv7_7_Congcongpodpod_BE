@@ -4,5 +4,9 @@ server:
 spring:
   application:
     name: gateway-service
+  reactor:
+    # Reactor가 연산자 실행 시점마다 ThreadLocal을 복원하게 한다. RequestIdThreadLocalAccessor가
+    # 이 시점에 requestId를 MDC로 옮기므로, 이 값이 없으면 Gateway 로그에 requestId 필드가 남지 않는다.
+    context-propagation: auto
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}

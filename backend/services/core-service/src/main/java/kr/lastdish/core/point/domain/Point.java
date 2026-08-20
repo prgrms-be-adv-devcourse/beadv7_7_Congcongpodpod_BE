@@ -1,0 +1,63 @@
+package kr.lastdish.core.point.domain;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "points", uniqueConstraints = @UniqueConstraint(columnNames = "member_id"))
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Point {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "point_id")
+  private Long id;
+
+  @Column(name = "member_id", nullable = false, updatable = false)
+  private Long memberId;
+
+  @Column(name = "balance", precision = 19, scale = 4, nullable = false)
+  private BigDecimal balance;
+
+  @Column(name = "updated_at", nullable = false)
+  private LocalDateTime updatedAt;
+
+  private Point(Long memberId, BigDecimal balance) {
+    this.memberId = memberId;
+    this.balance = balance;
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public static Point createDefault(Long memberId) {
+    return new Point(memberId, BigDecimal.ZERO);
+  }
+
+  public void earn(BigDecimal amount) {
+    validatePositiveAmount(amount);
+    this.balance = this.balance.add(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public void use(BigDecimal amount) {
+    validatePositiveAmount(amount);
+    if (this.balance.compareTo(amount) < 0) {
+      throw new InsufficientPointException(this.memberId, this.balance, amount);
+    }
+    this.balance = this.balance.subtract(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  private static void validatePositiveAmount(BigDecimal amount) {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
+    }
+  }
+}

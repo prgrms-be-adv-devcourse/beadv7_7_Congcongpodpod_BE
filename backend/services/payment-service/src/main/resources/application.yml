@@ -6,3 +6,11 @@ spring:
     name: payment-service
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+logging:
+  level:
+    # Hibernate는 SQL 오류를 예외로 올리기 전에 WARN으로 먼저 남기는데, 그 메시지에 제약을 위반한
+    # 값이 그대로 들어 있다(로컬 PostgreSQL로 확인). 값이 로그에 새지 않도록 이 로거만 올린다.
+    # 예외는 그대로 전파되므로 DataIntegrityExceptionHandler가 제약 이름을 남긴다.
+    # 보안 통제라 운영 config가 아니라 서비스와 함께 배포되도록 여기에 둔다.
+    org.hibernate.orm.jdbc.error: ERROR
