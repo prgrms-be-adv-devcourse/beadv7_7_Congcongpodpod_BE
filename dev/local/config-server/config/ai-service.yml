@@ -30,9 +30,15 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092} # Docker 환경 내부 포트에 맞춰 19092 또는 9092 지정
     consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP:ai-service}
+      group-id: ${KAFKA_CONSUMER_GROUP:ai-service-dish-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*" # 모든 패키지의 DTO 역직렬화 허용
+        spring.json.value.default.type: "kr.lastdish.common.event.EventMessage" # 기본 수신 객체 타입 지정
   elasticsearch:
     uris: ${ELASTICSEARCH_URL:http://localhost:9200}
     username: ${ELASTICSEARCH_USERNAME:elastic}
