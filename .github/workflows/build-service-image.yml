@@ -38,6 +38,16 @@ jobs:
           cache: gradle
           cache-dependency-path: backend/**/*.gradle*
 
+      # Gradle 빌드 캐시를 저장·복원해 공유 모듈(api-common, mvc-common 등)을 매 실행마다
+      # 다시 컴파일하지 않게 한다. setup-java의 cache는 의존성(modules-2)만 다루고 빌드 산출물은 제외다.
+      - name: Cache Gradle build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          key: gradle-build-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            gradle-build-cache-${{ runner.os }}-
+
       - name: Test and package service
         working-directory: backend
         env:
