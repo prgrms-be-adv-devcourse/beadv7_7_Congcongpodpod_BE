@@ -84,12 +84,12 @@ public class OrderService {
   @Transactional(readOnly = true)
   public List<OrderSettlementInfo> findSettlementOrders(
       Long storeId, LocalDateTime periodStart, LocalDateTime periodEnd) {
-    // validatePeriod(storeId, periodStart, periodEnd);
+
 
     return orderRepository
         .findSettlementTargetOrders(storeId, SETTLEMENT_TARGET_STATUSES, periodStart, periodEnd)
         .stream()
-        .map(this::toSettlementInfo)
+        .map(OrderSettlementInfo::from)
         .toList();
   }
 

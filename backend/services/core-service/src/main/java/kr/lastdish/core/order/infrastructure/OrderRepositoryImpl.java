@@ -6,6 +6,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
+import kr.lastdish.core.order.domain.OrderSettlementTarget;
 import kr.lastdish.core.order.domain.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,13 +39,19 @@ public class OrderRepositoryImpl implements OrderRepository {
   }
 
   @Override
-  public List<Order> findSettlementTargetOrders(
+  public List<OrderSettlementTarget> findSettlementTargetOrders(
       Long storeId,
       List<OrderStatus> orderStatuses,
       LocalDateTime periodStart,
       LocalDateTime periodEnd) {
     return orderJpaRepository.findSettlementTargetOrders(
-        storeId, orderStatuses, periodStart, periodEnd);
+        storeId, orderStatuses, periodStart, periodEnd)
+            .stream()
+            .map(projection -> new OrderSettlementTarget(projection.getId(),
+                    projection.getStoreId(),
+                    projection.getTotalPrice(),
+                    projection.getUpdatedAt()))
+            .toList();
   }
 
   public boolean validateActivePickUpCode(Long storeId, String pickUpCode) {
