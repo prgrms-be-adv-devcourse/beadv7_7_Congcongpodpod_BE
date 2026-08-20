@@ -33,4 +33,9 @@ subprojects {
             endWithNewline()
         }
     }
+
+    // 테스트 JVM을 병렬로 띄워 러너 코어(4코어)를 활용한다. fork마다 힙을 쓰므로 OOM을 피하려고 최대 4개로 제한한다.
+    tasks.withType(Test).configureEach {
+        maxParallelForks = Math.min(4, Runtime.runtime.availableProcessors())
+    }
 }
