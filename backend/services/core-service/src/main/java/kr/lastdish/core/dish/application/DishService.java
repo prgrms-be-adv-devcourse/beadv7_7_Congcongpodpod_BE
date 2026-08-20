@@ -258,22 +258,10 @@ public class DishService {
     outboxEventWriter.append(event);
   }
 
+  // 검색 문서 갱신을 요청하는 상품 생성 이벤트를 Outbox에 기록한다.
   private void appendCreatedEvent(Dish dish) {
     long aggregateVersion = dish.nextAggregateVersion();
-    DishCreatedPayload payload =
-        new DishCreatedPayload(
-            dish.getId(),
-            dish.getStoreId(),
-            dish.getDishName(),
-            dish.getRegisteredAt(),
-            dish.getDescription(),
-            dish.getThumbnailUrl(),
-            dish.getStockQuantity(),
-            dish.getDishStatus(),
-            dish.getDishPrice(),
-            dish.getDiscountPrice(),
-            dish.getPickupStartTime(),
-            dish.getPickupEndTime());
+    DishCreatedPayload payload = new DishCreatedPayload(dish.getStoreId());
 
     DishCreatedEvent event =
         new DishCreatedEvent(

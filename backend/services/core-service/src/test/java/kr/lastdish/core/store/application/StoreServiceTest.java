@@ -10,6 +10,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.store.application.dto.StoreResult;
@@ -109,22 +110,18 @@ class StoreServiceTest {
     // then
     // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
     /*
-    ArgumentCaptor<StoreChangedEvent> eventArgumentCaptor =
-        ArgumentCaptor.forClass(StoreChangedEvent.class);
+    org.mockito.ArgumentCaptor<kr.lastdish.core.store.domain.event.StoreChangedEvent>
+        eventArgumentCaptor =
+            org.mockito.ArgumentCaptor.forClass(
+                kr.lastdish.core.store.domain.event.StoreChangedEvent.class);
 
     verify(outboxEventWriter).append(eventArgumentCaptor.capture());
 
-    StoreChangedEvent event = (StoreChangedEvent) eventArgumentCaptor.getValue();
+    var event = eventArgumentCaptor.getValue();
 
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
-
-    assertThat(event.payload().storeName()).isEqualTo("수정된 매장명");
-    assertThat(event.payload().storeAddress()).isEqualTo("서울특별시 강남구 테헤란로 123");
-    assertThat(event.payload().storePhone()).isEqualTo("02-1234-5678");
-    assertThat(event.payload().latitude()).isEqualTo(BigDecimal.valueOf(37.5));
-    assertThat(event.payload().longitude()).isEqualTo(BigDecimal.valueOf(127.0));
-    assertThat(event.payload().category()).isEqualTo(Category.KOREAN);
+    assertThat(event.payload().storeId()).isEqualTo(storeId);
     */
 
     assertThat(result.storeId()).isEqualTo(storeId);
@@ -147,16 +144,18 @@ class StoreServiceTest {
     // then
     // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
     /*
-    ArgumentCaptor<StoreStatusChangedEvent> eventCaptor =
-        ArgumentCaptor.forClass(StoreStatusChangedEvent.class);
+    org.mockito.ArgumentCaptor<kr.lastdish.core.store.domain.event.StoreStatusChangedEvent>
+        eventCaptor =
+            org.mockito.ArgumentCaptor.forClass(
+                kr.lastdish.core.store.domain.event.StoreStatusChangedEvent.class);
 
     verify(outboxEventWriter).append(eventCaptor.capture());
 
-    StoreStatusChangedEvent event = (StoreStatusChangedEvent) eventCaptor.getValue();
+    var event = eventCaptor.getValue();
 
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.payload().status()).isEqualTo(StoreStatus.CLOSED);
+    assertThat(event.payload().storeId()).isEqualTo(storeId);
     */
 
     assertThat(result.storeId()).isEqualTo(storeId);
@@ -182,15 +181,17 @@ class StoreServiceTest {
     verify(payoutAccountRepository).deleteByStoreId(storeId);
     // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
     /*
-    ArgumentCaptor<StoreDeletedEvent> eventCaptor =
-        ArgumentCaptor.forClass(StoreDeletedEvent.class);
+    org.mockito.ArgumentCaptor<kr.lastdish.core.store.domain.event.StoreDeletedEvent> eventCaptor =
+        org.mockito.ArgumentCaptor.forClass(
+            kr.lastdish.core.store.domain.event.StoreDeletedEvent.class);
 
     verify(outboxEventWriter).append(eventCaptor.capture());
 
-    StoreDeletedEvent event = (StoreDeletedEvent) eventCaptor.getValue();
+    var event = eventCaptor.getValue();
 
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
+    assertThat(event.payload().storeId()).isEqualTo(storeId);
     */
   }
 
@@ -224,8 +225,12 @@ class StoreServiceTest {
 
     // when & then
     assertThatThrownBy(() -> storeService.getStore(storeId))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage("매장을 찾을 수 없습니다.");
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> {
+              assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.ENTITY_NOT_FOUND);
+              assertThat(exception).hasMessage("매장을 찾을 수 없습니다.");
+            });
 
     verify(storeRepository).findById(storeId);
   }

@@ -236,18 +236,9 @@ public class StoreService {
     return Math.floorMod(minutes, 24 * 60);
   }
 
+  // 검색 문서 갱신을 요청하는 매장 정보 변경 이벤트를 Outbox에 기록한다.
   private void appendChangedEvent(Store store) {
-    StoreChangedPayload payload =
-        new StoreChangedPayload(
-            store.getId(),
-            store.getStoreName(),
-            store.getStoreAddress(),
-            store.getStorePhone(),
-            store.getOpenTime(),
-            store.getCloseTime(),
-            store.getLatitude(),
-            store.getLongitude(),
-            store.getCategory());
+    StoreChangedPayload payload = new StoreChangedPayload(store.getId());
 
     long aggregateVersion = store.nextEventVersion();
 
@@ -263,9 +254,9 @@ public class StoreService {
     outboxEventWriter.append(event);
   }
 
+  // 검색 문서 갱신을 요청하는 매장 상태 변경 이벤트를 Outbox에 기록한다.
   private void appendStatusChangedEvent(Store store) {
-    StoreStatusChangedPayload payload =
-        new StoreStatusChangedPayload(store.getId(), store.getStatus());
+    StoreStatusChangedPayload payload = new StoreStatusChangedPayload(store.getId());
 
     long aggregateVersion = store.nextEventVersion();
 
@@ -281,8 +272,9 @@ public class StoreService {
     outboxEventWriter.append(event);
   }
 
+  // 검색 문서 삭제를 요청하는 매장 삭제 이벤트를 Outbox에 기록한다.
   private void appendDeletedEvent(Store store) {
-    StoreDeletedPayload payload = new StoreDeletedPayload(store.getId(), store.isDeleted());
+    StoreDeletedPayload payload = new StoreDeletedPayload(store.getId());
 
     long aggregateVersion = store.nextEventVersion();
 
