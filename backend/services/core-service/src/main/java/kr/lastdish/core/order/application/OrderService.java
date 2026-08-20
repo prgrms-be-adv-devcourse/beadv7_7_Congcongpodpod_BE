@@ -1,6 +1,7 @@
 package kr.lastdish.core.order.application;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
@@ -22,12 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
+  private static final int MAX_PICKUP_CODE_RETRY = 5;
+
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
-  private static final int MAX_PICKUP_CODE_RETRY = 5;
 
   // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
   public Order createOrder(Long memberId, OrderMemberInfo memberInfo, CartOrderSnapshot cartItem) {
@@ -52,7 +55,7 @@ public class OrderService {
   }
 
   private LocalDateTime pickupDeadline(CartOrderSnapshot cartItem) {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
     var pickupDate = now.toLocalDate();
 
     boolean crossesMidnight = cartItem.pickupEndAt().isBefore(cartItem.pickupStartAt());
@@ -67,7 +70,7 @@ public class OrderService {
 
   /** 픽업 마감 일시가 지난 경우에만 주문을 중단한다. */
   public void validatePickupDeadline(CartOrderSnapshot cartItem) {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
     if (now.isAfter(pickupDeadline(cartItem))) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
@@ -135,10 +138,10 @@ public class OrderService {
 
     switch (command.status()) {
       case PICKED_UP -> {
-        order.completePickup(LocalDateTime.now());
+        order.completePickup(LocalDateTime.now(BUSINESS_ZONE));
       }
       case NO_SHOW -> {
-        order.markNoShow(LocalDateTime.now());
+        order.markNoShow(LocalDateTime.now(BUSINESS_ZONE));
       }
       default -> throw new BusinessException(CommonErrorCode.INVALID_STATE);
     }
