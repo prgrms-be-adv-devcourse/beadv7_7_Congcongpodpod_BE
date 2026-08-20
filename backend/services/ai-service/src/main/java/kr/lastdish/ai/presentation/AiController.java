@@ -2,9 +2,8 @@ package kr.lastdish.ai.presentation;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.io.IOException;
-
 import jakarta.validation.Valid;
+import java.io.IOException;
 import kr.lastdish.ai.application.AiService;
 import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.ai.presentation.dto.FoodClassificationResponse;
@@ -32,20 +31,19 @@ public class AiController {
   @Operation(summary = "S3 이미지 업로드용 Presigned URL 발급")
   @PostMapping("/images/presigned-url")
   public ResponseEntity<PresignedUploadUrl> issueUploadUrl(
-          @RequestHeader("X-Authenticated-Member-Id") Long memberId,
-          @Valid @RequestBody PresignedUploadRequest request) {
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @Valid @RequestBody PresignedUploadRequest request) {
 
     PresignedUploadUrl response =
-            presignedUrlService.issueUpload(
-                    memberId,
-                    UploadResourceType.AI_IMAGE,
-                    "ai-images/",
-                    request.contentType(),
-                    request.contentLength());
+        presignedUrlService.issueUpload(
+            memberId,
+            UploadResourceType.AI_IMAGE,
+            "ai-images/",
+            request.contentType(),
+            request.contentLength());
 
     return ResponseEntity.ok(response);
   }
-
 
   @Operation(summary = "S3 ObjectKey 기반 음식 카테고리 자동 분류")
   @PostMapping("/classify-s3")
