@@ -33,6 +33,15 @@ class StoreJpaRepositoryTest {
     assertThat(storeIds).containsExactly(atClosing.getId(), afterClosing.getId());
   }
 
+  @Test
+  void 매장을_저장하면_updatedAt이_채워진다() {
+    Store store = store("444-44-44444", LocalDateTime.of(2026, 8, 10, 22, 0));
+
+    Store saved = storeJpaRepository.saveAndFlush(store);
+
+    assertThat(saved.getUpdatedAt()).isNotNull();
+  }
+
   private Store store(String businessNumber, LocalDateTime nextClosingAt) {
     Store store =
         new Store(
