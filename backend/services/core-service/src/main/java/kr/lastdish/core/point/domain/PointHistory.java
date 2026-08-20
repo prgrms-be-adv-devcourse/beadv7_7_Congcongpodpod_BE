@@ -107,6 +107,17 @@ public class PointHistory {
     this.remainingAmount = this.remainingAmount.subtract(amount);
   }
 
+  public static PointHistory recordExpire(
+      Long memberId, BigDecimal amount, BigDecimal balanceAfter) {
+    validatePositiveAmount(amount);
+    return PointHistory.builder()
+        .memberId(memberId)
+        .type(PointType.EXPIRE)
+        .amount(amount)
+        .balanceAfter(balanceAfter)
+        .build();
+  }
+
   private static void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(

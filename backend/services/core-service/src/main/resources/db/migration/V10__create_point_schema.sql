@@ -23,6 +23,10 @@ CREATE TABLE point_history (
 CREATE INDEX idx_point_history_usable
     ON point_history (member_id, type, remaining_amount, expires_at);
 
+CREATE INDEX idx_point_history_expiring
+    ON point_history (type, expires_at, remaining_amount, member_id);
+
 ALTER TABLE points ADD CONSTRAINT chk_points_balance_min_zero CHECK (balance >= 0);
 ALTER TABLE point_history ADD CONSTRAINT chk_point_history_remaining_min_zero CHECK (remaining_amount >= 0);
 ALTER TABLE point_history ADD CONSTRAINT uq_point_history_order_type UNIQUE (order_id, type);
+ALTER TABLE point_history ADD CONSTRAINT chk_point_history_type CHECK (type IN ('EARN', 'USE', 'EXPIRE', 'REFUND'));
