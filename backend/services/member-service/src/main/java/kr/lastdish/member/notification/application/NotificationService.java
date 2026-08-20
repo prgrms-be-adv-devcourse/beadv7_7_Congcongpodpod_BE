@@ -9,6 +9,7 @@ import kr.lastdish.member.notification.exception.NotificationErrorCode;
 import kr.lastdish.member.notification.presentation.dto.NotificationResponse;
 import kr.lastdish.member.notification.presentation.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
@@ -24,7 +26,7 @@ public class NotificationService {
   @Transactional
   public NotificationResponse createNotification(CreateNotificationCommand command) {
     if (command.eventId() != null && notificationRepository.existsByEventId(command.eventId())) {
-      return null; // 중복 이벤트 무시 — 멱등
+      return null;
     }
 
     Notification notification =
@@ -39,8 +41,19 @@ public class NotificationService {
             command.eventId());
 
     Notification saved = notificationRepository.save(notification);
-    sseNotifier.notify(saved);
+
+    notifySseQuietly(saved); // SSE 실패해도 롤백되지 않게
+
     return NotificationResponse.from(saved);
+  }
+
+  private void notifySseQuietly(Notification saved) {
+    try {
+      sseNotifier.notify(saved);
+    } catch (Exception exception) {
+      // 로그만 남기고 무시 — 알림은 이미 저장됨(DB가 원천)
+      log.warn("SSE 알림 전송 실패 (알림은 저장됨): memberId={}", saved.getMemberId(), exception);
+    }
   }
 
   public PageResponse<NotificationResponse> getNotifications(Long memberId, Pageable pageable) {
