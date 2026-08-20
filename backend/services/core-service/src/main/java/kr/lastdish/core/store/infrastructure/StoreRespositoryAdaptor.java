@@ -34,6 +34,11 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
+  public Optional<Store> findWithLockById(Long storeId) {
+    return storeJpaRepository.findWithLockByIdAndDeletedFalse(storeId);
+  }
+
+  @Override
   public boolean existsByMemberId(Long memberId) {
     return storeJpaRepository.existsByMemberId(memberId);
   }

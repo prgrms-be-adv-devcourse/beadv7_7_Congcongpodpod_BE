@@ -44,6 +44,8 @@ CREATE TABLE public.stores (
     open_time time(0) without time zone NOT NULL,
     member_id bigint NOT NULL,
     next_closing_at timestamp(6) without time zone,
+    updated_at timestamp(6) without time zone,
+    event_version bigint DEFAULT 0 NOT NULL,
     store_id bigint NOT NULL,
     business_number character varying(255) NOT NULL,
     category character varying(255) NOT NULL,
