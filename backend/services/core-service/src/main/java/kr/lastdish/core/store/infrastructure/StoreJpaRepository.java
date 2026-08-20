@@ -16,6 +16,8 @@ import org.springframework.data.repository.query.Param;
 public interface StoreJpaRepository extends JpaRepository<Store, Long> {
   Optional<Store> findByIdAndDeletedFalse(Long storeId);
 
+  List<Store> findAllByIdInAndDeletedFalse(List<Long> storeIds);
+
   boolean existsByMemberId(Long memberId);
 
   Optional<Store> findByMemberIdAndDeletedFalse(Long memberId);

@@ -11,6 +11,8 @@ public interface StoreRepository {
 
   Optional<Store> findById(Long storeId);
 
+  List<Store> findAllByIdIn(List<Long> storeIds);
+
   boolean existsByMemberId(Long memberId);
 
   Optional<Store> findByMemberId(Long memberId);
