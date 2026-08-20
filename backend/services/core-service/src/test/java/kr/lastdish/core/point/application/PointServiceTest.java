@@ -202,10 +202,10 @@ class PointServiceTest {
     given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
 
     PointHistory earnHistory =
-            PointHistory.recordEarn(1L, 100L, new BigDecimal("1000"), new BigDecimal("1000"));
+        PointHistory.recordEarn(1L, 100L, new BigDecimal("1000"), new BigDecimal("1000"));
     given(pointHistoryRepository.findUsableEarnHistories(1L)).willReturn(List.of(earnHistory));
     given(pointHistoryRepository.save(any(PointHistory.class)))
-            .willAnswer(invocation -> invocation.getArgument(0));
+        .willAnswer(invocation -> invocation.getArgument(0));
 
     pointService.use(1L, 200L, new BigDecimal("300"));
 
