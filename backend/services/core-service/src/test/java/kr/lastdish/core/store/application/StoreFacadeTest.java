@@ -8,13 +8,14 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Optional;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.domain.Dish;
+import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
-import kr.lastdish.core.store.presentation.dto.InternalStoreResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,10 +39,10 @@ class StoreFacadeTest {
     StoreResult storeResult = createStoreResult(storeId);
 
     when(storeService.getStore(storeId)).thenReturn(storeResult);
-    when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(null);
+    when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(Optional.empty());
 
     // when
-    InternalStoreResponse response = storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
+    InternalStoreResult response = storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
 
     // then
     assertThat(response).isNotNull();
@@ -62,10 +63,10 @@ class StoreFacadeTest {
     InternalDishResult dishResult = createDishResult(stockQuantity);
 
     when(storeService.getStore(storeId)).thenReturn(storeResult);
-    when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(dishResult);
+    when(dishService.getDishByStoreIdForRenewal(storeId)).thenReturn(Optional.of(dishResult));
 
     // when
-    InternalStoreResponse response = storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
+    InternalStoreResult response = storeFacade.getDishAndStoreByStoreIdForRenewal(storeId);
 
     // then
     assertThat(response).isNotNull();

@@ -1,14 +1,14 @@
-package kr.lastdish.core.store.presentation.dto;
+package kr.lastdish.core.store.application.dto;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
-import kr.lastdish.core.store.application.dto.InternalStoreResult;
+import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.StoreStatus;
 
-public record InternalStoreResponse(
+public record InternalStoreResult(
     Long storeId,
     Long memberId,
     String storeName,
@@ -20,10 +20,10 @@ public record InternalStoreResponse(
     BigDecimal longitude,
     Category category,
     List<DayOfWeek> holidays,
-    InternalDishResponse dish) {
+    InternalDishResult dish) {
 
-  public static InternalStoreResponse from(InternalStoreResult store) {
-    return new InternalStoreResponse(
+  public static InternalStoreResult from(StoreResult store, InternalDishResult dish) {
+    return new InternalStoreResult(
         store.storeId(),
         store.memberId(),
         store.storeName(),
@@ -35,6 +35,6 @@ public record InternalStoreResponse(
         store.longitude(),
         store.category(),
         store.holidays(),
-        store.dish() == null ? null : InternalDishResponse.from(store.dish()));
+        dish);
   }
 }

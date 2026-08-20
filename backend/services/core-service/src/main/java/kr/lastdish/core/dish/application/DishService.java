@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
@@ -300,9 +301,8 @@ public class DishService {
     return DishResponse.from(dish);
   }
 
-  public InternalDishResult getDishByStoreIdForRenewal(Long storeId) {
-    Dish dish = dishRepository.findByStoreIdAndIsDeletedFalse(storeId).orElse(null);
-    if (dish == null) return null;
-    return InternalDishResult.from(dish);
+  // 검색 색인 재생성용 조회 — 상품 미등록 매장은 비어 있는 Optional을 반환한다.
+  public Optional<InternalDishResult> getDishByStoreIdForRenewal(Long storeId) {
+    return dishRepository.findByStoreIdAndIsDeletedFalse(storeId).map(InternalDishResult::from);
   }
 }

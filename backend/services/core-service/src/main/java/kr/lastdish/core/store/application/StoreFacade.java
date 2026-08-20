@@ -10,6 +10,7 @@ import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
+import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.NearbyStoreResult;
 import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StorePageResult;
@@ -19,8 +20,6 @@ import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
-import kr.lastdish.core.store.presentation.dto.InternalDishResponse;
-import kr.lastdish.core.store.presentation.dto.InternalStoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -98,13 +97,12 @@ public class StoreFacade {
     return dishService.getDishByStoreId(storeId);
   }
 
-  public InternalStoreResponse getDishAndStoreByStoreIdForRenewal(Long storeId) {
+  // 검색 색인 재생성용 조회 — 매장 정보와 상품 정보를 합쳐 반환한다.
+  public InternalStoreResult getDishAndStoreByStoreIdForRenewal(Long storeId) {
     StoreResult store = storeService.getStore(storeId);
-    InternalDishResult dishResult = dishService.getDishByStoreIdForRenewal(storeId);
+    InternalDishResult dish = dishService.getDishByStoreIdForRenewal(storeId).orElse(null);
 
-    InternalDishResponse dish = dishResult == null ? null : InternalDishResponse.from(dishResult);
-
-    return InternalStoreResponse.from(store, dish);
+    return InternalStoreResult.from(store, dish);
   }
 
   public StorePageResult getNearbyStores(
