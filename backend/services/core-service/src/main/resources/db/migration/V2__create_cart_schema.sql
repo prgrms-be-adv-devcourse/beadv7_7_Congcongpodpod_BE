@@ -12,7 +12,7 @@ CREATE TABLE public.cart_items (
     last_applied_dish_price_version bigint DEFAULT 0 NOT NULL,
     last_applied_dish_version bigint DEFAULT 0 NOT NULL,
     quantity bigint NOT NULL,
-    store_id bigint,
+    store_id bigint NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     status character varying(30) NOT NULL,
     dish_name character varying(255) NOT NULL,

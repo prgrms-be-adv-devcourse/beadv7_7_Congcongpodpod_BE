@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -14,7 +15,8 @@ public record DishCreateRequest(
     @NotBlank String dishName,
     @NotNull LocalDateTime registeredAt,
     @NotBlank String description,
-    String thumbnailUrl,
+    @Size(max = 100) String category,
+    @NotBlank String imageKey,
     @NotNull @Positive Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,
     @NotNull @PositiveOrZero BigDecimal discountPrice,

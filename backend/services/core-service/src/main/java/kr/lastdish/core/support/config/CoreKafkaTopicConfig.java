@@ -11,6 +11,11 @@ import org.springframework.kafka.config.TopicBuilder;
 public class CoreKafkaTopicConfig {
 
   @Bean
+  NewTopic notificationTopic() {
+    return TopicBuilder.name("NOTIFICATION").partitions(3).replicas(1).build();
+  }
+
+  @Bean
   NewTopic dishStateChangedTopic() {
     return TopicBuilder.name(DishStateChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
@@ -19,4 +24,48 @@ public class CoreKafkaTopicConfig {
   NewTopic dishPriceChangedTopic() {
     return TopicBuilder.name(DishPriceChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
+
+  /*
+  아래 토픽은 리스너 구현 시 주석을 해제한다.
+
+  @Bean
+  NewTopic storeCreatedTopic() {
+    return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreCreatedEvent.EVENT_TYPE)
+        .partitions(3)
+        .replicas(1)
+        .build();
+  }
+
+  @Bean
+  NewTopic dishCreatedTopic() {
+    return TopicBuilder.name(kr.lastdish.core.dish.domain.event.DishCreatedEvent.EVENT_TYPE)
+        .partitions(3)
+        .replicas(1)
+        .build();
+  }
+
+  @Bean
+  NewTopic storeChangedTopic() {
+    return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreChangedEvent.EVENT_TYPE)
+        .partitions(3)
+        .replicas(1)
+        .build();
+  }
+
+  @Bean
+  NewTopic storeDeletedTopic() {
+    return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreDeletedEvent.EVENT_TYPE)
+        .partitions(3)
+        .replicas(1)
+        .build();
+  }
+
+  @Bean
+  NewTopic storeStatusChangedTopic() {
+    return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreStatusChangedEvent.EVENT_TYPE)
+        .partitions(3)
+        .replicas(1)
+        .build();
+  }
+  */
 }

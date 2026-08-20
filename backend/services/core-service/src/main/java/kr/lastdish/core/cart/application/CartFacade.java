@@ -9,8 +9,9 @@ import org.springframework.stereotype.Service;
 public class CartFacade {
   private final CartService cartService;
 
-  public CartOrderSnapshot getOrderSnapshot(Long memberId, Long cartItemId) {
-    return cartService.getOrderSnapshot(memberId, cartItemId);
+  public CartOrderSnapshot getValidatedOrderSnapshot(
+      Long memberId, Long cartItemId, long expectedDishPriceVersion) {
+    return cartService.getValidatedOrderSnapshot(memberId, cartItemId, expectedDishPriceVersion);
   }
 
   public void removeOrderedItem(Long memberId, Long cartItemId) {

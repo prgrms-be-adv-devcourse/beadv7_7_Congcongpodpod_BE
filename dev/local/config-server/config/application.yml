@@ -9,7 +9,6 @@ management:
         enabled: true
   metrics:
     tags:
-      # 모든 JVM·HTTP 메트릭에 서비스명을 붙여 Grafana에서 서비스별로 구분합니다.
       application: ${spring.application.name}
 
 spring:
@@ -27,6 +26,23 @@ spring:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: ${SPRINGDOC_ENABLED:false}
   swagger-ui:
-    enabled: false
+    enabled: ${SPRINGDOC_ENABLED:false}
+
+logging:
+  level:
+    org.apache.kafka.common.config.AbstractConfig: WARN
+  pattern:
+    correlation: "[%X{requestId:-}] "
+  structured:
+    format:
+      console: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:}
+    json:
+      customizer: kr.lastdish.common.api.logging.SystemZoneTimestampCustomizer
+      exclude: ${LOGGING_STRUCTURED_JSON_EXCLUDE:ecs.version,process.pid,process.thread.name,service.node.name}
+      stacktrace:
+        max-length: ${LOGGING_STRUCTURED_STACKTRACE_MAX_LENGTH:2048}
+
+request-log:
+  skip-successful-actuator-calls: ${SKIP_SUCCESSFUL_ACTUATOR_LOGS:true}

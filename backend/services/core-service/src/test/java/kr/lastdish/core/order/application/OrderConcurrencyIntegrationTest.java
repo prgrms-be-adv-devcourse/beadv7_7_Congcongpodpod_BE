@@ -30,6 +30,9 @@ import kr.lastdish.core.payment.domain.deposit.Deposit;
 import kr.lastdish.core.payment.domain.deposit.DepositHistory;
 import kr.lastdish.core.payment.domain.deposit.DepositHistoryRepository;
 import kr.lastdish.core.payment.domain.deposit.DepositRepository;
+import kr.lastdish.core.store.domain.Category;
+import kr.lastdish.core.store.domain.Store;
+import kr.lastdish.core.store.infrastructure.StoreJpaRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +50,7 @@ class OrderConcurrencyIntegrationTest {
   @Autowired private DepositHistoryRepository depositHistoryRepository;
   @Autowired private CartJpaRepository cartJpaRepository;
   @Autowired private CartItemJpaRepository cartItemJpaRepository;
+  @Autowired private StoreJpaRepository storeJpaRepository;
   @Autowired private TransactionTemplate transactionTemplate;
   @MockitoBean private OrderMemberQueryPort orderMemberQueryPort;
 
@@ -59,6 +63,7 @@ class OrderConcurrencyIntegrationTest {
           cartItemJpaRepository.deleteAll();
           cartJpaRepository.deleteAll();
           dishJpaRepository.deleteAll();
+          storeJpaRepository.deleteAll();
           depositRepository.deleteAll();
         });
   }
@@ -72,19 +77,34 @@ class OrderConcurrencyIntegrationTest {
     Long cartItemId =
         transactionTemplate.execute(
             status -> {
+              Store store =
+                  storeJpaRepository.save(
+                      new Store(
+                          99L,
+                          "동시 주문 테스트 매장",
+                          "123-45-67890",
+                          "서울시 강남구",
+                          "02-1234-5678",
+                          LocalTime.MIN,
+                          LocalTime.of(23, 59, 59),
+                          BigDecimal.valueOf(37.5),
+                          BigDecimal.valueOf(127.0),
+                          Category.KOREAN,
+                          LocalDateTime.now()));
               Dish dish =
                   dishJpaRepository.save(
                       Dish.create(
-                          10L,
+                          store.getId(),
                           "동시 주문 테스트 메뉴",
                           LocalDateTime.now(),
                           "테스트",
+                          "기타",
                           null,
                           10L,
                           BigDecimal.valueOf(2_000),
                           unitPrice,
-                          LocalTime.of(18, 0),
-                          LocalTime.of(19, 0)));
+                          LocalTime.MIN,
+                          LocalTime.of(23, 59, 59)));
               Cart cart = cartJpaRepository.save(Cart.create(memberId));
               CartItem cartItem =
                   cartItemJpaRepository.save(
@@ -96,8 +116,8 @@ class OrderConcurrencyIntegrationTest {
                           unitPrice,
                           unitPrice,
                           quantity,
-                          LocalTime.of(18, 0),
-                          LocalTime.of(19, 0),
+                          LocalTime.MIN,
+                          LocalTime.of(23, 59, 59),
                           dish.getAggregateVersion()));
               depositRepository.save(new Deposit(memberId, BigDecimal.valueOf(10_000)));
               return cartItem.getId();
@@ -152,6 +172,7 @@ class OrderConcurrencyIntegrationTest {
                           "테스트 메뉴",
                           LocalDateTime.now(),
                           "테스트",
+                          "기타",
                           null,
                           3L,
                           BigDecimal.valueOf(2_000),
@@ -219,7 +240,7 @@ class OrderConcurrencyIntegrationTest {
   private Throwable orderAfterSignal(CountDownLatch start, Long memberId, Long cartItemId) {
     try {
       start.await();
-      orderFacade.payAndCreateOrder(memberId, cartItemId);
+      orderFacade.payAndCreateOrder(memberId, cartItemId, 0L);
       return null;
     } catch (Throwable throwable) {
       return throwable;

@@ -20,7 +20,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
   InboxScheduler.class,
   InboxEventProcessor.class,
   InboxFailureRecorder.class,
-  InboxEventHandlerRegistry.class,
   InboxRepositoryAdapter.class,
   InboxClaimRepositoryAdapter.class,
   InboxAggregateVersionRepositoryAdapter.class
