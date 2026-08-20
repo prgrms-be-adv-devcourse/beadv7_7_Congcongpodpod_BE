@@ -10,7 +10,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
-import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.store.application.dto.StoreResult;
@@ -20,7 +19,6 @@ import kr.lastdish.core.store.domain.event.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -86,7 +84,7 @@ class StoreServiceTest {
   }
 
   @Test
-  void records_event_when_store_changes() {
+  void updates_store_through_locked_lookup() {
     Long storeId = 10L;
     Store store = createStore(LocalTime.now(), LocalTime.now());
     ReflectionTestUtils.setField(store, "id", storeId);
@@ -105,13 +103,15 @@ class StoreServiceTest {
             Category.KOREAN,
             List.of(DayOfWeek.MONDAY));
 
-    ArgumentCaptor<DomainEvent> eventArgumentCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
     // when
     StoreResult result = storeService.update(storeId, store.getMemberId(), command);
 
     // then
+    // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
     /*
+    ArgumentCaptor<StoreChangedEvent> eventArgumentCaptor =
+        ArgumentCaptor.forClass(StoreChangedEvent.class);
+
     verify(outboxEventWriter).append(eventArgumentCaptor.capture());
 
     StoreChangedEvent event = (StoreChangedEvent) eventArgumentCaptor.getValue();
@@ -131,7 +131,7 @@ class StoreServiceTest {
   }
 
   @Test
-  void records_event_when_store_status_changes() {
+  void changes_store_status_through_locked_lookup() {
     // given
     Long storeId = 10L;
 
@@ -140,14 +140,16 @@ class StoreServiceTest {
 
     when(storeRepository.findWithLockById(storeId)).thenReturn(Optional.of(store));
 
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
     // when
     StoreResult result =
         storeService.changeStatus(storeId, store.getMemberId(), StoreStatus.CLOSED);
 
     // then
+    // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
     /*
+    ArgumentCaptor<StoreStatusChangedEvent> eventCaptor =
+        ArgumentCaptor.forClass(StoreStatusChangedEvent.class);
+
     verify(outboxEventWriter).append(eventCaptor.capture());
 
     StoreStatusChangedEvent event = (StoreStatusChangedEvent) eventCaptor.getValue();
@@ -162,7 +164,7 @@ class StoreServiceTest {
   }
 
   @Test
-  void records_event_when_store_is_deleted() {
+  void soft_deletes_store_and_removes_payout_account() {
     // given
     Long storeId = 10L;
 
@@ -171,8 +173,6 @@ class StoreServiceTest {
 
     when(storeRepository.findWithLockById(storeId)).thenReturn(Optional.of(store));
 
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
     // when
     storeService.deleteStore(storeId, store.getMemberId());
 
@@ -180,7 +180,11 @@ class StoreServiceTest {
     assertThat(store.isDeleted()).isTrue();
 
     verify(payoutAccountRepository).deleteByStoreId(storeId);
+    // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
     /*
+    ArgumentCaptor<StoreDeletedEvent> eventCaptor =
+        ArgumentCaptor.forClass(StoreDeletedEvent.class);
+
     verify(outboxEventWriter).append(eventCaptor.capture());
 
     StoreDeletedEvent event = (StoreDeletedEvent) eventCaptor.getValue();
