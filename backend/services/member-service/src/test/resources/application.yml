@@ -25,6 +25,13 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
+
+event:
+  kafka:
+    # @KafkaListener의 autoStartup은 spring.kafka.listener.auto-startup보다 우선한다.
+    # CI에서 Kafka 없이 테스트할 수 있도록 이 값으로 꺼둔다.
+    listener-auto-startup: false
+
 kakao:
   oauth:
     client-id: test-client-id

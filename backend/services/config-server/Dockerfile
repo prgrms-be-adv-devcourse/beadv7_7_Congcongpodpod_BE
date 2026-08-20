@@ -16,6 +16,7 @@ COPY modules/mvc-common/build.gradle modules/mvc-common/build.gradle
 COPY modules/event-common/build.gradle modules/event-common/build.gradle
 COPY modules/outbox/build.gradle modules/outbox/build.gradle
 COPY modules/inbox/build.gradle modules/inbox/build.gradle
+COPY modules/s3-storage/build.gradle modules/s3-storage/build.gradle
 
 RUN sed -i 's/\r$//' gradlew \
     && chmod +x gradlew \
