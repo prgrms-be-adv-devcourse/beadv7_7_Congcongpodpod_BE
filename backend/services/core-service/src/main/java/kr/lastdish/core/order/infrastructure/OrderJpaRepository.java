@@ -32,7 +32,7 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       @Param("storeId") Long storeId, @Param("pickupCode") String pickupCode);
 
   @Query(
-          """
+      """
             SELECT
               o.id AS id,
               o.storeId AS storeId,

@@ -85,7 +85,6 @@ public class OrderService {
   public List<OrderSettlementInfo> findSettlementOrders(
       Long storeId, LocalDateTime periodStart, LocalDateTime periodEnd) {
 
-
     return orderRepository
         .findSettlementTargetOrders(storeId, SETTLEMENT_TARGET_STATUSES, periodStart, periodEnd)
         .stream()

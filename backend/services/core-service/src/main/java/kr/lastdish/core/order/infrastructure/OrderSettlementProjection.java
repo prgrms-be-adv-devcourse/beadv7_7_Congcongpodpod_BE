@@ -5,11 +5,11 @@ import java.time.LocalDateTime;
 
 public interface OrderSettlementProjection {
 
-    Long getId();
+  Long getId();
 
-    Long getStoreId();
+  Long getStoreId();
 
-    BigDecimal getTotalPrice();
+  BigDecimal getTotalPrice();
 
-    LocalDateTime getUpdatedAt();
+  LocalDateTime getUpdatedAt();
 }

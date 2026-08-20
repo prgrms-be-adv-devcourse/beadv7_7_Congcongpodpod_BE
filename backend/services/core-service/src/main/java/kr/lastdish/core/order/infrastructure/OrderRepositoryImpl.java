@@ -44,14 +44,17 @@ public class OrderRepositoryImpl implements OrderRepository {
       List<OrderStatus> orderStatuses,
       LocalDateTime periodStart,
       LocalDateTime periodEnd) {
-    return orderJpaRepository.findSettlementTargetOrders(
-        storeId, orderStatuses, periodStart, periodEnd)
-            .stream()
-            .map(projection -> new OrderSettlementTarget(projection.getId(),
+    return orderJpaRepository
+        .findSettlementTargetOrders(storeId, orderStatuses, periodStart, periodEnd)
+        .stream()
+        .map(
+            projection ->
+                new OrderSettlementTarget(
+                    projection.getId(),
                     projection.getStoreId(),
                     projection.getTotalPrice(),
                     projection.getUpdatedAt()))
-            .toList();
+        .toList();
   }
 
   public boolean validateActivePickUpCode(Long storeId, String pickUpCode) {

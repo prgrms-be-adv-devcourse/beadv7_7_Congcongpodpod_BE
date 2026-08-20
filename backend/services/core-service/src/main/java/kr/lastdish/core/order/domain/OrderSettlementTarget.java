@@ -4,8 +4,4 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record OrderSettlementTarget(
-        Long id,
-        Long storeId,
-        BigDecimal totalPrice,
-        LocalDateTime updatedAt
-) {}
+    Long id, Long storeId, BigDecimal totalPrice, LocalDateTime updatedAt) {}
