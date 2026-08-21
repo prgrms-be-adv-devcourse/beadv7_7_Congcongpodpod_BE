@@ -3,7 +3,6 @@ package kr.lastdish.payment.infrastructure;
 import java.util.Optional;
 import kr.lastdish.payment.domain.Payment;
 import kr.lastdish.payment.domain.PaymentRepository;
-import kr.lastdish.payment.infrastructure.PaymentJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

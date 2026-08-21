@@ -1,4 +1,4 @@
-package kr.lastdish.payment.domain.event;
+package kr.lastdish.core.deposit.application.event;
 
 import java.math.BigDecimal;
 

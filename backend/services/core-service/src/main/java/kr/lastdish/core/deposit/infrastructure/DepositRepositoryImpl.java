@@ -28,6 +28,11 @@ public class DepositRepositoryImpl implements DepositRepository {
   }
 
   @Override
+  public void createDefaultIfAbsent(Long memberId) {
+    depositJpaRepository.createDefaultIfAbsent(memberId);
+  }
+
+  @Override
   public void deleteAll() {
     depositJpaRepository.deleteAll();
   }

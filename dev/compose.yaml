@@ -263,9 +263,6 @@ services:
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
       S3_MAX_UPLOAD_SIZE: ${S3_MAX_UPLOAD_SIZE:-10MB}
-      # dev/.env에서 읽는다. 누락 시 잘못된 설정으로 기동하지 않도록 즉시 실패시킨다.
-      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:?TOSS_CLIENT_KEY is required in dev/.env}
-      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:?TOSS_SECRET_KEY is required in dev/.env}
       # AES 키는 애플리케이션이 요구하는 길이에 맞는 값을 dev/.env에 설정한다.
       ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:?ENCRYPTION_SECRET_KEY is required in dev/.env}
     depends_on:
@@ -297,8 +294,11 @@ services:
       REDIS_USERNAME: default
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_password}
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # dev/.env에서 읽는다. 누락 시 잘못된 설정으로 기동하지 않도록 즉시 실패시킨다.
       TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:?TOSS_CLIENT_KEY is required in dev/.env}
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:?TOSS_SECRET_KEY is required in dev/.env}
+      # AES 키는 애플리케이션이 요구하는 길이에 맞는 값을 dev/.env에 설정한다.
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:?ENCRYPTION_SECRET_KEY is required in dev/.env}
     depends_on:
       config-server:
         condition: service_healthy

@@ -3,6 +3,9 @@ package kr.lastdish.core.deposit.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,7 +24,7 @@ public class Deposit {
   @Column(name = "member_id", nullable = false, updatable = false)
   private Long memberId;
 
-  @Column(name = "balance", precision = 19, scale = 4, nullable = false)
+  @Column(name = "balance", precision = 19, scale = 2, nullable = false)
   private BigDecimal balance;
 
   @Column(name = "updated_at", nullable = false)
@@ -65,7 +68,8 @@ public class Deposit {
 
   private void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new IllegalArgumentException("금액은 0보다 커야 합니다. amount=" + amount);
+      throw new BusinessException(
+              CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
     }
   }
 }

@@ -11,9 +11,5 @@ swagger:
   cors:
     allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
 
-toss:
-  client-key: ${TOSS_CLIENT_KEY}
-  secret-key: ${TOSS_SECRET_KEY}
-
 encryption:
   secret-key: ${ENCRYPTION_SECRET_KEY}

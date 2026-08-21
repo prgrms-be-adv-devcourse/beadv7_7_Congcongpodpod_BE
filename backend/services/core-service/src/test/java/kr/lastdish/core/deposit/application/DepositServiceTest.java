@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import kr.lastdish.core.deposit.application.DepositService;
 import kr.lastdish.core.deposit.application.dto.DepositTransactionResult;
 import kr.lastdish.core.deposit.domain.Deposit;
 import kr.lastdish.core.deposit.domain.DepositHistory;

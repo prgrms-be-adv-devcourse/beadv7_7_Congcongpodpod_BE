@@ -1,7 +1,6 @@
 package kr.lastdish.payment.application;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.payment.application.dto.PaymentReadyRequest;
@@ -13,8 +12,6 @@ import kr.lastdish.payment.domain.PaymentException;
 import kr.lastdish.payment.domain.PaymentLog;
 import kr.lastdish.payment.domain.PaymentLogRepository;
 import kr.lastdish.payment.domain.PaymentRepository;
-import kr.lastdish.payment.domain.event.ChargeRequestedEvent;
-import kr.lastdish.payment.domain.event.ChargeRequestedPayload;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

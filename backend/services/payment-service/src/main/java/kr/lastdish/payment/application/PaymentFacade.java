@@ -28,13 +28,13 @@ public class PaymentFacade {
 
     // Toss와 통신
     PgApprovalResult pgResult =
-            pgPaymentGateway.approve(
-                    readyPayment.getId(), paymentKey, merchantOrderId, requestedAmount);
+        pgPaymentGateway.approve(
+            readyPayment.getId(), paymentKey, merchantOrderId, requestedAmount);
 
     // Toss 결제 거절 -> 실패 반영 후 종료
     if (!pgResult.success()) {
       log.warn(
-              "Toss 승인 거절: code={}, message={}", pgResult.failureCode(), pgResult.failureMessage());
+          "Toss 승인 거절: code={}, message={}", pgResult.failureCode(), pgResult.failureMessage());
       Payment failedPayment = paymentService.failPayment(readyPayment.getId(), pgResult);
       return PaymentApproveResponse.of(failedPayment, null);
     }
@@ -45,12 +45,12 @@ public class PaymentFacade {
       return PaymentApproveResponse.of(approvedPayment, "예치금 충전이 진행 중입니다.");
     } catch (Exception e) {
       log.error(
-              "CRITICAL: Toss 승인 성공, Payment 상태 반영 실패. merchantOrderId={}, pgTransactionId={}",
-              merchantOrderId,
-              pgResult.pgTransactionId(),
-              e);
+          "CRITICAL: Toss 승인 성공, Payment 상태 반영 실패. merchantOrderId={}, pgTransactionId={}",
+          merchantOrderId,
+          pgResult.pgTransactionId(),
+          e);
       throw new PaymentException(
-              CommonErrorCode.INTERNAL_ERROR, "결제 처리 중 오류가 발생했습니다. 고객센터로 문의해주세요.");
+          CommonErrorCode.INTERNAL_ERROR, "결제 처리 중 오류가 발생했습니다. 고객센터로 문의해주세요.");
     }
   }
 }

@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import kr.lastdish.payment.application.PaymentService;
 import kr.lastdish.payment.application.dto.PgApprovalResult;
 import kr.lastdish.payment.domain.*;
 import org.junit.jupiter.api.Test;

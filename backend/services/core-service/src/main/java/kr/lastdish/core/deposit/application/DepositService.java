@@ -70,6 +70,8 @@ public class DepositService {
   // 예치금 충전. 결제 승인 성공 시 잔액을 늘리고 기록
   @Transactional
   public DepositTransactionResult charge(Long memberId, Long paymentId, BigDecimal amount) {
+    depositRepository.createDefaultIfAbsent(memberId);
+
     Deposit deposit =
         depositRepository
             .findWithLockByMemberId(memberId)

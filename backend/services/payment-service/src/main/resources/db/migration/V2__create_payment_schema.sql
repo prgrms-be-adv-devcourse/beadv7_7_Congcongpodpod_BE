@@ -59,6 +59,3 @@ ALTER TABLE ONLY public.payments
 
 ALTER TABLE ONLY public.payments
     ADD CONSTRAINT payments_pkey PRIMARY KEY (payment_id);
-
-ALTER TABLE payments
-    ADD COLUMN aggregate_version BIGINT NOT NULL DEFAULT 0;

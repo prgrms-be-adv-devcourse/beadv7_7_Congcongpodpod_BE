@@ -9,5 +9,7 @@ public interface DepositRepository {
 
   Optional<Deposit> findWithLockByMemberId(Long memberId);
 
+  void createDefaultIfAbsent(Long memberId);
+
   void deleteAll();
 }

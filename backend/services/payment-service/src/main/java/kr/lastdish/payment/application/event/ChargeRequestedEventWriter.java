@@ -13,18 +13,18 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChargeRequestedEventWriter {
 
-    private final OutboxEventWriter outboxEventWriter;
+  private final OutboxEventWriter outboxEventWriter;
 
-    public void append(Payment payment, long aggregateVersion) {
-        ChargeRequestedEvent event =
-                new ChargeRequestedEvent(
-                        UUID.randomUUID(),
-                        ChargeRequestedEvent.SCHEMA_VERSION,
-                        payment.getId(),
-                        aggregateVersion,
-                        new ChargeRequestedPayload(payment.getMemberId(), payment.getId(), payment.getAmount()),
-                        Instant.now());
+  public void append(Payment payment, long aggregateVersion) {
+    ChargeRequestedEvent event =
+        new ChargeRequestedEvent(
+            UUID.randomUUID(),
+            ChargeRequestedEvent.SCHEMA_VERSION,
+            payment.getId(),
+            aggregateVersion,
+            new ChargeRequestedPayload(payment.getMemberId(), payment.getAmount()),
+            Instant.now());
 
-        outboxEventWriter.append(event);
-    }
+    outboxEventWriter.append(event);
+  }
 }
