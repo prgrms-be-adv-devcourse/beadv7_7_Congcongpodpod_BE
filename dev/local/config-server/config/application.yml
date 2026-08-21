@@ -9,7 +9,6 @@ management:
         enabled: true
   metrics:
     tags:
-      # 모든 JVM·HTTP 메트릭에 서비스명을 붙여 Grafana에서 서비스별로 구분합니다.
       application: ${spring.application.name}
 
 spring:
@@ -27,21 +26,23 @@ spring:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: ${SPRINGDOC_ENABLED:false}
   swagger-ui:
-    enabled: false
+    enabled: ${SPRINGDOC_ENABLED:false}
 
-# 로컬은 사람이 읽는 줄글 형식을 유지한다. 운영의 JSON 설정은 별도 config 저장소에 둔다.
-# 기본 콘솔 패턴은 correlation 자리를 이미 갖고 있어, 이 값만 주면 requestId가 줄글에도 찍힌다.
 logging:
   level:
-    # 기동할 때마다 Kafka 클라이언트가 자기 설정 전체를 INFO로 쏟아낸다. 운영 실측에서 323줄이었고
-    # 우리가 손댈 값이 아니므로 WARN으로 내린다. 설정을 확인해야 할 때만 이 줄을 임시로 지운다.
     org.apache.kafka.common.config.AbstractConfig: WARN
   pattern:
     correlation: "[%X{requestId:-}] "
+  structured:
+    format:
+      console: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:}
+    json:
+      customizer: kr.lastdish.common.api.logging.SystemZoneTimestampCustomizer
+      exclude: ${LOGGING_STRUCTURED_JSON_EXCLUDE:ecs.version,process.pid,process.thread.name,service.node.name}
+      stacktrace:
+        max-length: ${LOGGING_STRUCTURED_STACKTRACE_MAX_LENGTH:2048}
 
-# 상태 확인·메트릭 수집처럼 인프라가 주기적으로 부르는 요청은 정상일 때 완료 로그를 남기지 않는다.
-# 이 로그에 기대는 대시보드나 알림이 드러나면 false로 바꿔 재배포 없이 되돌린다.
 request-log:
-  skip-successful-actuator-calls: true
+  skip-successful-actuator-calls: ${SKIP_SUCCESSFUL_ACTUATOR_LOGS:true}

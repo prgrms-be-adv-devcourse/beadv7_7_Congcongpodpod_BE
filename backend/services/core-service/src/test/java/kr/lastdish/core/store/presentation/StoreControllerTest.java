@@ -134,7 +134,8 @@ class StoreControllerTest {
             LocalTime.of(22, 0),
             new BigDecimal(latitude),
             new BigDecimal(longitude),
-            category));
+            category,
+            LocalDateTime.now()));
   }
 
   private Dish saveDish(Long storeId, String dishName) {

@@ -54,6 +54,16 @@ public class Point {
     this.updatedAt = LocalDateTime.now();
   }
 
+  public void expire(BigDecimal amount) {
+    validatePositiveAmount(amount);
+    if (this.balance.compareTo(amount) < 0) {
+      throw new IllegalStateException(
+          "소멸 금액이 포인트 잔액을 초과합니다. balance=" + this.balance + ", amount=" + amount);
+    }
+    this.balance = this.balance.subtract(amount);
+    this.updatedAt = LocalDateTime.now();
+  }
+
   private static void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(

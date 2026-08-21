@@ -2,6 +2,7 @@ package kr.lastdish.core.store.application.dto;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.core.store.domain.Category;
@@ -18,6 +19,7 @@ public record StoreResult(
     String storePhone,
     LocalTime openTime,
     LocalTime closeTime,
+    LocalDateTime nextClosingAt,
     StoreStatus status,
     BigDecimal latitude,
     BigDecimal longitude,
@@ -34,6 +36,7 @@ public record StoreResult(
         store.getStorePhone(),
         store.getOpenTime(),
         store.getCloseTime(),
+        store.getNextClosingAt(),
         store.getStatus(),
         store.getLatitude(),
         store.getLongitude(),
