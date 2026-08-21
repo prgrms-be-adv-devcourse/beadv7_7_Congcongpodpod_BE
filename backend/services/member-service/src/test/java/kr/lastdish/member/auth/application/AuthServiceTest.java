@@ -20,6 +20,7 @@ import kr.lastdish.member.auth.domain.RefreshToken;
 import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
+import kr.lastdish.member.member.application.event.MemberEventWriter;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberId;
 import kr.lastdish.member.member.domain.MemberRepository;
@@ -46,6 +47,7 @@ class AuthServiceTest {
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private RedisTemplate<String, String> redisTemplate;
   @Mock private ValueOperations<String, String> valueOperations;
+  @Mock private MemberEventWriter memberEventWriter;
 
   private String encryptSha256(String text) {
     try {
@@ -184,7 +186,7 @@ class AuthServiceTest {
     Member member = Member.builder().userName("withdrawUser").email("withdraw@example.com").build();
     ReflectionTestUtils.setField(member, "id", memberId);
 
-    given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
+    given(memberRepository.findWithLockById(memberId)).willReturn(Optional.of(member));
 
     // when
     authService.withdraw("access-token", memberId);
@@ -192,6 +194,7 @@ class AuthServiceTest {
     // then
     assertThat(member.getIsDeleted()).isTrue();
     assertThat(member.getDeletedAt()).isNotNull();
+    verify(memberEventWriter).appendDeleted(member);
   }
 
   @Test
@@ -199,7 +202,7 @@ class AuthServiceTest {
   void withdrawFailWithNotFoundMember() {
     // given
     Long nonExistentMemberId = 99999L;
-    given(memberRepository.findById(nonExistentMemberId)).willReturn(Optional.empty());
+    given(memberRepository.findWithLockById(nonExistentMemberId)).willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> authService.withdraw(null, nonExistentMemberId))

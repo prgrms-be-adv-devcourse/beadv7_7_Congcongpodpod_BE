@@ -1,12 +1,20 @@
 package kr.lastdish.member.member.infrastructure;
 
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.SocialProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
 public interface JpaMemberRepository extends JpaRepository<Member, Long> {
   Optional<Member> findByIdAndIsDeletedFalse(Long id);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<Member> findWithLockById(Long id);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<Member> findWithLockByIdAndIsDeletedFalse(Long id);
 
   Optional<Member> findByUserNameAndIsDeletedFalse(String userName);
 

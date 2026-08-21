@@ -56,6 +56,9 @@ public class Member {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
+  @Column(name = "aggregate_version", nullable = false)
+  private long aggregateVersion;
+
   @Builder
   public Member(
       String userName,
@@ -77,6 +80,7 @@ public class Member {
     this.createdAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
     this.isDeleted = false;
+    this.aggregateVersion = 0L;
   }
 
   public void updateMember(
@@ -108,5 +112,9 @@ public class Member {
 
     role = Role.SELLER;
     updatedAt = LocalDateTime.now();
+  }
+
+  public long nextAggregateVersion() {
+    return ++aggregateVersion;
   }
 }

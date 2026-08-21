@@ -54,12 +54,14 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
   }
 
   @Override
-  public Set<Long> findSettledStoreIds(List<Long> storeIds) {
+  public Set<Long> findSettledStoreIds(List<Long> storeIds, YearMonth settlementMonth) {
     if (storeIds == null || storeIds.isEmpty()) {
       return Set.of();
     }
 
-    return new HashSet<>(jpaSettlementRepository.findSettledStoreIds(storeIds));
+    return new HashSet<>(
+        jpaSettlementRepository.findSettledStoreIds(
+            storeIds, settlementMonth, SettlementStatus.COMPLETED));
   }
 
   @Override

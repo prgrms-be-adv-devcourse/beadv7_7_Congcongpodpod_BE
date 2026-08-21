@@ -62,3 +62,14 @@ inbox:
   batch-size: ${INBOX_BATCH_SIZE:100}
   max-retries: ${INBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_AI_DIRECT_URL:http://localhost:8084}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
+
+ai:
+  engine:
+    url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
