@@ -11,7 +11,7 @@ import tools.jackson.databind.ObjectMapper;
 class MemberMessageHandlerTest {
 
   @Test
-  void 세_이벤트가_고유한_consumerId와_최신값_우선_정책을_사용한다() {
+  void 세_이벤트가_동일한_consumerId와_최신값_우선_정책을_사용한다() {
     ObjectMapper objectMapper = new ObjectMapper();
     MemberSnapshotSynchronizer synchronizer = mock(MemberSnapshotSynchronizer.class);
     MemberCreatedMessageHandler created =
@@ -21,9 +21,8 @@ class MemberMessageHandlerTest {
     MemberDeletedMessageHandler deleted =
         new MemberDeletedMessageHandler(objectMapper, synchronizer);
 
-    assertThat(created.consumerId()).isNotEqualTo(updated.consumerId());
-    assertThat(updated.consumerId()).isNotEqualTo(deleted.consumerId());
-    assertThat(deleted.consumerId()).isNotEqualTo(created.consumerId());
+    assertThat(created.consumerId()).isEqualTo(updated.consumerId());
+    assertThat(updated.consumerId()).isEqualTo(deleted.consumerId());
     assertThat(created.processingPolicy()).isEqualTo(InboxProcessingPolicy.IDEMPOTENT_LATEST_WINS);
     assertThat(updated.processingPolicy()).isEqualTo(InboxProcessingPolicy.IDEMPOTENT_LATEST_WINS);
     assertThat(deleted.processingPolicy()).isEqualTo(InboxProcessingPolicy.IDEMPOTENT_LATEST_WINS);

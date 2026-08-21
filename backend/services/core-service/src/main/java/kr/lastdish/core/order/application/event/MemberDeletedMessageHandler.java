@@ -7,7 +7,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class MemberDeletedMessageHandler extends AbstractMemberMessageHandler {
-  public static final String CONSUMER_ID = "core-order-member-deleted";
+  public static final String CONSUMER_ID = "core-order-member";
   public static final String EVENT_TYPE = "MEMBER_DELETED";
 
   public MemberDeletedMessageHandler(
