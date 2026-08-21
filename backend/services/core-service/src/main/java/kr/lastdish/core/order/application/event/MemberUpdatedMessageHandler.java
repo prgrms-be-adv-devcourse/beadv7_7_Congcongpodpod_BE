@@ -7,7 +7,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class MemberUpdatedMessageHandler extends AbstractMemberMessageHandler {
-  public static final String CONSUMER_ID = MemberCreatedMessageHandler.CONSUMER_ID;
+  public static final String CONSUMER_ID = "core-order-member-updated";
   public static final String EVENT_TYPE = "MEMBER_UPDATED";
 
   public MemberUpdatedMessageHandler(
@@ -28,6 +28,7 @@ public class MemberUpdatedMessageHandler extends AbstractMemberMessageHandler {
   @Override
   public void handle(EventMessage message) {
     MemberEventPayload payload = payload(message);
-    synchronizer.upsert(message.aggregateId(), payload.name(), payload.phone());
+    synchronizer.upsert(
+        message.aggregateId(), payload.name(), payload.phone(), message.aggregateVersion());
   }
 }

@@ -43,7 +43,7 @@ public class OrderFacade {
   public OrderResult payAndCreateOrder(Long memberId, Long cartItemId, Long dishPriceVersion) {
     MemberSnapshot memberSnapshot =
         memberSnapshotRepository
-            .findByMemberId(memberId)
+            .findActiveByMemberId(memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_MEMBER_SNAPSHOT_NOT_FOUND));
     OrderMemberInfo memberInfo =
         new OrderMemberInfo(memberSnapshot.getName(), memberSnapshot.getPhone());

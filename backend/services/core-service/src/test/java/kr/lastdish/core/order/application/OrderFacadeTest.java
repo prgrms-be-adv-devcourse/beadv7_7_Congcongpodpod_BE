@@ -103,7 +103,7 @@ class OrderFacadeTest {
             storeFacade,
             depositFacade);
 
-    inOrder.verify(memberSnapshotRepository).findByMemberId(memberId);
+    inOrder.verify(memberSnapshotRepository).findActiveByMemberId(memberId);
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
     inOrder.verify(storeFacade).validateOpen(eq(1L), any());
     inOrder.verify(orderService).validatePickupDeadline(eq(cartItem), any());
@@ -122,7 +122,8 @@ class OrderFacadeTest {
   void payAndCreateOrder_memberSnapshotNotFound() {
     Long memberId = 1L;
 
-    when(memberSnapshotRepository.findByMemberId(memberId)).thenReturn(java.util.Optional.empty());
+    when(memberSnapshotRepository.findActiveByMemberId(memberId))
+        .thenReturn(java.util.Optional.empty());
 
     assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, 1L, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
@@ -445,7 +446,7 @@ class OrderFacadeTest {
   }
 
   private void stubMemberSnapshot(Long memberId, OrderMemberInfo memberInfo) {
-    when(memberSnapshotRepository.findByMemberId(memberId))
+    when(memberSnapshotRepository.findActiveByMemberId(memberId))
         .thenReturn(
             java.util.Optional.of(
                 MemberSnapshot.create(memberId, memberInfo.name(), memberInfo.phone())));

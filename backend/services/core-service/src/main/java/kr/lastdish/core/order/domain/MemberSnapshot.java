@@ -28,10 +28,18 @@ public class MemberSnapshot {
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
+  @Column(name = "aggregate_version", nullable = false)
+  private long aggregateVersion;
+
+  @Column(name = "is_deleted", nullable = false)
+  private boolean deleted;
+
   public static MemberSnapshot create(Long memberId, String name, String phone) {
     MemberSnapshot snapshot = new MemberSnapshot();
     snapshot.memberId = memberId;
     snapshot.update(name, phone);
+    snapshot.aggregateVersion = 0L;
+    snapshot.deleted = false;
     return snapshot;
   }
 

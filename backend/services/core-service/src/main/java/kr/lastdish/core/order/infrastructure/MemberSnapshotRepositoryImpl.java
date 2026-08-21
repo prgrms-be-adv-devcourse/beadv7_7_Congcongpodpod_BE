@@ -17,8 +17,35 @@ public class MemberSnapshotRepositoryImpl implements MemberSnapshotRepository {
   }
 
   @Override
+  public Optional<MemberSnapshot> findActiveByMemberId(Long memberId) {
+    return memberSnapshotJpaRepository.findByMemberIdAndDeletedFalse(memberId);
+  }
+
+  @Override
   public MemberSnapshot save(MemberSnapshot snapshot) {
     return memberSnapshotJpaRepository.save(snapshot);
+  }
+
+  @Override
+  public int upsertIfNewer(
+      Long memberId,
+      String name,
+      String phone,
+      long aggregateVersion,
+      java.time.LocalDateTime updatedAt) {
+    return memberSnapshotJpaRepository.upsertIfNewer(
+        memberId, name, phone, aggregateVersion, updatedAt);
+  }
+
+  @Override
+  public int markDeletedIfNewer(
+      Long memberId,
+      String name,
+      String phone,
+      long aggregateVersion,
+      java.time.LocalDateTime updatedAt) {
+    return memberSnapshotJpaRepository.markDeletedIfNewer(
+        memberId, name, phone, aggregateVersion, updatedAt);
   }
 
   @Override
