@@ -702,7 +702,7 @@ SELECT setval('stores_store_id_seq', 300, true);
 SELECT setval('store_payout_accounts_payout_account_id_seq', 300, true);
 SELECT setval('dishes_id_seq', 300, true);
 SELECT setval('carts_id_seq', 300, true);
-SELECT setval('orders_id_seq', 300000, true);
+SELECT setval('orders_id_seq', 750000, true);
 SELECT setval('payments_payment_id_seq', 300, true);
 SELECT setval('deposits_deposit_id_seq', 300, true);
 
