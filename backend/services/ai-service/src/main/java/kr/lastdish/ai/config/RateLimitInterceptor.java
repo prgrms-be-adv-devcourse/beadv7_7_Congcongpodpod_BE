@@ -1,6 +1,5 @@
 package kr.lastdish.ai.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import jakarta.annotation.Nonnull;
@@ -11,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.common.api.exception.BusinessException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -19,7 +19,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class RateLimitInterceptor implements HandlerInterceptor {
 
   private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
-  private final ObjectMapper objectMapper = new ObjectMapper();
 
   // IP당 제한 규칙: 1분당 최대 3회 요청 허용
   private Bucket createNewBucket() {
@@ -41,6 +40,18 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     return true;
+  }
+
+  // 1시간마다 토큰이 꽉 찬(더 이상 제한 대상이 아닌) 버킷 정리
+  @Scheduled(fixedRate = 3600000)
+  public void cleanUpBuckets() {
+    buckets
+        .entrySet()
+        .removeIf(
+            entry -> {
+              // 버킷의 가용 토큰 수가 최대 용량(3개)과 같으면 지움
+              return entry.getValue().getAvailableTokens() >= 3;
+            });
   }
 
   // 프록시 환경 고려 클라이언트 IP 추출
