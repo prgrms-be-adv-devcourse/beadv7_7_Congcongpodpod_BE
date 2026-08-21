@@ -19,6 +19,7 @@ import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 public class StoreDocument {
 
   @Id private Long storeId;
+  private Long version;
 
   @Field(type = FieldType.Text, analyzer = "nori")
   private String storeName;

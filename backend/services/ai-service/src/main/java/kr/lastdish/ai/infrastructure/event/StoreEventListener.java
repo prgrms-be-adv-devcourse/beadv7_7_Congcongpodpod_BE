@@ -28,9 +28,10 @@ public class StoreEventListener {
         "Kafka 이벤트 수신. eventType={}, aggregateId={}", message.eventType(), message.aggregateId());
 
     try {
-      // 1. Payload에서 storeId 추출
+      // Payload에서 storeId 추출
       JsonNode payloadNode = objectMapper.readTree(message.payload());
       Long storeId = payloadNode.has("storeId") ? payloadNode.get("storeId").asLong() : null;
+      Long eventVersion = message.aggregateVersion();
 
       if ("STORE_DELETED".equals(message.eventType())) {
         if (storeId != null) {
@@ -41,7 +42,7 @@ public class StoreEventListener {
 
       // 2. 변경/생성 이벤트는 Renewal API 호출 후 ES Overwrite
       if (storeId != null) {
-        storeIndexerService.renewStoreIndex(storeId);
+        storeIndexerService.renewStoreIndexWithVersion(storeId, eventVersion);
       } else {
         log.warn("이벤트 메시지에 storeId가 존재하지 않습니다. eventId={}", message.eventId());
       }
