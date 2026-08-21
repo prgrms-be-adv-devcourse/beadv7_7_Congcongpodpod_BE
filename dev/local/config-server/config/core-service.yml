@@ -1,32 +1,24 @@
 spring:
   kafka:
-    # Compose에서는 kafka:19092, IDE 단독 실행에서는 localhost:9092를 사용합니다.
-    # 실제 producer/consumer 적용 전까지 기존 Spring Event 동작에는 영향을 주지 않습니다.
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     producer:
-      # 단일 broker에서도 leader가 메시지를 기록한 뒤 성공 응답하도록 합니다.
       acks: all
       properties:
-        # Producer 재시도로 같은 메시지가 broker에 중복 기록되는 것을 줄입니다.
         enable.idempotence: true
     consumer:
-      # Member와 분리된 group이므로 Core가 구독한 이벤트를 독립적으로 처리합니다.
-      group-id: core-service
-      # 메시지 처리 전에 offset이 자동 커밋되는 것을 막습니다.
+      group-id: ${KAFKA_CONSUMER_GROUP:core-service}
       enable-auto-commit: false
-      # 저장된 offset이 없는 Consumer는 topic의 처음부터 읽습니다.
       auto-offset-reset: earliest
     listener:
-      # Listener가 메시지 한 건을 정상 처리한 뒤 해당 offset을 커밋합니다.
       ack-mode: record
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:redis_local_password}
-      connect-timeout: 1s
-      timeout: 1s
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 5s
+      timeout: 5s
   cache:
     type: redis
     redis:
@@ -34,10 +26,9 @@ spring:
       cache-null-values: false
       key-prefix: "core-service:"
   datasource:
-    # Core는 core_db의 public 스키마만 소유합니다. Payment 데이터는 별도 payment_db에 있습니다.
-    url: ${CORE_DB_URL:jdbc:postgresql://localhost:54322/core_db}
-    username: ${CORE_DB_USERNAME:core}
-    password: ${CORE_DB_PASSWORD:core_local_password}
+    url: ${CORE_DB_URL}
+    username: ${CORE_DB_USERNAME}
+    password: ${CORE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -53,13 +44,14 @@ spring:
 
 services:
   member:
-    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8081}
+    base-url: ${MEMBER_SERVICE_BASE_URL}
 
 storage:
   s3:
     enabled: ${S3_ENABLED:false}
     bucket: ${S3_BUCKET:}
     region: ${AWS_REGION:ap-northeast-2}
+    endpoint: ${S3_ENDPOINT:}
     presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:5m}
     max-upload-size: ${S3_MAX_UPLOAD_SIZE:10MB}
 
@@ -81,3 +73,17 @@ inbox:
   batch-size: ${INBOX_BATCH_SIZE:100}
   max-retries: ${INBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
+
+toss:
+  client-key: ${TOSS_CLIENT_KEY}
+  secret-key: ${TOSS_SECRET_KEY}
+
+encryption:
+  secret-key: ${ENCRYPTION_SECRET_KEY}
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_CORE_DIRECT_URL:http://localhost:8082}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}

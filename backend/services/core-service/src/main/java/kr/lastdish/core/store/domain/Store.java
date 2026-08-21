@@ -8,14 +8,19 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Entity
 @Table(name = "stores")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class Store {
 
   @Id
@@ -57,6 +62,13 @@ public class Store {
   @Column(name = "longitude", nullable = false)
   private BigDecimal longitude;
 
+  @Column(name = "updated_at")
+  @LastModifiedDate
+  private LocalDateTime updatedAt;
+
+  @Column(name = "event_version", nullable = false)
+  private long eventVersion;
+
   @Column(name = "is_deleted", nullable = false)
   private boolean deleted;
 
@@ -77,7 +89,8 @@ public class Store {
       LocalTime closeTime,
       BigDecimal latitude,
       BigDecimal longitude,
-      Category category) {
+      Category category,
+      LocalDateTime now) {
     this.memberId = memberId;
     this.storeName = storeName;
     this.businessNumber = businessNumber;
@@ -85,11 +98,12 @@ public class Store {
     this.storePhone = storePhone;
     this.openTime = openTime;
     this.closeTime = closeTime;
-    this.nextClosingAt = calculateNextClosingAt(LocalDateTime.now());
+    this.nextClosingAt = calculateNextClosingAt(now);
     this.latitude = latitude;
     this.longitude = longitude;
     this.category = category;
     this.status = StoreStatus.OPEN;
+    this.eventVersion = 0L;
     this.deleted = false;
   }
 
@@ -126,6 +140,41 @@ public class Store {
   /** 영업시간과 정기 휴무일을 기준으로 기준 시각 이후의 가장 가까운 마감 일시를 계산한다. */
   public void rescheduleNextClosingAt(LocalDateTime from) {
     this.nextClosingAt = calculateNextClosingAt(from);
+  }
+
+  public void validatePickupTime(LocalTime pickupStartTime, LocalTime pickupEndTime) {
+    int businessDuration = forwardMinutes(openTime, closeTime);
+    int pickupStartOffset = forwardMinutes(openTime, pickupStartTime);
+    int pickupEndOffset = forwardMinutes(openTime, pickupEndTime);
+
+    if (pickupEndOffset > businessDuration || pickupStartOffset > pickupEndOffset) {
+      throw new BusinessException(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
+    }
+  }
+
+  /**
+   * 기준 시각에 이 매장이 주문을 받을 수 있는 상태인지 확인한다.
+   *
+   * <p>영업 상태 플래그만으로는 부족하다 — 플래그가 OPEN이어도 개점 전이거나 마감 후면 주문을 받을 수 없다. 영업시간을 함께 보지 않으면 개점 전 주문이 픽업 마감
+   * 검증까지 흘러가 "픽업 마감 시간이 지났습니다"라는 엉뚱한 안내를 받는다.
+   */
+  public boolean isOpenAt(LocalDateTime now) {
+    if (status != StoreStatus.OPEN) {
+      return false;
+    }
+
+    return forwardMinutes(openTime, now.toLocalTime()) < forwardMinutes(openTime, closeTime);
+  }
+
+  public LocalDateTime calculatePickupDeadline(LocalDateTime now, LocalTime pickupEndTime) {
+    LocalDate businessDate =
+        now.toLocalTime().isBefore(openTime) ? now.toLocalDate().minusDays(1) : now.toLocalDate();
+    return businessDate.atTime(openTime).plusMinutes(forwardMinutes(openTime, pickupEndTime));
+  }
+
+  private int forwardMinutes(LocalTime from, LocalTime to) {
+    int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
+    return Math.floorMod(minutes, 24 * 60);
   }
 
   private LocalDateTime calculateNextClosingAt(LocalDateTime from) {
@@ -167,5 +216,9 @@ public class Store {
     this.status = StoreStatus.STOPPED;
     this.holidays.clear();
     this.deleted = true;
+  }
+
+  public long nextEventVersion() {
+    return ++this.eventVersion;
   }
 }

@@ -52,4 +52,23 @@ class PointTest {
     assertThatThrownBy(() -> point.use(new BigDecimal("200")))
         .isInstanceOf(InsufficientPointException.class);
   }
+
+  @Test
+  void expire_호출하면_잔액이_차감된다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("1000"));
+
+    point.expire(new BigDecimal("300"));
+
+    assertThat(point.getBalance()).isEqualByComparingTo(new BigDecimal("700"));
+  }
+
+  @Test
+  void expire_잔액보다_많이_소멸시키려하면_예외가_발생한다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("100"));
+
+    assertThatThrownBy(() -> point.expire(new BigDecimal("200")))
+        .isInstanceOf(IllegalStateException.class);
+  }
 }

@@ -1,5 +1,12 @@
 server:
   port: 8080
+  tomcat:
+    # Tomcat 스레드풀 지표(tomcat_threads_busy_threads/current_threads/config_max_threads)는 JMX MBean으로 수집된다.
+    # 이 값이 꺼져 있으면 MBean이 등록되지 않아 세션 지표만 나오고 스레드풀 지표가 통째로 빠진다
+    # (로컬 실측: 끄면 tomcat_ 6줄, 켜면 24줄). 부하 시 무엇이 먼저 고갈되는지 보려면 필요하다.
+    # 환경별 튜닝 값이 아니라 관측 스위치라 이미지와 함께 배포되도록 여기에 둔다.
+    mbeanregistry:
+      enabled: true
 
 spring:
   application:

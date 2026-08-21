@@ -19,6 +19,7 @@ public class PointService {
   private final PointRepository pointRepository;
   private final PointHistoryRepository pointHistoryRepository;
   private final LevelService levelService;
+  private final PointExpirationService pointExpirationService;
 
   @Transactional(readOnly = true)
   public Point getOrDefaultPoint(Long memberId) {
@@ -27,7 +28,13 @@ public class PointService {
 
   @Transactional(readOnly = true)
   public PointBalanceResponse getPointBalance(Long memberId) {
-    return PointBalanceResponse.from(getOrDefaultPoint(memberId));
+    Point point = getOrDefaultPoint(memberId);
+
+    BigDecimal expiringAmount = pointHistoryRepository.sumExpiringAmountByMember(memberId);
+
+    BigDecimal usableBalance = point.getBalance().subtract(expiringAmount);
+
+    return new PointBalanceResponse(usableBalance);
   }
 
   // 포인트 적립 (Level 적립률 * 최종 주문 금액)
@@ -66,6 +73,8 @@ public class PointService {
         pointRepository
             .findWithLockByMemberId(memberId)
             .orElseThrow(() -> new PointNotFoundException(memberId));
+
+    pointExpirationService.expireDueHistories(point); // 사용 직전, 기한 만료 소멸 대상이면 소멸 처리
 
     if (pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.USE)) {
       throw new BusinessException(

@@ -7,3 +7,7 @@ spring:
       auto-create: false
     listener:
       auto-startup: false
+
+event:
+  kafka:
+    listener-auto-startup: false

@@ -228,6 +228,8 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
+      SPRINGDOC_ENABLED: "true"
+      SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/seed}
       CONFIG_SERVER_URL: http://config-server:8888
       MEMBER_DB_URL: jdbc:postgresql://member-db:5432/member_db
       MEMBER_DB_USERNAME: member
@@ -268,6 +270,8 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
+      SPRINGDOC_ENABLED: "true"
+      SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/seed}
       CONFIG_SERVER_URL: http://config-server:8888
       CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
       CORE_DB_USERNAME: core
@@ -284,6 +288,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
       S3_MAX_UPLOAD_SIZE: ${S3_MAX_UPLOAD_SIZE:-10MB}
       # dev/.env에서 읽는다. 누락 시 잘못된 설정으로 기동하지 않도록 즉시 실패시킨다.
@@ -311,6 +316,8 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
+      SPRINGDOC_ENABLED: "true"
+      SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/seed}
       CONFIG_SERVER_URL: http://config-server:8888
       PAYMENT_DB_URL: jdbc:postgresql://core-db:5432/payment_db
       PAYMENT_DB_USERNAME: payment
@@ -344,6 +351,7 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
+      SPRINGDOC_ENABLED: "true"
       CONFIG_SERVER_URL: http://config-server:8888
       AI_DB_URL: jdbc:postgresql://core-db:5432/ai_db
       AI_DB_USERNAME: ai
@@ -356,6 +364,15 @@ services:
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_USERNAME: elastic
       ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic_local_password}
+      S3_ENABLED: ${S3_ENABLED:-false}
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET is required in dev/.env}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required in dev/.env}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required in dev/.env}
+      S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
+      AI_ENGINE_URL: ${AI_ENGINE_URL:?AI_ENGINE_URL is required in dev/.env }
+
+
     depends_on:
       config-server:
         condition: service_healthy
@@ -380,9 +397,15 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: local
+      SPRINGDOC_ENABLED: "true"
       CONFIG_SERVER_URL: http://config-server:8888
       JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/access-public-key.pem
-      GATEWAY_CORS_ORIGIN: "*"
+      GATEWAY_CORS_ORIGIN: http://localhost:3000
+      GATEWAY_CORS_WWW_ORIGIN: http://127.0.0.1:3000
+      CORE_SERVICE_URL: http://core-service:8080
+      MEMBER_SERVICE_URL: http://member-service:8080
+      PAYMENT_SERVICE_URL: http://payment-service:8080
+      AI_SERVICE_URL: http://ai-service:8080
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_USERNAME: default
