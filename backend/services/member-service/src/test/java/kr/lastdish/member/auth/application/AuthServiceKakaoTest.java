@@ -16,6 +16,7 @@ import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
 import kr.lastdish.member.auth.infrastructure.client.KakaoOAuthClient;
+import kr.lastdish.member.member.application.event.MemberEventWriter;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.Role;
@@ -43,6 +44,7 @@ class AuthServiceKakaoTest {
   @Mock private TokenProvider tokenProvider;
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private KakaoOAuthClient kakaoOAuthClient;
+  @Mock private MemberEventWriter memberEventWriter;
 
   @InjectMocks private AuthService authService;
 
@@ -75,6 +77,7 @@ class AuthServiceKakaoTest {
     verify(memberRepository).findByProviderAndProviderId(SocialProvider.KAKAO, PROVIDER_ID);
     verify(memberRepository).findByEmail(EMAIL);
     verify(memberRepository).save(any(Member.class));
+    verify(memberEventWriter).appendCreated(savedMember);
   }
 
   @Test

@@ -23,7 +23,7 @@ public interface SettlementRepository {
 
   Optional<Settlement> findByIdAndStoreId(Long settlementId, Long storeId);
 
-  Set<Long> findSettledStoreIds(List<Long> storeIds);
+  Set<Long> findSettledStoreIds(List<Long> storeIds, YearMonth settlementMonth);
 
   void truncateAllSettlementData();
 }

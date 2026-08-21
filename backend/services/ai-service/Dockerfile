@@ -26,6 +26,7 @@ COPY modules/api-common/src modules/api-common/src
 COPY modules/mvc-common/src modules/mvc-common/src
 COPY modules/event-common/src modules/event-common/src
 COPY modules/outbox/src modules/outbox/src
+COPY modules/s3-storage/src modules/s3-storage/src
 COPY services/ai-service/src services/ai-service/src
 
 RUN ./gradlew :services:ai-service:bootJar --no-daemon

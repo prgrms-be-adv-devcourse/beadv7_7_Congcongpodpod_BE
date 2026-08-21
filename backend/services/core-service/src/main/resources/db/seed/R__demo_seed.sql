@@ -383,7 +383,7 @@ SELECT
         WHEN 3 THEN '하나은행'
         ELSE '농협은행'
     END,
-    '000000' || lpad(seed_id::text, 6, '0'),
+    'iMlRbcUVkKALwEOyVBPFAOFT/ceQS+YZs6LfjUy0SbZkLOpa3tCCSw==',
     '시연판매자' || lpad(seed_id::text, 3, '0'),
     true,
     false,
@@ -636,10 +636,85 @@ FROM public.orders
 WHERE status = 'PICKED_UP'
 GROUP BY member_id;
 
+-- BEGIN SETTLEMENT PERFORMANCE TEST ORDERS
+-- 정산 방식별 성능 비교를 위한 전용 주문 데이터입니다.
+-- 기존 시연 데이터와 분리하기 위해 다음 조건을 사용합니다.
+--   * 주문 ID: 300001 ~ 750000
+--   * pickup_code: SETTLEMENT-TEST- 접두어
+--   * 주문 기간: 2026-08-01 ~ 2026-08-20
+--   * 매장 수: 300개
+--   * 매장별 주문 수: 1,500건
+--   * 전체 주문 수: 450,000건
+-- 모든 성능 테스트가 끝난 뒤 이 블록을 제거하면 기존 시드 데이터만 생성됩니다.
+WITH settlement_test_orders AS (
+    SELECT
+        (300000 + (store_id - 1) * 1500 + order_no)::bigint AS order_id,
+            store_id::bigint AS store_id,
+            ((store_id + order_no - 2) % 300 + 1)::bigint AS member_id,
+    order_no,
+    timestamp '2026-08-01 10:00:00'
+    + ((order_no - 1) % 20) * interval '1 day'
+    + ((order_no + store_id) % 3600) * interval '1 second' AS created_at,
+    (10000 + (store_id % 5) * 1000)::numeric(38,2) AS unit_price,
+    (1 + order_no % 3)::bigint AS quantity,
+    CASE
+    WHEN order_no % 5 = 0 THEN 'NO_SHOW'
+    ELSE 'PICKED_UP'
+END AS status
+    FROM generate_series(1, 300) AS stores(store_id)
+    CROSS JOIN generate_series(1, 1500) AS order_numbers(order_no)
+)
+INSERT INTO public.orders (
+    id, member_id, store_id, dish_id, dish_name, member_name, phone, quantity,
+    unit_price, total_price, total_saved_amount, status, payment_status,
+    pickup_start_at, pickup_end_at, pickup_deadline, pickup_result_at, pickup_code,
+    cancel_reason, reject_reason, is_deleted, created_at, updated_at, event_version
+)
+SELECT
+    order_id,
+    member_id,
+    store_id,
+    store_id,
+    '정산 성능 테스트 상품 ' || lpad(store_id::text, 3, '0'),
+    '정산 테스트 구매자 ' || lpad(member_id::text, 3, '0'),
+    '010-9000-' || lpad(member_id::text, 4, '0'),
+    quantity,
+    unit_price,
+    unit_price * quantity,
+    (20000 - unit_price) * quantity,
+    status,
+    'COMPLETED',
+    time '18:00',
+    time '21:30',
+    created_at + interval '8 hours',
+    created_at + interval '8 hours',
+    'SETTLEMENT-TEST-' || order_id,
+    NULL,
+    NULL,
+    false,
+    created_at,
+    created_at + interval '8 hours',
+    0
+FROM settlement_test_orders;
+-- END SETTLEMENT PERFORMANCE TEST ORDERS
+
 SELECT setval('stores_store_id_seq', 300, true);
 SELECT setval('store_payout_accounts_payout_account_id_seq', 300, true);
 SELECT setval('dishes_id_seq', 300, true);
 SELECT setval('carts_id_seq', 300, true);
-SELECT setval('orders_id_seq', 300000, true);
+SELECT setval('orders_id_seq', 750000, true);
 SELECT setval('payments_payment_id_seq', 300, true);
 SELECT setval('deposits_deposit_id_seq', 300, true);
+
+-- 정산 실행 시 기존 더미 데이터와 PK가 충돌하지 않도록 조정
+SELECT setval(
+               pg_get_serial_sequence('public.settlements', 'id'),
+               COALESCE((SELECT MAX(id) FROM public.settlements), 0) + 1,
+               false
+       );
+
+SELECT setval(
+               pg_get_serial_sequence('public.settlement_details', 'id'),
+               COALESCE((SELECT MAX(id) FROM public.settlement_details), 0) + 1,
+               false
+       );

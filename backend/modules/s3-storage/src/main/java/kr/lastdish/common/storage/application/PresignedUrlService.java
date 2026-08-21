@@ -17,9 +17,11 @@ import kr.lastdish.common.storage.image.UnsupportedImageContentTypeException;
 import kr.lastdish.common.storage.infrastructure.s3.S3ObjectStorage;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageException;
 import kr.lastdish.common.storage.infrastructure.s3.S3StorageProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Presigned 업로드 URL 발급·확정과 다운로드 URL 발급을 담당하는 공통 서비스입니다. */
+@Slf4j
 public class PresignedUrlService {
 
   private final Optional<S3ObjectStorage> s3ObjectStorage;
