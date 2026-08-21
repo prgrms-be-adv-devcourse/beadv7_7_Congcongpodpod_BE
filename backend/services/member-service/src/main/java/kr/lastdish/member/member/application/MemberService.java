@@ -2,6 +2,7 @@ package kr.lastdish.member.member.application;
 
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.member.member.application.dto.MemberProfileResult;
+import kr.lastdish.member.member.application.event.MemberEventWriter;
 import kr.lastdish.member.member.domain.Member;
 import kr.lastdish.member.member.domain.MemberRepository;
 import kr.lastdish.member.member.domain.SocialProvider;
@@ -19,6 +20,7 @@ public class MemberService {
 
   private final MemberRepository memberRepository;
   private final PasswordEncoder passwordEncoder;
+  private final MemberEventWriter memberEventWriter;
 
   public MemberProfileResult getMemberById(Long memberId) {
     Member member =
@@ -35,7 +37,7 @@ public class MemberService {
     // 1. 활성화된 회원(탈퇴 제외) 조회
     Member member =
         memberRepository
-            .findActiveById(memberId)
+            .findActiveWithLockById(memberId)
             .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
     // 2. 아이디 변경 시 중복 검사 수행(값이 들어왔을 때만)
@@ -63,6 +65,9 @@ public class MemberService {
       encodedPassword = passwordEncoder.encode(requestDto.getPassword());
     }
 
+    String nameBefore = member.getName();
+    String phoneBefore = member.getPhone();
+
     // 5. 회원 정보 업데이트(null 체크를 통해 기존 값 유지 보장)
     member.updateMember(
         requestDto.getUserName() != null ? requestDto.getUserName() : member.getUserName(),
@@ -70,6 +75,10 @@ public class MemberService {
         requestDto.getName() != null ? requestDto.getName() : member.getName(),
         requestDto.getPhone() != null ? requestDto.getPhone() : member.getPhone(),
         requestDto.getEmail() != null ? requestDto.getEmail() : member.getEmail());
+
+    if (!nameBefore.equals(member.getName()) || !phoneBefore.equals(member.getPhone())) {
+      memberEventWriter.appendUpdated(member);
+    }
   }
 
   // 회원 승급

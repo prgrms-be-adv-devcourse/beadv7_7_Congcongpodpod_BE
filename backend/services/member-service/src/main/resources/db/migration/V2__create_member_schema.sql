@@ -4,6 +4,7 @@ CREATE TABLE public.members (
     is_deleted boolean NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     deleted_at timestamp(6) without time zone,
+    aggregate_version bigint DEFAULT 0 NOT NULL,
     member_id bigint NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     role character varying(20) NOT NULL,
