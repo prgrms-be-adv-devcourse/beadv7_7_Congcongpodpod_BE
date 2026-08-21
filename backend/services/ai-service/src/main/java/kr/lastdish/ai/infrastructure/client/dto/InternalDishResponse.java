@@ -1,16 +1,13 @@
-package kr.lastdish.ai.infrastructure.event.dto;
+package kr.lastdish.ai.infrastructure.client.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-public record DishEventPayload(
+public record InternalDishResponse(
     Long dishId,
-    Long storeId,
-    String storeName,
     String dishName,
-    LocalDateTime registeredAt,
     String description,
+    String category,
     String thumbnailUrl,
     Long stockQuantity,
     String dishStatus,
