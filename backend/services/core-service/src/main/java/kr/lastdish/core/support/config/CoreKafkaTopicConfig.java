@@ -1,7 +1,10 @@
 package kr.lastdish.core.support.config;
 
+import kr.lastdish.core.dish.domain.event.DishCreatedEvent;
+import kr.lastdish.core.dish.domain.event.DishDeletedEvent;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishUpdatedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,20 +28,27 @@ public class CoreKafkaTopicConfig {
     return TopicBuilder.name(DishPriceChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
 
+  @Bean
+  NewTopic dishCreatedTopic() {
+    return TopicBuilder.name(DishCreatedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
+  }
+
+  @Bean
+  NewTopic dishUpdatedTopic() {
+    return TopicBuilder.name(DishUpdatedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
+  }
+
+  @Bean
+  NewTopic dishDeletedTopic() {
+    return TopicBuilder.name(DishDeletedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
+  }
+
   /*
   아래 토픽은 리스너 구현 시 주석을 해제한다.
 
   @Bean
   NewTopic storeCreatedTopic() {
     return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreCreatedEvent.EVENT_TYPE)
-        .partitions(3)
-        .replicas(1)
-        .build();
-  }
-
-  @Bean
-  NewTopic dishCreatedTopic() {
-    return TopicBuilder.name(kr.lastdish.core.dish.domain.event.DishCreatedEvent.EVENT_TYPE)
         .partitions(3)
         .replicas(1)
         .build();

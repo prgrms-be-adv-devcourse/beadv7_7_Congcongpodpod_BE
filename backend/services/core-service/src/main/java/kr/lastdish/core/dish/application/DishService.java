@@ -46,8 +46,7 @@ public class DishService {
 
     Dish savedDish = dishRepository.save(dish);
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendCreatedEvent(savedDish);
+    appendCreatedEvent(savedDish);
 
     return DishResponse.from(savedDish);
   }
@@ -85,6 +84,7 @@ public class DishService {
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendPriceEventIfChanged(dish, dishPriceBefore, unitPriceBefore);
+    appendUpdatedEvent(dish);
 
     return DishResponse.from(dish);
   }
@@ -162,6 +162,7 @@ public class DishService {
     dish.delete();
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendDeletedEvent(dish);
     return dish.getThumbnailUrl();
   }
 
@@ -261,10 +262,44 @@ public class DishService {
   // 검색 문서 갱신을 요청하는 상품 생성 이벤트를 Outbox에 기록한다.
   private void appendCreatedEvent(Dish dish) {
     long aggregateVersion = dish.nextAggregateVersion();
-    DishCreatedPayload payload = new DishCreatedPayload(dish.getStoreId());
+    DishAIEventPayload payload = new DishAIEventPayload(dish.getStoreId());
 
     DishCreatedEvent event =
         new DishCreatedEvent(
+            UUID.randomUUID(),
+            DishCreatedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  // 검색 문서 갱신을 요청하는 상품 수정 이벤트를 Outbox에 기록한다.
+  private void appendUpdatedEvent(Dish dish) {
+    long aggregateVersion = dish.nextAggregateVersion();
+    DishAIEventPayload payload = new DishAIEventPayload(dish.getStoreId());
+
+    DishUpdatedEvent event =
+        new DishUpdatedEvent(
+            UUID.randomUUID(),
+            DishCreatedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  // 검색 문서 갱신을 요청하는 상품 삭제 이벤트를 Outbox에 기록한다.
+  private void appendDeletedEvent(Dish dish) {
+    long aggregateVersion = dish.nextAggregateVersion();
+    DishAIEventPayload payload = new DishAIEventPayload(dish.getStoreId());
+
+    DishDeletedEvent event =
+        new DishDeletedEvent(
             UUID.randomUUID(),
             DishCreatedEvent.SCHEMA_VERSION,
             dish.getId(),
