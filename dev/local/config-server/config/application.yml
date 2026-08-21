@@ -40,7 +40,7 @@ logging:
       console: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:}
     json:
       customizer: kr.lastdish.common.api.logging.SystemZoneTimestampCustomizer
-      exclude: ${LOGGING_STRUCTURED_JSON_EXCLUDE:ecs.version,process.pid,process.thread.name,service.node.name}
+      exclude: ${LOGGING_STRUCTURED_JSON_EXCLUDE:ecs,process.pid,service.node,tags}
       stacktrace:
         max-length: ${LOGGING_STRUCTURED_STACKTRACE_MAX_LENGTH:2048}
 
