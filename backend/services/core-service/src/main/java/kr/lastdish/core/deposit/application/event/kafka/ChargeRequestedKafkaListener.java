@@ -10,15 +10,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChargeRequestedKafkaListener {
 
-    public static final String CONSUMER_ID = "core-deposit-charge-requested";
+  public static final String CONSUMER_ID = "core-deposit-charge-requested";
 
-    private final InboxEventWriter inboxEventWriter;
+  private final InboxEventWriter inboxEventWriter;
 
-    @KafkaListener(
-            topics = "CHARGE_REQUESTED",
-            groupId = CONSUMER_ID,
-            autoStartup = "${event.kafka.listener-auto-startup:true}")
-    public void consume(EventMessage message) {
-        inboxEventWriter.saveIfAbsent(CONSUMER_ID, message);
-    }
+  @KafkaListener(
+      topics = "CHARGE_REQUESTED",
+      groupId = CONSUMER_ID,
+      autoStartup = "${event.kafka.listener-auto-startup:true}")
+  public void consume(EventMessage message) {
+    inboxEventWriter.saveIfAbsent(CONSUMER_ID, message);
+  }
 }

@@ -3,7 +3,6 @@ package kr.lastdish.core.deposit.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import lombok.AccessLevel;
@@ -68,45 +67,45 @@ public class DepositHistory {
   }
 
   public static DepositHistory recordCharge(
-          Long memberId, Long paymentId, BigDecimal amount, BigDecimal balanceAfter) {
+      Long memberId, Long paymentId, BigDecimal amount, BigDecimal balanceAfter) {
     validatePositiveAmount(amount);
     return DepositHistory.builder()
-            .memberId(memberId)
-            .paymentId(paymentId)
-            .type(DepositType.CHARGE)
-            .amount(amount)
-            .balanceAfter(balanceAfter)
-            .build();
+        .memberId(memberId)
+        .paymentId(paymentId)
+        .type(DepositType.CHARGE)
+        .amount(amount)
+        .balanceAfter(balanceAfter)
+        .build();
   }
 
   public static DepositHistory recordUse(
-          Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+      Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
     validatePositiveAmount(amount);
     return DepositHistory.builder()
-            .memberId(memberId)
-            .orderId(orderId)
-            .type(DepositType.USE)
-            .amount(amount)
-            .balanceAfter(balanceAfter)
-            .build();
+        .memberId(memberId)
+        .orderId(orderId)
+        .type(DepositType.USE)
+        .amount(amount)
+        .balanceAfter(balanceAfter)
+        .build();
   }
 
   public static DepositHistory recordRefund(
-          Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+      Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
     validatePositiveAmount(amount);
     return DepositHistory.builder()
-            .memberId(memberId)
-            .orderId(orderId)
-            .type(DepositType.REFUND)
-            .amount(amount)
-            .balanceAfter(balanceAfter)
-            .build();
+        .memberId(memberId)
+        .orderId(orderId)
+        .type(DepositType.REFUND)
+        .amount(amount)
+        .balanceAfter(balanceAfter)
+        .build();
   }
 
   private static void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(
-              CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
+          CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
     }
   }
 }

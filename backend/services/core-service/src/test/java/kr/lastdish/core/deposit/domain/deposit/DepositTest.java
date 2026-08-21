@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.deposit.domain.Deposit;
+import kr.lastdish.core.deposit.domain.InsufficientBalanceException;
 import org.junit.jupiter.api.Test;
 
 class DepositTest {
@@ -44,11 +46,10 @@ class DepositTest {
     Deposit deposit = Deposit.createDefault(1L);
     deposit.refund(new BigDecimal("10000"));
 
-    assertThatThrownBy(() -> deposit.use(BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> deposit.use(BigDecimal.ZERO)).isInstanceOf(BusinessException.class);
 
     assertThatThrownBy(() -> deposit.use(new BigDecimal("-5000")))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
 
     assertThat(deposit.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
   }
@@ -58,11 +59,10 @@ class DepositTest {
     Deposit deposit = Deposit.createDefault(1L);
     deposit.refund(new BigDecimal("10000"));
 
-    assertThatThrownBy(() -> deposit.refund(BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> deposit.refund(BigDecimal.ZERO)).isInstanceOf(BusinessException.class);
 
     assertThatThrownBy(() -> deposit.refund(new BigDecimal("-3000")))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BusinessException.class);
 
     assertThat(deposit.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
   }
@@ -81,8 +81,7 @@ class DepositTest {
     Deposit deposit = Deposit.createDefault(1L);
     deposit.charge(new BigDecimal("10000"));
 
-    assertThatThrownBy(() -> deposit.charge(BigDecimal.ZERO))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> deposit.charge(BigDecimal.ZERO)).isInstanceOf(BusinessException.class);
 
     assertThat(deposit.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
   }

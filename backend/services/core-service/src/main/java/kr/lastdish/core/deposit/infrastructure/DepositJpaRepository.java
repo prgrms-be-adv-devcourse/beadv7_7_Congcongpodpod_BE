@@ -18,9 +18,10 @@ public interface DepositJpaRepository extends JpaRepository<Deposit, Long> {
 
   @Modifying
   @Query(
-          value = "INSERT INTO deposits (member_id, balance, updated_at) "
-                  + "VALUES (:memberId, 0, now()) "
-                  + "ON CONFLICT (member_id) DO NOTHING",
-          nativeQuery = true)
+      value =
+          "INSERT INTO deposits (member_id, balance, updated_at) "
+              + "VALUES (:memberId, 0, now()) "
+              + "ON CONFLICT (member_id) DO NOTHING",
+      nativeQuery = true)
   void createDefaultIfAbsent(@Param("memberId") Long memberId);
 }
