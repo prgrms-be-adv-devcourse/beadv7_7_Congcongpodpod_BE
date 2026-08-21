@@ -144,7 +144,7 @@ class DishServiceTest {
 
   @Test
   void 정가만_변경돼도_Dish_가격_이벤트를_기록한다() {
-    // given — Cart가 절약 금액을 정가 - 판매가로 계산하므로 정가만 바뀐 변경도 Cart에 전파돼야 한다.
+    // given — 가격 변경 사실은 전파하되 Cart에 저장된 사용자 확인 가격은 덮어쓰지 않는다.
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 

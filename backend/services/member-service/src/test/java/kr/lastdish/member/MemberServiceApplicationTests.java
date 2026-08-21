@@ -18,9 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,15 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 class MemberServiceApplicationTests {
+
+  @MockitoBean(name = "redisTemplate")
+  private RedisTemplate<String, String> redisTemplate;
+
+  @MockitoBean(name = "notificationRedisTemplate")
+  private RedisTemplate<String, String> notificationRedisTemplate;
+
+  @MockitoBean(name = "notificationRedisContainer")
+  private RedisMessageListenerContainer notificationRedisContainer;
 
   @Autowired private MockMvc mockMvc;
 

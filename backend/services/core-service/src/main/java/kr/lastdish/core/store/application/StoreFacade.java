@@ -7,8 +7,10 @@ import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.dish.application.DishService;
+import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
+import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.NearbyStoreResult;
 import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StorePageResult;
@@ -44,6 +46,10 @@ public class StoreFacade {
     storeService.validateSeller(storeId, memberId);
   }
 
+  public void validateOpen(Long storeId, LocalDateTime now) {
+    storeService.validateOpen(storeId, now);
+  }
+
   public List<Long> findSettlementTargetStoreIds() {
     return storeService.findSettlementTargetStoreIds();
   }
@@ -63,10 +69,11 @@ public class StoreFacade {
     rescheduleNextClosingAt(storeId, now, "마감 실패 매장을 찾을 수 없습니다.");
   }
 
+  // 매장 행을 잠근 뒤 다음 마감 시각을 갱신한다.
   private void rescheduleNextClosingAt(Long storeId, LocalDateTime now, String notFoundMessage) {
     Store store =
         storeRepository
-            .findById(storeId)
+            .findWithLockById(storeId)
             .orElseThrow(
                 () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, notFoundMessage));
     store.rescheduleNextClosingAt(now);
@@ -93,6 +100,14 @@ public class StoreFacade {
   public DishResponse getMyDish(Long storeId, Long memberId) {
     storeService.getOwnedStore(storeId, memberId);
     return dishService.getDishByStoreId(storeId);
+  }
+
+  // 검색 색인 재생성용 조회 — 매장 정보와 상품 정보를 합쳐 반환한다.
+  public InternalStoreResult getDishAndStoreByStoreIdForRenewal(Long storeId) {
+    StoreResult store = storeService.getStore(storeId);
+    InternalDishResult dish = dishService.getDishByStoreIdForRenewal(storeId).orElse(null);
+
+    return InternalStoreResult.from(store, dish);
   }
 
   public StorePageResult getNearbyStores(
