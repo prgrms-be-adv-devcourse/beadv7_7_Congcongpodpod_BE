@@ -1,8 +1,6 @@
 package kr.lastdish.core.order.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,8 +23,8 @@ import kr.lastdish.core.deposit.domain.DepositHistoryRepository;
 import kr.lastdish.core.deposit.domain.DepositRepository;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.infrastructure.DishJpaRepository;
-import kr.lastdish.core.order.application.dto.OrderMemberInfo;
-import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
+import kr.lastdish.core.order.domain.MemberSnapshot;
+import kr.lastdish.core.order.domain.MemberSnapshotRepository;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.infrastructure.OrderJpaRepository;
@@ -37,7 +35,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
@@ -52,7 +49,7 @@ class OrderConcurrencyIntegrationTest {
   @Autowired private CartItemJpaRepository cartItemJpaRepository;
   @Autowired private StoreJpaRepository storeJpaRepository;
   @Autowired private TransactionTemplate transactionTemplate;
-  @MockitoBean private OrderMemberQueryPort orderMemberQueryPort;
+  @Autowired private MemberSnapshotRepository memberSnapshotRepository;
 
   @AfterEach
   void tearDown() {
@@ -65,6 +62,7 @@ class OrderConcurrencyIntegrationTest {
           dishJpaRepository.deleteAll();
           storeJpaRepository.deleteAll();
           depositRepository.deleteAll();
+          memberSnapshotRepository.deleteByMemberId(1L);
         });
   }
 
@@ -123,8 +121,7 @@ class OrderConcurrencyIntegrationTest {
               return cartItem.getId();
             });
 
-    when(orderMemberQueryPort.getOrderMemberInfo(anyLong()))
-        .thenReturn(new OrderMemberInfo("테스트 회원", "010-1234-5678"));
+    memberSnapshotRepository.save(MemberSnapshot.create(memberId, "테스트 회원", "010-1234-5678"));
 
     CountDownLatch start = new CountDownLatch(1);
     List<Future<Throwable>> results;

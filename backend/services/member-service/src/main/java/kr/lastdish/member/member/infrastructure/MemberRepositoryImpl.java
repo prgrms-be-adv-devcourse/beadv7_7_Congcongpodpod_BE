@@ -24,10 +24,20 @@ public class MemberRepositoryImpl implements MemberRepository {
     return jpaMemberRepository.findById(id);
   }
 
+  @Override
+  public Optional<Member> findWithLockById(Long id) {
+    return jpaMemberRepository.findWithLockById(id);
+  }
+
   // 일반 조회 시 탈퇴된 회원을 제외하고 싶을 때 사용
   @Override
   public Optional<Member> findActiveById(Long id) {
     return jpaMemberRepository.findByIdAndIsDeletedFalse(id);
+  }
+
+  @Override
+  public Optional<Member> findActiveWithLockById(Long id) {
+    return jpaMemberRepository.findWithLockByIdAndIsDeletedFalse(id);
   }
 
   @Override

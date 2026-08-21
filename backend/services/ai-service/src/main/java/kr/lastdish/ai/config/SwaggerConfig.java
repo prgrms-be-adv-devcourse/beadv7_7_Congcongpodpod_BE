@@ -1,4 +1,4 @@
-package kr.lastdish.ai;
+package kr.lastdish.ai.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -11,8 +11,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 @Profile("local")
 @Configuration(proxyBeanMethods = false)
@@ -40,27 +41,17 @@ public class SwaggerConfig {
   }
 
   @Bean
-  WebMvcConfigurer swaggerCorsConfigurer(
-      @Value("${swagger.cors.allowed-origin}") String allowedOrigin) {
-    return new WebMvcConfigurer() {
-      @Override
-      public void addCorsMappings(CorsRegistry registry) {
-        registry
-            .addMapping("/swagger-ui/**")
-            .allowedOrigins(allowedOrigin)
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*");
-        registry
-            .addMapping("/swagger-ui.html")
-            .allowedOrigins(allowedOrigin)
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*");
-        registry
-            .addMapping("/v3/api-docs/**")
-            .allowedOrigins(allowedOrigin)
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*");
-      }
-    };
+  CorsFilter swaggerCorsConfigurer(@Value("${swagger.cors.allowed-origin}") String allowedOrigin) {
+    CorsConfiguration config = new CorsConfiguration();
+    config.addAllowedOrigin(allowedOrigin);
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    config.addAllowedHeader("*");
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/swagger-ui/**", config);
+    source.registerCorsConfiguration("/swagger-ui.html", config);
+    source.registerCorsConfiguration("/v3/api-docs/**", config);
+
+    return new CorsFilter(source);
   }
 }

@@ -26,11 +26,16 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
 
   @Query(
       """
-                SELECT s.storeId
-                FROM Settlement s
-                WHERE s.storeId IN :storeIds
-                """)
-  List<Long> findSettledStoreIds(@Param("storeIds") List<Long> storeIds);
+          SELECT DISTINCT s.storeId
+          FROM Settlement s
+          WHERE s.storeId IN :storeIds
+            AND s.settlementMonth = :settlementMonth
+            AND s.settlementStatus = :settlementStatus
+          """)
+  List<Long> findSettledStoreIds(
+      @Param("storeIds") List<Long> storeIds,
+      @Param("settlementMonth") YearMonth settlementMonth,
+      @Param("settlementStatus") SettlementStatus settlementStatus);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
