@@ -2,6 +2,7 @@ package kr.lastdish.common.event.config;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
+import kr.lastdish.common.event.EventTopicResolver;
 import kr.lastdish.common.event.publisher.kafka.KafkaEventPublisher;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -16,8 +17,15 @@ import org.springframework.kafka.core.KafkaTemplate;
 public class KafkaEventAutoConfiguration {
 
   @Bean
+  @ConditionalOnMissingBean(EventTopicResolver.class)
+  EventTopicResolver eventTopicResolver() {
+    return EventMessage::eventType;
+  }
+
+  @Bean
   @ConditionalOnMissingBean(EventPublisher.class)
-  EventPublisher kafkaEventPublisher(KafkaTemplate<String, EventMessage> kafkaTemplate) {
-    return new KafkaEventPublisher(kafkaTemplate);
+  EventPublisher kafkaEventPublisher(
+      KafkaTemplate<String, EventMessage> kafkaTemplate, EventTopicResolver topicResolver) {
+    return new KafkaEventPublisher(kafkaTemplate, topicResolver);
   }
 }

@@ -12,6 +12,7 @@ import kr.lastdish.member.auth.domain.RefreshTokenRepository;
 import kr.lastdish.member.auth.domain.TokenProvider;
 import kr.lastdish.member.auth.exception.AuthErrorCode;
 import kr.lastdish.member.auth.infrastructure.client.KakaoOAuthClient;
+import kr.lastdish.member.member.application.event.MemberEventWriter;
 import kr.lastdish.member.member.domain.*;
 import kr.lastdish.member.member.exception.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
   private final RedisTemplate<String, String> redisTemplate;
   private final KakaoOAuthClient kakaoOAuthClient;
+  private final MemberEventWriter memberEventWriter;
 
   @Transactional
   public SignUpResult signUp(SignUpCommand command) {
@@ -57,6 +59,7 @@ public class AuthService {
             .build();
 
     Member savedMember = memberRepository.save(member);
+    memberEventWriter.appendCreated(savedMember);
 
     return new SignUpResult(savedMember.getId(), savedMember.getUserName(), savedMember.getEmail());
   }
@@ -144,7 +147,9 @@ public class AuthService {
                           .providerId(socialId)
                           .build();
 
-                  return memberRepository.save(newMember);
+                  Member savedMember = memberRepository.save(newMember);
+                  memberEventWriter.appendCreated(savedMember);
+                  return savedMember;
                 });
 
     // 3. 서비스 자체 JWT 토큰 생성
@@ -204,7 +209,7 @@ public class AuthService {
 
     Member member =
         memberRepository
-            .findById(memberId)
+            .findWithLockById(memberId)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
     // 2. 이미 탈퇴한 회원인지 체크
@@ -226,6 +231,7 @@ public class AuthService {
 
     // 5. 회원 탈퇴 처리
     member.withdraw();
+    memberEventWriter.appendDeleted(member);
   }
 
   @Transactional
