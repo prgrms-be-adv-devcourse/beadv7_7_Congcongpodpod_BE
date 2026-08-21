@@ -2,8 +2,6 @@ package kr.lastdish.ai.application;
 
 import kr.lastdish.ai.application.dto.ClassificationResultDto;
 import kr.lastdish.ai.domain.model.CategoryResult;
-import kr.lastdish.ai.domain.model.ClassificationLog;
-import kr.lastdish.ai.domain.repository.ClassificationLogRepository;
 import kr.lastdish.ai.exception.AiErrorCode;
 import kr.lastdish.ai.infrastructure.client.FastApiClient;
 import kr.lastdish.ai.presentation.dto.FoodClassificationResponse;
@@ -17,9 +15,8 @@ import org.springframework.stereotype.Service;
 public class AiService {
 
   private final FastApiClient aiClient;
-  private final ClassificationLogRepository logRepository;
 
-  public FoodClassificationResponse classify(Resource imageResource, String imageUrl) {
+  public FoodClassificationResponse classify(Resource imageResource) {
     // 1. FastAPI 통신
     CategoryResult result = aiClient.classifyImage(imageResource);
 
@@ -28,13 +25,7 @@ public class AiService {
       throw new BusinessException(AiErrorCode.NOT_FOOD);
     }
 
-    // 3. 분류 로그 생성 및 DB 저장
-    ClassificationLog log =
-        new ClassificationLog(
-            imageUrl, result.predictedCategory(), result.confidence(), result.executionTimeMs());
-    logRepository.save(log);
-
-    // 4. 응답 DTO 변환 및 반환
+    // 3. 응답 DTO 변환 및 반환
     ClassificationResultDto resultDto = ClassificationResultDto.from(result);
     return FoodClassificationResponse.from(resultDto);
   }

@@ -25,8 +25,7 @@ public class AiController {
   @Operation(summary = "음식 카테고리 자동 분류")
   @PostMapping(value = "/classify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodClassificationResponse> classify(
-      @RequestPart("image") MultipartFile image,
-      @RequestParam(value = "imageUrl", required = false) String imageUrl) {
+      @RequestPart("image") MultipartFile image) {
 
     try {
       ByteArrayResource resource =
@@ -37,11 +36,10 @@ public class AiController {
             }
           };
 
-      FoodClassificationResponse response = aiService.classify(resource, imageUrl);
+      FoodClassificationResponse response = aiService.classify(resource);
       return ResponseEntity.ok(response);
 
     } catch (IOException e) {
-      // 이미지 파일 변환/읽기 실패 시 정확한 에러 코드로 전달
       throw new BusinessException(AiErrorCode.INVALID_IMAGE_FILE);
     }
   }
