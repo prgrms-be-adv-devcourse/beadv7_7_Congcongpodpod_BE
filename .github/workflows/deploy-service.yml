@@ -50,6 +50,8 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" \
             -o IdentitiesOnly=yes \
             -o BatchMode=yes \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=12 \
             ec2-user@"$EC2_HOST" \
             bash -s -- "$NAMESPACE" "$DEPLOYMENT" <<'REMOTE'
           set -u
