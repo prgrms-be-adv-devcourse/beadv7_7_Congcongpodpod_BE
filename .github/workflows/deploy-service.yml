@@ -50,6 +50,8 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" \
             -o IdentitiesOnly=yes \
             -o BatchMode=yes \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=12 \
             ec2-user@"$EC2_HOST" \
             bash -s -- "$NAMESPACE" "$DEPLOYMENT" <<'REMOTE'
           set -u
@@ -64,7 +66,7 @@ jobs:
 
           if kubectl rollout status "deployment/$deployment" \
             --namespace="$namespace" \
-            --timeout=180s; then
+            --timeout=300s; then
             exit 0
           fi
 
@@ -72,7 +74,7 @@ jobs:
           kubectl rollout undo "deployment/$deployment" --namespace="$namespace"
           kubectl rollout status "deployment/$deployment" \
             --namespace="$namespace" \
-            --timeout=180s || true
+            --timeout=300s || true
 
           # 롤백 성공 여부와 관계없이 실패한 배포는 Actions에서 실패로 표시합니다.
           exit 1

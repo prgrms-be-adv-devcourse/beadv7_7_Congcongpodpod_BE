@@ -167,12 +167,12 @@ public class SettlementService {
     log.warn("-------------정산 성능 테스트용 데이터 전체 초기화 완료 settlements settlement_details---------------");
   }
 
-  public List<Long> excludeSettledStore(List<Long> storeIds) {
+  public List<Long> excludeSettledStore(List<Long> storeIds, YearMonth settlementMonth) {
     if (storeIds == null || storeIds.isEmpty()) {
       return List.of();
     }
 
-    Set<Long> settledStoreIds = settlementRepository.findSettledStoreIds(storeIds);
+    Set<Long> settledStoreIds = settlementRepository.findSettledStoreIds(storeIds, settlementMonth);
 
     return storeIds.stream().filter(storeId -> !settledStoreIds.contains(storeId)).toList();
   }

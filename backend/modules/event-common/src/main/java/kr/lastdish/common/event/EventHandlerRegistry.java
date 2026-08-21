@@ -10,24 +10,30 @@ import org.springframework.stereotype.Component;
 @Component
 public class EventHandlerRegistry {
 
-  private final Map<String, EventHandler> handlers;
+  private final Map<HandlerKey, EventHandler> handlers;
 
   public EventHandlerRegistry(List<EventHandler> handlerList) {
     handlers =
         handlerList.stream()
-            .collect(Collectors.toUnmodifiableMap(EventHandler::consumerId, Function.identity()));
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    handler -> new HandlerKey(handler.consumerId(), handler.eventType()),
+                    Function.identity()));
   }
 
   public EventHandler get(String consumerId, String eventType) {
     EventHandler handler =
-        Optional.ofNullable(handlers.get(consumerId))
-            .orElseThrow(() -> new IllegalStateException("Event Handler가 없습니다: " + consumerId));
-
-    if (!handler.eventType().equals(eventType)) {
-      throw new IllegalStateException(
-          "eventType이 Handler와 다릅니다. consumerId=" + consumerId + ", eventType=" + eventType);
-    }
+        Optional.ofNullable(handlers.get(new HandlerKey(consumerId, eventType)))
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Event Handler가 없습니다: consumerId="
+                            + consumerId
+                            + ", eventType="
+                            + eventType));
 
     return handler;
   }
+
+  private record HandlerKey(String consumerId, String eventType) {}
 }
