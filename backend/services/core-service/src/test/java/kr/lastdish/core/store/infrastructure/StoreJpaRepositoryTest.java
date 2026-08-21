@@ -33,6 +33,27 @@ class StoreJpaRepositoryTest {
     assertThat(storeIds).containsExactly(atClosing.getId(), afterClosing.getId());
   }
 
+  @Test
+  void 매장을_저장하면_updatedAt이_채워진다() {
+    Store store = store("444-44-44444", LocalDateTime.of(2026, 8, 10, 22, 0));
+
+    Store saved = storeJpaRepository.saveAndFlush(store);
+
+    assertThat(saved.getUpdatedAt()).isNotNull();
+  }
+
+  @Test
+  void 소프트_삭제된_매장은_조회되지_않는다() {
+    Store store =
+        storeJpaRepository.saveAndFlush(
+            store("666-66-66666", LocalDateTime.of(2026, 8, 10, 22, 0)));
+
+    store.delete();
+    storeJpaRepository.flush();
+
+    assertThat(storeJpaRepository.findByIdAndDeletedFalse(store.getId())).isEmpty();
+  }
+
   private Store store(String businessNumber, LocalDateTime nextClosingAt) {
     Store store =
         new Store(

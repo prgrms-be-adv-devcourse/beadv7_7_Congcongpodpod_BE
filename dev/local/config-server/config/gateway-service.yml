@@ -1,12 +1,12 @@
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:redis_local_password}
-      connect-timeout: 1s
-      timeout: 1s
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 5s
+      timeout: 5s
   cloud:
     gateway:
       server:
@@ -19,14 +19,14 @@ spring:
             cors-configurations:
               "[/api/**]":
                 allowed-origins:
-                  - ${GATEWAY_CORS_ORIGIN:https://lastdish.kr}
-                  - ${GATEWAY_CORS_WWW_ORIGIN:https://www.lastdish.kr}
+                  - ${GATEWAY_CORS_ORIGIN}
+                  - ${GATEWAY_CORS_WWW_ORIGIN}
                 allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
                 allowed-headers: [Authorization, Content-Type]
                 max-age: 3600
           routes:
             - id: core-service
-              uri: http://core-service:8080
+              uri: ${CORE_SERVICE_URL}
               predicates:
                 - Path=/api/v1/carts/**,/api/v1/orders/**,/api/v1/stores/**,/api/v1/dishes/**,/api/v1/settlements/**,/api/v1/deposits/**,/api/v1/levels/**,/api/v1/points/**
             - id: payment-service
@@ -34,33 +34,46 @@ spring:
               predicates:
                 - Path=/api/v1/payments/**
             - id: member-service
-              uri: http://member-service:8080
+              uri: ${MEMBER_SERVICE_URL}
               predicates:
-                - Path=/api/v1/auth/**,/api/v1/members/**
+                - Path=/api/v1/auth/**,/api/v1/members/**,/api/v1/notifications/**
             - id: member-openapi
-              uri: http://member-service:8080
+              uri: ${MEMBER_SERVICE_URL}
               predicates:
                 - Path=/openapi/member-service
               filters:
                 - SetPath=/v3/api-docs
             - id: core-openapi
-              uri: http://core-service:8080
+              uri: ${CORE_SERVICE_URL}
               predicates:
                 - Path=/openapi/core-service
               filters:
                 - SetPath=/v3/api-docs
             - id: payment-openapi
-              uri: http://payment-service:8080
+              uri: ${PAYMENT_SERVICE_URL}
               predicates:
                 - Path=/openapi/payment-service
               filters:
                 - SetPath=/v3/api-docs
             - id: ai-openapi
-              uri: http://ai-service:8080
+              uri: ${AI_SERVICE_URL}
               predicates:
                 - Path=/openapi/ai-service
               filters:
                 - SetPath=/v3/api-docs
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    urls:
+      - name: member-service
+        url: /openapi/member-service
+      - name: core-service
+        url: /openapi/core-service
+      - name: payment-service
+        url: /openapi/payment-service
+      - name: ai-service
+        url: /openapi/ai-service
 
 gateway:
   security:

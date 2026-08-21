@@ -5,16 +5,15 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
-import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
-import kr.lastdish.core.dish.domain.event.DishPriceChangedPayload;
-import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
-import kr.lastdish.core.dish.domain.event.DishStateChangedPayload;
+import kr.lastdish.core.dish.domain.event.*;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
@@ -46,6 +45,10 @@ public class DishService {
             request.pickupEndTime());
 
     Dish savedDish = dishRepository.save(dish);
+
+    //    TODO : 리스너 구현 시 이벤트 발행 활성화
+    //    appendCreatedEvent(savedDish);
+
     return DishResponse.from(savedDish);
   }
 
@@ -255,6 +258,23 @@ public class DishService {
     outboxEventWriter.append(event);
   }
 
+  // 검색 문서 갱신을 요청하는 상품 생성 이벤트를 Outbox에 기록한다.
+  private void appendCreatedEvent(Dish dish) {
+    long aggregateVersion = dish.nextAggregateVersion();
+    DishCreatedPayload payload = new DishCreatedPayload(dish.getStoreId());
+
+    DishCreatedEvent event =
+        new DishCreatedEvent(
+            UUID.randomUUID(),
+            DishCreatedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
   public List<DishResponse> getOnSaleDishesByStoreId(Long storeId) {
     return dishRepository.findOnSaleByStoreId(storeId).stream().map(DishResponse::from).toList();
   }
@@ -267,5 +287,10 @@ public class DishService {
             .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_FOUND));
 
     return DishResponse.from(dish);
+  }
+
+  // 검색 색인 재생성용 조회 — 상품 미등록 매장은 비어 있는 Optional을 반환한다.
+  public Optional<InternalDishResult> getDishByStoreIdForRenewal(Long storeId) {
+    return dishRepository.findByStoreIdAndIsDeletedFalse(storeId).map(InternalDishResult::from);
   }
 }
