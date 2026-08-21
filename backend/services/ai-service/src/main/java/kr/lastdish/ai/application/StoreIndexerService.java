@@ -53,6 +53,21 @@ public class StoreIndexerService {
     }
   }
 
+  public void syncUpdatedStores(int minutes) {
+    List<InternalStoreResponse> updatedStores =
+        coreInternalApiClient.fetchStoresUpdatedWithin(minutes);
+
+    if (updatedStores.isEmpty()) {
+      return;
+    }
+
+    List<StoreDocument> documents = updatedStores.stream().map(this::mapToDocument).toList();
+
+    // ES Bulk Save
+    repository.saveAll(documents);
+    log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
+  }
+
   private StoreDocument mapToDocument(InternalStoreResponse res) {
     List<StoreDocument.DishItem> dishItems =
         res.dishes() != null
