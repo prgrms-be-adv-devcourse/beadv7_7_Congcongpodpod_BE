@@ -18,7 +18,8 @@ import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.RejectOrderCommand;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
-import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
+import kr.lastdish.core.order.domain.MemberSnapshot;
+import kr.lastdish.core.order.domain.MemberSnapshotRepository;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -55,7 +56,7 @@ class OrderFacadeTest {
 
   @Mock private StoreFacade storeFacade;
 
-  @Mock private OrderMemberQueryPort orderMemberQueryPort;
+  @Mock private MemberSnapshotRepository memberSnapshotRepository;
 
   @InjectMocks private OrderFacade orderFacade;
 
@@ -78,7 +79,7 @@ class OrderFacadeTest {
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
     LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
-    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    stubMemberSnapshot(memberId, memberInfo);
     when(orderService.validatePickupDeadline(eq(cartItem), any())).thenReturn(pickupDeadline);
     when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
         .thenReturn(order);
@@ -95,9 +96,14 @@ class OrderFacadeTest {
 
     InOrder inOrder =
         inOrder(
-            orderMemberQueryPort, cartFacade, orderService, dishFacade, storeFacade, depositFacade);
+            memberSnapshotRepository,
+            cartFacade,
+            orderService,
+            dishFacade,
+            storeFacade,
+            depositFacade);
 
-    inOrder.verify(orderMemberQueryPort).getOrderMemberInfo(memberId);
+    inOrder.verify(memberSnapshotRepository).findActiveByMemberId(memberId);
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
     inOrder.verify(storeFacade).validateOpen(eq(1L), any());
     inOrder.verify(orderService).validatePickupDeadline(eq(cartItem), any());
@@ -112,6 +118,22 @@ class OrderFacadeTest {
   }
 
   @Test
+  @DisplayName("회원 스냅샷이 없으면 주문을 진행하지 않는다")
+  void payAndCreateOrder_memberSnapshotNotFound() {
+    Long memberId = 1L;
+
+    when(memberSnapshotRepository.findActiveByMemberId(memberId))
+        .thenReturn(java.util.Optional.empty());
+
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, 1L, 3L))
+        .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(kr.lastdish.core.common.exception.ErrorCode.ORDER_MEMBER_SNAPSHOT_NOT_FOUND);
+
+    verifyNoInteractions(cartFacade, orderService, dishFacade, depositFacade);
+  }
+
+  @Test
   @DisplayName("매장이 영업 중이 아니면 주문과 결제를 진행하지 않는다")
   void payAndCreateOrder_storeClosed() {
     Long memberId = 1L;
@@ -119,7 +141,7 @@ class OrderFacadeTest {
     CartOrderSnapshot cartItem = createCartOrderSnapshot();
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
 
-    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    stubMemberSnapshot(memberId, memberInfo);
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     doThrow(
             new kr.lastdish.common.api.exception.BusinessException(
@@ -144,7 +166,7 @@ class OrderFacadeTest {
     CartOrderSnapshot cartItem = createCartOrderSnapshot();
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
 
-    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    stubMemberSnapshot(memberId, memberInfo);
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     doThrow(
             new kr.lastdish.common.api.exception.BusinessException(
@@ -170,7 +192,7 @@ class OrderFacadeTest {
     CartOrderSnapshot cartItem = createCartOrderSnapshot();
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
 
-    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    stubMemberSnapshot(memberId, memberInfo);
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 2L))
         .thenThrow(
             new kr.lastdish.common.api.exception.BusinessException(
@@ -216,7 +238,7 @@ class OrderFacadeTest {
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
     OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
     LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
-    when(orderMemberQueryPort.getOrderMemberInfo(memberId)).thenReturn(memberInfo);
+    stubMemberSnapshot(memberId, memberInfo);
     when(orderService.validatePickupDeadline(eq(cartItem), any())).thenReturn(pickupDeadline);
     when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
         .thenReturn(order);
@@ -421,5 +443,12 @@ class OrderFacadeTest {
 
     verify(storeFacade).validateStoreOwner(storeId, memberId);
     verify(orderService, never()).getStoreOrders(anyLong(), any(), any(Pageable.class));
+  }
+
+  private void stubMemberSnapshot(Long memberId, OrderMemberInfo memberInfo) {
+    when(memberSnapshotRepository.findActiveByMemberId(memberId))
+        .thenReturn(
+            java.util.Optional.of(
+                MemberSnapshot.create(memberId, memberInfo.name(), memberInfo.phone())));
   }
 }

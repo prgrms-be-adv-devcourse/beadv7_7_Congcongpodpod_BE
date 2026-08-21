@@ -10,7 +10,8 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.application.dto.*;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
-import kr.lastdish.core.order.application.port.out.OrderMemberQueryPort;
+import kr.lastdish.core.order.domain.MemberSnapshot;
+import kr.lastdish.core.order.domain.MemberSnapshotRepository;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
@@ -35,13 +36,17 @@ public class OrderFacade {
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
   private final StoreFacade storeFacade;
-  private final OrderMemberQueryPort orderMemberQueryPort;
+  private final MemberSnapshotRepository memberSnapshotRepository;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
   public OrderResult payAndCreateOrder(Long memberId, Long cartItemId, Long dishPriceVersion) {
-    // 외부 회원 서비스 호출을 먼저 완료해 CartItem DB 잠금 시간을 최소화한다.
-    OrderMemberInfo memberInfo = orderMemberQueryPort.getOrderMemberInfo(memberId);
+    MemberSnapshot memberSnapshot =
+        memberSnapshotRepository
+            .findActiveByMemberId(memberId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_MEMBER_SNAPSHOT_NOT_FOUND));
+    OrderMemberInfo memberInfo =
+        new OrderMemberInfo(memberSnapshot.getName(), memberSnapshot.getPhone());
 
     // 가격 변경 검증
     CartOrderSnapshot cartItem =
