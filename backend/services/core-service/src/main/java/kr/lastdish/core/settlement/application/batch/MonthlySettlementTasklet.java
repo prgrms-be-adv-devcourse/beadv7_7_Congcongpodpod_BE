@@ -35,7 +35,7 @@ public class MonthlySettlementTasklet implements Tasklet {
 
     List<Long> storeIds = settlementStoreReader.readSettlementTargetStoreIds();
 
-    List<Long> unsettledStoreIds = settlementService.excludeSettledStore(storeIds);
+    List<Long> unsettledStoreIds = settlementService.excludeSettledStore(storeIds, settlementMonth);
 
     int createdCount = 0;
     int retriedCount = 0;
