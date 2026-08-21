@@ -30,15 +30,9 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092} # Docker 환경 내부 포트에 맞춰 19092 또는 9092 지정
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP:ai-service-dish-group}
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*" # 모든 패키지의 DTO 역직렬화 허용
-        spring.json.value.default.type: "kr.lastdish.common.event.EventMessage" # 기본 수신 객체 타입 지정
+      group-id: ${KAFKA_CONSUMER_GROUP:ai-service}
   elasticsearch:
     uris: ${ELASTICSEARCH_URL:http://localhost:9200}
     username: ${ELASTICSEARCH_USERNAME:elastic}
@@ -62,3 +56,14 @@ inbox:
   batch-size: ${INBOX_BATCH_SIZE:100}
   max-retries: ${INBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_AI_DIRECT_URL:http://localhost:8084}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
+
+ai:
+  engine:
+    url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}

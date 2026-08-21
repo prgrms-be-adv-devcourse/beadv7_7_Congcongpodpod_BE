@@ -18,31 +18,25 @@ public class StoreEventListener {
   private final ObjectMapper objectMapper;
 
   @KafkaListener(
-      topics = {
-        "${spring.kafka.consumer.topic.store-events:store-events}",
-        "${spring.kafka.consumer.topic.dish-events:dish-events}"
-      },
+      topics = {"STORE_CREATED", "STORE_INFO_CHANGED", "STORE_STATUS_CHANGED", "STORE_IS_DELETED"},
       groupId = "${spring.kafka.consumer.group-id:ai-service-group}")
   public void listen(EventMessage message) {
     log.info(
         "Kafka 이벤트 수신. eventType={}, aggregateId={}", message.eventType(), message.aggregateId());
 
     try {
-      // Payload에서 storeId 추출
       JsonNode payloadNode = objectMapper.readTree(message.payload());
       Long storeId = payloadNode.has("storeId") ? payloadNode.get("storeId").asLong() : null;
-      Long eventVersion = message.aggregateVersion();
 
-      if ("STORE_DELETED".equals(message.eventType())) {
+      if ("STORE_IS_DELETED".equals(message.eventType())) {
         if (storeId != null) {
           storeIndexerService.deleteStoreIndex(storeId);
         }
         return;
       }
 
-      // 2. 변경/생성 이벤트는 Renewal API 호출 후 ES Overwrite
       if (storeId != null) {
-        storeIndexerService.renewStoreIndexWithVersion(storeId, eventVersion);
+        storeIndexerService.renewStoreIndex(storeId);
       } else {
         log.warn("이벤트 메시지에 storeId가 존재하지 않습니다. eventId={}", message.eventId());
       }

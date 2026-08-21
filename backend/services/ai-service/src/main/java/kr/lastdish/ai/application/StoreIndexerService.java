@@ -2,7 +2,9 @@ package kr.lastdish.ai.application;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import kr.lastdish.ai.domain.document.StoreDocument;
 import kr.lastdish.ai.infrastructure.client.CoreInternalApiClient;
 import kr.lastdish.ai.infrastructure.client.dto.InternalStoreResponse;
@@ -22,25 +24,9 @@ public class StoreIndexerService {
   private final StoreElasticsearchRepository repository;
   private final CoreInternalApiClient coreInternalApiClient;
 
-  public void renewStoreIndexWithVersion(Long storeId, Long eventVersion) {
+  public void renewStoreIndex(Long storeId) {
     if (storeId == null || storeId <= 0) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT);
-    }
-
-    // 기존 ES 문서 조회
-    Optional<StoreDocument> existingDocOpt = repository.findById(storeId);
-
-    // 순서 검증 (이미 더 최신 버전의 이벤트가 반영되어 있다면 무시)
-    if (existingDocOpt.isPresent()) {
-      Long currentVersion = existingDocOpt.get().getVersion();
-      if (currentVersion != null && eventVersion != null && eventVersion <= currentVersion) {
-        log.info(
-            "지연/중복 이벤트 무시. storeId={}, currentVersion={}, eventVersion={}",
-            storeId,
-            currentVersion,
-            eventVersion);
-        return;
-      }
     }
 
     // Core API 호출
@@ -48,10 +34,10 @@ public class StoreIndexerService {
         .fetchStoreRenewalData(storeId)
         .ifPresentOrElse(
             response -> {
-              StoreDocument document = mapToDocument(response, eventVersion);
+              StoreDocument document = mapToDocument(response);
               // ES Overwrite - upsert
               repository.save(document);
-              log.info("Store 색인 갱신 완료. storeId={}, version={}", storeId, eventVersion);
+              log.info("Store 색인 갱신 완료. storeId={}", storeId);
             },
             () -> {
               // 404일 때만 오직 삭제 실행
@@ -78,25 +64,22 @@ public class StoreIndexerService {
       return;
     }
     // 기존 ES 문서의 version이 있다면 보존 처리
-    List<StoreDocument> documents =
-        updatedStores.stream()
-            .map(
-                res -> {
-                  Long existingVersion =
-                      repository
-                          .findById(res.storeId())
-                          .map(StoreDocument::getVersion)
-                          .orElse(null);
-                  return mapToDocument(res, existingVersion);
-                })
-            .toList();
+    // N번 개별 findById 대신 findAllById로 묶어서 Bulk 조회
+    List<Long> storeIds = updatedStores.stream().map(InternalStoreResponse::storeId).toList();
+    Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
+
+    Map<Long, StoreDocument> existingMap =
+        StreamSupport.stream(existingDocs.spliterator(), false)
+            .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
+
+    List<StoreDocument> documents = updatedStores.stream().map(this::mapToDocument).toList();
 
     // ES Bulk Save
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
 
-  private StoreDocument mapToDocument(InternalStoreResponse res, Long version) {
+  private StoreDocument mapToDocument(InternalStoreResponse res) {
     List<StoreDocument.DishItem> dishItems =
         res.dishes() != null
             ? res.dishes().stream()
@@ -120,7 +103,6 @@ public class StoreIndexerService {
 
     return StoreDocument.builder()
         .storeId(res.storeId())
-        .version(version)
         .storeName(res.storeName())
         .storeAddress(res.storeAddress())
         .openTime(res.openTime())
