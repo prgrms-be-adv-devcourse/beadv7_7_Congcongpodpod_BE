@@ -67,4 +67,4 @@ swagger:
 
 ai:
   engine:
-    AI_ENGINE_URL: ${AI_ENGINE_URL:-https://mushily-hangup-smartness.ngrok-free.dev}
+    url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
