@@ -1,32 +1,24 @@
 spring:
   kafka:
-    # Compose에서는 kafka:19092, IDE 단독 실행에서는 localhost:9092를 사용합니다.
-    # 현재 event.publisher=spring이므로 Kafka 구현체를 추가하기 전에는 연결 정보만 준비됩니다.
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     producer:
-      # 단일 broker에서도 leader가 메시지를 기록한 뒤 성공 응답하도록 합니다.
       acks: all
       properties:
-        # Producer 재시도로 같은 메시지가 broker에 중복 기록되는 것을 줄입니다.
         enable.idempotence: true
     consumer:
-      # 같은 group의 인스턴스끼리는 partition을 나눠 처리합니다.
-      group-id: member-service
-      # 메시지 처리 전에 offset이 자동 커밋되는 것을 막습니다.
+      group-id: ${KAFKA_CONSUMER_GROUP:member-service}
       enable-auto-commit: false
-      # 저장된 offset이 없는 Consumer는 topic의 처음부터 읽습니다.
       auto-offset-reset: earliest
     listener:
-      # Listener가 메시지 한 건을 정상 처리한 뒤 해당 offset을 커밋합니다.
       ack-mode: record
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:redis_local_password}
-      connect-timeout: 1s
-      timeout: 1s
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 5s
+      timeout: 5s
   cache:
     type: redis
     redis:
@@ -34,9 +26,9 @@ spring:
       cache-null-values: false
       key-prefix: "member-service:"
   datasource:
-    url: ${MEMBER_DB_URL:jdbc:postgresql://localhost:54321/member_db}
-    username: ${MEMBER_DB_USERNAME:member}
-    password: ${MEMBER_DB_PASSWORD:member_local_password}
+    url: ${MEMBER_DB_URL}
+    username: ${MEMBER_DB_USERNAME}
+    password: ${MEMBER_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -70,11 +62,19 @@ jwt:
   rsa:
     access-private-key-location: ${JWT_ACCESS_PRIVATE_KEY_LOCATION}
     access-public-key-location: ${JWT_ACCESS_PUBLIC_KEY_LOCATION}
-  access-token-validity-in-seconds: 3600
-  refresh-token-validity-in-seconds: 1209600
+  access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_SECONDS:3600}
+  refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_SECONDS:1209600}
+
 kakao:
   oauth:
     client-id: ${KAKAO_CLIENT_ID}
-    client-secret: ${KAKAO_CLIENT_SECRET:}
+    client-secret: ${KAKAO_CLIENT_SECRET}
     redirect-uri: ${KAKAO_REDIRECT_URI}
     admin-key: ${KAKAO_ADMIN_KEY}
+
+swagger:
+  servers:
+    gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}
+    direct-url: ${SWAGGER_MEMBER_DIRECT_URL:http://localhost:8081}
+  cors:
+    allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}

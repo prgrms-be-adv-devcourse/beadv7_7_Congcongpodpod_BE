@@ -39,8 +39,8 @@ ALTER TABLE public.store_payout_accounts ALTER COLUMN payout_account_id ADD GENE
 CREATE TABLE public.stores (
     close_time time(0) without time zone NOT NULL,
     is_deleted boolean NOT NULL,
-    latitude numeric(38,2) NOT NULL,
-    longitude numeric(38,2) NOT NULL,
+    latitude numeric(9,6) NOT NULL,
+    longitude numeric(10,6) NOT NULL,
     open_time time(0) without time zone NOT NULL,
     member_id bigint NOT NULL,
     next_closing_at timestamp(6) without time zone,
