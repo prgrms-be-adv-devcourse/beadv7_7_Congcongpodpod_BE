@@ -11,6 +11,8 @@ public interface StoreRepository {
 
   Optional<Store> findById(Long storeId);
 
+  Optional<Store> findWithLockById(Long storeId);
+
   boolean existsByMemberId(Long memberId);
 
   Optional<Store> findByMemberId(Long memberId);

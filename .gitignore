@@ -136,6 +136,7 @@
 
 # Local infrastructure tools and runtime secrets
 /dev/.env
+/dev/logs/*.log
 /dev/k6/.env
 /dev/k6/results/
 # 운영 인프라는 개인 로컬에서 관리하며 Git 저장소에 포함하지 않습니다.
