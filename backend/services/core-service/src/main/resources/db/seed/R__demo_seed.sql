@@ -383,7 +383,7 @@ SELECT
         WHEN 3 THEN '하나은행'
         ELSE '농협은행'
     END,
-    'iMlRbcUVkKALwEOyVBPFAOFT/ceQS+YZs6LfjUy0SbZkLOpa3tCCSw==',
+    '1P32lJFxQqOjJVbl6587VvnRoBDKjAV12ExbDWFG3N2HZ8Yn3bf5nQ==',
     '시연판매자' || lpad(seed_id::text, 3, '0'),
     true,
     false,
