@@ -347,7 +347,8 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required in dev/.env}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required in dev/.env}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
-      AI_ENGINE_URL: ${AI_ENGINE_URL:-https://mushily-hangup-smartness.ngrok-free.dev}
+      AI_ENGINE_URL: ${AI_ENGINE_URL:?AI_ENGINE_URL is required in dev/.env }
+
 
     depends_on:
       config-server:

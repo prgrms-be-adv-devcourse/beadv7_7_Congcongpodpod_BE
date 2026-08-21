@@ -12,18 +12,6 @@ spring:
   application:
     name: ai-service
   config:
-<<<<<<< HEAD
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
-
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
-
-ai:
-  engine:
-    url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
-=======
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
 logging:
@@ -33,4 +21,3 @@ logging:
     # 예외는 그대로 전파되므로 DataIntegrityExceptionHandler가 제약 이름을 남긴다.
     # 보안 통제라 운영 config가 아니라 서비스와 함께 배포되도록 여기에 둔다.
     org.hibernate.orm.jdbc.error: ERROR
->>>>>>> origin/develop

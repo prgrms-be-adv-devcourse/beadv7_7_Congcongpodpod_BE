@@ -34,6 +34,10 @@ spring:
     uris: ${ELASTICSEARCH_URL}
     username: ${ELASTICSEARCH_USERNAME:elastic}
     password: ${ELASTICSEARCH_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 event:
   publisher: ${EVENT_PUBLISHER:kafka}
@@ -61,7 +65,6 @@ swagger:
   cors:
     allowed-origin: ${SWAGGER_UI_ORIGIN:http://localhost:8080}
 
-servlet:
-  multipart:
-    max-file-size: 10MB
-    max-request-size: 10MB
+ai:
+  engine:
+    AI_ENGINE_URL: ${AI_ENGINE_URL:-https://mushily-hangup-smartness.ngrok-free.dev}
