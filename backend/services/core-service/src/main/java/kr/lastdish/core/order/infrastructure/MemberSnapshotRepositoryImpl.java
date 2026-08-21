@@ -1,5 +1,6 @@
 package kr.lastdish.core.order.infrastructure;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import kr.lastdish.core.order.domain.MemberSnapshot;
 import kr.lastdish.core.order.domain.MemberSnapshotRepository;
@@ -32,20 +33,10 @@ public class MemberSnapshotRepositoryImpl implements MemberSnapshotRepository {
       String name,
       String phone,
       long aggregateVersion,
-      java.time.LocalDateTime updatedAt) {
+      boolean deleted,
+      LocalDateTime updatedAt) {
     return memberSnapshotJpaRepository.upsertIfNewer(
-        memberId, name, phone, aggregateVersion, updatedAt);
-  }
-
-  @Override
-  public int markDeletedIfNewer(
-      Long memberId,
-      String name,
-      String phone,
-      long aggregateVersion,
-      java.time.LocalDateTime updatedAt) {
-    return memberSnapshotJpaRepository.markDeletedIfNewer(
-        memberId, name, phone, aggregateVersion, updatedAt);
+        memberId, name, phone, aggregateVersion, deleted, updatedAt);
   }
 
   @Override

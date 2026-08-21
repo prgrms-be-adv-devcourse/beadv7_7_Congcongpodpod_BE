@@ -12,11 +12,11 @@ public class MemberSnapshotSynchronizer {
 
   public void upsert(Long memberId, String name, String phone, long aggregateVersion) {
     memberSnapshotRepository.upsertIfNewer(
-        memberId, name, phone, aggregateVersion, LocalDateTime.now());
+        memberId, name, phone, aggregateVersion, false, LocalDateTime.now());
   }
 
   public void delete(Long memberId, String name, String phone, long aggregateVersion) {
-    memberSnapshotRepository.markDeletedIfNewer(
-        memberId, name, phone, aggregateVersion, LocalDateTime.now());
+    memberSnapshotRepository.upsertIfNewer(
+        memberId, name, phone, aggregateVersion, true, LocalDateTime.now());
   }
 }

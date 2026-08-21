@@ -1,5 +1,6 @@
 package kr.lastdish.core.order.domain;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface MemberSnapshotRepository {
@@ -14,14 +15,8 @@ public interface MemberSnapshotRepository {
       String name,
       String phone,
       long aggregateVersion,
-      java.time.LocalDateTime updatedAt);
-
-  int markDeletedIfNewer(
-      Long memberId,
-      String name,
-      String phone,
-      long aggregateVersion,
-      java.time.LocalDateTime updatedAt);
+      boolean deleted,
+      LocalDateTime updatedAt);
 
   void deleteByMemberId(Long memberId);
 }
