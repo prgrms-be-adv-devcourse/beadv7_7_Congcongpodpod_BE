@@ -12,13 +12,16 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class MemberKafkaListener {
-  public static final String TOPIC = "MEMBER_EVENTS";
   public static final String GROUP_ID = "core-order-member-events";
 
   private final InboxEventWriter inboxEventWriter;
 
   @KafkaListener(
-      topics = TOPIC,
+      topics = {
+        MemberCreatedMessageHandler.EVENT_TYPE,
+        MemberUpdatedMessageHandler.EVENT_TYPE,
+        MemberDeletedMessageHandler.EVENT_TYPE
+      },
       groupId = GROUP_ID,
       autoStartup = "${event.kafka.listener-auto-startup:true}")
   public void consume(EventMessage message) {

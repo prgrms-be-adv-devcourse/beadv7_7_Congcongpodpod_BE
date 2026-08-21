@@ -3,7 +3,6 @@ package kr.lastdish.common.event.publisher.kafka;
 import java.util.concurrent.TimeUnit;
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.event.EventPublisher;
-import kr.lastdish.common.event.EventTopicResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 
@@ -12,11 +11,10 @@ public class KafkaEventPublisher implements EventPublisher {
 
   private static final long PUBLISH_TIMEOUT_SECONDS = 10;
   private final KafkaTemplate<String, EventMessage> kafkaTemplate;
-  private final EventTopicResolver topicResolver;
 
   @Override
   public void publish(EventMessage message) {
-    String topic = topicResolver.resolve(message);
+    String topic = message.eventType();
     String key = message.aggregateType() + ":" + message.aggregateId();
     validateTopic(topic);
 
