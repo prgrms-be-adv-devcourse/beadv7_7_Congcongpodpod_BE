@@ -3,15 +3,12 @@ package kr.lastdish.payment.application;
 import java.math.BigDecimal;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.payment.application.dto.ApprovalClaim;
 import kr.lastdish.payment.application.dto.PaymentReadyRequest;
 import kr.lastdish.payment.application.dto.PaymentReadyResponse;
 import kr.lastdish.payment.application.dto.PgApprovalResult;
 import kr.lastdish.payment.application.event.ChargeRequestedEventWriter;
-import kr.lastdish.payment.domain.Payment;
-import kr.lastdish.payment.domain.PaymentException;
-import kr.lastdish.payment.domain.PaymentLog;
-import kr.lastdish.payment.domain.PaymentLogRepository;
-import kr.lastdish.payment.domain.PaymentRepository;
+import kr.lastdish.payment.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -41,9 +38,10 @@ public class PaymentService {
     return PaymentReadyResponse.of(savedPayment, tossClientKey);
   }
 
-  // 결제 승인 전 검증: merchantOrderId로 결제 건을 조회하고, 요청 금액이 저장된 금액과 일치하는지 확인
+  // 결제 승인 요청 선점 : merchantOrderId로 락을 걸고 금액 검증
+  // READY → CONFIRMING 전환(선점 성공) 또는 ALREADY_PROCESSING(이미 처리 중) 반환
   @Transactional
-  public Payment getReadyPayment(String merchantOrderId, BigDecimal requestedAmount) {
+  public ApprovalClaim claimApproval(String merchantOrderId, BigDecimal requestedAmount) {
     Payment payment =
         paymentRepository
             .findWithLockByMerchantOrderId(merchantOrderId)
@@ -52,16 +50,13 @@ public class PaymentService {
                     new PaymentException(
                         CommonErrorCode.ENTITY_NOT_FOUND,
                         "결제 정보를 찾을 수 없습니다. merchantOrderId=" + merchantOrderId));
-
-    payment.validateReadyStatus(); // 이미 처리된 결제인지 먼저 확인 (불필요한 PG 호출 방지)
-
     if (payment.getAmount().compareTo(requestedAmount) != 0) {
       throw new PaymentException(
           CommonErrorCode.INVALID_INPUT,
           "요청 금액이 결제 금액과 일치하지 않습니다. merchantOrderId=" + merchantOrderId);
     }
-
-    return payment;
+    ApprovalClaimResult result = payment.claimApproval();
+    return new ApprovalClaim(result, payment);
   }
 
   // 결제 승인 : 결제 성공 결과를 Payment에 반영하고, PaymentLog 테이블에 기록
@@ -69,15 +64,13 @@ public class PaymentService {
   public Payment approvePayment(Long paymentId, PgApprovalResult pgResult) {
     Payment payment =
         paymentRepository
-            .findById(paymentId)
+            .findWithLockById(paymentId)
             .orElseThrow(
                 () ->
                     new PaymentException(
                         CommonErrorCode.ENTITY_NOT_FOUND,
                         "결제 정보를 찾을 수 없습니다. paymentId=" + paymentId));
-
     payment.approve(pgResult.pgTransactionId());
-
     paymentLogRepository.save(
         PaymentLog.createResponseLog(
             payment.getId(),
@@ -90,9 +83,7 @@ public class PaymentService {
             pgResult.failureMessage(),
             pgResult.success() ? 200 : 400,
             pgResult.success() ? "DONE" : pgResult.failureCode()));
-
     chargeRequestedEventWriter.append(payment, payment.nextAggregateVersion());
-
     return payment;
   }
 
@@ -101,15 +92,13 @@ public class PaymentService {
   public Payment failPayment(Long paymentId, PgApprovalResult pgResult) {
     Payment payment =
         paymentRepository
-            .findById(paymentId)
+            .findWithLockById(paymentId)
             .orElseThrow(
                 () ->
                     new PaymentException(
                         CommonErrorCode.ENTITY_NOT_FOUND,
                         "결제 정보를 찾을 수 없습니다. paymentId=" + paymentId));
-
     payment.fail();
-
     paymentLogRepository.save(
         PaymentLog.createResponseLog(
             payment.getId(),
@@ -122,7 +111,6 @@ public class PaymentService {
             pgResult.failureMessage(),
             pgResult.success() ? 200 : 400,
             pgResult.success() ? "DONE" : pgResult.failureCode()));
-
     return payment;
   }
 }

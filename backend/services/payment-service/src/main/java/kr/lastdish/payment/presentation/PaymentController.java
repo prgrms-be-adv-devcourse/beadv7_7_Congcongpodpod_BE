@@ -7,7 +7,9 @@ import kr.lastdish.payment.application.dto.PaymentApproveRequest;
 import kr.lastdish.payment.application.dto.PaymentApproveResponse;
 import kr.lastdish.payment.application.dto.PaymentReadyRequest;
 import kr.lastdish.payment.application.dto.PaymentReadyResponse;
+import kr.lastdish.payment.domain.ApprovedStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,7 +35,13 @@ public class PaymentController {
   @PostMapping("/approve")
   public ResponseEntity<PaymentApproveResponse> approve(
       @Valid @RequestBody PaymentApproveRequest request) {
-    return ResponseEntity.ok(
-        paymentFacade.approve(request.paymentKey(), request.orderId(), request.amount()));
+    PaymentApproveResponse response =
+        paymentFacade.approve(request.paymentKey(), request.orderId(), request.amount());
+
+    if (ApprovedStatus.PROCESSING.name().equals(response.approvedStatus())) {
+      return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    return ResponseEntity.ok(response);
   }
 }
