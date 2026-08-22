@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,22 +10,36 @@ import { LoadingState } from '@/components/loading-state';
 import { RefreshStatus } from '@/components/refresh-status';
 import { StoreCard } from '@/components/store-card';
 import { colors, fonts, radius } from '@/constants/theme';
-import { useNearbyStores } from '@/hooks/use-nearby-stores';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useAuth } from '@/providers/auth-provider';
 import { showLoginRequired } from '@/lib/login-required';
+import { getFavorites } from '@/lib/favorites';
+import type { Store } from '@/types/store';
 
 export default function Favorites() {
   const { member, initializing } = useAuth();
-  const { stores, loading, reload } = useNearbyStores(5);
-  const { refreshing, onRefresh } = usePullToRefresh(reload);
+  const [favorites, setFavorites] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    if (!member) return;
+    setLoading(true);
+    try {
+      setFavorites(await getFavorites());
+    } finally {
+      setLoading(false);
+    }
+  }, [member]);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
   const { contentWidth, gutter, isCompact } = useResponsiveLayout();
-  const favorites = stores.slice(0, 3);
-
   useFocusEffect(useCallback(() => {
-    if (!initializing && !member) showLoginRequired('/favorites', () => router.replace('/'));
-  }, [initializing, member]));
+    if (initializing) return;
+    if (!member) {
+      showLoginRequired('/favorites', () => router.replace('/'));
+      return;
+    }
+    void load();
+  }, [initializing, load, member]));
 
   if (initializing || !member) {
     return <SafeAreaView style={styles.authLoading}><LoadingState compact label="로그인 상태를 확인하고 있어요"/></SafeAreaView>;
