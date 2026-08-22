@@ -77,6 +77,9 @@ public class GatewaySecurityConfig {
                     .pathMatchers(
                         "/api/v1/stores/**", "/api/v1/dishes/**", "/api/v1/settlements/**")
                     .hasRole("SELLER")
+                    // 상품 등록 중 음식 이미지 분류는 로그인한 회원과 판매자에게 허용한다.
+                    .pathMatchers(POST, "/api/v1/ai/classify")
+                    .hasAnyRole("MEMBER", "SELLER")
                     // 로그아웃과 회원·장바구니·주문·결제·입금(예치금) 기능은 회원과 판매자 모두 이용한다.
                     .pathMatchers(
                         "/api/v1/auth/logout",

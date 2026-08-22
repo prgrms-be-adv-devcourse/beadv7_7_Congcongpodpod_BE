@@ -9,6 +9,7 @@ import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
+import kr.lastdish.core.dish.presentation.dto.DishStockAdjustRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -55,6 +56,14 @@ public class DishController {
       @PathVariable Long dishId,
       @Valid @RequestBody DishStatusRequest request) {
     return ApiResponse.ok(dishFacade.updateDishStatus(memberId, dishId, request));
+  }
+
+  @PatchMapping("/{dishId}/stock")
+  public ApiResponse<DishResponse> adjustDishStock(
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId,
+      @PathVariable Long dishId,
+      @Valid @RequestBody DishStockAdjustRequest request) {
+    return ApiResponse.ok(dishFacade.adjustStock(memberId, dishId, request.quantityDelta()));
   }
 
   @GetMapping()

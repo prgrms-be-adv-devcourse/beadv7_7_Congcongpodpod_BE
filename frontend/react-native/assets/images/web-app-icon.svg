@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="rounded-icon">
+      <rect width="1024" height="1024" rx="224" ry="224" />
+    </clipPath>
+  </defs>
+  <image href="icon.png" width="1024" height="1024" clip-path="url(#rounded-icon)" />
+</svg>

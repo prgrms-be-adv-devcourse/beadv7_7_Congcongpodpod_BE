@@ -96,7 +96,6 @@ public class Dish {
       String dishName,
       LocalDateTime registeredAt,
       String description,
-      Long stockQuantity,
       BigDecimal dishPrice,
       BigDecimal discountPrice,
       LocalTime pickupStartTime,
@@ -104,15 +103,10 @@ public class Dish {
     this.dishName = dishName;
     this.registeredAt = registeredAt;
     this.description = description;
-    this.stockQuantity = stockQuantity;
     this.dishPrice = dishPrice;
     this.discountPrice = discountPrice;
     this.pickupStartTime = pickupStartTime;
     this.pickupEndTime = pickupEndTime;
-
-    if (stockQuantity == 0L) {
-      this.dishStatus = DishStatus.SOLD_OUT;
-    }
   }
 
   public void updateStatus(DishStatus dishStatus) {

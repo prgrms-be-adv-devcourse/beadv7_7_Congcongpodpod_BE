@@ -70,20 +70,15 @@ public class DishService {
     BigDecimal dishPriceBefore = dish.getDishPrice();
     BigDecimal unitPriceBefore = dish.getDiscountPrice();
 
-    boolean availableBefore = dish.isAvailable();
-    Long stockQuantityBefore = dish.getStockQuantity();
-
     dish.update(
         request.dishName(),
         request.registeredAt(),
         request.description(),
-        request.stockQuantity(),
         request.dishPrice(),
         request.discountPrice(),
         request.pickupStartTime(),
         request.pickupEndTime());
 
-    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendPriceEventIfChanged(dish, dishPriceBefore, unitPriceBefore);
 
     return DishResponse.from(dish);
@@ -98,6 +93,34 @@ public class DishService {
     Long stockQuantityBefore = dish.getStockQuantity();
 
     dish.updateStatus(request.dishStatus());
+
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+
+    return DishResponse.from(dish);
+  }
+
+  /**
+   * 판매자가 재고를 상대값(delta)으로 조정합니다.
+   *
+   * <p>Order 흐름의 {@link #increaseStock}/{@link #decreaseStock}과 달리, 판매자가 직접 입력한 증감분을 부호로 판단해 그중 하나로
+   * 위임합니다.
+   */
+  @Transactional
+  public DishResponse adjustStock(Long dishId, Long quantityDelta) {
+    if (quantityDelta == null || quantityDelta == 0) {
+      throw new BusinessException(ErrorCode.INVALID_STOCK_DELTA);
+    }
+
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+
+    boolean availableBefore = dish.isAvailable();
+    Long stockQuantityBefore = dish.getStockQuantity();
+
+    if (quantityDelta > 0) {
+      dish.increaseStock(quantityDelta);
+    } else {
+      dish.decreaseStock(-quantityDelta);
+    }
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
 

@@ -133,6 +133,21 @@ class DishFacadeTest {
   }
 
   @Test
+  void Dish_재고_조정시_소유권을_검증한_뒤_조정을_위임한다() {
+    Dish dish = createDish();
+    DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
+    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(dishService.adjustStock(10L, 5L)).thenReturn(expected);
+
+    DishResponse result = dishFacade.adjustStock(7L, 10L, 5L);
+
+    InOrder inOrder = inOrder(storeService, dishService);
+    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    inOrder.verify(dishService).adjustStock(10L, 5L);
+    assertThat(result).isSameAs(expected);
+  }
+
+  @Test
   void Dish_삭제시_소유권_검증_DB_삭제_S3_정리_순서로_실행한다() {
     Dish dish = createDish();
     when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
@@ -167,7 +182,6 @@ class DishFacadeTest {
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        10L,
         BigDecimal.valueOf(10_000),
         BigDecimal.valueOf(7_000),
         LocalTime.of(18, 0),
