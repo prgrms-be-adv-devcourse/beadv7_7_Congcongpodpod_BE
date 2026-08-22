@@ -1,6 +1,7 @@
 package kr.lastdish.core.store.application;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,8 +13,10 @@ import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.common.exception.ErrorCode;
+import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.Category;
@@ -21,9 +24,11 @@ import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import kr.lastdish.core.store.domain.StoreStatus;
+import kr.lastdish.core.store.domain.event.StoreRegisteredEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -302,5 +307,65 @@ class StoreServiceTest {
             });
 
     verify(storeRepository).findById(storeId);
+  }
+
+  @Test
+  void registers_store_and_records_registered_event() {
+    // given
+    Long storeId = 10L;
+    Long memberId = 1L;
+
+    RegisterStoreCommand command =
+        new RegisterStoreCommand(
+            memberId,
+            "테스트 매장",
+            "123-45-67890",
+            "서울특별시 강남구 테헤란로 123",
+            "02-1234-5678",
+            LocalTime.of(9, 0),
+            LocalTime.of(21, 0),
+            new BigDecimal("37.501"),
+            new BigDecimal("127.039"),
+            Category.KOREAN,
+            List.of(DayOfWeek.MONDAY));
+
+    when(storeRepository.existsByMemberId(memberId)).thenReturn(false);
+    when(storeRepository.existsByBusinessNumber(command.businessNumber())).thenReturn(false);
+
+    when(storeRepository.save(any(Store.class)))
+        .thenAnswer(
+            invocation -> {
+              Store store = invocation.getArgument(0);
+              ReflectionTestUtils.setField(store, "id", storeId);
+              return store;
+            });
+
+    ArgumentCaptor<Store> storeCaptor = ArgumentCaptor.forClass(Store.class);
+
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    // when
+    StoreResult result = storeService.register(command);
+
+    // then
+    verify(storeRepository).existsByMemberId(memberId);
+    verify(storeRepository).existsByBusinessNumber(command.businessNumber());
+    verify(storeRepository).save(storeCaptor.capture());
+
+    Store savedStore = storeCaptor.getValue();
+
+    assertThat(savedStore.getMemberId()).isEqualTo(memberId);
+    assertThat(savedStore.getBusinessNumber()).isEqualTo(command.businessNumber());
+    assertThat(savedStore.getHolidays()).hasSize(command.holidays().size());
+    assertThat(savedStore.getNextClosingAt()).isNotNull();
+
+    // 회원 권한을 SELLER로 변경하기 위한 이벤트 검증
+    verify(outboxEventWriter).append(eventCaptor.capture());
+
+    StoreRegisteredEvent event = (StoreRegisteredEvent) eventCaptor.getValue();
+
+    assertThat(event.storeId()).isEqualTo(storeId);
+    assertThat(event.aggregateVersion()).isEqualTo(1L);
+    assertThat(event.payload().memberId()).isEqualTo(memberId);
   }
 }
