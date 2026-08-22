@@ -312,6 +312,12 @@ public class DishService {
     return DishResponse.from(dish);
   }
 
+  public List<DishResponse> getDishesByStoreId(Long storeId) {
+    return dishRepository.findAllByStoreIdAndIsDeletedFalse(storeId).stream()
+        .map(DishResponse::from)
+        .toList();
+  }
+
   // 검색 색인 재생성용 조회 — 상품 미등록 매장은 비어 있는 Optional을 반환한다.
   public Optional<InternalDishResult> getDishByStoreIdForRenewal(Long storeId) {
     return dishRepository.findByStoreIdAndIsDeletedFalse(storeId).map(InternalDishResult::from);

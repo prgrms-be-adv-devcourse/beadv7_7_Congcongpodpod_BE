@@ -102,6 +102,11 @@ public class StoreFacade {
     return dishService.getDishByStoreId(storeId);
   }
 
+  public List<DishResponse> getMyDishes(Long storeId, Long memberId) {
+    storeService.getOwnedStore(storeId, memberId);
+    return dishService.getDishesByStoreId(storeId);
+  }
+
   // 검색 색인 재생성용 조회 — 매장 정보와 상품 정보를 합쳐 반환한다.
   public InternalStoreResult getDishAndStoreByStoreIdForRenewal(Long storeId) {
     StoreResult store = storeService.getStore(storeId);
