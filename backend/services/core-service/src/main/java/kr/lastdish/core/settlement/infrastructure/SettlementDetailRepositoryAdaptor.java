@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class SettlementDetailRepositoryAdaptor implements SettlementDetailRepository {
   private final JpaSettlementDetailRepository jpaSettlementDetailRepository;
+  private final JdbcSettlementDetailRepository jdbcSettlementDetailRepository;
 
   @Override
   public SettlementDetail save(SettlementDetail settlementDetail) {
@@ -22,6 +23,11 @@ public class SettlementDetailRepositoryAdaptor implements SettlementDetailReposi
   @Override
   public List<SettlementDetail> saveAll(List<SettlementDetail> settlementDetails) {
     return jpaSettlementDetailRepository.saveAll(settlementDetails);
+  }
+
+  @Override
+  public void bulkInsert(List<SettlementDetail> settlementDetails) {
+    jdbcSettlementDetailRepository.bulkInsert(settlementDetails);
   }
 
   @Override
