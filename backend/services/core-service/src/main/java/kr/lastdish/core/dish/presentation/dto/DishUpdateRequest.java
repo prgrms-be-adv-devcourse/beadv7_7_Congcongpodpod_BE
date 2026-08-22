@@ -14,7 +14,6 @@ public record DishUpdateRequest(
     @NotBlank String dishName,
     @NotNull LocalDateTime registeredAt,
     @NotBlank String description,
-    @NotNull @PositiveOrZero Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,
     @NotNull @PositiveOrZero BigDecimal discountPrice,
     @NotNull @JsonFormat(pattern = "HH:mm") LocalTime pickupStartTime,
