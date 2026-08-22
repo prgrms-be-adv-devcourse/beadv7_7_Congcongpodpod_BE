@@ -311,6 +311,31 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void geocodingRejectsRequestsWithoutAuthentication() {
+    webTestClient
+        .get()
+        .uri("/api/v1/locations/geocode?query=서울남부터미널역")
+        .exchange()
+        .expectStatus()
+        .isUnauthorized();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLE_MEMBER", "ROLE_SELLER"})
+  void authenticatedUserCanGeocodeStoreAddress(String authority) {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority(authority)))
+        .get()
+        .uri("/api/v1/locations/geocode?query=서울남부터미널역")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
   void depositRouteRejectsRequestsWithoutAuthentication() {
     webTestClient.post().uri("/api/v1/deposits/test").exchange().expectStatus().isUnauthorized();
   }
@@ -359,6 +384,7 @@ class GatewaySecurityConfigTests {
           .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(POST("/api/v1/ai/classify"), request -> ok().build())
+          .andRoute(GET("/api/v1/locations/geocode"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }
   }
