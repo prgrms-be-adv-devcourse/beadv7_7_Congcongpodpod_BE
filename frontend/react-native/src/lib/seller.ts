@@ -20,11 +20,11 @@ export async function getMyStores() { return unwrap(await api<RawStore[] | Envel
 export async function registerStore(payload: StoreRegistration) { return mapStore(unwrap(await api<RawStore | Envelope<RawStore>>('/stores', { method: 'POST', body: JSON.stringify(payload) }))); }
 export async function updateStore(storeId: number, payload: Omit<StoreRegistration, 'businessNumber'>) { return mapStore(unwrap(await api<RawStore | Envelope<RawStore>>(`/stores/${storeId}`, { method: 'PUT', body: JSON.stringify(payload) }))); }
 export async function changeStoreStatus(storeId: number, status: 'OPEN' | 'CLOSED') { return mapStore(unwrap(await api<RawStore | Envelope<RawStore>>(`/stores/${storeId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }))); }
-export async function getSellerDishes(storeId: number) {
+export async function getSellerDishes(storeId: number): Promise<Dish[]> {
   try {
-    return unwrap(await api<RawDish[] | Envelope<RawDish[]>>(`/dishes/management?storeId=${storeId}`)).map(mapDish);
+    return unwrap(await api<RawDish[] | Envelope<RawDish[]>>(`/stores/${storeId}/dishes`)).map(mapDish);
   } catch {
-    return unwrap(await api<RawDish[] | Envelope<RawDish[]>>(`/dishes?storeId=${storeId}`)).map(mapDish);
+    return [];
   }
 }
 export async function adjustDishStock(dishId: number, quantityDelta: number) { return mapDish(unwrap(await api<RawDish | Envelope<RawDish>>(`/dishes/${dishId}/stock`, { method: 'PATCH', body: JSON.stringify({ quantityDelta }) }))); }

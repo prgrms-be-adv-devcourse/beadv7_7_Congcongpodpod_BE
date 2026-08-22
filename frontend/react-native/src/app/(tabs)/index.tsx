@@ -20,6 +20,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { getStoreCategoryVisual, STORE_CATEGORY_KEYS } from '@/lib/store-category';
 import { getStoreProfileImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
+import { formatCheapestDishOffer, getCheapestDish } from '@/lib/store-pricing';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 import type { Store } from '@/types/store';
@@ -36,7 +37,7 @@ const distanceKm = (a: Coordinate, b: Coordinate) => {
 };
 
 export default function HomeScreen() {
-  const { stores, loading, error, reload, location, heading } = useNearbyStores(3);
+  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(3);
   const { member } = useAuth();
   const { item: cartItem } = useCart();
   const { contentWidth, gutter, isCompact } = useResponsiveLayout();
@@ -56,6 +57,7 @@ export default function HomeScreen() {
   const [mapControlsHidden, setMapControlsHidden] = useState(false);
   const loadedCenter = useRef<Coordinate>(location);
   const programmaticCameraUntil = useRef(0);
+  const centeredOnResolvedLocation = useRef(false);
   const sheetVisibleHeight = useRef(new Animated.Value(130)).current;
   const mapControlsOpacity = useRef(new Animated.Value(1)).current;
   const searchExpansion = useSharedValue(0);
@@ -101,7 +103,7 @@ export default function HomeScreen() {
       .some((value) => value.toLocaleLowerCase('ko').includes(keyword))).slice(0, 5);
   }, [query, stores]);
 
-  const issueCameraCommand = (command: MapCameraCommand) => {
+  const issueCameraCommand = useCallback((command: MapCameraCommand) => {
     programmaticCameraUntil.current = Date.now() + 650;
     setMapCamera((current) => {
         if (command.type === 'zoomIn' || command.type === 'zoomOut') {
@@ -115,7 +117,15 @@ export default function HomeScreen() {
       });
     setCameraCommand(command);
     if (Platform.OS === 'web') window.dispatchEvent(new CustomEvent('lastdish-map-command', { detail: command }));
-  };
+  }, [location]);
+
+  useEffect(() => {
+    if (!locationResolved || centeredOnResolvedLocation.current) return;
+    centeredOnResolvedLocation.current = true;
+    loadedCenter.current = location;
+    setPendingCenter(null);
+    issueCameraCommand({ id: Date.now(), type: 'location' });
+  }, [issueCameraCommand, location, locationResolved]);
 
   const focusStore = (store: Store) => {
     setSelected(store);
@@ -178,7 +188,7 @@ export default function HomeScreen() {
                 autoCorrect={false}
                 onChangeText={(value) => { setQuery(value); setSearchOpen(Boolean(value.trim())); }}
                 onFocus={() => { setSearchFocused(true); setSearchOpen(Boolean(query.trim())); }}
-                placeholder="신대방삼거리 · 매장 검색"
+                placeholder="남부터미널역 · 매장 검색"
                 placeholderTextColor={colors.ink500}
                 returnKeyType="search"
                 style={[styles.searchInput, isCompact && styles.searchInputCompact]}
@@ -308,7 +318,7 @@ function HomeStoreSheet({ stores, location, selected, refreshing, visibleHeight,
     <View accessibilityLabel="주변 매장 목록 높이 조절" accessibilityRole="adjustable" style={styles.storeSheetHandleArea} {...panResponder.panHandlers}><View style={styles.storeSheetHandle}/></View>
     {selected ? <Pressable accessibilityHint="매장 상세 미리보기를 펼칩니다" onPress={() => snapTo(2)} style={({ pressed }) => [styles.selectedStore, pressed && styles.pressed]}>
       <Image accessibilityLabel={`${selected.storeName} 프로필 이미지`} source={getStoreProfileImageSource(selected)} style={styles.selectedStoreImage}/>
-      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {selected.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{selected.dishes[0] ? `${selected.dishes[0].dishName} · ${selected.dishes[0].discountPrice.toLocaleString()}원` : selected.address}</Text></View>
+      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {selected.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{getCheapestDish(selected) ? `${getCheapestDish(selected)!.dishName} · ${formatCheapestDishOffer(selected)}` : selected.address}</Text></View>
       <Pressable accessibilityLabel="매장 선택 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); onClearSelection(); }} style={styles.selectedStoreClose}><Ionicons name="close" size={18} color={colors.ink700}/></Pressable>
     </Pressable> : <Pressable accessibilityRole="button" onPress={() => snapTo(level === 2 ? 1 : 2)} style={styles.storeSheetHeading}>
       <View><Text style={styles.storeSheetTitle}>주변 매장</Text><Text style={styles.storeSheetMeta}>내 위치 가까운 순 · {stores.length}곳</Text></View>
@@ -338,10 +348,9 @@ function SelectedStoreDetail({ store, distance }: { store: Store; distance: numb
 
 function HomeStoreRow({ store, distance, onPress }: { store: Store; distance: number; onPress: () => void }) {
   const category = getStoreCategoryVisual(store.category);
-  const firstDish = store.dishes[0];
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.storeRow, pressed && styles.pressed]}>
     <Image accessibilityLabel={`${store.storeName} 프로필 이미지`} source={getStoreProfileImageSource(store)} style={styles.storeRowImage}/>
-    <View style={styles.storeRowCopy}><Text numberOfLines={1} style={styles.storeRowName}>{store.storeName}</Text><Text style={styles.storeRowMeta}>{category.label} · {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`} · {store.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text style={styles.storeRowPrice}>{firstDish ? `${firstDish.discountPrice.toLocaleString()}원부터` : '마감 할인 상품 보기'}</Text></View>
+    <View style={styles.storeRowCopy}><Text numberOfLines={1} style={styles.storeRowName}>{store.storeName}</Text><Text style={styles.storeRowMeta}>{category.label} · {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`} · {store.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text style={styles.storeRowPrice}>{formatCheapestDishOffer(store)}</Text></View>
     <Ionicons name="chevron-forward" size={17} color={colors.ink400}/>
   </Pressable>;
 }

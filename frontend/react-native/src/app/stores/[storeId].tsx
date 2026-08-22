@@ -17,6 +17,10 @@ import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { getDishImageSource, getStoreCoverImageSource, getStoreProfileImageSource } from '@/lib/food-image';
 import { getStoreCategoryVisual } from '@/lib/store-category';
 import { getStore, getStoreDishes } from '@/lib/stores';
+import { addFavorite, getFavoriteStatus, removeFavorite } from '@/lib/favorites';
+import { showAppAlert } from '@/lib/app-overlay';
+import { showLoginRequired } from '@/lib/login-required';
+import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 import type { Dish, Store } from '@/types/store';
 
@@ -32,25 +36,37 @@ export default function StoreDetailScreen() {
   const [store, setStore] = useState<Store | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [favorite, setFavorite] = useState(false);
+  const [favoriteUpdating, setFavoriteUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [mapCommand, setMapCommand] = useState<StoreMapCommand>();
   const { item: cartItem } = useCart();
+  const { member } = useAuth();
   const origin: StoreOrigin = storeOrigins.has(params.origin as StoreOrigin) ? params.origin as StoreOrigin : '/';
 
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
     try {
-      const [nextStore, nextDishes] = await Promise.all([getStore(id), getStoreDishes(id)]);
+      // The store is the only required resource for this screen. Dish image URL
+      // issuance and favorite status are auxiliary requests, so their failure
+      // must not discard an otherwise valid store response.
+      const nextStore = await getStore(id);
+      const [dishesResult, favoriteResult] = await Promise.allSettled([
+        getStoreDishes(id),
+        member ? getFavoriteStatus(id) : Promise.resolve(false),
+      ]);
+      const nextDishes = dishesResult.status === 'fulfilled' ? dishesResult.value : nextStore.dishes;
+      const nextFavorite = favoriteResult.status === 'fulfilled' ? favoriteResult.value : false;
       setStore(nextStore);
-      setDishes(nextDishes.length ? nextDishes : nextStore.dishes);
+      setDishes(nextDishes);
+      setFavorite(nextFavorite);
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, member]);
 
   useEffect(() => { void load(); }, [load]);
   const refreshDishes = useCallback(async () => {
@@ -58,6 +74,27 @@ export default function StoreDetailScreen() {
     setDishes(nextDishes);
   }, [id]);
   const { refreshing: dishesRefreshing, onRefresh: refreshDishesOnly } = usePullToRefresh(refreshDishes);
+
+  const toggleFavorite = async () => {
+    if (!member) {
+      showLoginRequired(`/stores/${id}?origin=${origin}`);
+      return;
+    }
+    if (favoriteUpdating) return;
+    const next = !favorite;
+    setFavorite(next);
+    setFavoriteUpdating(true);
+    try {
+      if (next) await addFavorite(id);
+      else await removeFavorite(id);
+      showAppAlert(next ? '찜 목록에 추가했어요' : '찜 목록에서 삭제했어요', next ? `${store?.storeName ?? '매장'}을 찜에서 바로 확인할 수 있어요.` : undefined);
+    } catch (error) {
+      setFavorite(!next);
+      showAppAlert('찜을 변경하지 못했어요', error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.');
+    } finally {
+      setFavoriteUpdating(false);
+    }
+  };
 
   const closeToOrigin = () => {
     if (origin === '/stores') return router.replace('/stores');
@@ -89,7 +126,7 @@ export default function StoreDetailScreen() {
         <View style={styles.storeHead}>
           <Image accessibilityLabel={`${store.storeName} 프로필 이미지`} source={getStoreProfileImageSource(store)} style={styles.storeProfile}/>
           <View style={styles.storeCopy}><Text style={styles.name}>{store.storeName}</Text><View style={styles.facts}><Text style={styles.category}>{category.label}</Text><View style={styles.factDot}/><Text style={styles.fact}>픽업 가능</Text><View style={styles.factDot}/><Text style={styles.fact}>{pickupCutoff} 마감</Text></View></View>
-          <Pressable accessibilityLabel={favorite ? '찜 해제' : '찜하기'} accessibilityState={{ selected: favorite }} onPress={() => setFavorite((value) => !value)} style={({ pressed }) => [styles.favorite, pressed && styles.pressed]}><Ionicons name={favorite ? 'heart' : 'heart-outline'} size={22} color={favorite ? colors.green700 : colors.ink700} /></Pressable>
+          <Pressable accessibilityLabel={favorite ? '찜 해제' : '찜하기'} accessibilityState={{ selected: favorite, disabled: favoriteUpdating }} disabled={favoriteUpdating} onPress={() => void toggleFavorite()} style={({ pressed }) => [styles.favorite, pressed && styles.pressed]}><Ionicons name={favorite ? 'heart' : 'heart-outline'} size={22} color={favorite ? colors.green700 : colors.ink700} /></Pressable>
         </View>
         <View style={styles.notice}><View style={styles.noticeIcon}><Ionicons name="megaphone-outline" size={17} color={colors.warning}/></View><View style={styles.noticeCopy}><Text style={styles.noticeTitle}>사장님 알림</Text><Text style={styles.noticeBody}>매일 남는 구성이 달라요. 알레르기 재료는 픽업 전 확인해주세요.</Text></View></View>
         <View style={styles.locationHead}><Text style={styles.sectionTitle}>매장 위치</Text><Text style={styles.route}>길찾기</Text></View>
