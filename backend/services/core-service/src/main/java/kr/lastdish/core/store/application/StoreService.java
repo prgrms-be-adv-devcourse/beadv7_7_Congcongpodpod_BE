@@ -71,10 +71,15 @@ public class StoreService {
   public StoreResult update(Long storeId, Long memberId, UpdateStoreCommand command) {
     Store store = getOwnedStoreWithLock(storeId, memberId);
 
+    String storeDetailAddress = store.getStoreDetailAddress();
+    if (!(command.storeDetailAddress() == null || command.storeDetailAddress().isBlank())) {
+      storeDetailAddress = command.storeDetailAddress();
+    }
+
     store.update(
         command.storeName(),
         command.storeAddress(),
-        command.storeDetailAddress(),
+        storeDetailAddress,
         command.storePhone(),
         command.openTime(),
         command.closeTime(),
