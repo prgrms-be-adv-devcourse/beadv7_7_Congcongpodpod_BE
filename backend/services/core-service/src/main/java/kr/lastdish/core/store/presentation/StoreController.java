@@ -27,7 +27,7 @@ public class StoreController {
   public ApiResponse<StoreResponse> registerStore(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @Valid @RequestBody StoreCreateRequest request) {
-    StoreResult result = storeFacade.register(request.toCommand(memberId));
+    StoreResult result = storeService.register(request.toCommand(memberId));
 
     return ApiResponse.ok(StoreResponse.from(result));
   }
