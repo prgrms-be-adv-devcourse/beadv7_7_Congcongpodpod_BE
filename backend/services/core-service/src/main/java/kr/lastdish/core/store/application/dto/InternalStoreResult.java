@@ -31,7 +31,7 @@ public record InternalStoreResult(
         store.memberId(),
         store.storeName(),
         store.storeAddress(),
-        store.storeAddressDetail(),
+        store.storeDetailAddress(),
         store.openTime(),
         store.closeTime(),
         store.nextClosingAt(),

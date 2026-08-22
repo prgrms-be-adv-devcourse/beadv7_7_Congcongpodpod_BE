@@ -40,7 +40,7 @@ public class Store {
   @Column(name = "store_address", nullable = false)
   private String storeAddress;
 
-  @Column(name = "store_address_detail")
+  @Column(name = "store_detail_address")
   private String storeDetailAddress;
 
   @Column(name = "store_phone", nullable = false)
