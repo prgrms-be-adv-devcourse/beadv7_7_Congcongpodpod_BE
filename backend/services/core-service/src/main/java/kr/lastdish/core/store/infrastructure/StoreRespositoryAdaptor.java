@@ -29,6 +29,11 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
+  public List<Store> findAllByIdIn(List<Long> storeIds) {
+    return storeJpaRepository.findAllByIdInAndDeletedFalse(storeIds);
+  }
+
+  @Override
   public Optional<Store> findWithLockById(Long storeId) {
     return storeJpaRepository.findWithLockByIdAndDeletedFalse(storeId);
   }
