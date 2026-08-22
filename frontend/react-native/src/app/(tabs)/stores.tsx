@@ -19,6 +19,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { getStoreImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
 import { getStoreCategoryVisual } from '@/lib/store-category';
+import { formatCheapestDishOffer } from '@/lib/store-pricing';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 import type { Store } from '@/types/store';
@@ -190,8 +191,7 @@ function RadiusPicker({ visible, value, onClose, onApply }: { visible: boolean; 
 
 function FeaturedStore({ store, width }: { store: Store; width: number }) {
   const category = getStoreCategoryVisual(store.category);
-  const firstDish = store.dishes[0];
-  return <Pressable onPress={() => router.push({ pathname: '/stores/[storeId]', params: { storeId: String(store.storeId), origin: '/stores' } })} style={({ pressed }) => [styles.featureCard, { width }, pressed && styles.pressed]}><Image source={getStoreImageSource(store)} style={[styles.featureImage, { width }]}/><View style={styles.featureCopy}><Text numberOfLines={1} style={styles.featureName}>{store.storeName}</Text><Text style={styles.featureMeta}>{category.label} · {store.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text style={styles.featurePrice}>{firstDish ? `${firstDish.discountPrice.toLocaleString()}원부터` : '마감 할인 상품 보기'}</Text></View></Pressable>;
+  return <Pressable onPress={() => router.push({ pathname: '/stores/[storeId]', params: { storeId: String(store.storeId), origin: '/stores' } })} style={({ pressed }) => [styles.featureCard, { width }, pressed && styles.pressed]}><Image source={getStoreImageSource(store)} style={[styles.featureImage, { width }]}/><View style={styles.featureCopy}><Text numberOfLines={1} style={styles.featureName}>{store.storeName}</Text><Text style={styles.featureMeta}>{category.label} · {store.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text style={styles.featurePrice}>{formatCheapestDishOffer(store)}</Text></View></Pressable>;
 }
 
 const styles = StyleSheet.create({

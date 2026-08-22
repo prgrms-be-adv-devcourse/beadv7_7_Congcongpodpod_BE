@@ -4,6 +4,8 @@ import { storage } from './storage';
 const baseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8080/api/v1').replace(/\/$/, '');
 type Tokens = { accessToken: string; refreshToken: string };
 type TokenEnvelope = { data: Tokens };
+type ApiOptions = { globalLoading?: boolean; timeoutMs?: number };
+const DEFAULT_TIMEOUT_MS = 15_000;
 let refreshPromise: Promise<string> | null = null;
 let cachedAccessToken: string | null | undefined;
 
@@ -49,23 +51,43 @@ async function renewAccessToken() {
   return refreshPromise;
 }
 
-async function request(path: string, init: RequestInit | undefined, token: string | null) {
+async function request(path: string, init: RequestInit | undefined, token: string | null, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
+  const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  if (init?.signal?.aborted) controller.abort();
+  else init?.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(`${baseUrl}${path}`, { ...init, headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers } });
+    return await fetch(`${baseUrl}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init?.headers,
+      },
+    });
   } catch {
+    if (controller.signal.aborted) throw new Error('요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요.');
     throw new NetworkUnavailableError();
+  } finally {
+    clearTimeout(timeout);
+    init?.signal?.removeEventListener('abort', abortFromCaller);
   }
 }
 
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  beginGlobalLoading();
+export async function api<T>(path: string, init?: RequestInit, options: ApiOptions = {}): Promise<T> {
+  const globalLoading = options.globalLoading !== false;
+  if (globalLoading) beginGlobalLoading();
   try {
     const token = cachedAccessToken === undefined
       ? await storage.getItem('accessToken')
       : cachedAccessToken;
     cachedAccessToken = token;
-    let response = await request(path, init, token);
-    if (response.status === 401 && token && path !== '/auth/refresh' && path !== '/auth/login') response = await request(path, init, await renewAccessToken());
+    let response = await request(path, init, token, options.timeoutMs);
+    if (response.status === 401 && token && path !== '/auth/refresh' && path !== '/auth/login') response = await request(path, init, await renewAccessToken(), options.timeoutMs);
 
     const body = await response.json().catch(() => null) as {
       message?: string;
@@ -76,6 +98,6 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     }
     return body as T;
   } finally {
-    endGlobalLoading();
+    if (globalLoading) endGlobalLoading();
   }
 }

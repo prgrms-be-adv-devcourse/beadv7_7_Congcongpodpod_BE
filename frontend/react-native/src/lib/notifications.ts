@@ -8,9 +8,9 @@ export type ServerNotification = {
   type: string;
   title: string;
   body: string;
-  data?: string;
-  linkTarget?: string;
-  linkId?: number;
+  data?: string | null;
+  linkTarget?: string | null;
+  linkId?: number | null;
   readYn: boolean;
   createdAt: string;
 };

@@ -16,6 +16,7 @@ export type AppNotificationRequest = {
   title: string;
   message: string;
   type?: string;
+  payload?: string;
   onPress?: () => void;
 };
 
@@ -55,8 +56,8 @@ export function subscribeGlobalLoading(listener: LoadingListener) {
   return () => { if (loadingListener === listener) loadingListener = undefined; };
 }
 
-export function showInAppNotification(title: string, message: string, onPress?: () => void, type?: string) {
-  notificationListener?.({ id: ++notificationId, title, message, onPress, type });
+export function showInAppNotification(title: string, message: string, onPress?: () => void, type?: string, payload?: string) {
+  notificationListener?.({ id: ++notificationId, title, message, onPress, type, payload });
 }
 
 export function subscribeInAppNotifications(listener: NotificationListener) {

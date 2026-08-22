@@ -258,6 +258,26 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void imageClassificationRejectsRequestsWithoutAuthentication() {
+    webTestClient.post().uri("/api/v1/ai/classify").exchange().expectStatus().isUnauthorized();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLE_MEMBER", "ROLE_SELLER"})
+  void authenticatedMemberCanClassifyFoodImage(String authority) {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority(authority)))
+        .post()
+        .uri("/api/v1/ai/classify")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
   void depositRouteRejectsRequestsWithoutAuthentication() {
     webTestClient.post().uri("/api/v1/deposits/test").exchange().expectStatus().isUnauthorized();
   }
@@ -304,6 +324,7 @@ class GatewaySecurityConfigTests {
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
           .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
+          .andRoute(POST("/api/v1/ai/classify"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }
   }

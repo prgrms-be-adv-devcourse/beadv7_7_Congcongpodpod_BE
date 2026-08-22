@@ -4,12 +4,12 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, shadow } from '@/constants/theme';
 import { getStoreImageSource } from '@/lib/food-image';
 import { getStoreCategoryVisual } from '@/lib/store-category';
+import { formatCheapestDishOffer } from '@/lib/store-pricing';
 import type { Store } from '@/types/store';
 
 type Props = { store: Store; onPress?: () => void; favorite?: boolean; compact?: boolean };
 
 export function StoreCard({ store, onPress, favorite, compact = false }: Props) {
-  const firstDish = store.dishes[0];
   return (
     <Pressable accessibilityHint="매장 상세를 엽니다" accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, compact && styles.compactRow, pressed && styles.pressed]}>
       <View style={[styles.media, compact && styles.compactMedia]}>
@@ -23,7 +23,7 @@ export function StoreCard({ store, onPress, favorite, compact = false }: Props) 
         </View>
         <Text style={styles.time}>{getStoreCategoryVisual(store.category).label} · {store.closeTime ? `${store.closeTime.slice(0, 5)} 마감` : '오늘 픽업'}</Text>
         <Text numberOfLines={1} style={styles.address}>{store.address || '주소 정보 없음'}</Text>
-        <Text numberOfLines={1} style={styles.price}>{firstDish ? `${firstDish.discountPrice.toLocaleString()}원부터` : '마감 할인 상품 보기'}</Text>
+        <Text numberOfLines={1} style={styles.price}>{formatCheapestDishOffer(store)}</Text>
       </View>
     </Pressable>
   );
