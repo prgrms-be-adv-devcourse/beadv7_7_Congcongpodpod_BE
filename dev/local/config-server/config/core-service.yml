@@ -46,6 +46,11 @@ services:
   member:
     base-url: ${MEMBER_SERVICE_BASE_URL}
 
+naver:
+  maps:
+    client-id: ${NAVER_MAP_CLIENT_ID:}
+    client-secret: ${NAVER_MAP_CLIENT_SECRET:}
+
 storage:
   s3:
     enabled: ${S3_ENABLED:false}
