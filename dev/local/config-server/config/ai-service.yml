@@ -67,3 +67,7 @@ swagger:
 ai:
   engine:
     url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
+
+services:
+  core:
+    base-url: ${SERVICES_CORE_BASE_URL:http://core-service:8080}

@@ -9,6 +9,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +26,11 @@ public class CoreInternalApiClient {
 
   private final RestTemplate restTemplate;
 
-  public Optional<InternalStoreResponse> fetchStoreRenewalData(Long storeId) {
-    String url = "http://core-service/internal/v1/stores/" + storeId + "/renewal";
+  @Value("${services.core.base-url}")
+  private String coreBaseUrl;
 
+  public Optional<InternalStoreResponse> fetchStoreRenewalData(Long storeId) {
+    String url = coreBaseUrl + "/internal/v1/stores/" + storeId + "/renewal";
     try {
       ResponseEntity<ApiResponse<InternalStoreResponse>> response =
           restTemplate.exchange(
@@ -58,7 +61,7 @@ public class CoreInternalApiClient {
   }
 
   public List<InternalStoreResponse> fetchStoresUpdatedWithin(int minutes) {
-    String url = "http://core-service/internal/v1/stores/renewal?minutes=" + minutes;
+    String url = coreBaseUrl + "/internal/v1/stores/renewal?minutes=" + minutes;
 
     try {
       ResponseEntity<ApiResponse<List<InternalStoreResponse>>> response =
