@@ -44,7 +44,7 @@ public class StoreService {
             command.storeName(),
             command.businessNumber(),
             command.storeAddress(),
-                command.storeDetailAddress(),
+            command.storeDetailAddress(),
             command.storePhone(),
             command.openTime(),
             command.closeTime(),
