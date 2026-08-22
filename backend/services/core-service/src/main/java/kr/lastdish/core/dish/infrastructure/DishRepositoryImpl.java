@@ -2,6 +2,8 @@ package kr.lastdish.core.dish.infrastructure;
 
 import java.util.List;
 import java.util.Optional;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
@@ -22,19 +24,21 @@ public class DishRepositoryImpl implements DishRepository {
   public Dish findById(Long dishId) {
     return dishJpaRepository
         .findByIdAndIsDeletedFalse(dishId)
-        .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
+        .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_FOUND));
   }
 
   @Override
   public Dish findByIdAndIsDeletedFalse(Long dishId) {
     return dishJpaRepository
         .findByIdAndIsDeletedFalse(dishId)
-        .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
+        .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_FOUND));
   }
 
   @Override
   public Dish findWithLockByIdAndIsDeletedFalse(Long dishId) {
-    return dishJpaRepository.findWithLockByIdAndIsDeletedFalse(dishId).orElseThrow();
+    return dishJpaRepository
+        .findWithLockByIdAndIsDeletedFalse(dishId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_FOUND));
   }
 
   @Override
