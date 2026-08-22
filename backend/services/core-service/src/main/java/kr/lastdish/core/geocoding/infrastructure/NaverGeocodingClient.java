@@ -6,6 +6,7 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.geocoding.presentation.dto.GeocodingAddressResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -17,17 +18,15 @@ import org.springframework.web.client.RestClientException;
 @Slf4j
 public class NaverGeocodingClient {
 
-  private static final String BASE_URL = "https://maps.apigw.ntruss.com";
-
   private final RestClient restClient;
   private final String clientId;
   private final String clientSecret;
 
   public NaverGeocodingClient(
-      RestClient.Builder restClientBuilder,
+      @Qualifier("naverMapsRestClient") RestClient restClient,
       @Value("${naver.maps.client-id:${NAVER_MAP_CLIENT_ID:}}") String clientId,
       @Value("${naver.maps.client-secret:${NAVER_MAP_CLIENT_SECRET:}}") String clientSecret) {
-    this.restClient = restClientBuilder.baseUrl(BASE_URL).build();
+    this.restClient = restClient;
     this.clientId = clientId;
     this.clientSecret = clientSecret;
   }

@@ -19,7 +19,8 @@ class NaverGeocodingClientTest {
   void mapsNaverCoordinatesAndSendsAuthenticationHeaders() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    NaverGeocodingClient client = new NaverGeocodingClient(builder, "client-id", "client-secret");
+    NaverGeocodingClient client =
+        new NaverGeocodingClient(builder.build(), "client-id", "client-secret");
 
     server
         .expect(method(HttpMethod.GET))
