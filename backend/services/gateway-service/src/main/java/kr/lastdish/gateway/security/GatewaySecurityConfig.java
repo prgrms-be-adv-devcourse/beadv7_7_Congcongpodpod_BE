@@ -65,7 +65,11 @@ public class GatewaySecurityConfig {
                         "/openapi/**")
                     .permitAll()
                     // Seller 본인 매장/상품 조회는 공개 조회 규칙보다 먼저 판단해 SELLER 인증을 요구한다.
-                    .pathMatchers(GET, "/api/v1/stores/mine", "/api/v1/stores/*/dish")
+                    .pathMatchers(
+                        GET,
+                        "/api/v1/stores/mine",
+                        "/api/v1/stores/*/dish",
+                        "/api/v1/stores/*/dishes")
                     .hasRole("SELLER")
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")

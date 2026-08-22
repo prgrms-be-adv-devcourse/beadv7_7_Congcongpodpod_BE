@@ -18,6 +18,8 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
 
   boolean existsByStoreIdAndIsDeletedFalse(Long storeId);
 
+  List<Dish> findAllByStoreIdAndIsDeletedFalseOrderByIdDesc(Long storeId);
+
   Optional<Dish> findByStoreIdAndIsDeletedFalse(Long storeId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
