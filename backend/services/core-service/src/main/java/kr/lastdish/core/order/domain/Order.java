@@ -149,7 +149,7 @@ public class Order {
   // 결제 완료
   public void paymentSuccess() {
     if (this.paymentStatus != PaymentStatus.PENDING) {
-      throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+      throw new BusinessException(ErrorCode.INVALID_ORDER_PAYMENT_STATUS);
     }
     this.paymentStatus = PaymentStatus.COMPLETED;
   }

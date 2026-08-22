@@ -17,7 +17,6 @@ public enum ErrorCode implements ErrorCodeSpec {
   DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS(
       HttpStatus.BAD_REQUEST, "D007", "픽업 시간은 매장 영업시간 안에 있어야 합니다."),
   INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다."),
-  INVALID_PAYMENT_STATUS(HttpStatus.CONFLICT, "PAY001", "결제 대기 상태에서만 처리할 수 있습니다."),
   ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD001", "주문을 찾을 수 없습니다."),
   ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "주문을 취소할 권한이 없습니다."),
   PICKUP_CODE_EXISTS(HttpStatus.CONFLICT, "ORD003", "사용중인 픽업 코드입니다."),
@@ -26,6 +25,7 @@ public enum ErrorCode implements ErrorCodeSpec {
   CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD006", "주문할 장바구니 상품을 찾을 수 없습니다."),
   CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다."),
   ORDER_PICKUP_TIME_NOT_ENDED(HttpStatus.CONFLICT, "ORD008", "픽업 종료 시간 이후에 노쇼 처리할 수 있습니다."),
+  INVALID_ORDER_PAYMENT_STATUS(HttpStatus.CONFLICT, "ORD009", "결제 대기 상태에서만 결제 완료 처리할 수 있습니다."),
   ORDER_STORE_CLOSED(HttpStatus.CONFLICT, "ORD010", "매장이 영업 중이 아닙니다."),
   ORDER_PICKUP_DEADLINE_PASSED(HttpStatus.CONFLICT, "ORD011", "상품의 픽업 마감 시간이 지났습니다."),
   ORDER_DISH_PRICE_CHANGED(HttpStatus.CONFLICT, "ORD012", "상품 가격이 변경되었습니다. 다시 확인해 주세요."),
