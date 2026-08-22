@@ -169,7 +169,7 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
-    mem_limit: 1152m
+    mem_limit: 1536m
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent --user elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null"]
       interval: 10s
@@ -238,7 +238,7 @@ services:
         condition: service_healthy
     ports:
       - "8081:8080"
-    mem_limit: 448m
+    mem_limit: 768m
 
   core-service:
     build:
@@ -284,7 +284,7 @@ services:
         condition: service_healthy
     ports:
       - "8082:8080"
-    mem_limit: 512m
+    mem_limit: 1024m
 
   payment-service:
     build:
@@ -319,7 +319,7 @@ services:
         condition: service_healthy
     ports:
       - "8083:8080"
-    mem_limit: 384m
+    mem_limit: 768m
 
   ai-service:
     build:
@@ -365,7 +365,7 @@ services:
         condition: service_healthy
     ports:
       - "8084:8080"
-    mem_limit: 512m
+    mem_limit: 1024m
 
   gateway-service:
     build:
@@ -405,7 +405,7 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
-    mem_limit: 320m
+    mem_limit: 512m
 
 secrets:
   member-access-private-key:
