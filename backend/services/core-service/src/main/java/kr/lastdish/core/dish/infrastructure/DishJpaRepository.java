@@ -33,4 +33,15 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
     """)
   List<Dish> findOnSaleByStoreId(
       @Param("storeId") Long storeId, @Param("status") DishStatus status);
+
+  @Query(
+      """
+    SELECT d
+    FROM Dish d
+    WHERE d.storeId IN :storeIds
+        AND d.isDeleted = false
+        AND d.dishStatus = :status
+    """)
+  List<Dish> findOnSaleByStoreIds(
+      @Param("storeIds") List<Long> storeIds, @Param("status") DishStatus status);
 }
