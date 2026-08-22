@@ -32,7 +32,7 @@ class InternalStoreResponseContractTest {
             2L,
             "테스트 매장",
             "서울시 테스트 주소",
-                "명정빌딩",
+            "명정빌딩",
             LocalTime.of(9, 0),
             LocalTime.of(22, 0),
             nextClosingAt,

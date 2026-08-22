@@ -142,7 +142,7 @@ class StoreServiceTest {
         "테스트 매장",
         "123-45-67890",
         "서울시 강남구",
-            "명정빌딩",
+        "명정빌딩",
         "02-1234-5678",
         openTime,
         closeTime,
@@ -164,7 +164,7 @@ class StoreServiceTest {
         new UpdateStoreCommand(
             "수정된 매장명",
             "서울특별시 강남구 테헤란로 123",
-                "명정빌딩",
+            "명정빌딩",
             "02-1234-5678",
             LocalTime.of(9, 0),
             LocalTime.of(21, 0),
