@@ -177,29 +177,6 @@ services:
       retries: 30
       start_period: 60s
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: lastdish-logstash
-    environment:
-      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
-      # PostgreSQL JDBC 접속 정보 (PostgreSQL 17 호환 Driver 사용)
-      CORE_DB_URL: "jdbc:postgresql://core-db:5432/core_db"
-      CORE_DB_USERNAME: "core"
-      CORE_DB_PASSWORD: "core_local_password"
-      ELASTICSEARCH_URL: "http://elasticsearch:9200"
-      ELASTICSEARCH_PASSWORD: "${ELASTICSEARCH_PASSWORD:-elastic_local_password}"
-    volumes:
-      # 로컬에 작성한 logstash 파이프라인 설정 파일 및 JDBC 드라이버 볼륨 연결
-      - ./local/logstash/pipeline:/usr/share/logstash/pipeline:ro
-      - ./local/logstash/plugins/postgresql-42.7.3.jar:/usr/share/logstash/logstash-core/lib/jars/postgresql.jar:ro
-      - logstash-data:/usr/share/logstash/data
-    depends_on:
-      core-db:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
-    mem_limit: 512m
-
   config-server:
     build:
       context: ../backend
