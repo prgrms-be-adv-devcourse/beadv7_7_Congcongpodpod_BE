@@ -3,6 +3,7 @@ package kr.lastdish.core.support.config;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.order.domain.event.OrderStatusChangedEvent;
+import kr.lastdish.core.store.domain.event.StoreRegisteredEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -74,4 +75,9 @@ public class CoreKafkaTopicConfig {
         .build();
   }
   */
+
+  @Bean
+  NewTopic storeRegisteredTopic() {
+    return TopicBuilder.name(StoreRegisteredEvent.EVENT_TYPE).partitions(3).replicas(1).build();
+  }
 }
