@@ -13,7 +13,10 @@ public class StoreRegisteredKafkaListener {
 
   private final InboxEventWriter inboxEventWriter;
 
-  @KafkaListener(topics = "STORE_REGISTERED", groupId = CONSUMER_ID)
+  @KafkaListener(
+      topics = "STORE_REGISTERED",
+      groupId = CONSUMER_ID,
+      autoStartup = "${event.kafka.listener-auto-startup:true}")
   public void consume(EventMessage message) {
     inboxEventWriter.saveIfAbsent(CONSUMER_ID, message);
   }

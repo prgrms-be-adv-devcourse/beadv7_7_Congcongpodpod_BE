@@ -12,7 +12,6 @@ import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
 import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.NearbyStoreResult;
-import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.domain.Category;
