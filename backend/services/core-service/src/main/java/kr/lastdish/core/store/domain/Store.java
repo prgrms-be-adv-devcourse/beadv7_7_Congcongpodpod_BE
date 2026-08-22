@@ -40,6 +40,9 @@ public class Store {
   @Column(name = "store_address", nullable = false)
   private String storeAddress;
 
+  @Column(name = "store_address_detail")
+  private String storeDetailAddress;
+
   @Column(name = "store_phone", nullable = false)
   private String storePhone;
 
@@ -84,6 +87,7 @@ public class Store {
       String storeName,
       String businessNumber,
       String storeAddress,
+      String storeDetailAddress,
       String storePhone,
       LocalTime openTime,
       LocalTime closeTime,
@@ -95,6 +99,7 @@ public class Store {
     this.storeName = storeName;
     this.businessNumber = businessNumber;
     this.storeAddress = storeAddress;
+    this.storeDetailAddress = normalizeDetailAddress(storeDetailAddress);
     this.storePhone = storePhone;
     this.openTime = openTime;
     this.closeTime = closeTime;
@@ -114,6 +119,7 @@ public class Store {
   public void update(
       String storeName,
       String storeAddress,
+      String storeDetailAddress,
       String storePhone,
       LocalTime openTime,
       LocalTime closeTime,
@@ -122,6 +128,7 @@ public class Store {
       Category category) {
     this.storeName = storeName;
     this.storeAddress = storeAddress;
+    this.storeDetailAddress = normalizeDetailAddress(storeDetailAddress);
     this.storePhone = storePhone;
     this.openTime = openTime;
     this.closeTime = closeTime;
@@ -220,5 +227,13 @@ public class Store {
 
   public long nextEventVersion() {
     return ++this.eventVersion;
+  }
+
+  private String normalizeDetailAddress(String storeDetailAddress) {
+    if (storeDetailAddress == null || storeDetailAddress.isBlank()) {
+      return null;
+    }
+
+    return storeDetailAddress.trim();
   }
 }

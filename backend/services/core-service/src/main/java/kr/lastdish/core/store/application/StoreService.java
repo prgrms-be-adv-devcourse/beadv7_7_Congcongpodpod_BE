@@ -44,6 +44,7 @@ public class StoreService {
             command.storeName(),
             command.businessNumber(),
             command.storeAddress(),
+                command.storeDetailAddress(),
             command.storePhone(),
             command.openTime(),
             command.closeTime(),
@@ -73,6 +74,7 @@ public class StoreService {
     store.update(
         command.storeName(),
         command.storeAddress(),
+        command.storeDetailAddress(),
         command.storePhone(),
         command.openTime(),
         command.closeTime(),

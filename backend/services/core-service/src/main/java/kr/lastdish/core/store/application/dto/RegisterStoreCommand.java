@@ -11,6 +11,7 @@ public record RegisterStoreCommand(
     String storeName,
     String businessNumber,
     String storeAddress,
+    String storeDetailAddress,
     String storePhone,
     LocalTime openTime,
     LocalTime closeTime,
