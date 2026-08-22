@@ -421,4 +421,3 @@ volumes:
   # Kafka 메시지와 KRaft metadata를 보존하는 Docker named volume입니다.
   kafka-data:
   elasticsearch-data:
-  logstash-data:
