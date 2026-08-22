@@ -1,3 +1,3 @@
-package kr.lastdish.core.store.domain.event;
+package kr.lastdish.member.member.application.event;
 
 public record StoreRegisteredPayload(Long memberId) {}

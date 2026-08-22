@@ -331,13 +331,13 @@ public class StoreService {
     long aggregateVersion = store.nextEventVersion();
 
     StoreRegisteredEvent event =
-            new StoreRegisteredEvent(
-                    UUID.randomUUID(),
-                    StoreRegisteredEvent.SCHEMA_VERSION,
-                    store.getId(),
-                    aggregateVersion,
-                    payload,
-                    Instant.now());
+        new StoreRegisteredEvent(
+            UUID.randomUUID(),
+            StoreRegisteredEvent.SCHEMA_VERSION,
+            store.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
 
     outboxEventWriter.append(event);
   }
