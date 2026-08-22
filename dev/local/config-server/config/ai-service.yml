@@ -71,3 +71,8 @@ ai:
 services:
   core:
     base-url: ${SERVICES_CORE_BASE_URL:http://core-service:8080}
+
+store:
+  sync:
+    scheduler:
+      enabled: false #core에서 dish update 작업 후 활성화

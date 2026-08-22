@@ -3,12 +3,17 @@ package kr.lastdish.ai.infrastructure.scheduler;
 import kr.lastdish.ai.application.StoreIndexerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+    name = "store.sync.scheduler.enabled",
+    havingValue = "true",
+    matchIfMissing = false)
 public class StoreSyncScheduler {
 
   private final StoreIndexerService storeIndexerService;
