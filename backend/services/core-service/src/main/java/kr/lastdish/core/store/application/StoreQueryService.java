@@ -37,6 +37,7 @@ public class StoreQueryService implements StoreQueryUseCase {
         store.getStoreName(),
         store.getBusinessNumber(),
         store.getStoreAddress(),
+        store.getStoreDetailAddress(),
         store.getStorePhone(),
         store.getOpenTime(),
         store.getCloseTime(),
