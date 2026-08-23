@@ -1,139 +1,83 @@
-# LastDish Kubernetes 매니페스트
+# LastDish Kubernetes 배포
 
-## 디렉터리
+운영 인프라의 원본은 `infra/`입니다. Main EC2는 Kubernetes로 애플리케이션을 실행하고, Data EC2와 Log 서버는 Docker Compose로 데이터·관측 인프라를 실행합니다.
+
+## 구조
 
 ```text
-k8s/
-├── 00-cluster/
-│   └── namespaces.yaml
-├── ingress-nginx/
-│   └── values.yaml
-├── cert-manager/
-│   └── clusterissuers.yaml
-├── platform/
-│   └── config-server.yaml
-├── data/
-│   ├── redis.yaml
-│   └── kafka.yaml
-└── app/
-    ├── configmaps/
-    │   ├── database-config.yaml
-    │   ├── gateway-jwt-public-key.yaml
-    │   ├── redis-client-config.yaml
-    │   └── kafka-client-config.yaml
-    ├── services/
-    │   ├── gateway-service.yaml
-    │   ├── member-service.yaml
-    │   └── core-service.yaml
-    └── networking/
-        ├── certificate.yaml
-        └── ingress.yaml
+infra/
+├── ec2-main/
+│   ├── bootstrap/          # Namespace 최초 생성
+│   ├── namespaces/
+│   │   ├── app/            # Gateway, Member, Core, Payment, AI
+│   │   ├── platform/       # Config Server
+│   │   ├── data/           # Redis, Kafka
+│   │   └── monitoring/     # Alloy, exporters
+│   ├── cert-manager/
+│   ├── ingress-nginx/
+│   ├── networking/
+│   └── apply-secrets.sh
+├── ec2-data/               # PostgreSQL, Elasticsearch, exporters
+└── ec2-log/                # Loki, Prometheus, Grafana
 ```
 
-- `00-cluster`: 네임스페이스처럼 클러스터 전체에 먼저 적용할 리소스
-- `ingress-nginx`: ingress-nginx Helm 설정
-- `cert-manager`: 인증서 발급 컨트롤러가 사용하는 클러스터 전역 발급자
-- `platform`: Config Server 등 애플리케이션 공통 플랫폼
-- `app`: Gateway와 비즈니스 애플리케이션
+전체 서버별 책임과 적용 명령은 [`infra/README.md`](../../infra/README.md)를 기준으로 합니다.
 
-`ClusterIssuer`는 `cert-manager` 네임스페이스 소속이 아니라 클러스터 전역 리소스다. 관리 목적상 `cert-manager/`에 둔다.
+## Main EC2 적용 순서
 
-Secret 값은 저장소에 커밋하지 않는다. 배포 전에 클러스터에서 직접 생성한다.
-
-운영 서버의 `ldm` CLI 백업, 복원, Metrics Server 설치와 검증 절차는 [LastDish 운영 CLI와 Metrics Server](./lastdish-operations.md)를 참고한다.
-
-## 적용 순서
+1. `bootstrap/namespaces.yaml`로 namespace를 생성합니다.
+2. ingress-nginx와 cert-manager를 설치합니다.
+3. Config Server, Redis, Kafka와 monitoring 리소스를 적용합니다.
+4. GitHub Container Registry pull secret과 애플리케이션 secret을 생성합니다.
+5. Gateway, Member, Core, Payment, AI Deployment를 적용합니다.
+6. Certificate와 Ingress를 적용합니다.
 
 ```bash
-kubectl apply -f 00-cluster/namespaces.yaml
+kubectl apply -f infra/ec2-main/bootstrap/namespaces.yaml
+kubectl apply --recursive -f infra/ec2-main/namespaces
+kubectl apply --recursive -f infra/ec2-main/networking
 
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --values ingress-nginx/values.yaml
-
-helm upgrade --install cert-manager \
-  oci://quay.io/jetstack/charts/cert-manager \
-  --version v1.20.1 \
-  --namespace cert-manager \
-  --set crds.enabled=true
-
-kubectl apply -f cert-manager/clusterissuers.yaml
-kubectl apply -f platform/config-server.yaml
-kubectl apply -f data/redis.yaml
-kubectl apply -f data/kafka.yaml
-kubectl apply -f app/configmaps/
-kubectl apply -f app/services/
-kubectl apply -f app/networking/certificate.yaml
-kubectl apply -f app/networking/ingress.yaml
+kubectl get pods -A
+kubectl get ingress,certificate -A
 ```
 
-Config Server와 GHCR Secret은 각 Deployment를 적용하기 전에 생성해야 한다. 전체 설치 절차는 Notion의 `인프라 구성 방법` 문서를 참고한다.
+Secret은 저장소 YAML에 값을 작성하지 않고 `infra/ec2-main/apply-secrets.sh`와 Git에서 제외된 환경 파일로 반영합니다. 자세한 계약은 [`namespaces/app/README.md`](../../infra/ec2-main/namespaces/app/README.md)를 확인하세요.
 
-## 외부 PostgreSQL 연결
+## Data EC2
 
-PostgreSQL은 Kubernetes 밖의 DB 전용 EC2 `10.30.2.93`에서 Docker Compose로 실행한다.
+Data EC2는 PostgreSQL 데이터베이스, Elasticsearch와 exporter를 실행합니다.
 
-| 데이터베이스 | JDBC 주소 |
+```bash
+cd infra/ec2-data
+cp .env.example .env
+docker compose --env-file .env config --quiet
+docker compose --env-file .env up -d
+```
+
+환경변수, 데이터 디렉터리, 순차 시작과 점검 절차는 [`ec2-data/README.md`](../../infra/ec2-data/README.md)를 따릅니다.
+
+## 자동 배포
+
+백엔드 서비스 워크플로는 변경 서비스를 테스트하고 GHCR 이미지를 만든 뒤 해당 Deployment만 재시작합니다.
+
+| 변경 경로 | 이미지·Deployment |
 | --- | --- |
-| Member | `jdbc:postgresql://10.30.2.93:5432/member_db` |
-| Core | `jdbc:postgresql://10.30.2.93:5433/core_db` |
+| `backend/services/config-server/**` | Config Server |
+| `backend/services/gateway-service/**` | Gateway Service |
+| `backend/services/member-service/**` | Member Service |
+| `backend/services/core-service/**` | Core Service |
+| `backend/services/payment-service/**` | Payment Service |
+| `backend/services/ai-service/**` | AI Service |
+| `backend/modules/**`, 공통 Gradle 설정 | 영향을 받는 서비스 |
 
-DB 서버 실행 절차는 [`infra/database/README.md`](../../infra/database/README.md)를 참고한다.
+배포는 rollout 실패 시 undo하고 복구 상태를 다시 확인합니다. 배포에 필요한 SSH와 registry 자격 증명은 GitHub Actions secrets로 관리합니다.
 
-비밀번호를 터미널 기록에 남기지 않고 애플리케이션용 Secret을 생성한다. 사용자명과 비밀번호는 DB 서버의 `infra/ec2-data/.env`와 일치해야 한다.
-
-```bash
-read -s -p "Member DB password: " MEMBER_DB_PASSWORD
-echo
-read -s -p "Core DB password: " CORE_DB_PASSWORD
-echo
-
-kubectl create secret generic member-db-credentials \
-  --namespace=app \
-  --from-literal=username=member \
-  --from-literal=password="$MEMBER_DB_PASSWORD" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl create secret generic core-db-credentials \
-  --namespace=app \
-  --from-literal=username=core \
-  --from-literal=password="$CORE_DB_PASSWORD" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-unset MEMBER_DB_PASSWORD CORE_DB_PASSWORD
-```
-
-서비스를 적용하고 외부 DB 연결 상태를 확인한다.
+## 운영 검증
 
 ```bash
-kubectl apply -f app/services/member-service.yaml
-kubectl apply -f app/services/core-service.yaml
-kubectl rollout status deployment/member-service -n app --timeout=180s
-kubectl rollout status deployment/core-service -n app --timeout=180s
-
-kubectl get pod,service -n app
-```
-
-```bash
+kubectl get deployments,pods,services --all-namespaces
+kubectl rollout status deployment/gateway-service --namespace=app --timeout=180s
 curl -fsS https://api.lastdish.kr/actuator/health
 ```
 
-## 애플리케이션 자동 배포
-
-`main`에 서비스 코드가 push되면 해당 서비스 워크플로가 테스트 → `:dev` 이미지 GHCR push → EC2 SSH 접속 → 해당 Deployment 재시작을 수행한다. 다른 서비스는 재시작하지 않는다.
-
-| 변경 경로 | 재시작 대상 |
-| --- | --- |
-| `backend/services/config-server/**` | `platform/config-server` |
-| `backend/services/gateway-service/**` | `app/gateway-service` |
-| `backend/services/member-service/**` | `app/member-service` |
-| `backend/services/core-service/**` | `app/core-service` |
-| `backend/modules/**`, 공통 Gradle 파일 | 영향받는 네 서비스 워크플로 모두 |
-
-GitHub 저장소 Actions secrets가 필요하다.
-
-- `EC2_HOST`: EC2 접속 호스트명
-- `EC2_SSH_PRIVATE_KEY`: 배포 전용 SSH 개인 키 전체 내용
-- `EC2_SSH_KNOWN_HOSTS`: `ssh-keyscan`으로 검증해 등록한 호스트 키
-
-개인 키와 실제 Secret 값은 이 저장소에 커밋하지 않는다.
+로그·메트릭·백업과 장애 대응은 [운영 가이드](lastdish-operations.md)를 확인하세요.

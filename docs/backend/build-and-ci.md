@@ -4,7 +4,7 @@ Java 21, Spring Boot 4.1.0, Spring Cloud 2025.1.2 기반 Gradle 멀티 프로젝
 
 ## 로컬 전체 환경 실행
 
-저장소 루트에서 Config Server, Gateway, Member, Core를 한 번에 실행합니다.
+저장소 루트에서 Config Server, Gateway, Member, Core, Payment, AI를 한 번에 실행합니다.
 
 ```bash
 docker compose --env-file dev/.env --file dev/compose.yaml up --build -d
@@ -15,7 +15,7 @@ docker compose --env-file dev/.env --file dev/compose.yaml ps
 curl -fsS http://localhost:8080/actuator/health
 ```
 
-포트는 Gateway `8080`, Member `8081`, Core `8082`, Config Server `8888`입니다. 로컬 Config는 `dev/local/config-server/config`을 사용하며 운영 Config 저장소와 인증정보가 필요하지 않습니다.
+호스트 포트는 Gateway `8080`, Member `8081`, Core `8082`, Payment `8083`, AI `8084`, Config Server `8888`입니다. 로컬 Config는 `dev/local/config-server/config`을 사용합니다.
 
 ```bash
 docker compose --env-file dev/.env --file dev/compose.yaml logs -f
@@ -37,6 +37,8 @@ cd backend
 ./gradlew :services:gateway-service:test
 ./gradlew :services:member-service:test
 ./gradlew :services:core-service:test
+./gradlew :services:payment-service:test
+./gradlew :services:ai-service:test
 ```
 
 서비스별 실행 JAR 생성:
@@ -46,6 +48,8 @@ cd backend
 ./gradlew :services:gateway-service:bootJar
 ./gradlew :services:member-service:bootJar
 ./gradlew :services:core-service:bootJar
+./gradlew :services:payment-service:bootJar
+./gradlew :services:ai-service:bootJar
 ```
 
 `:`로 구분한 `:services:<서비스명>:<작업>` 형식은 `settings.gradle`에 등록된 Gradle 멀티 프로젝트 경로입니다. 예를 들어 `:services:core-service:bootJar`는 Core Service의 실행 JAR만 생성합니다. 필요한 공통 프로젝트가 있다면 Gradle이 해당 의존성도 함께 빌드합니다.
@@ -69,6 +73,8 @@ Spotless는 개발자의 운영체제나 IDE 설정과 관계없이 동일한 Ja
 ./gradlew :services:gateway-service:spotlessApply
 ./gradlew :services:member-service:spotlessApply
 ./gradlew :services:core-service:spotlessApply
+./gradlew :services:payment-service:spotlessApply
+./gradlew :services:ai-service:spotlessApply
 ```
 
 서비스별 포맷 검사:
@@ -78,6 +84,8 @@ Spotless는 개발자의 운영체제나 IDE 설정과 관계없이 동일한 Ja
 ./gradlew :services:gateway-service:spotlessCheck
 ./gradlew :services:member-service:spotlessCheck
 ./gradlew :services:core-service:spotlessCheck
+./gradlew :services:payment-service:spotlessCheck
+./gradlew :services:ai-service:spotlessCheck
 ```
 
 서비스별 포맷 검사와 빌드를 함께 실행할 수 있습니다.
@@ -120,6 +128,8 @@ docker build --platform linux/amd64 -f services/config-server/Dockerfile -t last
 docker build --platform linux/amd64 -f services/gateway-service/Dockerfile -t lastdish-gateway-service:local .
 docker build --platform linux/amd64 -f services/member-service/Dockerfile -t lastdish-member-service:local .
 docker build --platform linux/amd64 -f services/core-service/Dockerfile -t lastdish-core-service:local .
+docker build --platform linux/amd64 -f services/payment-service/Dockerfile -t lastdish-payment-service:local .
+docker build --platform linux/amd64 -f services/ai-service/Dockerfile -t lastdish-ai-service:local .
 ```
 
 `linux/amd64`는 현재 AWS EC2 인스턴스 아키텍처에 맞추기 위한 옵션입니다.
@@ -130,6 +140,8 @@ docker build --platform linux/amd64 -f services/core-service/Dockerfile -t lastd
 - `services/gateway-service/**` 변경: Gateway Service 이미지만 빌드
 - `services/member-service/**` 변경: Member Service 이미지만 빌드
 - `services/core-service/**` 변경: Core Service 이미지만 빌드
+- `services/payment-service/**` 변경: Payment Service 이미지만 빌드
+- `services/ai-service/**` 변경: AI Service 이미지만 빌드
 - 루트 Gradle 설정, Gradle Wrapper 또는 공통 모듈 변경: 영향받는 서비스 워크플로가 모두 빌드
 - 각 이미지 워크플로 파일 변경: 해당 서비스 이미지만 빌드
 

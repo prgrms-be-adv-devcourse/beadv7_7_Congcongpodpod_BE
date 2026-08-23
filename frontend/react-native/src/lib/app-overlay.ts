@@ -50,6 +50,11 @@ export function endGlobalLoading() {
   loadingListener?.(loadingCount);
 }
 
+export function resetGlobalLoading() {
+  loadingCount = 0;
+  loadingListener?.(loadingCount);
+}
+
 export function subscribeGlobalLoading(listener: LoadingListener) {
   loadingListener = listener;
   listener(loadingCount);

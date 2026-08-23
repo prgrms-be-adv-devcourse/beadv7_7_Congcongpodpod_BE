@@ -1,187 +1,185 @@
-# LastDish 아키텍처
+# LastDish 시스템 아키텍처
 
-## 개요
+## 설계 목표
 
-LastDish Backend는 Gateway, Member, Core, Config Server로 구성된 Spring 기반 멀티 서비스
-시스템입니다. 외부 요청은 Gateway를 통해서만 진입하고 Member/Core Service는 데이터와
-도메인 책임을 분리합니다.
+LastDish는 한정 수량 마감팩을 탐색·주문·결제·픽업·정산하는 멀티 서비스 시스템입니다. 서비스별 데이터 소유권, 재고와 결제의 일관성, 이벤트의 재처리 안전성을 핵심 설계 기준으로 둡니다.
+
+## 런타임 구성
 
 ```mermaid
 flowchart LR
-    Client["Web / App Client"]
-    Gateway["Gateway Service<br/>WebFlux · :8080"]
-    Member["Member Service<br/>Spring MVC · :8081"]
-    Core["Core Service<br/>Spring MVC · :8082"]
-    Config["Config Server<br/>:8888"]
-    MemberDB[("Member PostgreSQL")]
-    CoreDB[("Core PostgreSQL")]
+    Client[Expo iOS · Android · Web]
+    Gateway[Gateway Service]
+    Member[Member Service]
+    Core[Core Service]
+    Payment[Payment Service]
+    AI[AI Service]
+    Config[Config Server]
 
-    Client -->|"HTTP / Bearer JWT"| Gateway
-    Gateway -->|"/api/v1/auth/**<br/>/api/v1/members/**"| Member
-    Gateway -->|"Core API 경로"| Core
-    Config -.->|"서비스 설정"| Gateway
-    Config -.->|"서비스 설정"| Member
-    Config -.->|"서비스 설정"| Core
-    Member --> MemberDB
-    Core --> CoreDB
+    Client -->|HTTP · JWT| Gateway
+    Gateway --> Member
+    Gateway --> Core
+    Gateway -. OpenAPI 집계 .-> Payment
+    Gateway -. OpenAPI 집계 .-> AI
+
+    Config -. 구성 .-> Gateway
+    Config -. 구성 .-> Member
+    Config -. 구성 .-> Core
+    Config -. 구성 .-> Payment
+    Config -. 구성 .-> AI
+
+    Member --> MemberDB[(Member DB)]
+    Core --> CoreDB[(Core DB)]
+    Payment --> PaymentDB[(Payment DB)]
+    AI --> AIDB[(AI DB)]
+    Member --> Redis[(Redis)]
+    Core --> Redis
+    Payment --> Redis
+    AI --> Redis
+    Member <--> Kafka[(Kafka)]
+    Core <--> Kafka
+    Payment <--> Kafka
+    AI <--> Kafka
+    AI --> Elasticsearch[(Elasticsearch)]
+    Core --> S3[(S3 · optional)]
+    AI --> S3
 ```
 
-## 서비스 책임
+로컬 환경에서 Payment DB와 AI DB는 Core PostgreSQL 컨테이너 안의 별도 데이터베이스로 생성되지만, 애플리케이션 계정과 스키마 책임은 서비스별로 분리합니다.
 
-| 구성 요소 | 책임 | 저장소 |
-|---|---|---|
-| Gateway Service | 라우팅, Access Token 검증, 역할 기반 접근 제어, 인증 헤더 생성 | 없음 |
-| Member Service | 회원가입, 로그인, 토큰, 회원 도메인 | Member DB |
-| Core Service | 가게, 상품, 장바구니, 주문, 결제, 정산, 예치금 | Core DB |
-| Config Server | 환경별 애플리케이션 설정 제공 | 로컬 파일 또는 Config 저장소 |
+## 서비스 경계
 
-서비스 간 테이블 직접 조회는 허용하지 않습니다. 각 서비스는 자신의 데이터베이스만
-소유합니다.
+| 서비스 | 소유 도메인 | 주요 연동 |
+| --- | --- | --- |
+| Gateway | 외부 API 경계, 인증·인가 정책 | JWT 공개키, Redis, 하위 서비스 |
+| Member | 인증, 토큰, 회원, 알림 | PostgreSQL, Redis, Kafka, Kakao |
+| Core | 매장, 상품, 찜, 장바구니, 주문, 예치금, 포인트, 등급, 정산 | PostgreSQL, Redis, Kafka, S3, Toss, Naver Map |
+| Payment | 결제 이벤트와 결제 처리 데이터 | PostgreSQL, Redis, Kafka, Toss |
+| AI | 음식 이미지 분류와 추천 후보 | PostgreSQL, Redis, Kafka, Elasticsearch, S3, AI Engine |
+| Config Server | 환경별 애플리케이션 설정 | 로컬 파일 또는 Config 저장소 |
 
-## 요청과 인증 흐름
+서비스는 다른 서비스의 테이블을 직접 조회하지 않습니다. 동기 조회가 필요한 경우 내부 HTTP API를 사용하고, 상태 전파와 후속 처리는 이벤트를 사용합니다.
+
+## 요청과 인증
 
 ```mermaid
 sequenceDiagram
-    actor Client
+    actor User
+    participant App
     participant Gateway
-    participant Security as Gateway Security
-    participant Service as Member / Core
+    participant Security
+    participant Service
 
-    Client->>Gateway: HTTP 요청
-    Gateway->>Security: 경로 접근 규칙 확인
+    User->>App: 기능 실행
+    App->>Gateway: Authorization: Bearer JWT
+    Gateway->>Security: 경로·역할·토큰 검증
     alt 공개 API
-        Security-->>Gateway: 익명 요청 허용
-    else 보호 API
-        Security->>Security: JWT 서명·만료·issuer·role 검증
-        alt 인증 또는 권한 실패
-            Security-->>Client: ApiResponse 실패 (G001 / G002)
-        else 인증 성공
-            Security-->>Gateway: sub, role
-            Gateway->>Gateway: 외부 인증 헤더 제거 후 내부 헤더 생성
-        end
+        Security-->>Gateway: 익명 통과
+    else 인증 API
+        Security->>Security: 서명·만료·issuer·role 확인
+        Security-->>Gateway: memberId · role
+        Gateway->>Gateway: 외부 내부용 헤더 제거 후 재생성
     end
-    Gateway->>Service: 라우팅된 요청
-    Service-->>Gateway: 공통 ApiResponse
-    Gateway-->>Client: 서비스 응답 전달
+    Gateway->>Service: X-Authenticated-Member-Id / Role
+    Service-->>Gateway: ApiResponse
+    Gateway-->>App: HTTP 응답
 ```
 
-Gateway가 생성하는 내부 헤더:
+Gateway만 외부 JWT를 신뢰합니다. 하위 서비스는 Gateway가 생성한 내부 인증 헤더를 사용합니다. 세부 경로와 역할 정책은 [Gateway 문서](backend/gateway.md)를 확인하세요.
 
-- `X-Authenticated-Member-Id`: JWT `sub`
-- `X-Authenticated-Role`: JWT `role`
+현재 Config Server의 Gateway 비즈니스 라우트는 Member와 Core API만 선언합니다. Payment와 AI는 통합 OpenAPI 경로가 등록되어 있으며, 외부 API를 추가할 때는 라우트와 `GatewaySecurityConfig` 정책을 함께 변경해야 합니다.
 
-상세 라우팅과 접근 정책은 [Gateway 문서](backend/gateway.md)를 참고합니다.
-
-## 공통 모듈
-
-```mermaid
-flowchart TD
-    Api["api-common<br/>ApiResponse · ErrorCodeSpec<br/>BusinessException"]
-    Mvc["mvc-common<br/>Spring MVC 전역 예외 처리"]
-    Event["event-common<br/>DomainEvent · EventMessage<br/>EventPublisher"]
-    Outbox["outbox<br/>JPA Outbox · Scheduler · Processor"]
-    Gateway["gateway-service"]
-    Member["member-service"]
-    Core["core-service"]
-
-    Mvc --> Api
-    Outbox --> Event
-    Gateway --> Api
-    Member --> Api
-    Member --> Mvc
-    Member --> Event
-    Member --> Outbox
-    Core --> Api
-    Core --> Mvc
-    Core --> Event
-    Core --> Outbox
-```
-
-| 모듈 | 제공 기능 | 등록 방식 |
-|---|---|---|
-| `api-common` | API 응답과 예외 코드 계약 | 순수 Java 의존성 |
-| `mvc-common` | MVC `GlobalExceptionHandler` | Spring Boot Auto-configuration |
-| `event-common` | 이벤트 계약과 Spring 이벤트 발행기 | Spring Boot Auto-configuration |
-| `outbox` | Outbox 저장, 선점, 발행, 재시도 | Spring Boot Auto-configuration |
-
-Gateway는 WebFlux 기반이므로 MVC 전용 `mvc-common`을 사용하지 않고
-`ErrorWebExceptionHandler`로 같은 응답 규격을 구현합니다.
-
-## 오류 처리
+## 주문·픽업·정산 흐름
 
 ```mermaid
 flowchart LR
-    Request["요청"] --> Gateway
-    Gateway -->|"인증·권한 오류"| SecurityError["G001 / G002"]
-    Gateway -->|"라우팅·연결·타임아웃 오류"| GatewayError["G003 · G004<br/>G500 · G502 · G503 · G504"]
-    Gateway -->|"정상 라우팅"| Service["Member / Core"]
-    Service --> CommonError["Cxxx 공통 오류"]
-    Service --> DomainError["서비스별 도메인 오류"]
-    SecurityError --> Response["ApiResponse.fail"]
-    GatewayError --> Response
-    CommonError --> Response
-    DomainError --> Response
+    Search[주변 상품 탐색] --> Cart[장바구니]
+    Cart --> Order[주문·재고 차감]
+    Order --> Payment[예치금·결제]
+    Payment --> Accept[판매자 접수]
+    Accept --> Pickup[코드 확인·픽업 완료]
+    Pickup --> Settlement[월별 정산]
 ```
 
-- Gateway는 자신이 발생시킨 인증, 권한, 라우팅, 연결, 타임아웃 오류만 `Gxxx`로 관리합니다.
-- Member/Core의 도메인 오류 코드는 각 서비스에서 관리합니다.
-- 하위 서비스 오류 응답은 Gateway가 변경하지 않고 전달합니다.
+- 재고 변경과 주문 생성은 Core Service의 트랜잭션 경계에서 처리합니다.
+- 결제와 환불 이력은 금액 변경의 근거를 남기며 멱등 요청을 전제로 처리합니다.
+- 픽업 상태는 허용된 상태 전이만 수행합니다.
+- 정산은 판매 금액, 플랫폼 수수료와 정산 대상 주문을 분리해 계산합니다.
 
-## 이벤트와 Outbox
-
-현재 기본 `EventPublisher` 구현은 Spring Application Event입니다. 외부 메시지 브로커는
-아직 연결하지 않았으며, Outbox Processor가 발행한 이벤트는 같은 애플리케이션 내부
-리스너가 소비합니다.
+## 이벤트 전달과 멱등성
 
 ```mermaid
 sequenceDiagram
-    participant API as Application Service
+    participant Domain as Application Service
     participant DB as Service DB
-    participant Outbox as Outbox Scheduler
-    participant Publisher as EventPublisher
-    participant Listener as Event Listener
+    participant Outbox
+    participant Kafka
+    participant Inbox
+    participant Handler
 
-    API->>DB: 도메인 변경
-    API->>DB: PENDING Outbox 저장
-    Note over API,DB: 같은 DB 트랜잭션
-    Outbox->>DB: 발행 대상 선점 (PROCESSING)
-    Outbox->>Publisher: EventMessage 발행
-    Publisher->>Listener: Spring Application Event
-    alt 처리 성공
-        Outbox->>DB: PUBLISHED
-    else 처리 실패
-        Outbox->>DB: 재시도 횟수 기록
-        Note over Outbox,DB: 한도 미만 PENDING / 한도 도달 FAILED
+    Domain->>DB: 도메인 상태 변경
+    Domain->>DB: Outbox PENDING 저장
+    Note over Domain,DB: 동일 트랜잭션
+    Outbox->>DB: 이벤트 선점
+    Outbox->>Kafka: EventMessage 발행
+    Kafka->>Inbox: 이벤트 수신
+    Inbox->>DB: eventId · aggregateVersion 확인
+    alt 최초이며 처리 가능
+        Inbox->>Handler: 이벤트 처리
+        Inbox->>DB: 처리 완료 기록
+    else 중복 또는 순서 불일치
+        Inbox->>DB: 중복 무시 또는 재시도·실패 기록
     end
 ```
 
-`event-common`은 이벤트 계약과 발행 포트를, `outbox`는 전달 신뢰성을 위한 저장과 처리
-흐름을 담당합니다. 향후 Kafka 등의 브로커를 사용할 때는 `EventPublisher` 구현을
-교체하고 서비스 간 이벤트 계약을 명시적으로 관리해야 합니다.
+- `event-common`: 이벤트 봉투와 발행 포트를 제공하며 설정에 따라 Spring Event 또는 Kafka 구현을 등록합니다.
+- `outbox`: 비즈니스 변경과 발행 대상을 같은 DB 트랜잭션에 기록하고 선점·재시도합니다.
+- `inbox`: 소비한 이벤트 ID와 aggregate version을 기록해 중복 처리와 역순 적용을 방지합니다.
 
-## 설정과 실행 환경
+## 공통 API와 오류
 
-- 공통 애플리케이션 설정은 Config Server에서 제공합니다.
-- 로컬 Config는 `dev/local/config-server/config`에 있으며 Docker Compose가 읽기 전용으로
-  마운트합니다.
-- `local` 프로필에서 Swagger UI와 통합 OpenAPI 문서를 제공합니다.
-- Member/Core의 Outbox 스케줄러는 환경변수로 활성화 여부와 polling/retry 정책을
-  조정합니다.
+모든 HTTP 서비스는 `api-common`의 `ApiResponse`와 `ErrorCodeSpec` 계약을 공유합니다. MVC 서비스는 `mvc-common`의 전역 예외 처리를 사용하며, WebFlux 기반 Gateway는 같은 응답 형태를 별도로 구현합니다.
 
-## 코드 구조 원칙
+```mermaid
+flowchart LR
+    Request --> Gateway
+    Gateway -->|인증·권한| GError[Gxxx]
+    Gateway -->|정상 라우팅| Service
+    Service --> Common[Cxxx 공통 오류]
+    Service --> Domain[서비스 도메인 오류]
+    GError --> Response[ApiResponse.fail]
+    Common --> Response
+    Domain --> Response
+```
 
-Member/Core 도메인 패키지는 다음 계층을 기본으로 사용합니다.
+Gateway는 자신이 발생시킨 인증, 권한, 라우팅, 연결과 타임아웃 오류만 변환합니다. 하위 서비스가 반환한 도메인 오류 응답은 의미를 바꾸지 않고 전달합니다.
+
+## 설정과 관측성
+
+- Config Server가 환경별 Spring 설정을 제공합니다.
+- 로컬 Config 원본은 `dev/local/config-server/config/`입니다.
+- Actuator health와 Prometheus endpoint를 서비스 점검에 사용합니다.
+- 요청 ID는 Gateway와 MVC 필터를 거쳐 로그와 응답에 연결됩니다.
+- Gateway 통합 Swagger는 Member, Core, Payment, AI OpenAPI를 한 화면에서 제공합니다.
+
+## 코드 구성 원칙
+
+도메인 기능은 다음 책임을 기준으로 나눕니다.
 
 ```text
-domain/
-application/
-infrastructure/
-presentation/
+presentation/     HTTP 입력·출력과 검증
+application/      유스케이스와 트랜잭션 경계
+domain/           엔티티, 값 객체, 정책과 저장소 계약
+infrastructure/   JPA, Kafka, 외부 API와 저장소 구현
 ```
 
-- `presentation`: HTTP 요청·응답과 검증
-- `application`: 유스케이스와 트랜잭션 경계
-- `domain`: 엔티티, 값 객체, 도메인 규칙과 저장소 계약
-- `infrastructure`: JPA, 외부 시스템, 저장소 구현
+서비스마다 도메인 크기에 맞춰 패키지 깊이는 달라질 수 있지만, presentation에서 영속성 구현을 직접 호출하거나 공통 모듈에 서비스별 비즈니스 규칙을 넣지 않습니다.
 
-공통 모듈에는 특정 서비스의 도메인 오류나 비즈니스 규칙을 넣지 않습니다.
+## 관련 문서
+
+- [문서 인덱스](README.md)
+- [Gateway](services/gateway-service.md)
+- [Core Service](services/core-service.md)
+- [Member Service](services/member-service.md)
+- [로컬 통합 환경](infra/local-development.md)
+- [Kubernetes 배포](infra/kubernetes.md)

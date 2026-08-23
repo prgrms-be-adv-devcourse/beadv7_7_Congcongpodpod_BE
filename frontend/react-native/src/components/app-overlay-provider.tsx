@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import type { PropsWithChildren } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -113,9 +113,7 @@ export function AppOverlayProvider({ children }: PropsWithChildren) {
         </View> : null}
       </View>
     </Modal>
-    <Modal animationType="fade" presentationStyle="overFullScreen" transparent visible={showLoading}>
-      <View accessibilityLabel="처리 중" accessibilityRole="progressbar" style={styles.loadingRoot}><View style={styles.loadingCard}><LoadingState compact inline label="잠시만 기다려주세요"/></View></View>
-    </Modal>
+    {showLoading ? <View accessibilityLabel="처리 중" accessibilityRole="progressbar" pointerEvents="none" style={styles.loadingRoot}><View style={styles.loadingCard}><LoadingState compact inline label="잠시만 기다려주세요"/></View></View> : null}
   </>;
 }
 
@@ -134,8 +132,8 @@ const styles = StyleSheet.create({
   actionText: { color: colors.white, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
   cancelText: { color: colors.ink900 },
   pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
-  loadingRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(15,20,17,0.34)' },
-  loadingCard: { width: 184, minHeight: 142, alignItems: 'center', justifyContent: 'center', borderRadius: radius.card, backgroundColor: colors.white, ...shadow.float },
+  loadingRoot: { ...StyleSheet.absoluteFillObject, zIndex: 2000, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(15,20,17,0.26)' },
+  loadingCard: { width: 148, minHeight: 104, alignItems: 'center', justifyContent: 'center', borderRadius: radius.card, backgroundColor: colors.white, ...shadow.float },
   notificationLayer: { position: 'absolute', left: 12, right: 12, zIndex: 1000, alignItems: 'center', gap: 8 },
   notificationAnimated: { width: '100%', maxWidth: 440 },
   notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 10, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },

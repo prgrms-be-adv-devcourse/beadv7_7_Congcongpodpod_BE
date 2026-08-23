@@ -5,7 +5,7 @@
 서버에서 사용하는 `ldm` 전체 설정은 다음 파일에 백업한다.
 
 ```text
-infra/k8s/tools/lastdish.zshrc
+infra/ec2-main/tools/lastdish.zshrc
 ```
 
 이 파일에는 LastDish 메뉴, Kubernetes 조회·관리 명령, DB 접속 별칭이 포함된다. 실제 Secret 값, PAT, PEM, DB 비밀번호는 저장하지 않는다.
@@ -14,7 +14,7 @@ infra/k8s/tools/lastdish.zshrc
 
 ```bash
 cp ~/.zshrc ~/.zshrc.backup
-install -m 600 infra/k8s/tools/lastdish.zshrc ~/.zshrc
+install -m 600 infra/ec2-main/tools/lastdish.zshrc ~/.zshrc
 source ~/.zshrc
 ```
 
@@ -118,7 +118,7 @@ SSH PTY가 실제 창보다 작은 폭을 전달할 수 있어 터미널 에뮬�
 
 - 클러스터 상태와 실시간 리소스. 애플리케이션 Pod에는 `app` Namespace 서비스와 `platform/config-server`를 함께 표시한다.
 - ConfigMap/Secret 조회·생성·삭제와 TLS 인증서 정보
-- 애플리케이션: Gateway/Member/Core/Config Server 로그, Spring 재시작, 배포 상태와 이미지 재배포
+- 애플리케이션: Gateway/Member/Core/Payment/AI/Config Server 로그, Spring 재시작, 배포 상태와 이미지 재배포
 - 데이터베이스: Member/Core DB 로그, DB 초기화, 내장 SQL 콘솔 접속
 - Rollout 상태와 이미지 재배포
 
@@ -156,17 +156,17 @@ SSH PTY가 실제 창보다 작은 폭을 전달할 수 있어 터미널 에뮬�
 - `R`: 즉시 갱신
 - `Q`, `Esc`: 종료
 
-Rust 바이너리는 저장소에서 제외된 `infra/k8s/tools/ldm-metrics`에 로컬 백업한다. 서버용 Linux x86_64 바이너리는 다음처럼 빌드하고 배포한다.
+Rust 바이너리 소스는 `infra/ec2-main/tools/ldm-metrics`에서 관리한다. 서버용 Linux x86_64 바이너리는 다음처럼 빌드하고 배포한다.
 
 ```bash
 docker run --platform linux/amd64 --rm \
-  -v "$PWD/infra/k8s/tools/ldm-metrics:/src" \
+  -v "$PWD/infra/ec2-main/tools/ldm-metrics:/src" \
   -w /src \
   rust:1.96-bookworm \
   cargo build --release
 
 ssh lastdish 'mkdir -p ~/.local/bin'
-scp infra/k8s/tools/ldm-metrics/target/release/ldm \
+scp infra/ec2-main/tools/ldm-metrics/target/release/ldm \
   lastdish:~/.local/bin/ldm
 ssh lastdish 'chmod 755 ~/.local/bin/ldm'
 ```
