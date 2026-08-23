@@ -1,5 +1,7 @@
 package kr.lastdish.core.settlement.domain;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,14 @@ public interface SettlementRepository {
   Optional<Settlement> findByIdAndStoreId(Long settlementId, Long storeId);
 
   Set<Long> findSettledStoreIds(List<Long> storeIds, YearMonth settlementMonth);
+
+  void insertAccumulatingIfAbsent(
+          Long storeId,
+          YearMonth settlementMonth,
+          LocalDateTime periodStart,
+          LocalDateTime periodEnd,
+          BigDecimal feeRate
+  );
 
   void truncateAllSettlementData();
 }

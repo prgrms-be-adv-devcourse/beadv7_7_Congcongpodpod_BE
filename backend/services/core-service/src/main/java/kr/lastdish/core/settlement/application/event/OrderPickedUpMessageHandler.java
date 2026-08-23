@@ -2,6 +2,7 @@ package kr.lastdish.core.settlement.application.event;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.inbox.domain.InboxEventHandler;
+import kr.lastdish.core.settlement.application.SettlementEventService;
 import kr.lastdish.core.settlement.application.event.kafka.OrderPickedUpKafkaListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class OrderPickedUpMessageHandler implements InboxEventHandler {
     private final ObjectMapper objectMapper;
+    private final SettlementEventService settlementEventService;
 
     @Override
     public String consumerId() {
@@ -31,5 +33,7 @@ public class OrderPickedUpMessageHandler implements InboxEventHandler {
         } catch (JacksonException e) {
             throw new IllegalStateException("역직렬화 실패", e);
         }
+
+        settlementEventService.accumulate(payload.orderId(), payload.storeId(), payload.finalOrderAmount(), payload.pickupResultAt());
     }
 }
