@@ -63,14 +63,14 @@ public class CoreInternalApiClient {
 
   public List<InternalStoreResponse> fetchStoresUpdatedWithin(Instant from, Instant to) {
     String url =
-            UriComponentsBuilder.fromUriString(coreBaseUrl + "/internal/v1/stores/renewal")
-                    .queryParam("from", from)
-                    .queryParam("to", to)
-                    .toUriString();
+        UriComponentsBuilder.fromUriString(coreBaseUrl + "/internal/v1/stores/renewal")
+            .queryParam("from", from)
+            .queryParam("to", to)
+            .toUriString();
 
     try {
       ResponseEntity<ApiResponse<List<InternalStoreResponse>>> response =
-              restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {});
+          restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {});
 
       if (response.getBody() != null && response.getBody().data() != null) {
         return response.getBody().data();

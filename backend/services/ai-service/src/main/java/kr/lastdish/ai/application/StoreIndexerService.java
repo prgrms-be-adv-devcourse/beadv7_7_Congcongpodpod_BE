@@ -1,7 +1,11 @@
 package kr.lastdish.ai.application;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,12 +20,12 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.stereotype.Service;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 
 @Slf4j
 @Service
@@ -31,6 +35,7 @@ public class StoreIndexerService {
   private final StoreElasticsearchRepository repository;
   private final CoreInternalApiClient coreInternalApiClient;
   private final EmbeddingService embeddingService;
+  private final ElasticsearchOperations elasticsearchOperations;
 
   public void renewStoreIndex(Long storeId) {
     renewStoreIndex(storeId, null);
@@ -42,17 +47,17 @@ public class StoreIndexerService {
     }
 
     coreInternalApiClient
-            .fetchStoreRenewalData(storeId)
-            .ifPresentOrElse(
-                    response -> {
-                      StoreDocument existing = repository.findById(storeId).orElse(null);
-                      StoreDocument document = mapToDocument(response, existing, eventType);
-                      repository.save(document);
-                      log.info("Store 색인 갱신 완료. storeId={}", storeId);
-                    },
-                    () -> {
-                      deleteStoreIndex(storeId);
-                    });
+        .fetchStoreRenewalData(storeId)
+        .ifPresentOrElse(
+            response -> {
+              StoreDocument existing = repository.findById(storeId).orElse(null);
+              StoreDocument document = mapToDocument(response, existing, eventType);
+              repository.save(document);
+              log.info("Store 색인 갱신 완료. storeId={}", storeId);
+            },
+            () -> {
+              deleteStoreIndex(storeId);
+            });
   }
 
   public void deleteStoreIndex(Long storeId) {
@@ -68,7 +73,7 @@ public class StoreIndexerService {
 
   public void syncUpdatedStores(Instant from, Instant to) {
     List<InternalStoreResponse> updatedStores =
-            coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
+        coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
 
     if (updatedStores.isEmpty()) {
       return;
@@ -78,14 +83,14 @@ public class StoreIndexerService {
     Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
 
     Map<Long, StoreDocument> existingMap =
-            StreamSupport.stream(existingDocs.spliterator(), false)
-                    .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
+        StreamSupport.stream(existingDocs.spliterator(), false)
+            .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
 
     // 폴링은 이벤트 타입 정보가 없으므로, 텍스트 해시 비교로만 재임베딩 여부 판단
     List<StoreDocument> documents =
-            updatedStores.stream()
-                    .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
-                    .toList();
+        updatedStores.stream()
+            .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
+            .toList();
 
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
@@ -94,75 +99,84 @@ public class StoreIndexerService {
   private static final String STATUS_ONLY_EVENT = "STORE_STATUS_CHANGED";
 
   private StoreDocument mapToDocument(
-          InternalStoreResponse res, StoreDocument existing, String eventType) {
+      InternalStoreResponse res, StoreDocument existing, String eventType) {
     StringBuilder textBuilder = new StringBuilder();
     textBuilder.append("가게: ").append(res.storeName()).append(" ");
 
     List<StoreDocument.DishItem> dishItems =
-            res.dishes() != null
-                    ? res.dishes().stream()
-                    .map(
-                            d -> {
-                              textBuilder
-                                      .append("메뉴: ")
-                                      .append(d.dishName())
-                                      .append(" ")
-                                      .append(d.description() != null ? d.description() : "")
-                                      .append(" ");
+        res.dishes() != null
+            ? res.dishes().stream()
+                .map(
+                    d -> {
+                      textBuilder
+                          .append("메뉴: ")
+                          .append(d.dishName())
+                          .append(" ")
+                          .append(d.description() != null ? d.description() : "")
+                          .append(" ");
 
-                              return StoreDocument.DishItem.builder()
-                                      .dishId(d.dishId())
-                                      .dishName(d.dishName())
-                                      .description(d.description())
-                                      .category(d.category())
-                                      .thumbnailUrl(d.thumbnailUrl())
-                                      .stockQuantity(d.stockQuantity())
-                                      .dishStatus(d.dishStatus())
-                                      .dishPrice(d.dishPrice())
-                                      .discountPrice(d.discountPrice())
-                                      .pickupStartTime(d.pickupStartTime())
-                                      .pickupEndTime(d.pickupEndTime())
-                                      .build();
-                            })
-                    .toList()
-                    : Collections.emptyList();
+                      return StoreDocument.DishItem.builder()
+                          .dishId(d.dishId())
+                          .dishName(d.dishName())
+                          .description(d.description())
+                          .category(d.category())
+                          .thumbnailUrl(d.thumbnailUrl())
+                          .stockQuantity(d.stockQuantity())
+                          .dishStatus(d.dishStatus())
+                          .dishPrice(d.dishPrice())
+                          .discountPrice(d.discountPrice())
+                          .pickupStartTime(d.pickupStartTime())
+                          .pickupEndTime(d.pickupEndTime())
+                          .build();
+                    })
+                .toList()
+            : Collections.emptyList();
 
     String embeddingText = textBuilder.toString();
     List<Float> vectorList;
     String embeddingHash;
 
-    if (STATUS_ONLY_EVENT.equals(eventType) && existing != null) {
-      // 영업 상태만 바뀌는 이벤트는 텍스트에 영향을 줄 수 없으므로, 해시 비교 없이 바로 재사용
+    boolean hasValidExistingVector =
+        existing != null && existing.getVector() != null && !existing.getVector().isEmpty();
+
+    if (STATUS_ONLY_EVENT.equals(eventType) && hasValidExistingVector) {
+      // 영업 상태만 바뀌는 이벤트는 텍스트에 영향 없음 - 단, 기존 벡터가 유효할 때만 재사용
       vectorList = existing.getVector();
       embeddingHash = existing.getEmbeddingSourceHash();
       log.info("상태 변경 이벤트 - 재임베딩 스킵. storeId={}", res.storeId());
     } else {
       embeddingHash = hashText(embeddingText);
 
-      if (existing != null && embeddingHash.equals(existing.getEmbeddingSourceHash())) {
-        // 임베딩 대상 텍스트가 이전과 동일하면 기존 벡터 재사용
+      if (hasValidExistingVector && embeddingHash.equals(existing.getEmbeddingSourceHash())) {
+        // 텍스트 불변 + 기존 벡터가 실제로 존재할 때만 재사용
         vectorList = existing.getVector();
         log.info("임베딩 텍스트 변경 없음 - 재임베딩 스킵. storeId={}", res.storeId());
       } else {
-        // 결합된 전체 텍스트를 OpenAI 1536차원 실수 벡터로 전환
+        // 텍스트가 바뀌었거나, 이전에 임베딩이 비어있었던 경우 재시도
         vectorList = embeddingService.getEmbeddingList(embeddingText);
-        log.info("임베딩 텍스트 변경 감지 - 재임베딩 수행. storeId={}", res.storeId());
+        if (existing == null) {
+          log.info("신규 가게 최초 임베딩 수행. storeId={}", res.storeId());
+        } else if (!hasValidExistingVector) {
+          log.info("이전 임베딩 실패 이력 감지 - 재시도 수행. storeId={}", res.storeId());
+        } else {
+          log.info("임베딩 텍스트 변경 감지 - 재임베딩 수행. storeId={}", res.storeId());
+        }
       }
     }
 
     return StoreDocument.builder()
-            .storeId(res.storeId())
-            .storeName(res.storeName())
-            .storeAddress(res.storeAddress())
-            .openTime(res.openTime())
-            .closeTime(res.closeTime())
-            .status(res.status())
-            .location(new GeoPoint(res.latitude().doubleValue(), res.longitude().doubleValue()))
-            .category(res.category())
-            .dishes(dishItems)
-            .vector(vectorList)
-            .embeddingSourceHash(embeddingHash)
-            .build();
+        .storeId(res.storeId())
+        .storeName(res.storeName())
+        .storeAddress(res.storeAddress())
+        .openTime(res.openTime())
+        .closeTime(res.closeTime())
+        .status(res.status())
+        .location(new GeoPoint(res.latitude().doubleValue(), res.longitude().doubleValue()))
+        .category(res.category())
+        .dishes(dishItems)
+        .vector(vectorList)
+        .embeddingSourceHash(embeddingHash)
+        .build();
   }
 
   private String hashText(String text) {
@@ -229,5 +243,21 @@ public class StoreIndexerService {
 
     repository.save(document);
     log.info("[TEST] Store 색인 완료. storeId={}", req.storeId());
+  }
+
+  public void retryFailedEmbeddings() {
+    NativeQuery query =
+        NativeQuery.builder()
+            .withQuery(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field("vector")))))
+            .build();
+
+    SearchHits<StoreDocument> hits = elasticsearchOperations.search(query, StoreDocument.class);
+
+    for (SearchHit<StoreDocument> hit : hits.getSearchHits()) {
+      StoreDocument doc = hit.getContent();
+      renewStoreIndex(doc.getStoreId());
+    }
+
+    log.info("임베딩 실패 재시도 스캔 완료. count={}", hits.getTotalHits());
   }
 }
