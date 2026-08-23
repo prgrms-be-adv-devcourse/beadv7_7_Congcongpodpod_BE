@@ -81,8 +81,10 @@ public class PaymentService {
             pgResult.issuerCode(),
             pgResult.failureCode(),
             pgResult.failureMessage(),
-                pgResult.status() == PgApprovalResult.Status.SUCCESS ? 200 : 400,
-                pgResult.status() == PgApprovalResult.Status.SUCCESS ? "DONE" : pgResult.failureCode()));
+            pgResult.status() == PgApprovalResult.Status.SUCCESS ? 200 : 400,
+            pgResult.status() == PgApprovalResult.Status.SUCCESS
+                ? "DONE"
+                : pgResult.failureCode()));
     chargeRequestedEventWriter.append(payment, payment.nextAggregateVersion());
     return payment;
   }
@@ -109,8 +111,10 @@ public class PaymentService {
             pgResult.issuerCode(),
             pgResult.failureCode(),
             pgResult.failureMessage(),
-                pgResult.status() == PgApprovalResult.Status.SUCCESS ? 200 : 400,
-                pgResult.status() == PgApprovalResult.Status.SUCCESS ? "DONE" : pgResult.failureCode()));
+            pgResult.status() == PgApprovalResult.Status.SUCCESS ? 200 : 400,
+            pgResult.status() == PgApprovalResult.Status.SUCCESS
+                ? "DONE"
+                : pgResult.failureCode()));
     return payment;
   }
 }

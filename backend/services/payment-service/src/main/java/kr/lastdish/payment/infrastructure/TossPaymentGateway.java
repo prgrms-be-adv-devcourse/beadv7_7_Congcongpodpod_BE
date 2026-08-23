@@ -22,7 +22,8 @@ import org.springframework.web.client.RestClientResponseException;
 public class TossPaymentGateway implements PgPaymentGateway {
 
   private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
-  private static final String TOSS_PAYMENT_INQUIRY_URL = "https://api.tosspayments.com/v1/payments/";
+  private static final String TOSS_PAYMENT_INQUIRY_URL =
+      "https://api.tosspayments.com/v1/payments/";
   private static final int MAX_FAILURE_MESSAGE_LENGTH = 500;
   private static final long INQUIRY_RETRY_DELAY_MS = 700L;
 
@@ -34,16 +35,16 @@ public class TossPaymentGateway implements PgPaymentGateway {
   private String secretKey;
 
   public TossPaymentGateway(
-          @Qualifier("tossRestClientBuilder") RestClient.Builder restClientBuilder,
-          PaymentLogRepository paymentLogRepository) {
+      @Qualifier("tossRestClientBuilder") RestClient.Builder restClientBuilder,
+      PaymentLogRepository paymentLogRepository) {
     this.paymentLogRepository = paymentLogRepository;
     this.restClient = restClientBuilder.build();
   }
+
   // failed_message 컬럼 길이를 넘지 않도록 예외 메시지를 자른다
   private static String truncate(String value, int maxLength) {
     return (value == null || value.length() <= maxLength) ? value : value.substring(0, maxLength);
   }
-
 
   @Override
   public PgApprovalResult approve(
@@ -87,10 +88,10 @@ public class TossPaymentGateway implements PgPaymentGateway {
     } catch (Exception e) {
       // 타임아웃 등 Toss 응답 자체를 못 받은 경우 -> 조회 API로 재확인
       log.warn(
-              "Toss 승인 응답 수신 실패, 결제 조회 API로 상태를 재확인합니다. paymentId={}, paymentKey={}",
-              paymentId,
-              paymentKey,
-              e);
+          "Toss 승인 응답 수신 실패, 결제 조회 API로 상태를 재확인합니다. paymentId={}, paymentKey={}",
+          paymentId,
+          paymentKey,
+          e);
       return checkPaymentStatus(paymentId, paymentKey);
     }
   }
@@ -115,54 +116,53 @@ public class TossPaymentGateway implements PgPaymentGateway {
 
     // 재시도까지 실패 -> UNKNOWN으로 저장. 추후 재조회 배치가 찾아낼 수 있도록 함.
     log.error(
-            "CRITICAL: Toss 결제 조회마저 실패했습니다. 수동 확인이 필요합니다. paymentId={}, paymentKey={}",
-            paymentId,
-            paymentKey);
+        "CRITICAL: Toss 결제 조회마저 실패했습니다. 수동 확인이 필요합니다. paymentId={}, paymentKey={}",
+        paymentId,
+        paymentKey);
 
     paymentLogRepository.save(
-            PaymentLog.createResponseLog(
-                    paymentId,
-                    PgProvider.TOSS,
-                    paymentKey, // pgTransactionId 자리에 paymentKey 저장. 추후 조회해서 처리할 수 있도록 함.
-                    null,
-                    null,
-                    null,
-                    "UNKNOWN",
-                    "Toss 승인 응답 및 조회 API 응답을 모두 받지 못했습니다. 수동/배치 재확인이 필요합니다.",
-                    0,
-                    "UNKNOWN"));
+        PaymentLog.createResponseLog(
+            paymentId,
+            PgProvider.TOSS,
+            paymentKey, // pgTransactionId 자리에 paymentKey 저장. 추후 조회해서 처리할 수 있도록 함.
+            null,
+            null,
+            null,
+            "UNKNOWN",
+            "Toss 승인 응답 및 조회 API 응답을 모두 받지 못했습니다. 수동/배치 재확인이 필요합니다.",
+            0,
+            "UNKNOWN"));
 
     return PgApprovalResult.unknown(paymentKey, "결제 상태 확인 중 네트워크 오류가 반복되었습니다.");
   }
 
   /**
-   * Toss 조회 API 호출
-   * - 성공적으로 상태를 확정할 수 있으면 결과를 반환한다.
-   * - 통신 자체가 실패하면 null을 반환해 재시도/최종 UNKNOWN 판단을 호출부에 맡긴다.
+   * Toss 조회 API 호출 - 성공적으로 상태를 확정할 수 있으면 결과를 반환한다. - 통신 자체가 실패하면 null을 반환해 재시도/최종 UNKNOWN 판단을 호출부에
+   * 맡긴다.
    */
   private PgApprovalResult tryInquiry(String paymentKey) {
     try {
       String rawJson =
-              restClient
-                      .get()
-                      .uri(TOSS_PAYMENT_INQUIRY_URL + paymentKey)
-                      .header("Authorization", buildAuthorizationHeader())
-                      .retrieve()
-                      .body(String.class);
+          restClient
+              .get()
+              .uri(TOSS_PAYMENT_INQUIRY_URL + paymentKey)
+              .header("Authorization", buildAuthorizationHeader())
+              .retrieve()
+              .body(String.class);
 
       TossConfirmResponse response = objectMapper.readValue(rawJson, TossConfirmResponse.class);
 
       if ("DONE".equals(response.status())) {
         return PgApprovalResult.success(
-                response.paymentKey(),
-                response.totalAmount(),
-                response.method(),
-                response.card() != null ? response.card().number() : null,
-                response.card() != null ? response.card().issuerCode() : null);
+            response.paymentKey(),
+            response.totalAmount(),
+            response.method(),
+            response.card() != null ? response.card().number() : null,
+            response.card() != null ? response.card().issuerCode() : null);
       }
 
       return PgApprovalResult.failure(
-              paymentKey, "NOT_APPROVED", "결제가 완료되지 않은 상태입니다. status=" + response.status());
+          paymentKey, "NOT_APPROVED", "결제가 완료되지 않은 상태입니다. status=" + response.status());
 
     } catch (Exception ex) {
       log.warn("Toss 결제 조회 통신 실패. paymentKey={}", paymentKey, ex);

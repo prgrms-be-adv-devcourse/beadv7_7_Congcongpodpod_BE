@@ -8,11 +8,11 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class TossRestClientConfig {
 
-    @Bean
-    public RestClient.Builder tossRestClientBuilder(RestClient.Builder builder) {
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(3000);
-        requestFactory.setReadTimeout(5000);
-        return builder.clone().requestFactory(requestFactory);
-    }
+  @Bean
+  public RestClient.Builder tossRestClientBuilder(RestClient.Builder builder) {
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    requestFactory.setConnectTimeout(3000);
+    requestFactory.setReadTimeout(5000);
+    return builder.clone().requestFactory(requestFactory);
+  }
 }

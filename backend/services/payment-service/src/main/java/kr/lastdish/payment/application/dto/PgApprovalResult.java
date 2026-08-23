@@ -16,21 +16,22 @@ public record PgApprovalResult(
     FAILURE,
     UNKNOWN // Toss 응답도, 재조회 응답도 받지 못해 결과를 확정할 수 없는 상태
   }
+
   public static PgApprovalResult success(
-          String pgTransactionId,
-          BigDecimal approvedAmount,
-          String paymentMethod,
-          String maskedCardNumber,
-          String issuerCode) {
+      String pgTransactionId,
+      BigDecimal approvedAmount,
+      String paymentMethod,
+      String maskedCardNumber,
+      String issuerCode) {
     return new PgApprovalResult(
-            pgTransactionId,
-            Status.SUCCESS,
-            approvedAmount,
-            null,
-            null,
-            paymentMethod,
-            maskedCardNumber,
-            issuerCode);
+        pgTransactionId,
+        Status.SUCCESS,
+        approvedAmount,
+        null,
+        null,
+        paymentMethod,
+        maskedCardNumber,
+        issuerCode);
   }
 
   public static PgApprovalResult failure(
@@ -41,6 +42,6 @@ public record PgApprovalResult(
 
   public static PgApprovalResult unknown(String pgTransactionId, String reason) {
     return new PgApprovalResult(
-            pgTransactionId, Status.UNKNOWN, null, "UNKNOWN", reason, null, null, null);
+        pgTransactionId, Status.UNKNOWN, null, "UNKNOWN", reason, null, null, null);
   }
 }
