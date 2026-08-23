@@ -144,6 +144,41 @@ public class Settlement {
     this.settlementStatus = SettlementStatus.PROCESSING;
   }
 
+  public static Settlement createAccumulating(
+          Long storeId,
+          YearMonth settlementMonth,
+          LocalDateTime periodStart,
+          LocalDateTime periodEnd,
+          BigDecimal feeRate) {
+    Settlement settlement =
+            new Settlement(
+                    storeId,
+                    settlementMonth,
+                    periodStart,
+                    periodEnd,
+                    0,
+                    0,
+                    feeRate,
+                    0,
+                    0,
+                    null,
+                    null,
+                    null);
+
+    settlement.settlementStatus = SettlementStatus.ACCUMULATING;
+    return settlement;
+  }
+
+  public void startProcessing(String bankCode, String accountNumber, String accountHolder) {
+//    validateAccount(bankCode, accountNumber, accountHolder);
+
+    this.settlementStatus = settlementStatus.startProcessing();
+    this.bankCode = bankCode;
+    this.accountNumber = accountNumber;
+    this.accountHolder = accountHolder;
+    this.failureReason = null;
+  }
+
   public void complete() {
     this.settlementStatus = settlementStatus.complete();
     this.failureReason = null;

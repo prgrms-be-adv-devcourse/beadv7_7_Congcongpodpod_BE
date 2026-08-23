@@ -4,6 +4,12 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 
 public enum SettlementStatus {
+  ACCUMULATING {
+    @Override
+    public SettlementStatus startProcessing() {
+      return PROCESSING;
+    }
+  },
   PROCESSING {
     @Override
     public SettlementStatus complete() {
@@ -26,6 +32,8 @@ public enum SettlementStatus {
   public SettlementStatus complete() {
     throw invalidTransition("완료");
   }
+
+  public SettlementStatus startProcessing() {throw invalidTransition("처리 시작");}
 
   public SettlementStatus fail() {
     throw invalidTransition("실패");
