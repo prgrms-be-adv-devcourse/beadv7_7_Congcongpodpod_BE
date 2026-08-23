@@ -26,16 +26,25 @@ public class StoreDocument {
   @Field(type = FieldType.Text, analyzer = "nori")
   private String storeAddress;
 
+  @Field(type = FieldType.Date, format = DateFormat.hour_minute_second)
   private LocalTime openTime;
 
+  @Field(type = FieldType.Date, format = DateFormat.hour_minute_second)
   private LocalTime closeTime;
 
+  @Field(type = FieldType.Keyword)
   private String status;
 
   @GeoPointField private GeoPoint location;
 
+  // 1538 차원 (OpenAI text-embedding-3-small 등) Vector 필드 추가
+  @Field(type = FieldType.Dense_Vector, dims = 1536, index = true, similarity = "cosine")
+  private List<Float> vector;
+
   private String category;
 
+  // Nested 타입으로 지정하여 개별 메뉴 단위의 조건 검색 지원
+  @Field(type = FieldType.Nested)
   private List<DishItem> dishes;
 
   @Getter
@@ -57,14 +66,17 @@ public class StoreDocument {
 
     private Long stockQuantity;
 
+    @Field(type = FieldType.Keyword)
     private String dishStatus;
 
     private BigDecimal dishPrice;
 
     private BigDecimal discountPrice;
 
+    @Field(type = FieldType.Date, format = DateFormat.hour_minute_second)
     private LocalTime pickupStartTime;
 
+    @Field(type = FieldType.Date, format = DateFormat.hour_minute_second)
     private LocalTime pickupEndTime;
   }
 }
