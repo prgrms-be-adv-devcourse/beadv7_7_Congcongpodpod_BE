@@ -67,6 +67,15 @@ swagger:
 ai:
   engine:
     url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
+  openai:
+    api-key: ${OPENAI_API_KEY}
+    chat:
+      options:
+        model: gpt-4o-mini #테스트 및 비용 절감용 경량 모델 사용
+        temperature: 0.0 # 조건 추출의 일관성을 위해 0으로 설정, 환각 방지
+    embedding:
+      options:
+        model: text-embedding-3-small
 
 services:
   core:
