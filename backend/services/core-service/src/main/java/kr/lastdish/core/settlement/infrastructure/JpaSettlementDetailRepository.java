@@ -21,7 +21,8 @@ public interface JpaSettlementDetailRepository extends JpaRepository<SettlementD
 
   List<SettlementDetail> findAllBySettlementIdOrderByIdAsc(Long settlementId);
 
-  @Query("""
+  @Query(
+      """
           SELECT
               COUNT(d.id) AS totalOrderCount,
               COALESCE(SUM(d.salesAmount), 0) AS grossAmount,
@@ -31,5 +32,6 @@ public interface JpaSettlementDetailRepository extends JpaRepository<SettlementD
           FROM SettlementDetail d
           WHERE d.settlementId = :settlementId
           """)
-  SettlementDetailSummaryProjection summarizeBySettlementId(@Param("settlementId") Long settlementId);
+  SettlementDetailSummaryProjection summarizeBySettlementId(
+      @Param("settlementId") Long settlementId);
 }

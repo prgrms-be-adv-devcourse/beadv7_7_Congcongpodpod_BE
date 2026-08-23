@@ -6,7 +6,6 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import kr.lastdish.core.settlement.domain.Settlement;
 import kr.lastdish.core.settlement.domain.SettlementStatus;
 import org.springframework.data.domain.Page;
@@ -42,7 +41,9 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
       @Param("settlementStatus") SettlementStatus settlementStatus);
 
   @Modifying
-  @Query(value = """
+  @Query(
+      value =
+          """
         INSERT INTO settlements (
             store_id,
             settlement_month,
@@ -74,16 +75,16 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
         ON CONFLICT (store_id, settlement_month)
         DO NOTHING
         """,
-          nativeQuery = true)
+      nativeQuery = true)
   void insertAccumulatingIfAbsent(
-          @Param("storeId") Long storeId,
-          @Param("settlementMonth") String settlementMonth,
-          @Param("periodStart") LocalDateTime periodStart,
-          @Param("periodEnd") LocalDateTime periodEnd,
-          @Param("feeRate") BigDecimal feeRate
-  );
+      @Param("storeId") Long storeId,
+      @Param("settlementMonth") String settlementMonth,
+      @Param("periodStart") LocalDateTime periodStart,
+      @Param("periodEnd") LocalDateTime periodEnd,
+      @Param("feeRate") BigDecimal feeRate);
 
-  @Query("""
+  @Query(
+      """
           SELECT s.storeId
           FROM Settlement s
           WHERE s.settlementMonth = :settlementMonth
@@ -91,9 +92,8 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
           ORDER BY s.storeId ASC
           """)
   List<Long> findTargetStoreIds(
-          @Param("settlementMonth") YearMonth settlementMonth,
-          @Param("statuses") Set<SettlementStatus> statuses
-  );
+      @Param("settlementMonth") YearMonth settlementMonth,
+      @Param("statuses") Set<SettlementStatus> statuses);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(

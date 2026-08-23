@@ -53,13 +53,13 @@ public class SettlementDetailRepositoryAdaptor implements SettlementDetailReposi
 
   @Override
   public SettlementDetailSummary summarizeBySettlementId(Long settlementId) {
-    SettlementDetailSummaryProjection result = jpaSettlementDetailRepository.summarizeBySettlementId(settlementId);
+    SettlementDetailSummaryProjection result =
+        jpaSettlementDetailRepository.summarizeBySettlementId(settlementId);
 
     return new SettlementDetailSummary(
-            result.getTotalOrderCount(),
-            result.getGrossAmount(),
-            result.getFeeAmount(),
-            result.getSettlementAmount()
-    );
+        result.getTotalOrderCount(),
+        result.getGrossAmount(),
+        result.getFeeAmount(),
+        result.getSettlementAmount());
   }
 }

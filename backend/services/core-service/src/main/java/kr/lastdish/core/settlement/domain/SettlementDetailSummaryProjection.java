@@ -1,11 +1,11 @@
 package kr.lastdish.core.settlement.domain;
 
 public interface SettlementDetailSummaryProjection {
-    Long getTotalOrderCount();
+  Long getTotalOrderCount();
 
-    Long getGrossAmount();
+  Long getGrossAmount();
 
-    Long getFeeAmount();
+  Long getFeeAmount();
 
-    Long getSettlementAmount();
+  Long getSettlementAmount();
 }

@@ -4,7 +4,6 @@ import java.time.YearMonth;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
-import kr.lastdish.core.settlement.application.SettlementEventAccumulator;
 import kr.lastdish.core.settlement.application.SettlementEventService;
 import kr.lastdish.core.settlement.application.SettlementService;
 import kr.lastdish.core.settlement.application.dto.SettlementProcessResult;
@@ -34,7 +33,8 @@ public class MonthlySettlementTasklet implements Tasklet {
 
     YearMonth settlementMonth = YearMonth.parse(monthValue);
 
-    List<Long> targetStoreIds = settlementEventService.findMonthlySettlementTargetStoreIds(settlementMonth);
+    List<Long> targetStoreIds =
+        settlementEventService.findMonthlySettlementTargetStoreIds(settlementMonth);
 
     int createdCount = 0;
     int retriedCount = 0;

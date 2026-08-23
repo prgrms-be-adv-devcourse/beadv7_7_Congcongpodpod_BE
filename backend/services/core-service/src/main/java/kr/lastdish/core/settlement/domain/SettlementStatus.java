@@ -33,7 +33,9 @@ public enum SettlementStatus {
     throw invalidTransition("완료");
   }
 
-  public SettlementStatus startProcessing() {throw invalidTransition("처리 시작");}
+  public SettlementStatus startProcessing() {
+    throw invalidTransition("처리 시작");
+  }
 
   public SettlementStatus fail() {
     throw invalidTransition("실패");

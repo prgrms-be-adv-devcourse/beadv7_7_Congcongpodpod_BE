@@ -28,12 +28,11 @@ public interface SettlementRepository {
   Set<Long> findSettledStoreIds(List<Long> storeIds, YearMonth settlementMonth);
 
   void insertAccumulatingIfAbsent(
-          Long storeId,
-          YearMonth settlementMonth,
-          LocalDateTime periodStart,
-          LocalDateTime periodEnd,
-          BigDecimal feeRate
-  );
+      Long storeId,
+      YearMonth settlementMonth,
+      LocalDateTime periodStart,
+      LocalDateTime periodEnd,
+      BigDecimal feeRate);
 
   List<Long> findTargetStoreIds(YearMonth settlementMonth, Set<SettlementStatus> statuses);
 

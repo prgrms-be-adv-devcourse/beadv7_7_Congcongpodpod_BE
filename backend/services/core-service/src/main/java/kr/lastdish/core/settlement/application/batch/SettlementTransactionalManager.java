@@ -80,25 +80,26 @@ public class SettlementTransactionalManager {
   public void startAccumulatedSettlement(Long settlementId, SettlementAccountData account) {
     Settlement settlement = findSettlement(settlementId);
 
-    settlement.startProcessing(account.bankName(), account.accountNumber(), account.accountHolder());
+    settlement.startProcessing(
+        account.bankName(), account.accountNumber(), account.accountHolder());
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void completeAccumulatedSettlement(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
 
-    SettlementDetailSummary summary = settlementDetailRepository.summarizeBySettlementId(settlementId);
+    SettlementDetailSummary summary =
+        settlementDetailRepository.summarizeBySettlementId(settlementId);
 
     if (summary.totalOrderCount() == 0) {
       throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "누적된 정산 상세 내역이 없습니다.");
     }
 
     settlement.updateCalculation(
-            Math.toIntExact(summary.totalOrderCount()),
-            summary.grossAmount(),
-            summary.feeAmount(),
-            summary.settlementAmount()
-    );
+        Math.toIntExact(summary.totalOrderCount()),
+        summary.grossAmount(),
+        summary.feeAmount(),
+        summary.settlementAmount());
 
     settlement.complete();
   }

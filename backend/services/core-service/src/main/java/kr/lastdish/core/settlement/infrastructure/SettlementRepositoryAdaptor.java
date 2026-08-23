@@ -68,19 +68,13 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
 
   @Override
   public void insertAccumulatingIfAbsent(
-          Long storeId,
-          YearMonth settlementMonth,
-          LocalDateTime periodStart,
-          LocalDateTime periodEnd,
-          BigDecimal feeRate
-  ) {
+      Long storeId,
+      YearMonth settlementMonth,
+      LocalDateTime periodStart,
+      LocalDateTime periodEnd,
+      BigDecimal feeRate) {
     jpaSettlementRepository.insertAccumulatingIfAbsent(
-            storeId,
-            settlementMonth.toString(),
-            periodStart,
-            periodEnd,
-            feeRate
-    );
+        storeId, settlementMonth.toString(), periodStart, periodEnd, feeRate);
   }
 
   @Override

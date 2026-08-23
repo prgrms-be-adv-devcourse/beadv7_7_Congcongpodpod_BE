@@ -25,12 +25,12 @@ public class OrderPickedUpEventWriter {
             order.getId(),
             aggregateVersion,
             new OrderPickedUpPayload(
-                    order.getId(),
+                order.getId(),
                 order.getMemberId(),
                 order.getStoreId(),
                 order.getTotalPrice(),
                 order.getTotalSavedAmount(),
-                    order.getPickupResultAt()),
+                order.getPickupResultAt()),
             order.getPickupResultAt().atZone(BUSINESS_ZONE).toInstant());
 
     outboxEventWriter.append(event);

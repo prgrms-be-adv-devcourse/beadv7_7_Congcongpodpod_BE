@@ -47,6 +47,12 @@ class OrderPickedUpEventWriterTest {
     assertThat(event.occurredAt()).isEqualTo(Instant.parse("2026-08-13T06:30:00Z"));
     assertThat(event.payload())
         .isEqualTo(
-            new OrderPickedUpPayload(10L, 20L, 30L, new BigDecimal("12000"), new BigDecimal("3000"), LocalDateTime.of(2026, 8, 13, 15, 30)));
+            new OrderPickedUpPayload(
+                10L,
+                20L,
+                30L,
+                new BigDecimal("12000"),
+                new BigDecimal("3000"),
+                LocalDateTime.of(2026, 8, 13, 15, 30)));
   }
 }

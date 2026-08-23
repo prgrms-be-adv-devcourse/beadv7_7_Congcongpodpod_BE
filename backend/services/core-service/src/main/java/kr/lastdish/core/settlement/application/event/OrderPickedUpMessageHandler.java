@@ -12,28 +12,29 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @RequiredArgsConstructor
 public class OrderPickedUpMessageHandler implements InboxEventHandler {
-    private final ObjectMapper objectMapper;
-    private final SettlementEventAccumulator settlementEventAccumulator;
+  private final ObjectMapper objectMapper;
+  private final SettlementEventAccumulator settlementEventAccumulator;
 
-    @Override
-    public String consumerId() {
-        return OrderPickedUpKafkaListener.CONSUMER_ID;
+  @Override
+  public String consumerId() {
+    return OrderPickedUpKafkaListener.CONSUMER_ID;
+  }
+
+  @Override
+  public String eventType() {
+    return "ORDER_PICKED_UP";
+  }
+
+  @Override
+  public void handle(EventMessage message) {
+    OrderPickedUpPayload payload;
+    try {
+      payload = objectMapper.readValue(message.payload(), OrderPickedUpPayload.class);
+    } catch (JacksonException e) {
+      throw new IllegalStateException("역직렬화 실패", e);
     }
 
-    @Override
-    public String eventType() {
-        return "ORDER_PICKED_UP";
-    }
-
-    @Override
-    public void handle(EventMessage message) {
-        OrderPickedUpPayload payload;
-        try {
-            payload = objectMapper.readValue(message.payload(), OrderPickedUpPayload.class);
-        } catch (JacksonException e) {
-            throw new IllegalStateException("역직렬화 실패", e);
-        }
-
-        settlementEventAccumulator.accumulate(payload.orderId(), payload.storeId(), payload.finalOrderAmount(), payload.pickupResultAt());
-    }
+    settlementEventAccumulator.accumulate(
+        payload.orderId(), payload.storeId(), payload.finalOrderAmount(), payload.pickupResultAt());
+  }
 }

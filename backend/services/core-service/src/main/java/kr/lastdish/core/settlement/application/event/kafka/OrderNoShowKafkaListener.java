@@ -9,15 +9,15 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class OrderNoShowKafkaListener {
-    public static final String CONSUMER_ID = "order-settlement-detail-noShow";
+  public static final String CONSUMER_ID = "order-settlement-detail-noShow";
 
-    private final InboxEventWriter inboxEventWriter;
+  private final InboxEventWriter inboxEventWriter;
 
-    @KafkaListener(
-            topics = "ORDER_NO_SHOW",
-            groupId = CONSUMER_ID,
-            autoStartup = "${event.kafka.listener-auto-startup:true}")
-    public void consume(EventMessage message) {
-        inboxEventWriter.saveIfAbsent(CONSUMER_ID, message);
-    }
+  @KafkaListener(
+      topics = "ORDER_NO_SHOW",
+      groupId = CONSUMER_ID,
+      autoStartup = "${event.kafka.listener-auto-startup:true}")
+  public void consume(EventMessage message) {
+    inboxEventWriter.saveIfAbsent(CONSUMER_ID, message);
+  }
 }
