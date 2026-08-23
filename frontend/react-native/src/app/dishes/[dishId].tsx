@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { ConfirmModal } from '@/components/confirm-modal';
 import { showAppAlert } from '@/lib/app-overlay';
 import { LoadingState } from '@/components/loading-state';
 import { ScreenEntrance } from '@/components/motion';
+import { RefreshStatus } from '@/components/refresh-status';
 import { colors, fonts, radius } from '@/constants/theme';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
@@ -108,6 +109,7 @@ export default function DishDetail() {
   };
 
   return <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <RefreshStatus visible={refreshing}/>
     <ScreenEntrance><ScrollView alwaysBounceVertical contentContainerStyle={styles.scroll} refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>} showsVerticalScrollIndicator={false}>
       <View style={[styles.hero, { height: heroHeight, maxWidth: contentWidth }]}>
         <Image source={getDishImageSource(dish, category)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />

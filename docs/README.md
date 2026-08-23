@@ -1,47 +1,67 @@
 # LastDish 문서
 
-루트 [README](../README.md)는 프로젝트 개요와 빠른 시작을, 이 디렉터리는 개발·운영
-상세 내용을 다룹니다.
+이 디렉터리는 LastDish의 설계, 개발, 로컬 실행, 배포와 운영 계약을 관리합니다. 프로젝트 소개와 최소 실행 절차는 [루트 README](../README.md)를 먼저 확인하세요.
 
-## 처음 보는 경우
+## 문서 지도
 
-1. [전체 시스템 아키텍처](architecture.md)
-2. [로컬 통합 환경](infra/local-development.md)
-3. [Swagger 사용 가이드](backend/swagger.md)
+| 목적 | 시작 문서 |
+| --- | --- |
+| 시스템 전체 이해 | [시스템 아키텍처](architecture.md) |
+| 로컬에서 전체 백엔드 실행 | [로컬 통합 환경](infra/local-development.md) |
+| 앱·웹 실행 | [Universal frontend](../frontend/react-native/README.md) |
+| API 탐색과 인증 테스트 | [Swagger 가이드](backend/swagger.md) |
+| 빌드·포맷·CI 확인 | [Backend 빌드와 CI](backend/build-and-ci.md) |
+| Kubernetes 배포 | [Kubernetes 매니페스트](infra/kubernetes.md) |
+| 운영 점검과 장애 대응 | [운영 가이드](infra/lastdish-operations.md) |
 
-## 개발 문서
+## 아키텍처와 공통 계약
 
-### Frontend
+- [시스템 아키텍처](architecture.md): 서비스 경계, 데이터 소유권, 요청·이벤트 흐름
+- [Gateway](backend/gateway.md): 라우팅, JWT 검증, 역할 정책, 오류 매핑
+- [Swagger](backend/swagger.md): Gateway 통합 OpenAPI와 서비스별 문서
 
-- [Flutter 설치, 실행, 웹 빌드](../frontend/README.md)
+## 서비스
 
-### Backend
+| 서비스 | 책임 | 로컬 포트 | 문서 |
+| --- | --- | ---: | --- |
+| Gateway | 인증·인가, 라우팅, 통합 OpenAPI | `8080` | [gateway-service](services/gateway-service.md) |
+| Member | 인증, 회원, 알림, SSE | `8081` | [member-service](services/member-service.md) |
+| Core | 매장, 상품, 주문, 결제, 정산, 포인트 | `8082` | [core-service](services/core-service.md) |
+| Payment | 결제 이벤트 처리와 결제 데이터 경계 | `8083` | [payment-service](services/payment-service.md) |
+| AI | 상품 이미지 분류와 추천 후보 생성 | `8084` | [ai-service](services/ai-service.md) |
+| Config Server | 환경별 Spring 설정 제공 | `8888` | [로컬 설정](../dev/local/README.md) |
 
-- [Gateway 라우팅, 인증, 오류 응답](backend/gateway.md)
-- [Swagger 사용 가이드](backend/swagger.md)
-- [Member Service 로컬 실행](backend/member-local-run.md)
-- [빌드, Spotless, CI, Docker 이미지](backend/build-and-ci.md)
+컨테이너 내부 애플리케이션 포트는 `8080`이며 위 표는 `dev/compose.yaml`이 호스트에 공개하는 포트입니다.
 
-### 서비스
+## 공통 모듈
 
-- [Member Service 구조](services/member-service.md)
-- [Core Service 구조](services/core-service.md)
+| 모듈 | 책임 | 문서 |
+| --- | --- | --- |
+| `api-common` | 공통 응답, 오류 계약, 요청 ID, 시간대 직렬화 | [api-common](modules/api-common.md) |
+| `mvc-common` | MVC 예외 처리와 요청 로깅 | [mvc-common](modules/mvc-common.md) |
+| `event-common` | 도메인 이벤트 계약과 Spring/Kafka 발행 | [event-common](modules/event-common.md) |
+| `outbox` | 트랜잭션 Outbox 저장·선점·재시도 | [outbox](modules/outbox.md) |
+| `inbox` | 소비 이벤트 멱등성·순서·실패 기록 | [inbox](modules/inbox.md) |
+| `s3-storage` | Presigned URL과 업로드 메타데이터 | [s3-storage](modules/s3-storage.md) |
 
-### 공통 모듈
+## 개발과 운영
 
-- [api-common](modules/api-common.md): 공통 API 응답과 예외 계약
-- [event-common](modules/event-common.md): 서비스 간 이벤트 계약
-- [mvc-common](modules/mvc-common.md): Spring MVC 공통 예외 처리
-- [outbox](modules/outbox.md): Transactional Outbox 지원
+### 개발
 
-## 인프라·운영 문서
+- [Member Service 단독 실행](backend/member-local-run.md)
+- [Backend 빌드와 CI](backend/build-and-ci.md)
+- [로컬 통합 환경](infra/local-development.md)
+- [개발 도구 명령](../dev/README.md)
 
-- [로컬 통합 환경](infra/local-development.md): `dev/compose.yaml` 기반 전체 백엔드 실행
-- [Kubernetes 매니페스트](infra/kubernetes.md): 배포 구성과 적용 순서
+### 배포·운영
 
-## 문서 작성 원칙
+- [Kubernetes 매니페스트](infra/kubernetes.md)
+- [운영 CLI와 Metrics Server](infra/lastdish-operations.md)
 
-- 루트 `README.md`에는 프로젝트 개요와 빠른 시작만 작성합니다.
-- 주제별 상세 내용은 `docs/`에 작성하고 루트 README에서 연결합니다.
-- 공통 모듈은 `docs/modules/`, 환경·배포는 `docs/infra/`에 작성합니다.
-- 코드나 설정 경로가 바뀌면 관련 링크와 명령도 함께 검증합니다.
+## 문서 변경 원칙
+
+1. 코드와 설정이 문서보다 우선합니다. 포트·환경변수·라우트는 `dev/compose.yaml`, Config Server 설정과 각 서비스 코드를 기준으로 확인합니다.
+2. 루트 README에는 제품 개요와 빠른 시작만 두고 상세 절차는 `docs/` 또는 컴포넌트별 README로 연결합니다.
+3. 서비스 문서는 책임과 경계를, 모듈 문서는 재사용 계약과 자동 구성 조건을 설명합니다.
+4. 명령은 저장소 루트 기준인지 하위 디렉터리 기준인지 명시합니다.
+5. 문서 이동·추가 시 상대 링크 검사를 함께 수행합니다.

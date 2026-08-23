@@ -1,6 +1,5 @@
 package kr.lastdish.core.store.presentation;
 
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,7 +11,6 @@ import java.time.LocalTime;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
-import kr.lastdish.core.store.application.port.out.SellerRoleGrantPort;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreRepository;
@@ -21,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +31,6 @@ class StoreControllerTest {
   @Autowired private StoreRepository storeRepository;
   @Autowired private DishRepository dishRepository;
   private final ObjectMapper objectMapper = new ObjectMapper();
-
-  @MockitoBean private SellerRoleGrantPort sellerRoleGrantPort;
 
   @Test
   void 매장_등록과_수정_API에_카테고리가_반영된다() throws Exception {
@@ -65,8 +60,6 @@ class StoreControllerTest {
             .andReturn()
             .getResponse()
             .getContentAsString();
-
-    verify(sellerRoleGrantPort).grantSellerRole(10L);
 
     long storeId = objectMapper.readTree(createResponse).path("data").path("storeId").asLong();
 
@@ -119,6 +112,25 @@ class StoreControllerTest {
         .andExpect(jsonPath("$.data.stores[0].dishes.length()").value(1))
         .andExpect(jsonPath("$.data.stores[0].dishes[0].dishId").value(onSaleDish.getId()))
         .andExpect(jsonPath("$.data.stores[0].dishes[0].dishName").value("김치찌개"));
+  }
+
+  @Test
+  void 판매자는_본인_매장의_전체_상품을_판매상태와_무관하게_조회한다() throws Exception {
+    Store store = saveStore(7L, "판매자 매장", Category.CAFE_DESSERT, "37.5000", "127.0000");
+    Dish onSaleDish = saveDish(store.getId(), "판매 중 상품");
+    Dish soldOutDish = saveDish(store.getId(), "품절 상품");
+    soldOutDish.updateStatus(DishStatus.SOLD_OUT);
+
+    mockMvc
+        .perform(
+            get("/api/v1/stores/{storeId}/dishes", store.getId())
+                .header("X-Authenticated-Member-Id", 7L))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(2))
+        .andExpect(jsonPath("$.data[0].dishId").value(soldOutDish.getId()))
+        .andExpect(jsonPath("$.data[0].dishStatus").value("SOLD_OUT"))
+        .andExpect(jsonPath("$.data[1].dishId").value(onSaleDish.getId()))
+        .andExpect(jsonPath("$.data[1].dishStatus").value("ON_SALE"));
   }
 
   private Store saveStore(

@@ -16,6 +16,7 @@ public enum ErrorCode implements ErrorCodeSpec {
   DISH_ALREADY_EXISTS(HttpStatus.CONFLICT, "D006", "한 개의 상품만 등록이 가능합니다."),
   DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS(
       HttpStatus.BAD_REQUEST, "D007", "픽업 시간은 매장 영업시간 안에 있어야 합니다."),
+  INVALID_STOCK_DELTA(HttpStatus.BAD_REQUEST, "D008", "재고 변경량은 0이 아니어야 합니다."),
   INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다."),
   ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD001", "주문을 찾을 수 없습니다."),
   ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "주문을 취소할 권한이 없습니다."),
@@ -40,7 +41,10 @@ public enum ErrorCode implements ErrorCodeSpec {
   PRESIGNED_UPLOAD_INVALID_STATE(HttpStatus.CONFLICT, "IMG006", "이미지 업로드를 확정할 수 없는 상태입니다."),
   IMAGE_METADATA_MISMATCH(HttpStatus.BAD_REQUEST, "IMG007", "업로드된 이미지 정보가 발급 이력과 다릅니다."),
   IMAGE_OBJECT_NOT_FOUND(HttpStatus.BAD_REQUEST, "IMG008", "업로드된 이미지를 찾을 수 없습니다."),
-  IMAGE_STORAGE_ERROR(HttpStatus.BAD_GATEWAY, "IMG009", "이미지 저장소 처리에 실패했습니다.");
+  IMAGE_STORAGE_ERROR(HttpStatus.BAD_GATEWAY, "IMG009", "이미지 저장소 처리에 실패했습니다."),
+  GEOCODING_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "GEO001", "검색한 주소를 찾을 수 없습니다."),
+  GEOCODING_SERVICE_ERROR(HttpStatus.BAD_GATEWAY, "GEO002", "주소 검색 서비스 처리에 실패했습니다."),
+  GEOCODING_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "GEO003", "주소 검색 서비스가 설정되지 않았습니다.");
 
   private final HttpStatus status;
   private final String code;
