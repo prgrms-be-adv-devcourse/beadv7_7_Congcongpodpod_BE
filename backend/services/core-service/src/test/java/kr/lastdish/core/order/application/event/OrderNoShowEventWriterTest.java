@@ -43,6 +43,6 @@ class OrderNoShowEventWriterTest {
     assertThat(event.schemaVersion()).isEqualTo(OrderNoShowEvent.SCHEMA_VERSION);
     assertThat(event.eventId()).isNotNull();
     assertThat(event.occurredAt()).isEqualTo(Instant.parse("2026-08-13T10:00:00Z"));
-    assertThat(event.payload()).isEqualTo(new OrderNoShowPayload(30L, new BigDecimal("12000")));
+    assertThat(event.payload()).isEqualTo(new OrderNoShowPayload(10L, 30L, new BigDecimal("12000"), LocalDateTime.of(2026, 8, 13, 19, 0)));
   }
 }
