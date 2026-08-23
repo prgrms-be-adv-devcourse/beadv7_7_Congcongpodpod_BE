@@ -38,7 +38,7 @@ CREATE TABLE public.payments (
                                  pg_provider character varying(255) NOT NULL,
                                  pg_transaction_id character varying(255),
                                  aggregate_version bigint NOT NULL DEFAULT 0,
-                                 CONSTRAINT payments_approved_status_check CHECK (((approved_status)::text = ANY ((ARRAY['READY'::character varying, 'APPROVED'::character varying, 'FAILED'::character varying])::text[]))),
+                                 CONSTRAINT payments_approved_status_check CHECK (((approved_status)::text = ANY ((ARRAY['READY'::character varying, 'PROCESSING'::character varying, 'APPROVED'::character varying, 'FAILED'::character varying, 'EXPIRED'::character varying])::text[]))),
     CONSTRAINT payments_pg_provider_check CHECK (((pg_provider)::text = ANY ((ARRAY['TOSS'::character varying, 'KAKAOPAY'::character varying])::text[])))
 );
 

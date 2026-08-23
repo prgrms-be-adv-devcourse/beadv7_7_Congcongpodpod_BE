@@ -22,7 +22,7 @@ public class PaymentService {
   private final PaymentLogRepository paymentLogRepository;
   private final ChargeRequestedEventWriter chargeRequestedEventWriter;
 
-  @Value("${toss.client-key:test_ck_placeholder}")
+  @Value("${toss.client-key}")
   private String tossClientKey;
 
   // 결제 준비: Payment를 READY 상태로 생성하고, 프론트가 결제위젯을 띄우는 데 필요한 정보를 반환
@@ -81,8 +81,8 @@ public class PaymentService {
             pgResult.issuerCode(),
             pgResult.failureCode(),
             pgResult.failureMessage(),
-            pgResult.success() ? 200 : 400,
-            pgResult.success() ? "DONE" : pgResult.failureCode()));
+                pgResult.status() == PgApprovalResult.Status.SUCCESS ? 200 : 400,
+                pgResult.status() == PgApprovalResult.Status.SUCCESS ? "DONE" : pgResult.failureCode()));
     chargeRequestedEventWriter.append(payment, payment.nextAggregateVersion());
     return payment;
   }
@@ -109,8 +109,8 @@ public class PaymentService {
             pgResult.issuerCode(),
             pgResult.failureCode(),
             pgResult.failureMessage(),
-            pgResult.success() ? 200 : 400,
-            pgResult.success() ? "DONE" : pgResult.failureCode()));
+                pgResult.status() == PgApprovalResult.Status.SUCCESS ? 200 : 400,
+                pgResult.status() == PgApprovalResult.Status.SUCCESS ? "DONE" : pgResult.failureCode()));
     return payment;
   }
 }
