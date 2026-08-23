@@ -30,7 +30,7 @@ spring:
               predicates:
                 - Path=/api/v1/carts/**,/api/v1/orders/**,/api/v1/stores/**,/api/v1/dishes/**,/api/v1/settlements/**,/api/v1/deposits/**,/api/v1/levels/**,/api/v1/points/**
             - id: payment-service
-              uri: http://payment-service:8080
+              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
               predicates:
                 - Path=/api/v1/payments/**
             - id: member-service
