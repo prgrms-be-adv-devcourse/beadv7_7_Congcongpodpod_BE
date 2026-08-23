@@ -35,6 +35,18 @@ flowchart LR
 - S3
 - `AI_ENGINE_URL`로 지정한 분류 엔진
 
+## OpenAI 설정
+
+AI Service가 임베딩 또는 OpenAI API를 직접 호출할 때 아래 환경변수를 사용합니다.
+
+| 환경변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | 없음 | OpenAI API 키. 로컬 `.env` 또는 배포 Secret으로만 주입합니다. |
+| `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | 임베딩 모델 이름 |
+| `OPENAI_CHAT_MODEL` | `gpt-4.1-mini` | 대화·구조화 응답 모델 이름 |
+
+현재 이미지 분류는 `AI_ENGINE_URL`의 FastAPI 엔진을 사용하므로 OpenAI 키가 없어도 실행됩니다. OpenAI 연동 구현을 추가하면 시작 시 키 존재 여부를 검증하고, 키를 로그나 오류 응답에 포함하지 않아야 합니다.
+
 현재 Gateway에는 AI OpenAPI 집계 경로만 있고 `/api/v1/ai/**` 비즈니스 라우트는 선언되어 있지 않습니다. 외부 공개 전 Gateway route와 인증 정책을 함께 추가해야 합니다.
 
 ## 실행과 검증

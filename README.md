@@ -9,7 +9,7 @@
   ![Expo](https://img.shields.io/badge/Expo-55-000020?logo=expo&logoColor=white)
   [![License](https://img.shields.io/badge/license-source--available-03C75A)](LICENSE)
 
-  [제품 둘러보기](https://prgrms-be-adv-devcourse.github.io/beadv7_7_Congcongpodpod_BE/index.html) · [빠른 시작](#빠른-시작) · [아키텍처](docs/architecture.md) · [개발 문서](docs/README.md)
+  [데모 사이트](https://lastdish.kr) · [제품 둘러보기](https://prgrms-be-adv-devcourse.github.io/beadv7_7_Congcongpodpod_BE/index.html) · [빠른 시작](#빠른-시작) · [아키텍처](docs/architecture.md) · [개발 문서](docs/README.md)
 </div>
 
 <br>

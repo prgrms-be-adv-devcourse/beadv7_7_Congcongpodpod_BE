@@ -68,3 +68,7 @@ swagger:
 ai:
   engine:
     url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    chat-model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
