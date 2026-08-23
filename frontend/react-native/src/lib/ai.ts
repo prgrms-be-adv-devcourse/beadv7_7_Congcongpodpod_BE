@@ -24,9 +24,39 @@ export class FoodImageTooLargeError extends Error {
   }
 }
 
-type PreparedImage = { uri: string; blob?: Blob };
+export type PreparedImage = { uri: string; blob?: Blob; fileSize: number; contentType: string; fileName: string };
+const uploadContentTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-async function prepareFoodImage(asset: ImagePickerAsset, onPhase?: (phase: FoodAnalysisPhase) => void): Promise<PreparedImage> {
+function normalizeContentType(contentType?: string) {
+  const normalized = contentType?.toLowerCase();
+  if (normalized === 'image/jpg' || normalized === 'image/pjpeg') return 'image/jpeg';
+  return normalized || 'image/jpeg';
+}
+
+function normalizeFileName(fileName: string | null | undefined, contentType: string) {
+  const fallbackExtension = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+  const candidate = fileName?.trim() || 'dish-image';
+  if (/\.(jpe?g|png|webp)$/i.test(candidate)) return candidate.replace(/\.jpeg$/i, '.jpg');
+  return `${candidate}.${fallbackExtension}`;
+}
+
+async function readOriginalImage(asset: ImagePickerAsset): Promise<PreparedImage> {
+  if (Platform.OS === 'web') {
+    const response = await fetch(asset.uri);
+    if (!response.ok) throw new Error('선택한 이미지를 열지 못했어요.');
+    const blob = await response.blob();
+    const contentType = normalizeContentType(asset.mimeType || blob.type);
+    return { uri: asset.uri, blob, fileSize: blob.size, contentType, fileName: normalizeFileName(asset.fileName, contentType) };
+  }
+  const contentType = normalizeContentType(asset.mimeType);
+  return { uri: asset.uri, fileSize: asset.fileSize ?? new File(asset.uri).size, contentType, fileName: normalizeFileName(asset.fileName, contentType) };
+}
+
+export async function prepareFoodImage(asset: ImagePickerAsset, onPhase?: (phase: FoodAnalysisPhase) => void, _forUpload = false): Promise<PreparedImage> {
+  onPhase?.('preparing');
+  const original = await readOriginalImage(asset);
+  if (original.fileSize > 0 && original.fileSize <= MAX_FOOD_IMAGE_BYTES && uploadContentTypes.has(original.contentType)) return original;
+
   const attempts = [
     { width: 1024, compress: 0.55 },
     { width: 768, compress: 0.4 },
@@ -37,7 +67,7 @@ async function prepareFoodImage(asset: ImagePickerAsset, onPhase?: (phase: FoodA
       ? (asset.fileSize ?? 0) > 1024 * 1024 ? 'compressing' : 'preparing'
       : 'compressingAgain');
     const context = ImageManipulator.manipulate(asset.uri);
-    if ((asset.width ?? attempt.width + 1) > attempt.width) {
+    if (Number.isFinite(asset.width) && Number.isFinite(asset.height) && (asset.width ?? 0) > 0 && (asset.height ?? 0) > 0 && asset.width! > attempt.width) {
       // Web 구현은 height: null을 0으로 처리하므로, 속성을 생략해 원본 비율을 유지합니다.
       context.resize({ width: attempt.width });
     }
@@ -46,9 +76,10 @@ async function prepareFoodImage(asset: ImagePickerAsset, onPhase?: (phase: FoodA
 
     if (Platform.OS === 'web') {
       const blob = await fetch(prepared.uri).then((response) => response.blob());
-      if (blob.size <= MAX_FOOD_IMAGE_BYTES) return { uri: prepared.uri, blob };
-    } else if (new File(prepared.uri).size <= MAX_FOOD_IMAGE_BYTES) {
-      return { uri: prepared.uri };
+      if (blob.size <= MAX_FOOD_IMAGE_BYTES) return { uri: prepared.uri, blob, fileSize: blob.size, contentType: 'image/jpeg', fileName: 'dish-image.jpg' };
+    } else {
+      const fileSize = new File(prepared.uri).size;
+      if (fileSize <= MAX_FOOD_IMAGE_BYTES) return { uri: prepared.uri, fileSize, contentType: 'image/jpeg', fileName: 'dish-image.jpg' };
     }
   }
 
@@ -59,12 +90,12 @@ export async function classifyFoodImage(asset: ImagePickerAsset, onPhase?: (phas
   const prepared = await prepareFoodImage(asset, onPhase);
   const formData = new FormData();
   if (Platform.OS === 'web') {
-    formData.append('image', prepared.blob!, 'dish-analysis.jpg');
+    formData.append('image', prepared.blob!, prepared.fileName);
   } else {
     formData.append('image', {
       uri: prepared.uri,
-      name: 'dish-analysis.jpg',
-      type: 'image/jpeg',
+      name: prepared.fileName,
+      type: prepared.contentType,
     } as unknown as Blob);
   }
 

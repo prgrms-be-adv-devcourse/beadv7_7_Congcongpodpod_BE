@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, shadow } from '@/constants/theme';
+import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { getStoreImageSource } from '@/lib/food-image';
 import { getStoreCategoryVisual } from '@/lib/store-category';
 import { formatCheapestDishOffer } from '@/lib/store-pricing';
@@ -30,7 +30,7 @@ export function StoreCard({ store, onPress, favorite, compact = false }: Props) 
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: 138, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.white, ...shadow.card },
+  row: { minHeight: 138, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, borderWidth: 1, borderColor: colors.line, borderRadius: radius.card, backgroundColor: colors.white, ...shadow.card },
   compactRow: { minHeight: 92, gap: 11, paddingHorizontal: 0, paddingVertical: 11, borderWidth: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, borderRadius: 0, shadowOpacity: 0, elevation: 0 },
   pressed: { opacity: 0.72, transform: [{ scale: 0.992 }] },
   media: { width: 118, height: 118 },

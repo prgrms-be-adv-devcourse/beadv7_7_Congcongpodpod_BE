@@ -6,7 +6,7 @@ const unwrap = <T,>(value: T | Envelope<T>): T => value && typeof value === 'obj
 
 export type ApiCartItem = {
   cartItemId: number; dishId: number; storeId: number; dishName: string; unitPrice: number; quantity: number;
-  subtotalPrice: number; status: string; orderable: boolean;
+  subtotalPrice: number; status: string; orderable: boolean; lastAppliedDishPriceVersion: number;
 };
 export type ApiCart = { cartId: number; memberId: number; items: ApiCartItem[]; totalPrice: number };
 
@@ -42,6 +42,9 @@ export async function clearMemberCart(cartId: number) {
   await api<void>(`/carts/${cartId}`, { method: 'DELETE' });
 }
 
-export async function createOrderFromCartItem(cartItemId: number) {
-  return unwrap(await api<CustomerOrder | Envelope<CustomerOrder>>(`/orders/cartItems/${cartItemId}`, { method: 'POST' }));
+export async function createOrderFromCartItem(cartItemId: number, dishPriceVersion: number) {
+  return unwrap(await api<CustomerOrder | Envelope<CustomerOrder>>(`/orders/cartItems/${cartItemId}`, {
+    method: 'POST',
+    body: JSON.stringify({ dishPriceVersion }),
+  }));
 }

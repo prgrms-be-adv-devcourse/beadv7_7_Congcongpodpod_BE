@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import * as Haptics from 'expo-haptics';
 import { type ComponentProps, useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
@@ -44,5 +44,5 @@ export function AnimatedTabIcon({ tabKey, color, focused, idle, active, size }: 
     };
   }, [reducedMotion, scale, tabKey]);
 
-  return <Animated.View style={{ transform: [{ scale }] }}><Ionicons name={focused ? active : idle} size={size} color={color} /></Animated.View>;
+  return <Animated.View style={{ transform: [{ scale }] }}><Ionicons name={focused ? active : idle} size={size} color={color}/></Animated.View>;
 }

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandLogo } from '@/components/brand-logo';
 import { AppRefreshControl } from '@/components/app-refresh-control';
 import { ConfirmModal } from '@/components/confirm-modal';
+import { FLOATING_TAB_CONTENT_INSET } from '@/components/floating-tab-bar';
 import { LoadingState } from '@/components/loading-state';
 import { RefreshStatus } from '@/components/refresh-status';
 import { colors, fonts, radius, shadow } from '@/constants/theme';
@@ -73,7 +74,7 @@ export default function MyScreen() {
   if (!member) return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text><Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text></View>
-      <ScrollView contentContainerStyle={[styles.guestScroll, { width: contentWidth, paddingHorizontal: gutter }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.guestScroll, { width: contentWidth, paddingHorizontal: gutter, paddingBottom: FLOATING_TAB_CONTENT_INSET }]} showsVerticalScrollIndicator={false}>
         <GuestContent/>
       </ScrollView>
     </SafeAreaView>
@@ -82,7 +83,7 @@ export default function MyScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text>{!member ? <Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text> : null}</View><RefreshStatus visible={refreshing}/>
-      <View style={styles.body}><ScrollView alwaysBounceVertical style={styles.scrollView} contentContainerStyle={styles.scroll} refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>} showsVerticalScrollIndicator={false}>
+      <View style={styles.body}><ScrollView alwaysBounceVertical style={styles.scrollView} contentContainerStyle={[styles.scroll, { paddingBottom: FLOATING_TAB_CONTENT_INSET }]} refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>} showsVerticalScrollIndicator={false}>
         <View style={[styles.content, { width: contentWidth, paddingHorizontal: gutter }]}> 
           <SignedInContent memberName={member.name} role={member.role} depositBalance={depositBalance} orderCount={orderCount} openSeller={openSeller} signOut={signOut}/>
         </View>
@@ -123,7 +124,7 @@ function SignedInContent({ memberName, role, depositBalance, orderCount, openSel
     <Section title="나의 활동">
       <MenuRow icon="wallet-outline" label="예치금 이용내역" description="충전·결제·환불 기록" onPress={() => router.push('/deposits')}/>
       <MenuRow icon="chatbox-ellipses-outline" label="리뷰 관리" description="작성한 리뷰와 답글"/>
-      <MenuRow icon="notifications-outline" label="알림 설정" description="주문과 마감 할인 알림"/>
+      <MenuRow icon="notifications-outline" label="알림 설정" description="주문과 마감 할인 알림" onPress={() => router.push('/notification-settings' as never)}/>
     </Section>
 
     <Section title="사장님 메뉴">
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   title: { color: colors.ink900, fontFamily: fonts.body, fontSize: 28, lineHeight: 35, fontWeight: '900', letterSpacing: -1.1 },
   titleCompact: { fontSize: 25, lineHeight: 32 },
   headerDescription: { marginTop: 5, color: colors.ink700, fontFamily: fonts.body, fontSize: 13 },
-  profileCard: { borderRadius: 12, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.card },
+  profileCard: { borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.card },
   profilePress: { padding: 13, paddingBottom: 9 },
   profileTop: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: 26, backgroundColor: colors.canvas },
@@ -176,13 +177,13 @@ const styles = StyleSheet.create({
   profileStat: { width: '50%' },
   profileStatLabel: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
   profileStatValue: { marginTop: 2, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, lineHeight: 18, fontWeight: '900', letterSpacing: -0.25 },
-  wallet: { minHeight: 126, marginTop: 12, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 13, backgroundColor: colors.ink900, ...shadow.card },
+  wallet: { minHeight: 126, marginTop: 12, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.card, backgroundColor: colors.ink900, ...shadow.card },
   walletCopy: { flex: 1 },
   walletLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   walletLabel: { color: colors.ink400, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' },
   walletValue: { marginTop: 7, color: colors.white, fontFamily: fonts.body, fontSize: 27, fontWeight: '900', letterSpacing: -1 },
   walletHint: { marginTop: 6, color: colors.ink400, fontFamily: fonts.body, fontSize: 10 },
-  chargeButton: { minWidth: 70, minHeight: 44, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 9, backgroundColor: colors.white },
+  chargeButton: { minWidth: 70, minHeight: 44, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: radius.control, backgroundColor: colors.white },
   chargeText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
   quickRow: { minHeight: 88, marginTop: 12, flexDirection: 'row', overflow: 'hidden', borderRadius: 12, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
   quickItem: { flex: 1, minHeight: 80, alignItems: 'center', justifyContent: 'center' },
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   guestHero: { padding: 23, alignItems: 'center', borderRadius: 13, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
   guestTitle: { marginTop: 8, color: colors.ink900, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.6, textAlign: 'center' },
   guestBody: { maxWidth: 320, marginTop: 7, color: colors.ink700, fontFamily: fonts.body, fontSize: 13, lineHeight: 20, textAlign: 'center' },
-  loginButton: { width: '100%', maxWidth: 360, minHeight: 48, marginTop: 18, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: colors.ink900 },
+  loginButton: { width: '100%', maxWidth: 360, minHeight: 48, marginTop: 18, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.ink900 },
   loginButtonText: { color: colors.white, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
   signupButton: { minHeight: 44, justifyContent: 'center' },
   signupText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 12 },

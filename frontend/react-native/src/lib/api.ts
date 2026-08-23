@@ -79,7 +79,9 @@ async function request(path: string, init: RequestInit | undefined, token: strin
 }
 
 export async function api<T>(path: string, init?: RequestInit, options: ApiOptions = {}): Promise<T> {
-  const globalLoading = options.globalLoading !== false;
+  // 화면은 자체 loading/refreshing 상태로 피드백을 제어한다. 모든 네트워크
+  // 요청을 전역 Modal로 막으면 이전 화면의 요청이 다음 화면의 터치까지 차단한다.
+  const globalLoading = options.globalLoading === true;
   if (globalLoading) beginGlobalLoading();
   try {
     const token = cachedAccessToken === undefined

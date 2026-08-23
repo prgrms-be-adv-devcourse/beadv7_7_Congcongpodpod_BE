@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { type PropsWithChildren, useEffect, useRef } from 'react';
 
 import { showInAppNotification } from '@/lib/app-overlay';
+import { canShowNotification, DEFAULT_NOTIFICATION_PREFERENCES, loadNotificationPreferences, subscribeNotificationPreferences } from '@/lib/notification-preferences';
 import { connectNotificationStream, notificationRoute, type ServerNotification } from '@/lib/notifications';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -39,6 +40,13 @@ function present(notification: ServerNotification) {
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { member } = useAuth();
   const reconnectAttempt = useRef(0);
+  const preferences = useRef(DEFAULT_NOTIFICATION_PREFERENCES);
+
+  useEffect(() => {
+    const unsubscribe = subscribeNotificationPreferences(next => { preferences.current = next; });
+    void loadNotificationPreferences();
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!member) return;
@@ -50,7 +58,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       disconnect?.();
       disconnect = connectNotificationStream(notification => {
         reconnectAttempt.current = 0;
-        present(notification);
+        if (canShowNotification(preferences.current, notification.type)) present(notification);
       }, () => {
         if (disposed) return;
         const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt.current, RECONNECT_DELAYS.length - 1)];
@@ -72,7 +80,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     if (!member || !DEMO_ENABLED) return;
     let index = 0;
     const timer = setInterval(() => {
-      present(demoNotifications[index % demoNotifications.length]);
+      const notification = demoNotifications[index % demoNotifications.length];
+      if (canShowNotification(preferences.current, notification.type)) present(notification);
       index += 1;
     }, DEMO_INTERVAL_MS);
     return () => clearInterval(timer);

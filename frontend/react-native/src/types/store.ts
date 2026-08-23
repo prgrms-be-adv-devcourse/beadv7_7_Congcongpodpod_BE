@@ -20,6 +20,7 @@ export type Store = {
   businessNumber?: string;
   category: string;
   address: string;
+  detailAddress?: string;
   phone?: string;
   openTime?: string;
   closeTime?: string;

@@ -1,8 +1,10 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 
 import { AnimatedTabIcon, triggerTabFeedback } from '@/components/animated-tab-icon';
-import { colors, fonts } from '@/constants/theme';
-import { showLoginRequired } from '@/lib/login-required';
+import { FloatingTabBar } from '@/components/floating-tab-bar';
+import { GlassTabBackground } from '@/components/glass-tab-background';
+import { colors, fonts, radius } from '@/constants/theme';
+import { showAppAlert } from '@/lib/app-overlay';
 import { useAuth } from '@/providers/auth-provider';
 
 const tabs = {
@@ -19,12 +21,14 @@ export default function TabLayout() {
     tabPress: (event: { preventDefault: () => void }) => {
       if (initializing || member) return;
       event.preventDefault();
-      showLoginRequired(redirect);
+      router.push({ pathname: '/login', params: { redirect } });
+      setTimeout(() => showAppAlert('로그인이 필요해요', '찜과 주문내역은 로그인 후 이용할 수 있어요.'), 120);
     },
   });
 
   return (
     <Tabs
+      tabBar={(props) => <FloatingTabBar {...props}/>}
       screenListeners={({ route }) => ({ tabPress: () => triggerTabFeedback(route.name) })}
       screenOptions={({ route }) => {
         const [title, idle, active] = tabs[route.name as keyof typeof tabs];
@@ -34,19 +38,17 @@ export default function TabLayout() {
           tabBarActiveTintColor: colors.ink900,
           tabBarInactiveTintColor: colors.ink400,
           tabBarStyle: {
-            height: 78,
-            paddingTop: 8,
-            paddingBottom: 12,
-            borderTopColor: colors.line,
-            backgroundColor: colors.white,
-            shadowColor: '#17281C',
-            shadowOpacity: 0.055,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: -3 },
+            height: 64,
+            paddingTop: 6,
+            paddingBottom: 6,
+            borderTopWidth: 0,
+            borderRadius: radius.navigation,
+            backgroundColor: 'transparent',
           },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '700', fontFamily: fonts.body },
+          tabBarBackground: () => <GlassTabBackground/>,
+          tabBarLabelStyle: { fontSize: 10, fontWeight: '700', fontFamily: fonts.body },
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon tabKey={route.name} active={active} color={color} focused={focused} idle={idle} size={focused ? 23 : 22} />
+            <AnimatedTabIcon tabKey={route.name} active={active} color={color} focused={focused} idle={idle} size={focused ? 22 : 21} />
           ),
         };
       }}
