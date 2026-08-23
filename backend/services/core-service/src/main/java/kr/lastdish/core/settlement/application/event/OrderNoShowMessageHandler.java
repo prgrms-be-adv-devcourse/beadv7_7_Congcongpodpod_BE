@@ -2,9 +2,8 @@ package kr.lastdish.core.settlement.application.event;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.inbox.domain.InboxEventHandler;
-import kr.lastdish.core.settlement.application.SettlementEventService;
+import kr.lastdish.core.settlement.application.SettlementEventAccumulator;
 import kr.lastdish.core.settlement.application.event.kafka.OrderNoShowKafkaListener;
-import kr.lastdish.core.settlement.application.event.kafka.OrderPickedUpKafkaListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
@@ -14,7 +13,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class OrderNoShowMessageHandler implements InboxEventHandler {
     private final ObjectMapper objectMapper;
-    private final SettlementEventService settlementEventService;
+    private final SettlementEventAccumulator settlementEventAccumulator;
 
     @Override
     public String consumerId() {
@@ -35,6 +34,6 @@ public class OrderNoShowMessageHandler implements InboxEventHandler {
             throw new IllegalStateException("역직렬화 실패", e);
         }
 
-        settlementEventService.accumulate(payload.orderId(), payload.storeId(), payload.salesAmount(), payload.pickupResultAt());
+        settlementEventAccumulator.accumulate(payload.orderId(), payload.storeId(), payload.salesAmount(), payload.pickupResultAt());
     }
 }

@@ -12,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SettlementEventService {
+public class SettlementEventAccumulator {
     private final SettlementRepository settlementRepository;
     private final SettlementDetailRepository settlementDetailRepository;
     private final SettlementCalculator settlementCalculator;
