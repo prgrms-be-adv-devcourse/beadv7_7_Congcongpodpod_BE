@@ -35,10 +35,10 @@ CREATE TABLE public.settlements (
     store_id bigint NOT NULL,
     total_order_count bigint NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    bank_code character varying(20) NOT NULL,
+    bank_code character varying(20),
     settlement_status character varying(20) NOT NULL,
-    account_holder character varying(50) NOT NULL,
-    account_number character varying(100) NOT NULL,
+    account_holder character varying(50),
+    account_number character varying(100),
     failure_reason character varying(500),
     CONSTRAINT settlements_check CHECK (((period_start < period_end) AND (total_order_count >= 0) AND (gross_amount >= 0) AND (fee_rate >= (0)::numeric) AND (fee_rate <= (1)::numeric) AND (fee_amount >= 0) AND (settlement_amount >= 0) AND (settlement_amount = (gross_amount - fee_amount)))),
     CONSTRAINT settlements_settlement_status_check CHECK (((settlement_status)::text = ANY ((ARRAY['ACCUMULATING'::character varying, 'PROCESSING'::character varying, 'COMPLETED'::character varying, 'FAILED'::character varying])::text[])))

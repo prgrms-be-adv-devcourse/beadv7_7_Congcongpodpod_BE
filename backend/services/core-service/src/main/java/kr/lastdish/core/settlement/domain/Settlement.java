@@ -96,13 +96,13 @@ public class Settlement {
   @Column(name = "failure_reason", length = 500)
   private String failureReason;
 
-  @Column(nullable = false, length = 20)
+  @Column(length = 20)
   private String bankCode;
 
-  @Column(nullable = false, length = 100)
+  @Column(length = 100)
   private String accountNumber;
 
-  @Column(nullable = false, length = 50)
+  @Column(length = 50)
   private String accountHolder;
 
   public Settlement(
@@ -145,32 +145,32 @@ public class Settlement {
   }
 
   public static Settlement createAccumulating(
-          Long storeId,
-          YearMonth settlementMonth,
-          LocalDateTime periodStart,
-          LocalDateTime periodEnd,
-          BigDecimal feeRate) {
+      Long storeId,
+      YearMonth settlementMonth,
+      LocalDateTime periodStart,
+      LocalDateTime periodEnd,
+      BigDecimal feeRate) {
     Settlement settlement =
-            new Settlement(
-                    storeId,
-                    settlementMonth,
-                    periodStart,
-                    periodEnd,
-                    0,
-                    0,
-                    feeRate,
-                    0,
-                    0,
-                    null,
-                    null,
-                    null);
+        new Settlement(
+            storeId,
+            settlementMonth,
+            periodStart,
+            periodEnd,
+            0,
+            0,
+            feeRate,
+            0,
+            0,
+            null,
+            null,
+            null);
 
     settlement.settlementStatus = SettlementStatus.ACCUMULATING;
     return settlement;
   }
 
   public void startProcessing(String bankCode, String accountNumber, String accountHolder) {
-//    validateAccount(bankCode, accountNumber, accountHolder);
+    //    validateAccount(bankCode, accountNumber, accountHolder);
 
     this.settlementStatus = settlementStatus.startProcessing();
     this.bankCode = bankCode;
