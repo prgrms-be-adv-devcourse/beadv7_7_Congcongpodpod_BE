@@ -84,6 +84,11 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
   }
 
   @Override
+  public List<Long> findTargetStoreIds(YearMonth settlementMonth, Set<SettlementStatus> statuses) {
+    return jpaSettlementRepository.findTargetStoreIds(settlementMonth, statuses);
+  }
+
+  @Override
   public void truncateAllSettlementData() {
     jpaSettlementRepository.truncateAllSettlementData();
   }

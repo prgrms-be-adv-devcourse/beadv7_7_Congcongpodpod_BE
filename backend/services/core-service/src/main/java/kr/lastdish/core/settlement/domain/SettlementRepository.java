@@ -35,5 +35,7 @@ public interface SettlementRepository {
           BigDecimal feeRate
   );
 
+  List<Long> findTargetStoreIds(YearMonth settlementMonth, Set<SettlementStatus> statuses);
+
   void truncateAllSettlementData();
 }

@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
 import kr.lastdish.core.settlement.domain.Settlement;
 import kr.lastdish.core.settlement.domain.SettlementStatus;
 import org.springframework.data.domain.Page;
@@ -79,6 +81,18 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
           @Param("periodStart") LocalDateTime periodStart,
           @Param("periodEnd") LocalDateTime periodEnd,
           @Param("feeRate") BigDecimal feeRate
+  );
+
+  @Query("""
+          SELECT s.storeId
+          FROM Settlement s
+          WHERE s.settlementMonth = :settlementMonth
+            AND s.settlementStatus IN :statuses
+          ORDER BY s.storeId ASC
+          """)
+  List<Long> findTargetStoreIds(
+          @Param("settlementMonth") YearMonth settlementMonth,
+          @Param("statuses") Set<SettlementStatus> statuses
   );
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)

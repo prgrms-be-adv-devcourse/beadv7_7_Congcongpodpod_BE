@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import kr.lastdish.core.settlement.domain.SettlementDetail;
 import kr.lastdish.core.settlement.domain.SettlementDetailRepository;
+import kr.lastdish.core.settlement.domain.SettlementDetailSummary;
+import kr.lastdish.core.settlement.domain.SettlementDetailSummaryProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -47,5 +49,17 @@ public class SettlementDetailRepositoryAdaptor implements SettlementDetailReposi
   @Override
   public List<SettlementDetail> findAllBySettlementId(Long settlementId) {
     return jpaSettlementDetailRepository.findAllBySettlementIdOrderByIdAsc(settlementId);
+  }
+
+  @Override
+  public SettlementDetailSummary summarizeBySettlementId(Long settlementId) {
+    SettlementDetailSummaryProjection result = jpaSettlementDetailRepository.summarizeBySettlementId(settlementId);
+
+    return new SettlementDetailSummary(
+            result.getTotalOrderCount(),
+            result.getGrossAmount(),
+            result.getFeeAmount(),
+            result.getSettlementAmount()
+    );
   }
 }
