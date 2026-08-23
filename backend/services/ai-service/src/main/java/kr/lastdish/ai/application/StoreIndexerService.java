@@ -1,5 +1,6 @@
 package kr.lastdish.ai.application;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -65,9 +66,9 @@ public class StoreIndexerService {
     }
   }
 
-  public void syncUpdatedStores(int minutes) {
+  public void syncUpdatedStores(Instant from, Instant to) {
     List<InternalStoreResponse> updatedStores =
-            coreInternalApiClient.fetchStoresUpdatedWithin(minutes);
+            coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
 
     if (updatedStores.isEmpty()) {
       return;

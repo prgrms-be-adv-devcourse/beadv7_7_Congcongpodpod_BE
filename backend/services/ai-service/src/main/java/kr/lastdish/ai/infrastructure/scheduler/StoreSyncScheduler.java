@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -17,14 +19,23 @@ import org.springframework.stereotype.Component;
 public class StoreSyncScheduler {
 
   private final StoreIndexerService storeIndexerService;
+  private static final long OVERLAP_SECONDS = 10; //시차 오차에 대비하여 겹치게 조회
+  private final StoreSyncWatermarkStore watermarkStore;
 
   @Scheduled(fixedRate = 60000)
   public void pollAndSyncStores() {
+    Instant lastSyncedAt = watermarkStore.getLastSyncedAt();
+    Instant from = lastSyncedAt.minusSeconds(OVERLAP_SECONDS);
+    Instant to = Instant.now();
     try {
-      // 최근 1분 내 변경된 데이터 동기화
-      storeIndexerService.syncUpdatedStores(1);
+      // 최근 1분 + OVERLAP_SECONDS 내 변경된 데이터 동기화
+      storeIndexerService.syncUpdatedStores(from, to);
+      watermarkStore.updateLastSyncedAt(to);//성공하면 전진
+      log.info("Store Polling 동기화 완료. from={}, to={}", from, to);
     } catch (Exception e) {
-      log.error("Store Polling 스케줄러 실행 중 예외 발생", e);
+      // watermark 갱신 X
+      log.error("Store Polling 스케줄러 실행 중 예외 발생. from={}, to={}", from, to, e);
+
     }
   }
 }

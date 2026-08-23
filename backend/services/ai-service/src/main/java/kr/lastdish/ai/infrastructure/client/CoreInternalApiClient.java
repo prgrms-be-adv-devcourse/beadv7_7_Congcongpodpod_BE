@@ -1,6 +1,6 @@
 package kr.lastdish.ai.infrastructure.client;
 
-import java.util.Collections;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.ai.exception.AiErrorCode;
@@ -18,6 +18,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Slf4j
 @Component
@@ -60,22 +61,30 @@ public class CoreInternalApiClient {
     }
   }
 
-  public List<InternalStoreResponse> fetchStoresUpdatedWithin(int minutes) {
-    String url = coreBaseUrl + "/internal/v1/stores/renewal?minutes=" + minutes;
+  public List<InternalStoreResponse> fetchStoresUpdatedWithin(Instant from, Instant to) {
+    String url =
+            UriComponentsBuilder.fromUriString(coreBaseUrl + "/internal/v1/stores/renewal")
+                    .queryParam("from", from)
+                    .queryParam("to", to)
+                    .toUriString();
 
     try {
       ResponseEntity<ApiResponse<List<InternalStoreResponse>>> response =
-          restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {});
+              restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {});
 
       if (response.getBody() != null && response.getBody().data() != null) {
         return response.getBody().data();
       }
-      return Collections.emptyList();
+      return List.of();
+
+    } catch (HttpServerErrorException | ResourceAccessException e) {
+      // 5xx 서버 에러 또는 타임아웃, 통신 장애 -> 예외를 던져서 watermark가 전진하지 않도록 함
+      log.error("Polling 중 Core API 통신 장애 발생. from={}, to={}, error={}", from, to, e.getMessage());
+      throw new BusinessException(AiErrorCode.CORE_API_COMMUNICATION_ERROR);
 
     } catch (Exception e) {
-      log.error("60초 Polling 중 Core API 호출 실패. minutes={}", minutes, e);
-      // Polling 실패 시 다음 주기에 재시도하도록 빈 리스트 반환
-      return Collections.emptyList();
+      log.error("Polling 중 Core API 호출 실패. from={}, to={}", from, to, e);
+      throw new BusinessException(AiErrorCode.CORE_API_COMMUNICATION_ERROR);
     }
   }
 }
