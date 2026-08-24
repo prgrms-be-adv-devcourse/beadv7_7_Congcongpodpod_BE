@@ -4,4 +4,4 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record OrderNoShowPayload(
-    Long orderId, Long storeId, BigDecimal salesAmount, LocalDateTime pickupResultAt) {}
+    Long storeId, BigDecimal salesAmount, LocalDateTime pickupResultAt) {}

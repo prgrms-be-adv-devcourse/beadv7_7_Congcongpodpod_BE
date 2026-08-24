@@ -25,10 +25,7 @@ public class OrderNoShowEventWriter {
             order.getId(),
             aggregateVersion,
             new OrderNoShowPayload(
-                order.getId(),
-                order.getStoreId(),
-                order.getTotalPrice(),
-                order.getPickupResultAt()),
+                order.getStoreId(), order.getTotalPrice(), order.getPickupResultAt()),
             order.getPickupResultAt().atZone(BUSINESS_ZONE).toInstant());
 
     outboxEventWriter.append(event);

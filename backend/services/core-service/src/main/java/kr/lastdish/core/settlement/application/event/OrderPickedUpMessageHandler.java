@@ -35,6 +35,9 @@ public class OrderPickedUpMessageHandler implements InboxEventHandler {
     }
 
     settlementEventAccumulator.accumulate(
-        payload.orderId(), payload.storeId(), payload.finalOrderAmount(), payload.pickupResultAt());
+        message.aggregateId(),
+        payload.storeId(),
+        payload.finalOrderAmount(),
+        payload.pickupResultAt());
   }
 }

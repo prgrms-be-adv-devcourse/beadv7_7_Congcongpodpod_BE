@@ -25,7 +25,6 @@ public class OrderPickedUpEventWriter {
             order.getId(),
             aggregateVersion,
             new OrderPickedUpPayload(
-                order.getId(),
                 order.getMemberId(),
                 order.getStoreId(),
                 order.getTotalPrice(),

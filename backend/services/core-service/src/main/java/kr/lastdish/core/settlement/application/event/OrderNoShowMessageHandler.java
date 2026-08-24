@@ -35,6 +35,6 @@ public class OrderNoShowMessageHandler implements InboxEventHandler {
     }
 
     settlementEventAccumulator.accumulate(
-        payload.orderId(), payload.storeId(), payload.salesAmount(), payload.pickupResultAt());
+        message.aggregateId(), payload.storeId(), payload.salesAmount(), payload.pickupResultAt());
   }
 }

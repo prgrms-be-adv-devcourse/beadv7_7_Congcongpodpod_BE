@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
  * memberId, finalOrderAmount, savedAmount
  */
 public record OrderPickedUpPayload(
-    Long orderId,
     Long memberId,
     Long storeId,
     BigDecimal finalOrderAmount,

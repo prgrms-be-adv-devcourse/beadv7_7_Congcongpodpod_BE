@@ -48,7 +48,6 @@ class OrderPickedUpEventWriterTest {
     assertThat(event.payload())
         .isEqualTo(
             new OrderPickedUpPayload(
-                10L,
                 20L,
                 30L,
                 new BigDecimal("12000"),
