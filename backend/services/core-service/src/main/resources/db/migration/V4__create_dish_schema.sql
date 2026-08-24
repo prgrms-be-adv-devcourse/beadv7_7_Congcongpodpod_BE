@@ -16,6 +16,7 @@ CREATE TABLE public.dishes (
     dish_name character varying(255) NOT NULL,
     dish_status character varying(255) NOT NULL,
     thumbnail_url character varying(255),
+    updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT dishes_dish_status_check CHECK (((dish_status)::text = ANY ((ARRAY['ON_SALE'::character varying, 'SOLD_OUT'::character varying, 'CLOSED'::character varying, 'EXPIRED'::character varying])::text[])))
 );
 

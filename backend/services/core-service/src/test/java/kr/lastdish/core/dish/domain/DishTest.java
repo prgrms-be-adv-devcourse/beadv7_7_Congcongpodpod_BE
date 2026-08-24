@@ -55,19 +55,25 @@ class DishTest {
   }
 
   @Test
-  void Dish를_수정해도_이미지_key는_변경되지_않는다() {
+  void Dish를_교체하면_기존_Dish는_삭제되고_이미지_key는_새_Dish에_유지된다() {
     Dish dish = createDish(10L);
 
-    dish.update(
-        "된장찌개",
-        LocalDateTime.now(),
-        "수정된 상품 설명",
-        BigDecimal.valueOf(12_000),
-        BigDecimal.valueOf(8_000),
-        LocalTime.of(17, 0),
-        LocalTime.of(20, 0));
+    Dish replacement =
+        dish.replace(
+            "된장찌개",
+            LocalDateTime.now(),
+            "수정된 상품 설명",
+            BigDecimal.valueOf(12_000),
+            BigDecimal.valueOf(8_000),
+            LocalTime.of(17, 0),
+            LocalTime.of(20, 0));
 
-    assertThat(dish.getThumbnailUrl()).isEqualTo("dish/1/test.jpg");
+    assertThat(dish.getIsDeleted()).isTrue();
+    assertThat(replacement.getIsDeleted()).isFalse();
+    assertThat(replacement.getDishName()).isEqualTo("된장찌개");
+    assertThat(replacement.getThumbnailUrl()).isEqualTo("dish/1/test.jpg");
+    assertThat(replacement.getCategory()).isEqualTo("한식");
+    assertThat(replacement.getStockQuantity()).isEqualTo(10L);
   }
 
   /** 테스트에 필요한 기본 판매 중 Dish를 생성합니다. */

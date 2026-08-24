@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.common.event.DomainEvent;
 
-public record DishCreatedEvent(
+public record DishUpdatedEvent(
     UUID eventId,
     int schemaVersion,
     Long dishId,
@@ -13,7 +13,7 @@ public record DishCreatedEvent(
     Instant occurredAt)
     implements DomainEvent<DishAIEventPayload> {
 
-  public static final String EVENT_TYPE = "DISH_IS_CREATED";
+  public static final String EVENT_TYPE = "DISH_IS_UPDATED";
   public static final int SCHEMA_VERSION = 1;
 
   @Override
