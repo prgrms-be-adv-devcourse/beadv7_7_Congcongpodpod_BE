@@ -2,7 +2,8 @@ import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 
 import { PrimaryButton } from '@/components/page';
 import { SellerShell } from '@/components/seller-shell';

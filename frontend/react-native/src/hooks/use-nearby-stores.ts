@@ -3,19 +3,12 @@ import * as Location from 'expo-location';
 
 import { getNearbyStores } from '@/lib/stores';
 import type { Store } from '@/types/store';
+import type { MapBounds } from '@/components/map-canvas.types';
+import { distanceKm, isWithinBounds, radiusForBounds } from '@/lib/map-viewport';
 
 // 위치 권한·GPS·최근 위치가 모두 없을 때 앱과 웹이 공유하는 기준점입니다.
 const defaultLocation = { latitude: 37.485026405, longitude: 127.016271761 };
 type Coordinate = typeof defaultLocation;
-
-const distanceKm = (from: Coordinate, to: Coordinate) => {
-  const radians = (degrees: number) => degrees * Math.PI / 180;
-  const latitudeDelta = radians(to.latitude - from.latitude);
-  const longitudeDelta = radians(to.longitude - from.longitude);
-  const value = Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(longitudeDelta / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-};
 
 export function useNearbyStores(radiusKm = 5) {
   const [stores, setStores] = useState<Store[]>([]);
@@ -28,21 +21,27 @@ export function useNearbyStores(radiusKm = 5) {
   const locationRef = useRef<Coordinate>(defaultLocation);
   const lastStoreLocationRef = useRef<Coordinate>(defaultLocation);
   const requestIdRef = useRef(0);
+  const requestControllerRef = useRef<AbortController | undefined>(undefined);
   const highAccuracyAppliedRef = useRef(false);
-  const loadStoresRef = useRef<(target: Coordinate, silent?: boolean) => Promise<void>>(async () => undefined);
+  const loadStoresRef = useRef<(target: Coordinate, silent?: boolean, bounds?: MapBounds) => Promise<void>>(async () => undefined);
 
-  const loadStores = useCallback(async (searchLocation: Coordinate, silent = false) => {
+  const loadStores = useCallback(async (searchLocation: Coordinate, silent = false, bounds?: MapBounds) => {
     const requestId = ++requestIdRef.current;
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     if (!silent) setLoading(true);
     if (!silent) setError(false);
     try {
-      const nearby = await getNearbyStores(searchLocation.latitude, searchLocation.longitude, radiusKm);
+      const queryRadius = radiusForBounds(searchLocation, bounds, radiusKm);
+      const nearby = await getNearbyStores(searchLocation.latitude, searchLocation.longitude, queryRadius, 80, controller.signal);
       if (requestId !== requestIdRef.current) return;
       lastStoreLocationRef.current = searchLocation;
       setStores(nearby
-        .filter((store) => distanceKm(searchLocation, store) <= radiusKm)
+        .filter((store) => bounds ? isWithinBounds(store, bounds) : distanceKm(searchLocation, store) <= radiusKm)
         .sort((left, right) => distanceKm(searchLocation, left) - distanceKm(searchLocation, right)));
     } catch {
+      if (controller.signal.aborted) return;
       if (!silent && requestId === requestIdRef.current) setError(true);
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
@@ -50,7 +49,7 @@ export function useNearbyStores(radiusKm = 5) {
   }, [radiusKm]);
 
   loadStoresRef.current = loadStores;
-  const reload = useCallback(async (target?: Coordinate, silent = false) => loadStores(target ?? locationRef.current, silent), [loadStores]);
+  const reload = useCallback(async (target?: Coordinate, silent = false, bounds?: MapBounds) => loadStores(target ?? locationRef.current, silent, bounds), [loadStores]);
 
   useEffect(() => { void loadStores(locationRef.current); }, [loadStores]);
   useEffect(() => {
@@ -80,7 +79,7 @@ export function useNearbyStores(radiusKm = 5) {
       const next = { latitude: balanced.coords.latitude, longitude: balanced.coords.longitude };
       updateLocation(next, distanceKm(lastStoreLocationRef.current, next) >= 0.05);
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; requestControllerRef.current?.abort(); };
   }, []);
 
   useEffect(() => {

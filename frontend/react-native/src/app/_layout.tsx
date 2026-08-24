@@ -1,8 +1,8 @@
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StartupLoadingScreen } from '@/components/startup-loading-screen';
 import { AppOverlayProvider } from '@/components/app-overlay-provider';
@@ -14,6 +14,14 @@ import { CartProvider } from '@/providers/cart-provider';
 import { NotificationProvider } from '@/providers/notification-provider';
 
 const STARTUP_MIN_DURATION_MS = 1_500;
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return <View accessibilityLiveRegion="assertive" style={styles.errorStage}>
+    <Text style={styles.errorTitle}>화면을 열지 못했어요</Text>
+    <Text style={styles.errorMessage}>{error.message || '잠시 후 다시 시도해주세요.'}</Text>
+    <Pressable accessibilityRole="button" onPress={retry} style={styles.retryButton}><Text style={styles.retryText}>다시 시도</Text></Pressable>
+  </View>;
+}
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -32,7 +40,7 @@ function AppBootstrap() {
   return (
     <AppOverlayProvider>
       <NotificationProvider><CartProvider>
-        <View style={styles.stage}>
+        <View style={[styles.stage, Platform.OS === 'web' && styles.webStage]}>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -67,4 +75,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: colors.canvas,
   },
+  webStage: { maxWidth: layout.shell },
+  errorStage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: colors.canvas },
+  errorTitle: { color: colors.ink900, fontSize: 22, fontWeight: '800' },
+  errorMessage: { maxWidth: 420, color: colors.ink700, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  retryButton: { minWidth: 120, minHeight: 48, marginTop: 6, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: colors.green500 },
+  retryText: { color: colors.white, fontSize: 15, fontWeight: '800' },
 });

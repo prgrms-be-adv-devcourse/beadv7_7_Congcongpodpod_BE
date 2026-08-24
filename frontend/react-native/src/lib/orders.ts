@@ -1,5 +1,6 @@
 import { api } from './api';
 import { getStore } from './stores';
+import { cachedQuery, invalidateQueries } from './query-cache';
 
 type Envelope<T> = { data?: T };
 type Page<T> = { content?: T[]; totalElements?: number };
@@ -13,7 +14,8 @@ export type CustomerOrder = {
 };
 export type PickupCode = { orderId: number; dishName: string; pickupCode: string; pickupStartAt?: string; pickupEndAt?: string };
 
-export async function getMyOrders() {
+export async function getMyOrders(force = false) {
+  return cachedQuery('orders:mine', async () => {
   const page = unwrap(await api<Page<CustomerOrder> | Envelope<Page<CustomerOrder>>>('/orders?page=0&size=50'));
   const orders = (page.content ?? []).sort((a, b) => b.orderId - a.orderId);
   const stores = new Map<number, Awaited<ReturnType<typeof getStore>>>();
@@ -21,6 +23,7 @@ export async function getMyOrders() {
     try { stores.set(storeId, await getStore(storeId)); } catch { /* 주문은 매장 조회 실패와 무관하게 표시한다. */ }
   }));
   return orders.map((order) => ({ ...order, storeName: stores.get(order.storeId)?.storeName, storeImageUrl: stores.get(order.storeId)?.profileImageUrl ?? stores.get(order.storeId)?.imageUrl }));
+  }, 6_000, force);
 }
 
 export async function getMyOrderCount() {
@@ -41,5 +44,7 @@ export async function getPickupCode(orderId: number) {
 }
 
 export async function cancelOrder(orderId: number) {
-  return unwrap(await api<CustomerOrder | Envelope<CustomerOrder>>(`/orders/${orderId}/cancel`, { method: 'PATCH' }));
+  const result = unwrap(await api<CustomerOrder | Envelope<CustomerOrder>>(`/orders/${orderId}/cancel`, { method: 'PATCH' }));
+  invalidateQueries('orders:');
+  return result;
 }
