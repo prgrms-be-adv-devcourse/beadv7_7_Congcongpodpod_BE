@@ -1,6 +1,7 @@
 package kr.lastdish.core.dish.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -12,12 +13,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,65 +45,21 @@ class DishServiceTest {
   }
 
   @Test
-  void records_event_when_dish_becomes_unavailable() {
-    // given
-    Dish dish = createDish(1L);
-
-    /*
-     * Dish ID는 JPA가 저장할 때 생성합니다.
-     * 이 테스트에서는 저장 과정을 거치지 않으므로 ReflectionTestUtils로
-     * 기존에 저장된 Dish처럼 ID를 설정합니다.
-     */
-    ReflectionTestUtils.setField(dish, "id", 10L);
-
-    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
-
-    DishUpdateRequest request = createUpdateRequest(0L);
-
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
-    // when
-    dishService.updateDish(10L, request);
-
-    // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    DomainEvent capturedEvent = eventCaptor.getValue();
-
-    assertThat(capturedEvent).isInstanceOf(DishStateChangedEvent.class);
-
-    DishStateChangedEvent event = (DishStateChangedEvent) capturedEvent;
-
-    assertThat(event.dishId()).isEqualTo(10L);
-    assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.payload().available()).isFalse();
-    assertThat(event.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
-  }
-
-  @Test
-  void records_event_when_stock_quantity_changes() {
+  void 상품_정보를_수정해도_기존_재고를_유지한다() {
     // given
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 
     when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
-    DishUpdateRequest request = createUpdateRequest(5L);
-
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+    DishUpdateRequest request = createUpdateRequest();
 
     // when
-    dishService.updateDish(10L, request);
+    DishResponse response = dishService.updateDish(10L, request);
 
     // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
-
-    assertThat(event.dishId()).isEqualTo(10L);
-    assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.payload().available()).isTrue();
-    assertThat(event.payload().stockQuantity()).isEqualTo(5L);
+    assertThat(response.stockQuantity()).isEqualTo(10L);
+    verify(outboxEventWriter, never()).append(any(DishStateChangedEvent.class));
   }
 
   @Test
@@ -117,7 +76,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.valueOf(7_000),
             LocalTime.of(18, 0),
@@ -156,7 +114,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            10L,
             BigDecimal.valueOf(12_000),
             BigDecimal.ZERO,
             LocalTime.of(18, 0),
@@ -192,7 +149,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.ZERO,
             LocalTime.of(18, 0),
@@ -244,13 +200,12 @@ class DishServiceTest {
         LocalTime.of(19, 0));
   }
 
-  private DishUpdateRequest createUpdateRequest(Long stockQuantity) {
+  private DishUpdateRequest createUpdateRequest() {
     return new DishUpdateRequest(
         10L,
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,
         LocalTime.of(18, 0),
@@ -294,5 +249,41 @@ class DishServiceTest {
     DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
     assertThat(event.payload().available()).isFalse();
     assertThat(event.payload().stockQuantity()).isZero();
+  }
+
+  @Test
+  void 재고_조정_delta가_양수면_재고를_늘린다() {
+    Dish dish = createDish(10L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+
+    DishResponse response = dishService.adjustStock(1L, 5L);
+
+    assertThat(response.stockQuantity()).isEqualTo(15L);
+    then(outboxEventWriter).should().append(any());
+  }
+
+  @Test
+  void 재고_조정_delta가_음수면_재고를_줄인다() {
+    Dish dish = createDish(10L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+
+    DishResponse response = dishService.adjustStock(1L, -4L);
+
+    assertThat(response.stockQuantity()).isEqualTo(6L);
+    then(outboxEventWriter).should().append(any());
+  }
+
+  @Test
+  void 재고_조정_delta가_0이면_예외를_던진다() {
+    assertThatThrownBy(() -> dishService.adjustStock(1L, 0L))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> {
+              assertThat(exception.getErrorCode().getCode()).isEqualTo("D008");
+              assertThat(exception.getMessage()).isEqualTo("재고 변경량은 0이 아니어야 합니다.");
+            });
+
+    then(dishRepository).shouldHaveNoInteractions();
+    then(outboxEventWriter).shouldHaveNoInteractions();
   }
 }

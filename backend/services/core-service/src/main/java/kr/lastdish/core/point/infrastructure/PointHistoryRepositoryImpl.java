@@ -6,6 +6,8 @@ import kr.lastdish.core.point.domain.PointHistory;
 import kr.lastdish.core.point.domain.PointHistoryRepository;
 import kr.lastdish.core.point.domain.PointType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -52,5 +54,10 @@ public class PointHistoryRepositoryImpl implements PointHistoryRepository {
   @Override
   public BigDecimal sumExpiringAmountByMember(Long memberId) {
     return pointHistoryJpaRepository.sumExpiringAmountByMember(memberId);
+  }
+
+  @Override
+  public Page<PointHistory> findByMemberId(Long memberId, Pageable pageable) {
+    return pointHistoryJpaRepository.findByMemberId(memberId, pageable);
   }
 }

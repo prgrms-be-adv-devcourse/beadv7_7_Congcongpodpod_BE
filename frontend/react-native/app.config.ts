@@ -17,7 +17,7 @@ const config: ExpoConfig = {
   android: {
     package: 'com.congcongpodpod.lastdish_app',
   },
-  web: { output: 'static', favicon: './assets/images/favicon.png' },
+  web: { output: 'static', favicon: './assets/images/web-app-icon.png' },
   extra: { naverMapClientId },
   plugins: [
     'expo-router',
@@ -31,6 +31,14 @@ const config: ExpoConfig = {
       },
     ],
     'expo-secure-store',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: '상품 사진을 선택하려면 사진 보관함 접근이 필요합니다.',
+        cameraPermission: false,
+        microphonePermission: false,
+      },
+    ],
     [
       '@mj-studio/react-native-naver-map',
       { client_id: naverMapClientId ?? 'NAVER_MAP_CLIENT_ID_REQUIRED' },

@@ -1,11 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenEntrance } from '@/components/motion';
 import { AppRefreshControl } from '@/components/app-refresh-control';
+import { FLOATING_TAB_CONTENT_INSET } from '@/components/floating-tab-bar';
 import { RefreshStatus } from '@/components/refresh-status';
 import { colors, fonts } from '@/constants/theme';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -23,14 +24,17 @@ export function SellerShell({ title, description, children, back, storeName = 'ë
       </View>
     </View>
     <View style={[styles.heading, { width: contentWidth, paddingHorizontal: gutter }]}><Text style={[styles.title, isCompact && styles.titleCompact]}>{title}</Text><Text style={styles.description}>{description}</Text></View><RefreshStatus visible={refreshing}/>
-    <ScreenEntrance><ScrollView alwaysBounceVertical={Boolean(onRefresh)} contentContainerStyle={[styles.content, { width: contentWidth, paddingHorizontal: gutter }]} refreshControl={onRefresh ? <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/> : undefined} showsVerticalScrollIndicator={false}>
-      {children}
-    </ScrollView></ScreenEntrance>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
+      <ScreenEntrance><ScrollView alwaysBounceVertical={Boolean(onRefresh)} automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'} contentContainerStyle={[styles.content, { width: contentWidth, paddingHorizontal: gutter, paddingBottom: FLOATING_TAB_CONTENT_INSET }]} keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled" refreshControl={onRefresh ? <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/> : undefined} showsVerticalScrollIndicator={false}>
+        {children}
+      </ScrollView></ScreenEntrance>
+    </KeyboardAvoidingView>
   </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvasWarm },
+  keyboard: { flex: 1 },
   topBar: { backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.line },
   store: { minHeight: 66, alignSelf: 'center', flexDirection: 'row', alignItems: 'center' },
   back: { width: 44, height: 44, marginLeft: -10, marginRight: 2, alignItems: 'center', justifyContent: 'center' },
@@ -44,7 +48,7 @@ const styles = StyleSheet.create({
   closedState: { backgroundColor: colors.canvas },
   closedDot: { backgroundColor: colors.ink400 },
   closedText: { color: colors.ink700 },
-  content: { alignSelf: 'center', paddingTop: 10, paddingBottom: 34, gap: 14 },
+  content: { alignSelf: 'center', paddingTop: 10, gap: 14 },
   heading: { alignSelf: 'center', paddingTop: 20, paddingBottom: 8 },
   title: { color: colors.ink900, fontFamily: fonts.body, fontSize: 28, lineHeight: 35, fontWeight: '900', letterSpacing: -1.1 },
   titleCompact: { fontSize: 25, lineHeight: 32 },

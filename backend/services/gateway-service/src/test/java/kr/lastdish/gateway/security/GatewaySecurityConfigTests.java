@@ -83,6 +83,11 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void myDishesRouteRejectsRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/stores/1/dishes").exchange().expectStatus().isUnauthorized();
+  }
+
+  @Test
   void memberCannotAccessMyStoreRoute() {
     webTestClient
         .mutateWith(
@@ -141,6 +146,34 @@ class GatewaySecurityConfigTests {
                 .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
         .get()
         .uri("/api/v1/stores/1/dish")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
+  void memberCannotAccessMyDishesRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+        .get()
+        .uri("/api/v1/stores/1/dishes")
+        .exchange()
+        .expectStatus()
+        .isForbidden();
+  }
+
+  @Test
+  void sellerCanAccessMyDishesRoute() {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("2"))
+                .authorities(new SimpleGrantedAuthority("ROLE_SELLER")))
+        .get()
+        .uri("/api/v1/stores/1/dishes")
         .exchange()
         .expectStatus()
         .isOk();
@@ -258,6 +291,51 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void imageClassificationRejectsRequestsWithoutAuthentication() {
+    webTestClient.post().uri("/api/v1/ai/classify").exchange().expectStatus().isUnauthorized();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLE_MEMBER", "ROLE_SELLER"})
+  void authenticatedMemberCanClassifyFoodImage(String authority) {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority(authority)))
+        .post()
+        .uri("/api/v1/ai/classify")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
+  void geocodingRejectsRequestsWithoutAuthentication() {
+    webTestClient
+        .get()
+        .uri("/api/v1/locations/geocode?query=서울남부터미널역")
+        .exchange()
+        .expectStatus()
+        .isUnauthorized();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLE_MEMBER", "ROLE_SELLER"})
+  void authenticatedUserCanGeocodeStoreAddress(String authority) {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority(authority)))
+        .get()
+        .uri("/api/v1/locations/geocode?query=서울남부터미널역")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
+  @Test
   void depositRouteRejectsRequestsWithoutAuthentication() {
     webTestClient.post().uri("/api/v1/deposits/test").exchange().expectStatus().isUnauthorized();
   }
@@ -301,9 +379,12 @@ class GatewaySecurityConfigTests {
           .andRoute(GET("/api/v1/stores/1"), request -> ok().build())
           .andRoute(GET("/api/v1/stores/mine"), request -> ok().build())
           .andRoute(GET("/api/v1/stores/1/dish"), request -> ok().build())
+          .andRoute(GET("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(GET("/api/v1/orders/test"), request -> ok().build())
           .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
+          .andRoute(POST("/api/v1/ai/classify"), request -> ok().build())
+          .andRoute(GET("/api/v1/locations/geocode"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }
   }

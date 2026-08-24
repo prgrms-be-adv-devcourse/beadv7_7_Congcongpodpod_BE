@@ -33,19 +33,7 @@ class DishTest {
     // given
     Dish dish = createDish(1L);
 
-    /*
-     * 실제 상품 수정과 동일한 도메인 메서드를 사용하여
-     * 재고를 0으로 변경합니다.
-     */
-    dish.update(
-        "김치찌개",
-        LocalDateTime.now(),
-        "상품 설명",
-        0L,
-        BigDecimal.valueOf(10000),
-        BigDecimal.ZERO,
-        LocalTime.of(18, 0),
-        LocalTime.of(19, 0));
+    dish.decreaseStock(1L);
 
     // when
     boolean available = dish.isAvailable();
@@ -74,7 +62,6 @@ class DishTest {
         "된장찌개",
         LocalDateTime.now(),
         "수정된 상품 설명",
-        5L,
         BigDecimal.valueOf(12_000),
         BigDecimal.valueOf(8_000),
         LocalTime.of(17, 0),

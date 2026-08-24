@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
+import kr.lastdish.core.dish.application.DishImageService;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.application.StoreService;
@@ -22,12 +23,13 @@ public class StoreController {
 
   private final StoreService storeService;
   private final StoreFacade storeFacade;
+  private final DishImageService dishImageService;
 
   @PostMapping
   public ApiResponse<StoreResponse> registerStore(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @Valid @RequestBody StoreCreateRequest request) {
-    StoreResult result = storeFacade.register(request.toCommand(memberId));
+    StoreResult result = storeService.register(request.toCommand(memberId));
 
     return ApiResponse.ok(StoreResponse.from(result));
   }
@@ -80,6 +82,16 @@ public class StoreController {
   public ApiResponse<DishResponse> getMyDish(
       @PathVariable Long storeId, @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
     return ApiResponse.ok(storeFacade.getMyDish(storeId, memberId));
+  }
+
+  @GetMapping("/{storeId}/dishes")
+  public ApiResponse<List<DishResponse>> getMyDishes(
+      @PathVariable Long storeId, @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    List<DishResponse> result =
+        storeFacade.getMyDishes(storeId, memberId).stream()
+            .map(dishImageService::withDownloadUrl)
+            .toList();
+    return ApiResponse.ok(result);
   }
 
   @GetMapping("/nearby")

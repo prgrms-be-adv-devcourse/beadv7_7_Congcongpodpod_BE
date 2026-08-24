@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   secondary: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   secondaryText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' },
   action: { flex: 1.4, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.green300 },
-  actionText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
+  actionText: { color: colors.white, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
   reasons: { marginTop: 10, padding: 11, borderRadius: radius.control, backgroundColor: colors.canvas },
   reasonTitle: { marginBottom: 8, color: colors.ink700, fontFamily: fonts.body, fontSize: 10 },
   reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

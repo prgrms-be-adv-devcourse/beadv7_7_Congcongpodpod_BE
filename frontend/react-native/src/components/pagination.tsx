@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius } from '@/constants/theme';

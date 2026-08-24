@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/empty-state';
 import { LoadingState } from '@/components/loading-state';
 import { Page } from '@/components/page';
 import { Pagination } from '@/components/pagination';
-import { colors, fonts, shadow } from '@/constants/theme';
+import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { getDepositBalance, getDepositHistory, type DepositHistory } from '@/lib/account';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 
@@ -72,7 +72,7 @@ function HistoryRow({ row }: { row: DepositHistory }) {
 }
 
 const styles = StyleSheet.create({
-  wallet: { padding: 18, borderRadius: 13, backgroundColor: colors.ink900, ...shadow.card },
+  wallet: { padding: 18, borderRadius: radius.card, backgroundColor: colors.ink900, ...shadow.card },
   walletTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   walletBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   walletIcon: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.09)' },

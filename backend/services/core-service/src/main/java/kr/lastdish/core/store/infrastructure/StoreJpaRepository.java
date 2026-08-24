@@ -18,6 +18,8 @@ import org.springframework.data.repository.query.Param;
 public interface StoreJpaRepository extends JpaRepository<Store, Long> {
   Optional<Store> findByIdAndDeletedFalse(Long storeId);
 
+  List<Store> findAllByIdInAndDeletedFalse(List<Long> storeIds);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   Optional<Store> findWithLockByIdAndDeletedFalse(Long storeId);
 
