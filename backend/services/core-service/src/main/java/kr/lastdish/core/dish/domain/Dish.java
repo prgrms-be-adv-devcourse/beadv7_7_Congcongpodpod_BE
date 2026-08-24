@@ -99,7 +99,7 @@ public class Dish {
     return dish;
   }
 
-  public void update(
+  public Dish replace(
       String dishName,
       LocalDateTime registeredAt,
       String description,
@@ -107,13 +107,22 @@ public class Dish {
       BigDecimal discountPrice,
       LocalTime pickupStartTime,
       LocalTime pickupEndTime) {
-    this.dishName = dishName;
-    this.registeredAt = registeredAt;
-    this.description = description;
-    this.dishPrice = dishPrice;
-    this.discountPrice = discountPrice;
-    this.pickupStartTime = pickupStartTime;
-    this.pickupEndTime = pickupEndTime;
+    Dish replacement =
+        create(
+            storeId,
+            dishName,
+            registeredAt,
+            description,
+            category,
+            thumbnailUrl,
+            stockQuantity,
+            dishPrice,
+            discountPrice,
+            pickupStartTime,
+            pickupEndTime);
+    replacement.dishStatus = dishStatus;
+    delete();
+    return replacement;
   }
 
   public void updateStatus(DishStatus dishStatus) {

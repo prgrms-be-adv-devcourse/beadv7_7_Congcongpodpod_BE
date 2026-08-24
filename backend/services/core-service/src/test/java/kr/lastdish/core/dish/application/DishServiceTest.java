@@ -21,7 +21,7 @@ import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
 import kr.lastdish.core.dish.domain.DishStatus;
-import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishCreatedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishUpdatedEvent;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
@@ -69,9 +69,18 @@ class DishServiceTest {
     DishResponse response = dishService.updateDish(10L, request);
 
     // then
+    ArgumentCaptor<Dish> dishCaptor = ArgumentCaptor.forClass(Dish.class);
+    verify(dishRepository).save(dishCaptor.capture());
+
+    Dish replacement = dishCaptor.getValue();
+    assertThat(replacement).isNotSameAs(dish);
+    assertThat(dish.getIsDeleted()).isTrue();
+    assertThat(replacement.getIsDeleted()).isFalse();
+    assertThat(replacement.getStoreId()).isEqualTo(dish.getStoreId());
+    assertThat(replacement.getStockQuantity()).isEqualTo(1L);
     assertThat(response.stockQuantity()).isEqualTo(1L);
     verify(outboxEventWriter, never()).append(any(DishStateChangedEvent.class));
-    verify(outboxEventWriter).append(any(DishUpdatedEvent.class));
+    verify(outboxEventWriter).append(any(DishCreatedEvent.class));
   }
 
   @Test
@@ -90,11 +99,11 @@ class DishServiceTest {
     // then
     assertThat(response.stockQuantity()).isEqualTo(10L);
     verify(outboxEventWriter, never()).append(any(DishStateChangedEvent.class));
-    verify(outboxEventWriter).append(any(DishUpdatedEvent.class));
+    verify(outboxEventWriter).append(any(DishCreatedEvent.class));
   }
 
   @Test
-  void 할인_가격만_변경되면_Dish_가격_이벤트를_기록한다() {
+  void 상품_정보를_수정하면_새_Dish에_변경값을_반영한다() {
     // given
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
@@ -112,80 +121,14 @@ class DishServiceTest {
             LocalTime.of(18, 0),
             LocalTime.of(19, 0));
 
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
     // when
     dishService.updateDish(10L, request);
 
     // then
-    List<DomainEvent> events = captureEvents(eventCaptor);
-    DishPriceChangedEvent event = findEvent(events, DishPriceChangedEvent.class);
-
-    assertThat(event.dishId()).isEqualTo(10L);
-    assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.payload().dishPrice()).isEqualByComparingTo("10000");
-    assertThat(event.payload().unitPrice()).isEqualByComparingTo("7000");
-    assertThat(event.schemaVersion()).isEqualTo(DishPriceChangedEvent.SCHEMA_VERSION);
-    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
-  }
-
-  @Test
-  void 정가만_변경돼도_Dish_가격_이벤트를_기록한다() {
-    // given — 가격 변경 사실은 전파하되 Cart에 저장된 사용자 확인 가격은 덮어쓰지 않는다.
-    Dish dish = createDish(10L);
-    ReflectionTestUtils.setField(dish, "id", 10L);
-
-    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
-
-    DishUpdateRequest request =
-        new DishUpdateRequest(
-            10L,
-            "김치찌개",
-            LocalDateTime.now(),
-            "상품 설명",
-            BigDecimal.valueOf(12_000),
-            BigDecimal.ZERO,
-            LocalTime.of(18, 0),
-            LocalTime.of(19, 0));
-
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
-    // when
-    dishService.updateDish(10L, request);
-
-    // then
-    List<DomainEvent> events = captureEvents(eventCaptor);
-    DishPriceChangedEvent event = findEvent(events, DishPriceChangedEvent.class);
-
-    assertThat(event.payload().dishPrice()).isEqualByComparingTo("12000");
-    assertThat(event.payload().unitPrice()).isEqualByComparingTo("0");
-    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
-  }
-
-  @Test
-  void 정가와_판매가가_모두_그대로면_Dish_가격_이벤트를_기록하지_않는다() {
-    // given
-    Dish dish = createDish(10L);
-    ReflectionTestUtils.setField(dish, "id", 10L);
-
-    when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
-
-    DishUpdateRequest request =
-        new DishUpdateRequest(
-            10L,
-            "김치찌개",
-            LocalDateTime.now(),
-            "상품 설명",
-            BigDecimal.valueOf(10_000),
-            BigDecimal.ZERO,
-            LocalTime.of(18, 0),
-            LocalTime.of(19, 0));
-
-    // when
-    dishService.updateDish(10L, request);
-
-    // then
-    verify(outboxEventWriter, never()).append(any(DishPriceChangedEvent.class));
+    ArgumentCaptor<Dish> dishCaptor = ArgumentCaptor.forClass(Dish.class);
+    verify(dishRepository).save(dishCaptor.capture());
+    assertThat(dishCaptor.getValue().getDiscountPrice()).isEqualByComparingTo("7000");
+    verify(outboxEventWriter).append(any(DishCreatedEvent.class));
   }
 
   @Test

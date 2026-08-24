@@ -27,11 +27,6 @@ public class CoreKafkaTopicConfig {
   }
 
   @Bean
-  NewTopic dishPriceChangedTopic() {
-    return TopicBuilder.name(DishPriceChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
-  }
-
-  @Bean
   NewTopic dishCreatedTopic() {
     return TopicBuilder.name(DishCreatedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
