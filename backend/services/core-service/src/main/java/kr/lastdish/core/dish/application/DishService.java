@@ -100,6 +100,7 @@ public class DishService {
     dish.updateStatus(request.dishStatus());
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
 
     return DishResponse.from(dish);
   }
@@ -123,6 +124,7 @@ public class DishService {
     dish.decreaseStock(quantity);
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
   }
 
   @Transactional
@@ -137,6 +139,7 @@ public class DishService {
     dish.increaseStock(quantity);
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
   }
 
   @Transactional
@@ -149,6 +152,7 @@ public class DishService {
               Long stockQuantityBefore = dish.getStockQuantity();
               dish.closeSale();
               appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+              appendUpdatedEvent(dish);
             });
   }
 
@@ -284,7 +288,7 @@ public class DishService {
     DishUpdatedEvent event =
         new DishUpdatedEvent(
             UUID.randomUUID(),
-            DishCreatedEvent.SCHEMA_VERSION,
+            DishUpdatedEvent.SCHEMA_VERSION,
             dish.getId(),
             aggregateVersion,
             payload,
@@ -301,7 +305,7 @@ public class DishService {
     DishDeletedEvent event =
         new DishDeletedEvent(
             UUID.randomUUID(),
-            DishCreatedEvent.SCHEMA_VERSION,
+            DishDeletedEvent.SCHEMA_VERSION,
             dish.getId(),
             aggregateVersion,
             payload,

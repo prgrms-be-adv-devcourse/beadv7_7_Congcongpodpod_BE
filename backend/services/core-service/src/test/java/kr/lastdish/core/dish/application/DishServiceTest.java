@@ -3,7 +3,7 @@ package kr.lastdish.core.dish.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,13 +11,17 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
+import kr.lastdish.core.dish.domain.event.DishUpdatedEvent;
+import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,18 +67,14 @@ class DishServiceTest {
     dishService.updateDish(10L, request);
 
     // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    DomainEvent capturedEvent = eventCaptor.getValue();
-
-    assertThat(capturedEvent).isInstanceOf(DishStateChangedEvent.class);
-
-    DishStateChangedEvent event = (DishStateChangedEvent) capturedEvent;
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().available()).isFalse();
     assertThat(event.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
   }
 
   @Test
@@ -93,14 +93,14 @@ class DishServiceTest {
     dishService.updateDish(10L, request);
 
     // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().available()).isTrue();
     assertThat(event.payload().stockQuantity()).isEqualTo(5L);
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
   }
 
   @Test
@@ -129,17 +129,15 @@ class DishServiceTest {
     dishService.updateDish(10L, request);
 
     // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    assertThat(eventCaptor.getValue()).isInstanceOf(DishPriceChangedEvent.class);
-
-    DishPriceChangedEvent event = (DishPriceChangedEvent) eventCaptor.getValue();
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishPriceChangedEvent event = findEvent(events, DishPriceChangedEvent.class);
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().dishPrice()).isEqualByComparingTo("10000");
     assertThat(event.payload().unitPrice()).isEqualByComparingTo("7000");
     assertThat(event.schemaVersion()).isEqualTo(DishPriceChangedEvent.SCHEMA_VERSION);
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
   }
 
   @Test
@@ -168,14 +166,12 @@ class DishServiceTest {
     dishService.updateDish(10L, request);
 
     // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    assertThat(eventCaptor.getValue()).isInstanceOf(DishPriceChangedEvent.class);
-
-    DishPriceChangedEvent event = (DishPriceChangedEvent) eventCaptor.getValue();
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishPriceChangedEvent event = findEvent(events, DishPriceChangedEvent.class);
 
     assertThat(event.payload().dishPrice()).isEqualByComparingTo("12000");
     assertThat(event.payload().unitPrice()).isEqualByComparingTo("0");
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
   }
 
   @Test
@@ -203,6 +199,7 @@ class DishServiceTest {
 
     // then
     verify(outboxEventWriter, never()).append(any(DishPriceChangedEvent.class));
+    verify(outboxEventWriter).append(any(DishUpdatedEvent.class));
   }
 
   @Test
@@ -219,9 +216,8 @@ class DishServiceTest {
     String imageKey = dishService.deleteDish(10L);
 
     // then
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
 
     assertThat(event.dishId()).isEqualTo(10L);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
@@ -270,12 +266,40 @@ class DishServiceTest {
     // then
     ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
-    then(outboxEventWriter).should().append(eventCaptor.capture());
-
-    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
 
     assertThat(event.payload().available()).isTrue();
     assertThat(event.payload().stockQuantity()).isEqualTo(5L);
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
+  }
+
+  @Test
+  void 재고가_증가하면_Dish_수정_이벤트를_기록한다() {
+    Dish dish = createDish(5L);
+    ReflectionTestUtils.setField(dish, "id", 10L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).willReturn(dish);
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    dishService.increaseStock(10L, 5L);
+
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    assertThat(events).anyMatch(DishStateChangedEvent.class::isInstance);
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
+  }
+
+  @Test
+  void 판매_상태가_변경되면_Dish_수정_이벤트를_기록한다() {
+    Dish dish = createDish(10L);
+    ReflectionTestUtils.setField(dish, "id", 10L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).willReturn(dish);
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    dishService.updateDishStatus(10L, new DishStatusRequest(DishStatus.SOLD_OUT));
+
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    assertThat(events).anyMatch(DishStateChangedEvent.class::isInstance);
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
   }
 
   @Test
@@ -289,10 +313,23 @@ class DishServiceTest {
 
     assertThat(dish.getStockQuantity()).isZero();
     assertThat(dish.getDishStatus()).isEqualTo(kr.lastdish.core.dish.domain.DishStatus.SOLD_OUT);
-    verify(outboxEventWriter).append(eventCaptor.capture());
-
-    DishStateChangedEvent event = (DishStateChangedEvent) eventCaptor.getValue();
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
     assertThat(event.payload().available()).isFalse();
     assertThat(event.payload().stockQuantity()).isZero();
+    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
+  }
+
+  private List<DomainEvent> captureEvents(ArgumentCaptor<DomainEvent> eventCaptor) {
+    verify(outboxEventWriter, atLeastOnce()).append(eventCaptor.capture());
+    return eventCaptor.getAllValues();
+  }
+
+  private <T extends DomainEvent> T findEvent(List<DomainEvent> events, Class<T> eventType) {
+    return events.stream()
+        .filter(eventType::isInstance)
+        .map(eventType::cast)
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("발행되지 않은 이벤트: " + eventType.getSimpleName()));
   }
 }
