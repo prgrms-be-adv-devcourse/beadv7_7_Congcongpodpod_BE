@@ -62,7 +62,7 @@ public class StoreService {
 
     // 매장 생성 후 검색 문서 갱신을 위한 이벤트 발행
     //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendCreatedEvent(savedStore);
+    appendCreatedEvent(savedStore);
 
     return StoreResult.from(savedStore);
   }
@@ -91,7 +91,7 @@ public class StoreService {
     store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
     //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendChangedEvent(store);
+    appendChangedEvent(store);
 
     return StoreResult.from(store);
   }
@@ -103,7 +103,7 @@ public class StoreService {
     store.changeStatus(status);
 
     //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendStatusChangedEvent(store);
+    appendStatusChangedEvent(store);
 
     return StoreResult.from(store);
   }
@@ -118,7 +118,7 @@ public class StoreService {
     payoutAccountRepository.deleteByStoreId(storeId);
 
     //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendDeletedEvent(store);
+    appendDeletedEvent(store);
   }
 
   // 이벤트를 발행하는 변경 메서드용 — 행 잠금으로 eventVersion 경합을 막고 소유권을 검증한다.

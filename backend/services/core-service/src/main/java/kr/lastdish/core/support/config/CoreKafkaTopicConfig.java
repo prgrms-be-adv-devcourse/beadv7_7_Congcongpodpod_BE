@@ -32,9 +32,6 @@ public class CoreKafkaTopicConfig {
     return TopicBuilder.name(DishPriceChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
 
-  /*
-  아래 토픽은 리스너 구현 시 주석을 해제한다.
-
   @Bean
   NewTopic storeCreatedTopic() {
     return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreCreatedEvent.EVENT_TYPE)
@@ -74,7 +71,6 @@ public class CoreKafkaTopicConfig {
         .replicas(1)
         .build();
   }
-  */
 
   @Bean
   NewTopic storeRegisteredTopic() {
