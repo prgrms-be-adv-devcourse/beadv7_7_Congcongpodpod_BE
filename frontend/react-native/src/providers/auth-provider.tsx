@@ -1,6 +1,7 @@
 import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { clearSession, getMyProfile, login, loginWithKakao, refreshSessionTokens, restoreSession, withdrawAccount, type Member } from '@/lib/auth';
+import { resetGlobalLoading } from '@/lib/app-overlay';
 
 type AuthContextValue = {
   member: Member | null;
@@ -35,13 +36,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await clearSession();
-    setMember(null);
+    try {
+      await clearSession();
+      setMember(null);
+    } finally {
+      resetGlobalLoading();
+    }
   }, []);
 
   const withdraw = useCallback(async () => {
-    await withdrawAccount();
-    setMember(null);
+    try {
+      await withdrawAccount();
+      setMember(null);
+    } finally {
+      resetGlobalLoading();
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => setMember(await getMyProfile()), []);

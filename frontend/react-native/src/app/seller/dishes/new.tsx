@@ -1,5 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -9,6 +10,7 @@ import { colors, fonts, radius } from '@/constants/theme';
 import { classifyFoodImage, FoodImageTooLargeError, type FoodAnalysisPhase, type FoodClassification } from '@/lib/ai';
 import { showAppAlert } from '@/lib/app-overlay';
 import { getDishImageSource } from '@/lib/food-image';
+import { getMyStores, registerDish } from '@/lib/seller';
 
 const defaultCategories = ['한식', '치킨', '중식', '분식', '카페·디저트', '패스트푸드'];
 type PriceInputMode = 'rate' | 'price';
@@ -43,6 +45,12 @@ function addMinutes(time: string, minutes: number) {
   return `${String(Math.floor(result / 60)).padStart(2, '0')}:${String(result % 60).padStart(2, '0')}`;
 }
 
+function localDateTime() {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 19);
+}
+
 export default function NewDish() {
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [classification, setClassification] = useState<FoodClassification | null>(null);
@@ -60,8 +68,14 @@ export default function NewDish() {
   const [pickupStart, setPickupStart] = useState('18:00');
   const [pickupEnd, setPickupEnd] = useState('20:00');
   const [analysisPhase, setAnalysisPhase] = useState<FoodAnalysisPhase>('preparing');
+  const [storeId, setStoreId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const analysisId = useRef(0);
   const analysisProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    void getMyStores().then(([store]) => setStoreId(store?.storeId ?? null)).catch(() => setStoreId(null));
+  }, []);
 
   useEffect(() => {
     if (!classifying) {
@@ -181,6 +195,37 @@ export default function NewDish() {
   const directPriceInvalid = priceInputMode === 'price' && directSalePrice.length > 0 && (roundedEnteredSalePrice <= 0 || roundedEnteredSalePrice >= originalPrice || actualDiscountRate + Number.EPSILON < minimumDiscountRate);
   const roundedPriceInvalid = priceInputMode === 'rate' && originalPrice > 0 && requestedDiscountRate >= minimumDiscountRate && actualDiscountRate + Number.EPSILON < minimumDiscountRate;
   const priceMissing = originalPrice <= 0 || (priceInputMode === 'rate' ? discountInput.length === 0 : directSalePrice.length === 0);
+  const requiredMissing = !image || !category || !dishName.trim() || !description.trim() || !storeId || !/^\d{2}:\d{2}$/.test(pickupStart) || !/^\d{2}:\d{2}$/.test(pickupEnd);
+
+  const submit = async () => {
+    if (submitting) return;
+    if (!storeId) return showAppAlert('매장을 확인하지 못했어요', '내 매장을 다시 확인한 뒤 시도해주세요.');
+    if (!image) return showAppAlert('상품 사진을 등록해주세요', '상품 생성에는 대표 사진이 필요해요.');
+    if (!category) return showAppAlert('카테고리를 확인해주세요', '사진 분석 결과 또는 직접 선택한 카테고리가 필요해요.');
+    if (!dishName.trim() || !description.trim()) return showAppAlert('상품 정보를 입력해주세요', '상품명과 상품 설명을 모두 작성해주세요.');
+    try {
+      setSubmitting(true);
+      await registerDish({
+        storeId,
+        dishName: dishName.trim(),
+        registeredAt: localDateTime(),
+        description: description.trim(),
+        category,
+        stockQuantity: quantity,
+        dishPrice: originalPrice,
+        discountPrice: discountedPrice,
+        pickupStartTime: pickupStart,
+        pickupEndTime: pickupEnd,
+      }, image);
+      showAppAlert('상품을 등록했어요', '상품 관리에서 판매 상태와 재고를 확인할 수 있어요.', [
+        { text: '확인', onPress: () => router.replace('/seller/dishes') },
+      ]);
+    } catch (error) {
+      showAppAlert('상품을 등록하지 못했어요', error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SellerShell back title="새 상품 등록" description="사진을 등록하면 AI가 어울리는 카테고리를 추천해드려요.">
@@ -202,9 +247,6 @@ export default function NewDish() {
         {classifying && (
           <View style={styles.recommendation}>
           <View style={styles.recommendationRow}>
-            <View style={styles.aiIcon}>
-              <Ionicons name="scan-outline" size={18} color={colors.green500} />
-            </View>
             <View style={styles.recommendationCopy}>
               <Text style={styles.recommendationEyebrow}>AI 카테고리 추천</Text>
               <Text style={styles.recommendationTitle}>{analysisMessages[analysisPhase].title}</Text>
@@ -217,7 +259,6 @@ export default function NewDish() {
         )}
         {!classifying && classification && (
           <View style={styles.categoryHeading}>
-            <View style={styles.categoryHeadingIcon}><Ionicons name="sparkles" size={16} color={colors.green700} /></View>
             <View style={styles.categoryHeadingCopy}>
               <Text style={styles.label}>AI 분석 완료 · {classification.predictedCategory}</Text>
               <Text style={styles.categoryDescription}>신뢰도 {Math.round(classification.confidence * 100)}% · 분석 결과로 카테고리가 자동 지정됐어요.</Text>
@@ -227,7 +268,6 @@ export default function NewDish() {
         {!classifying && analysisUnavailable && (
           <>
             <View style={styles.categoryHeading}>
-              <View style={styles.categoryHeadingIcon}><Ionicons name="create-outline" size={16} color={colors.green700} /></View>
               <View style={styles.categoryHeadingCopy}>
                 <Text style={styles.label}>{category ? `${category} 직접 선택됨` : '직접 카테고리를 선택해주세요'}</Text>
                 <Text style={styles.categoryDescription}>AI 분석을 완료하지 못해 이번 상품만 직접 지정할 수 있어요.</Text>
@@ -247,7 +287,6 @@ export default function NewDish() {
         )}
         {!classifying && !classification && !analysisUnavailable && (
           <View style={styles.categoryHeading}>
-            <View style={styles.categoryHeadingIcon}><Ionicons name="image-outline" size={16} color={colors.green700} /></View>
             <View style={styles.categoryHeadingCopy}>
               <Text style={styles.label}>사진 분석 후 카테고리가 지정돼요</Text>
               <Text style={styles.categoryDescription}>음식 사진을 등록하면 AI가 적합한 카테고리를 확인해요.</Text>
@@ -257,7 +296,7 @@ export default function NewDish() {
       </View>
 
       <View style={styles.formSection}>
-        <SectionHeader icon="restaurant-outline" title="상품 정보" description="고객이 한눈에 이해할 수 있게 간결하게 작성해주세요." />
+        <SectionHeader title="상품 정보" description="고객이 한눈에 이해할 수 있게 간결하게 작성해주세요." />
         <LabeledField label="상품명" value={dishName} onChangeText={setDishName} placeholder="예: 오늘의 닭갈비 도시락" maxLength={40} />
         <LabeledField label="상품 설명" value={description} onChangeText={setDescription} placeholder="구성, 알레르기 정보, 맛의 특징을 알려주세요." maxLength={160} multiline />
         <Text style={styles.characterCount}>{description.length}/160</Text>
@@ -265,7 +304,6 @@ export default function NewDish() {
 
       <View style={styles.formSection}>
         <SectionHeader
-          icon="pricetag-outline"
           title="가격 설정"
           description="할인율 또는 판매가로 입력할 수 있으며 최소 30% 할인이 필요해요."
           onInfo={() => showAppAlert(
@@ -298,7 +336,7 @@ export default function NewDish() {
       </View>
 
       <View style={styles.formSection}>
-        <SectionHeader icon="cube-outline" title="판매 수량" description="오늘 판매 가능한 수량만 등록해주세요." />
+        <SectionHeader title="판매 수량" description="오늘 판매 가능한 수량만 등록해주세요." />
         <View style={styles.quantityControl}>
           <Pressable accessibilityLabel="판매 수량 줄이기" onPress={() => setQuantity((value) => Math.max(1, value - 1))} style={styles.quantityButton}><Ionicons name="remove" size={22} color={colors.ink900}/></Pressable>
           <View style={styles.quantityValue}><Text style={styles.quantityNumber}>{quantity}</Text><Text style={styles.quantityUnit}>개</Text></View>
@@ -308,7 +346,7 @@ export default function NewDish() {
       </View>
 
       <View style={styles.formSection}>
-        <SectionHeader icon="time-outline" title="픽업 가능 시간" description="고객이 방문할 수 있는 시작과 마감 시간을 설정해주세요." />
+        <SectionHeader title="픽업 가능 시간" description="고객이 방문할 수 있는 시작과 마감 시간을 설정해주세요." />
         <View style={styles.fieldRow}>
           <View style={styles.flexField}><LabeledField label="픽업 시작" value={pickupStart} onChangeText={(value) => setPickupStart(formatTimeInput(value))} placeholder="18:00" keyboardType="number-pad" maxLength={5} /></View>
           <View style={styles.timeArrow}><Ionicons name="arrow-forward" size={16} color={colors.ink400}/></View>
@@ -317,7 +355,7 @@ export default function NewDish() {
         <View style={styles.quickRow}>{[[30, '30분'], [60, '1시간'], [120, '2시간']].map(([minutes, label]) => <Pressable key={minutes} onPress={() => setPickupEnd(addMinutes(pickupStart, Number(minutes)))} style={styles.quickButton}><Text style={styles.quickText}>시작 후 {label}</Text></Pressable>)}</View>
       </View>
 
-      <PrimaryButton label="상품 등록하기" disabled={priceMissing || discountInputInvalid || directPriceInvalid || roundedPriceInvalid} />
+      <PrimaryButton label={submitting ? '이미지 업로드 및 등록 중…' : '상품 등록하기'} disabled={submitting || requiredMissing || priceMissing || discountInputInvalid || directPriceInvalid || roundedPriceInvalid} onPress={() => void submit()} />
     </SellerShell>
   );
 }
@@ -335,7 +373,6 @@ const styles = StyleSheet.create({
   categoryPanelActive: { borderColor: colors.green500 },
   recommendation: { gap: 9, padding: 10, backgroundColor: colors.green50, borderRadius: radius.input },
   recommendationRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  aiIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderRadius: 19 },
   recommendationCopy: { flex: 1, gap: 2 },
   recommendationEyebrow: { color: colors.green700, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   recommendationTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
@@ -344,7 +381,6 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.green500, borderRadius: 2 },
   panelDivider: { height: 1, backgroundColor: colors.line },
   categoryHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  categoryHeadingIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.green50, borderRadius: 17 },
   categoryHeadingCopy: { flex: 1, gap: 2 },
   categoryDescription: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 },
   categoryList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -354,7 +390,6 @@ const styles = StyleSheet.create({
   categoryTextSelected: { color: colors.white },
   formSection: { padding: 14, gap: 12, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.card },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: colors.green50 },
   sectionCopy: { flex: 1, gap: 2 },
   sectionInfo: { width: 38, height: 38, marginRight: -8, alignItems: 'center', justifyContent: 'center', borderRadius: 19 },
   sectionInfoPressed: { backgroundColor: colors.canvas },
@@ -397,8 +432,8 @@ const styles = StyleSheet.create({
   timeArrow: { width: 22, height: 50, alignItems: 'center', justifyContent: 'center' },
 });
 
-function SectionHeader({ icon, title, description, onInfo }: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string; onInfo?: () => void }) {
-  return <View style={styles.sectionHeader}><View style={styles.sectionIcon}><Ionicons name={icon} size={18} color={colors.green700}/></View><View style={styles.sectionCopy}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionDescription}>{description}</Text></View>{onInfo ? <Pressable accessibilityHint="가격 반올림과 최소 할인 정책을 확인합니다" accessibilityLabel="가격 자동 보정 정책 안내" accessibilityRole="button" hitSlop={3} onPress={onInfo} style={({ pressed }) => [styles.sectionInfo, pressed && styles.sectionInfoPressed]}><Ionicons name="alert-circle-outline" size={22} color={colors.ink500}/></Pressable> : null}</View>;
+function SectionHeader({ title, description, onInfo }: { title: string; description: string; onInfo?: () => void }) {
+  return <View style={styles.sectionHeader}><View style={styles.sectionCopy}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionDescription}>{description}</Text></View>{onInfo ? <Pressable accessibilityHint="가격 반올림과 최소 할인 정책을 확인합니다" accessibilityLabel="가격 자동 보정 정책 안내" accessibilityRole="button" hitSlop={3} onPress={onInfo} style={({ pressed }) => [styles.sectionInfo, pressed && styles.sectionInfoPressed]}><Ionicons name="alert-circle-outline" size={22} color={colors.ink500}/></Pressable> : null}</View>;
 }
 
 function LabeledField({ label, multiline, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; maxLength?: number; multiline?: boolean; keyboardType?: 'default' | 'number-pad' }) {

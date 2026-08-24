@@ -1,6 +1,6 @@
 # Gateway
 
-외부 요청의 단일 진입점입니다. 요청 경로에 따라 Member/Core Service로 라우팅하고
+외부 요청의 단일 진입점입니다. 요청 경로에 따라 Member/Core Service로 라우팅하고 Payment/AI OpenAPI를 통합하며
 Access Token 검증과 역할 기반 접근 제어를 수행합니다.
 
 ## 로컬 주소
@@ -12,6 +12,8 @@ Access Token 검증과 역할 기반 접근 제어를 수행합니다.
 | Swagger UI (`local` 프로필) | `http://localhost:8080/swagger-ui/index.html` |
 | Member OpenAPI | `http://localhost:8080/openapi/member-service` |
 | Core OpenAPI | `http://localhost:8080/openapi/core-service` |
+| Payment OpenAPI | `http://localhost:8080/openapi/payment-service` |
+| AI OpenAPI | `http://localhost:8080/openapi/ai-service` |
 
 개별 API의 요청·응답 DTO와 세부 명세는 Swagger UI를 기준으로 확인합니다.
 
@@ -32,6 +34,11 @@ Access Token 검증과 역할 기반 접근 제어를 수행합니다.
 | `/api/v1/payments/**` | Core | 결제 |
 | `/api/v1/settlements/**` | Core | 정산 |
 | `/api/v1/deposits/**` | Core | 입금·예치금 |
+| `/api/v1/levels/**` | Core | 회원 등급 |
+| `/api/v1/points/**` | Core | 포인트 |
+| `/api/v1/favorites/**` | Core | 찜 |
+| `/api/v1/locations/**` | Core | 주소·좌표 변환 |
+| `/api/v1/notifications/**` | Member | 알림과 SSE |
 
 일반 API 경로는 변경하지 않고 대상 서비스로 전달합니다. 통합 문서 경로만 다음과 같이
 변환합니다.
@@ -40,6 +47,8 @@ Access Token 검증과 역할 기반 접근 제어를 수행합니다.
 |---|---|
 | `/openapi/member-service` | Member `/v3/api-docs` |
 | `/openapi/core-service` | Core `/v3/api-docs` |
+| `/openapi/payment-service` | Payment `/v3/api-docs` |
+| `/openapi/ai-service` | AI `/v3/api-docs` |
 
 ## 하위 서비스 타임아웃
 

@@ -17,6 +17,7 @@ TRUNCATE TABLE
     public.points,
     public.level_history,
     public.levels,
+    public.member_snapshots,
     public.dishes,
     public.store_holidays,
     public.store_payout_accounts,
@@ -26,6 +27,30 @@ TRUNCATE TABLE
     public.inbox_events,
     public.inbox_aggregate_versions
     RESTART IDENTITY CASCADE;
+
+-- member-service demo seed와 동일한 1~300번 회원의 주문용 스냅샷입니다.
+-- 서비스별 DB가 분리되어 있으므로 Core demo seed에서 명시적으로 동기화합니다.
+WITH name_parts AS (
+    SELECT
+        ARRAY['김','이','박','최','정','강','조','윤','장','임','한','오','서','신','권','황','안','송','전','홍'] AS surnames,
+        ARRAY['서준','서연','도윤','하윤','지호','지우','현우','민서','준서','수아',
+              '예준','하은','시우','윤서','주원','채원','민준','유진','지훈','은우',
+              '도현','서현','건우','예은','우진','소윤','준우','다은','현준','아린',
+              '지환','나윤','태윤','가은','승현','지원','시윤','다온','재윤','유나'] AS given_names
+)
+INSERT INTO public.member_snapshots (
+    member_id, name, phone, aggregate_version, is_deleted, updated_at
+)
+SELECT
+    member_no,
+    surnames[((((member_no * 137) % 800) / array_length(given_names, 1))::integer % array_length(surnames, 1)) + 1]
+        || given_names[(((member_no * 137) % 800)::integer % array_length(given_names, 1)) + 1],
+    '010-0000-' || lpad(member_no::text, 4, '0'),
+    0,
+    false,
+    current_timestamp
+FROM generate_series(1, 300) AS members(member_no)
+CROSS JOIN name_parts;
 
 CREATE TEMP TABLE demo_store_source (
     seed_id bigint PRIMARY KEY,
