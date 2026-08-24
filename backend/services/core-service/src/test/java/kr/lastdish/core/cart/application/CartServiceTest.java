@@ -14,7 +14,9 @@ import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.cart.domain.Cart;
 import kr.lastdish.core.cart.domain.CartItem;
 import kr.lastdish.core.cart.domain.CartItemRepository;
+import kr.lastdish.core.cart.domain.CartItemStatus;
 import kr.lastdish.core.cart.domain.CartRepository;
+import kr.lastdish.core.cart.presentation.dto.CartResponse;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.DishFacade;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,38 @@ class CartServiceTest {
   @Mock private CartItemRepository cartItemRepository;
   @Mock private DishFacade dishFacade;
   @InjectMocks private CartService cartService;
+
+  @Test
+  void 장바구니_조회시_Dish가_soft_delete되었으면_주문_불가능으로_응답한다() {
+    Long memberId = 1L;
+    Long cartId = 2L;
+    Long dishId = 10L;
+    Cart cart = org.mockito.Mockito.mock(Cart.class);
+    CartItem cartItem =
+        CartItem.create(
+            cartId,
+            dishId,
+            20L,
+            "김밥",
+            BigDecimal.valueOf(6_000),
+            BigDecimal.valueOf(5_000),
+            1L,
+            LocalTime.of(18, 0),
+            LocalTime.of(19, 0),
+            0L);
+
+    when(cart.getId()).thenReturn(cartId);
+    when(cart.getMemberId()).thenReturn(memberId);
+    when(cartRepository.findByMemberId(memberId)).thenReturn(Optional.of(cart));
+    when(cartItemRepository.findByCartId(cartId)).thenReturn(Optional.of(cartItem));
+    when(dishFacade.isDishDeleted(dishId)).thenReturn(true);
+
+    CartResponse response = cartService.getCartByMemberId(memberId);
+
+    assertThat(response.items()).hasSize(1);
+    assertThat(response.items().getFirst().status()).isEqualTo(CartItemStatus.DISH_UNAVAILABLE);
+    assertThat(response.items().getFirst().orderable()).isFalse();
+  }
 
   @Test
   void Dish_가격_버전이_일치하고_주문_가능하면_검증된_스냅샷을_반환한다() {
