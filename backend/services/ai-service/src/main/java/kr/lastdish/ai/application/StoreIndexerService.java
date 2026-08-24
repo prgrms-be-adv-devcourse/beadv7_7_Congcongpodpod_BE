@@ -282,6 +282,7 @@ public class StoreIndexerService {
     NativeQuery query =
         NativeQuery.builder()
             .withQuery(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field("vector")))))
+            .withPageable(org.springframework.data.domain.PageRequest.of(0, 500))
             .build();
 
     SearchHits<StoreDocument> hits = elasticsearchOperations.search(query, StoreDocument.class);
