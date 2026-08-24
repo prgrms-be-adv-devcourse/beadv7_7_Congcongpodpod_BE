@@ -54,8 +54,11 @@ export function buildStressScenarioOptions(campaignDay) {
         stages: [
           { duration: '5m', target: rates[flow] },
           { duration: '10m', target: rates[flow] },
+          { duration: '0s', target: RECOVERY_RATES[flow] },
           { duration: '10m', target: RECOVERY_RATES[flow] },
+          { duration: '0s', target: rates[flow] },
           { duration: '3m', target: rates[flow] },
+          { duration: '0s', target: RECOVERY_RATES[flow] },
           { duration: '12m', target: RECOVERY_RATES[flow] },
         ],
         gracefulStop: '10m',

@@ -609,12 +609,23 @@ export default function () {
           JSON.stringify([12, 4, 4, 2])
       );
     },
-    '각 스트레스 시나리오는 40분 뒤 신규 반복을 중단': () => {
+    '스트레스는 즉시 회복 전환과 재급증 뒤 40분에 신규 반복을 중단': () => {
       const scenarios = buildStressScenarioOptions(1);
       return Object.values(scenarios).every(
         (scenario) =>
           JSON.stringify(scenario.stages.map((stage) => stage.duration)) ===
-            JSON.stringify(['5m', '10m', '10m', '3m', '12m']) &&
+            JSON.stringify(['5m', '10m', '0s', '10m', '0s', '3m', '0s', '12m']) &&
+          JSON.stringify(scenario.stages.map((stage) => stage.target)) ===
+            JSON.stringify([
+              scenario.stages[0].target,
+              scenario.stages[0].target,
+              scenario.stages[2].target,
+              scenario.stages[2].target,
+              scenario.stages[0].target,
+              scenario.stages[0].target,
+              scenario.stages[2].target,
+              scenario.stages[2].target,
+            ]) &&
           scenario.gracefulStop === '10m',
       );
     },
