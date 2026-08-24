@@ -185,6 +185,9 @@ services:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: native
       CONFIG_NATIVE_SEARCH_LOCATIONS: file:/config
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in dev/.env}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
     volumes:
       - ./local/config-server/config:/config:ro
     # Main EC2 Deployment의 메모리 상한과 동일합니다.
@@ -348,6 +351,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required in dev/.env}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
       AI_ENGINE_URL: ${AI_ENGINE_URL:?AI_ENGINE_URL is required in dev/.env }
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in dev/.env}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
 
 
     depends_on:

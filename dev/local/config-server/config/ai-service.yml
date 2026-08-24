@@ -41,6 +41,16 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
+          temperature: 0.0
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
 
 event:
   publisher: ${EVENT_PUBLISHER:kafka}
@@ -71,15 +81,6 @@ swagger:
 ai:
   engine:
     url: ${AI_ENGINE_URL:https://mushily-hangup-smartness.ngrok-free.dev}
-  openai:
-    api-key: ${OPENAI_API_KEY}
-    chat:
-      options:
-        model: gpt-4o-mini #테스트 및 비용 절감용 경량 모델 사용
-        temperature: 0.0 # 조건 추출의 일관성을 위해 0으로 설정, 환각 방지
-    embedding:
-      options:
-        model: text-embedding-3-small
 
 services:
   core:
@@ -89,7 +90,3 @@ store:
   sync:
     scheduler:
       enabled: false #core에서 dish update 작업 후 활성화
-  openai:
-    api-key: ${OPENAI_API_KEY:}
-    embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
-    chat-model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
