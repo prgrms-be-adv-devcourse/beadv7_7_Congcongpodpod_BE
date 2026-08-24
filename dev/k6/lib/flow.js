@@ -83,9 +83,8 @@ function loadOrderList(session) {
   return calls;
 }
 
-// 구매 동선: 주변 매장 → 매장 상세 → 상품 상세 → 장바구니 → 주문 → 주문 목록.
-// 대기 1~6번이 여기에 있다.
-export function buyerPurchase(session, target) {
+// 조회·구매 흐름이 공유하는 RN 탐색 화면 순서다.
+function browseTarget(session, target) {
   const { storeId, dishId } = purchaseTargetOf(target);
 
   apiGet(
@@ -103,6 +102,20 @@ export function buyerPurchase(session, target) {
   apiGet('dish_detail', `/dishes/${dishId}`, session.token);
   apiGet('dish_detail_store', `/stores/${storeId}`, session.token);
   think(); // 3. 상품 수량 결정
+
+  return { storeId, dishId };
+}
+
+// 조회 동선: 주변 매장 → 매장 상세 → 상품 상세 → 주문 목록.
+export function buyerBrowse(session, target) {
+  browseTarget(session, target);
+  loadOrderList(session);
+}
+
+// 구매 동선: 주변 매장 → 매장 상세 → 상품 상세 → 장바구니 → 주문 → 주문 목록.
+// 대기 1~6번이 여기에 있다.
+export function buyerPurchase(session, target) {
+  const { dishId } = browseTarget(session, target);
 
   const added = dataOf(
     apiSend('cart_add', 'POST', `/carts/${session.cartId}/items`, session.token, { dishId, quantity: 1 }),

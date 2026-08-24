@@ -25,6 +25,11 @@ import {
 } from './lib/lifecycle.js';
 import { selectOldestNewReservedOrder } from './lib/order-selection.js';
 import {
+  buildDailyScenarioOptions,
+  partitionAccountsByVu,
+  selectWeightedTarget,
+} from './lib/operations-config.js';
+import {
   orderableTargetsAt,
   parseRunState,
   partitionSellerPools,
@@ -337,6 +342,122 @@ export default function () {
     },
     '판매자 풀 필요 계정이 상태보다 많으면 거절': () =>
       throwsContaining(() => partitionSellerPools(validState, 30, 11), '판매자 계정'),
+  });
+
+  check(null, {
+    '운영 유사 시간표는 네 ramping-vus 시나리오로 구성': () => {
+      try {
+        const scenarios = buildDailyScenarioOptions({ scheduleScale: 1, calibration: false });
+        return (
+          Object.keys(scenarios).length === 4 &&
+          Object.values(scenarios).every((scenario) => scenario.executor === 'ramping-vus')
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '조회 시간표는 즉시 전환하며 09시30분부터 450분 유지': () => {
+      try {
+        const stages = buildDailyScenarioOptions({ scheduleScale: 1, calibration: false }).browse
+          .stages;
+        const holds = stages.filter((stage) => stage.duration !== '0s');
+        return (
+          JSON.stringify(holds.map((stage) => stage.target)) === JSON.stringify([5, 8, 14, 8, 14]) &&
+          holds.reduce((sum, stage) => sum + Number(stage.duration.replace('s', '')), 0) === 27000 &&
+          stages.every((stage, index) => index % 2 === 1 || stage.duration === '0s')
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '단축 시간표는 전체 유지시간을 27초로 축소': () => {
+      try {
+        const stages = buildDailyScenarioOptions({ scheduleScale: 0.001, calibration: false }).purchase
+          .stages;
+        const totalSeconds = stages
+          .filter((stage) => stage.duration !== '0s')
+          .reduce((sum, stage) => sum + Number(stage.duration.replace('s', '')), 0);
+        return Math.abs(totalSeconds - 27) < 0.000001;
+      } catch (_) {
+        return false;
+      }
+    },
+    '캘리브레이션은 네 흐름을 각각 1 VU 1회 실행': () => {
+      try {
+        const scenarios = buildDailyScenarioOptions({ scheduleScale: 1, calibration: true });
+        return Object.values(scenarios).every(
+          (scenario) =>
+            scenario.executor === 'per-vu-iterations' && scenario.vus === 1 && scenario.iterations === 1,
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '캘리브레이션 판매자는 구매 주문 생성 뒤 시작': () => {
+      try {
+        const scenarios = buildDailyScenarioOptions({ scheduleScale: 1, calibration: true });
+        return scenarios.purchase.startTime === '0s' && scenarios.seller.startTime === '30s';
+      } catch (_) {
+        return false;
+      }
+    },
+  });
+
+  const weightedTargets = Array.from({ length: 10 }, (_, index) => ({
+    key: `target-${String(index + 1).padStart(2, '0')}`,
+    storeId: index + 1,
+    dishId: index + 101,
+  }));
+  check(null, {
+    '인기 20퍼센트는 난수 0부터 0.60 구간에서 선택': () => {
+      try {
+        return (
+          selectWeightedTarget(weightedTargets, 0).storeId === 1 &&
+          selectWeightedTarget(weightedTargets, 0.599999).storeId === 2
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '일반 50퍼센트는 난수 0.60부터 0.95 구간에서 선택': () => {
+      try {
+        return (
+          selectWeightedTarget(weightedTargets, 0.6).storeId === 3 &&
+          selectWeightedTarget(weightedTargets, 0.949999).storeId === 7
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '비인기 30퍼센트는 난수 0.95부터 1 구간에서 선택': () => {
+      try {
+        return (
+          selectWeightedTarget(weightedTargets, 0.95).storeId === 8 &&
+          selectWeightedTarget(weightedTargets, 0.999999).storeId === 10
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '난수 범위를 벗어나면 대상 선택 거절': () =>
+      throwsContaining(() => selectWeightedTarget(weightedTargets, 1), '난수'),
+  });
+
+  check(null, {
+    '판매자 계정을 VU별 겹치지 않는 묶음으로 분배': () => {
+      try {
+        const groups = partitionAccountsByVu(weightedTargets, 3);
+        const flattened = groups.flat();
+        return (
+          JSON.stringify(groups.map((group) => group.length)) === JSON.stringify([4, 3, 3]) &&
+          new Set(flattened.map((target) => target.storeId)).size === 10
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '계정보다 많은 VU 묶음은 거절': () =>
+      throwsContaining(() => partitionAccountsByVu(weightedTargets, 11), '계정'),
   });
   check(null, {
     '회원 역할이 SELLER가 아니면 생애주기 결과 거절': () =>
