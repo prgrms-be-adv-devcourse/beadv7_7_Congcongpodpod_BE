@@ -85,7 +85,8 @@ public class SettlementEventService {
     } catch (Exception exception) {
       String failureReason = extractFailureReason(exception);
 
-      // Accumulating -> Processing 전환 중 오류 시 Accumulating 상태로 남음, 상태 변경 시 오류 발생 해소 (누적 중 상태는 failed 처리 불가)
+      // Accumulating -> Processing 전환 중 오류 시 Accumulating 상태로 남음, 상태 변경 시 오류 발생 해소 (누적 중 상태는 failed
+      // 처리 불가)
       saveFailureIfProcessing(settlement.getId(), failureReason);
 
       return SettlementProcessResult.failed(storeId, settlement.getId(), failureReason);
