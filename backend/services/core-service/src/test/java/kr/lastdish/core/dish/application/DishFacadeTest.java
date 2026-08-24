@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -58,6 +59,25 @@ class DishFacadeTest {
     inOrder.verify(dishService).validateCreateDish(request);
     inOrder.verify(dishImageService).confirmUpload(7L, 1L, request.imageKey());
     inOrder.verify(dishService).createDish(request, "dish/1/test.jpg");
+    assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void 이미지가_없으면_S3_호출_없이_Dish를_저장한다() {
+    DishCreateRequest request = createRequest(null);
+    DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
+    when(dishService.createDish(request, null)).thenReturn(expected);
+
+    DishResponse result = dishFacade.createDish(7L, request);
+
+    InOrder inOrder = inOrder(storeService, dishService);
+    inOrder.verify(storeService).validateSeller(1L, 7L);
+    inOrder
+        .verify(storeService)
+        .validateDishPickupTime(1L, request.pickupStartTime(), request.pickupEndTime());
+    inOrder.verify(dishService).validateCreateDish(request);
+    inOrder.verify(dishService).createDish(request, null);
+    verifyNoInteractions(dishImageService);
     assertThat(result).isSameAs(expected);
   }
 
@@ -162,13 +182,17 @@ class DishFacadeTest {
   }
 
   private DishCreateRequest createRequest() {
+    return createRequest("tmp/dish/1/test.jpg");
+  }
+
+  private DishCreateRequest createRequest(String imageKey) {
     return new DishCreateRequest(
         1L,
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
         "한식",
-        "tmp/dish/1/test.jpg",
+        imageKey,
         10L,
         BigDecimal.valueOf(10_000),
         BigDecimal.valueOf(7_000),

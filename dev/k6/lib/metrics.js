@@ -31,7 +31,6 @@ export const STEPS = [
   'order_pickup',
   'lifecycle_signup',
   'lifecycle_store_create',
-  'lifecycle_image_upload',
   'lifecycle_dish_create',
 ];
 

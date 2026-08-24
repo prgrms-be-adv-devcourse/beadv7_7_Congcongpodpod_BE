@@ -45,13 +45,26 @@ export function dataOf(response) {
   }
   try {
     const parsed = JSON.parse(response.body);
-    if (parsed && typeof parsed === 'object' && 'success' in parsed && 'data' in parsed) {
-      return parsed.data;
+    if (parsed && typeof parsed === 'object' && 'success' in parsed) {
+      if (parsed.success !== true) {
+        return null;
+      }
+      return 'data' in parsed ? parsed.data : null;
     }
     return parsed;
   } catch (_) {
     return null;
   }
+}
+
+// 원본 또는 ApiResponse 봉투 형태의 예치금 응답에서 숫자 잔액을 꺼낸다.
+export function depositBalanceOf(response) {
+  const data = dataOf(response);
+  if (!data || data.balance === null || data.balance === undefined) {
+    return null;
+  }
+  const balance = Number(data.balance);
+  return Number.isFinite(balance) ? balance : null;
 }
 
 // ApiResponse 오류 봉투에서 분류용 error.code만 안전하게 꺼낸다.
