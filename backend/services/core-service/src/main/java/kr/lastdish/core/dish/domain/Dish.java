@@ -9,11 +9,14 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "dishes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class Dish {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -61,6 +64,10 @@ public class Dish {
   /** Dish Aggregate에서 생성되는 도메인 이벤트의 순서입니다. */
   @Column(name = "event_version", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
   private long aggregateVersion;
+
+  @Column(nullable = false)
+  @LastModifiedDate
+  private LocalDateTime updatedAt;
 
   public static Dish create(
       Long storeId,

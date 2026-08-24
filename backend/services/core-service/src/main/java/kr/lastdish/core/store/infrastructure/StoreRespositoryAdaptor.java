@@ -96,4 +96,9 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   public List<Long> findStoreIdsReadyToClose(LocalDateTime now) {
     return storeJpaRepository.findStoreIdsReadyToClose(now);
   }
+
+  @Override
+  public List<Store> findRenewalTargets(LocalDateTime from, LocalDateTime to) {
+    return storeJpaRepository.findRenewalTargets(from, to);
+  }
 }

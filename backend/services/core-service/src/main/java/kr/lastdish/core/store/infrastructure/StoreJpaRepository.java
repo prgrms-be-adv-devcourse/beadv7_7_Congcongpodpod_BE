@@ -83,4 +83,19 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
       ORDER BY store.id
       """)
   List<Long> findStoreIdsReadyToClose(@Param("now") LocalDateTime now);
+
+  @Query(
+      value =
+          """
+          SELECT DISTINCT s.*
+          FROM stores s
+          LEFT JOIN dishes d
+            ON d.store_id = s.store_id
+           AND d.is_deleted = false
+          WHERE (s.updated_at >= :from AND s.updated_at < :to)
+             OR (d.updated_at >= :from AND d.updated_at < :to)
+          ORDER BY s.store_id
+          """,
+      nativeQuery = true)
+  List<Store> findRenewalTargets(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

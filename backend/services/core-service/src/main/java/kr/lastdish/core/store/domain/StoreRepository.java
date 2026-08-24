@@ -40,4 +40,6 @@ public interface StoreRepository {
   List<Long> findAllActiveStoreIds();
 
   List<Long> findStoreIdsReadyToClose(LocalDateTime now);
+
+  List<Store> findRenewalTargets(LocalDateTime from, LocalDateTime to);
 }
