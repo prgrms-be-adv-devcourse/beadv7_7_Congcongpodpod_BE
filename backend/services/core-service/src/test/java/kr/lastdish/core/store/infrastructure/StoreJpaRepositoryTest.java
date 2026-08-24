@@ -2,10 +2,13 @@ package kr.lastdish.core.store.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import kr.lastdish.core.dish.domain.Dish;
+import kr.lastdish.core.dish.infrastructure.DishJpaRepository;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 class StoreJpaRepositoryTest {
 
   @Autowired private StoreJpaRepository storeJpaRepository;
+  @Autowired private DishJpaRepository dishJpaRepository;
+  @Autowired private EntityManager entityManager;
 
   @Test
   void 마감_정각과_마감_시간이_지난_매장만_마감_대상으로_조회한다() {
@@ -54,6 +59,39 @@ class StoreJpaRepositoryTest {
     assertThat(storeJpaRepository.findByIdAndDeletedFalse(store.getId())).isEmpty();
   }
 
+  @Test
+  void Store나_Dish가_기간_내_변경되면_Dish가_없는_매장도_갱신_대상에_포함한다() {
+    LocalDateTime from = LocalDateTime.of(2026, 8, 22, 22, 0);
+    LocalDateTime to = from.plusMinutes(1);
+    Store changedStore = storeJpaRepository.saveAndFlush(store("777-77-77777", from.plusHours(1)));
+    Store dishChangedStore =
+        storeJpaRepository.saveAndFlush(store("888-88-88888", from.plusHours(1)));
+    Dish dish = dishJpaRepository.saveAndFlush(dish(dishChangedStore.getId()));
+
+    entityManager
+        .createNativeQuery("UPDATE stores SET updated_at = :updatedAt WHERE store_id = :storeId")
+        .setParameter("updatedAt", from)
+        .setParameter("storeId", changedStore.getId())
+        .executeUpdate();
+    entityManager
+        .createNativeQuery("UPDATE stores SET updated_at = :updatedAt WHERE store_id = :storeId")
+        .setParameter("updatedAt", from.minusMinutes(1))
+        .setParameter("storeId", dishChangedStore.getId())
+        .executeUpdate();
+    entityManager
+        .createNativeQuery("UPDATE dishes SET updated_at = :updatedAt WHERE id = :dishId")
+        .setParameter("updatedAt", from.plusSeconds(30))
+        .setParameter("dishId", dish.getId())
+        .executeUpdate();
+    entityManager.clear();
+
+    List<Store> result = storeJpaRepository.findRenewalTargets(from, to);
+
+    assertThat(result)
+        .extracting(Store::getId)
+        .containsExactly(changedStore.getId(), dishChangedStore.getId());
+  }
+
   private Store store(String businessNumber, LocalDateTime nextClosingAt) {
     Store store =
         new Store(
@@ -71,5 +109,20 @@ class StoreJpaRepositoryTest {
             LocalDateTime.of(2026, 8, 10, 12, 0));
     ReflectionTestUtils.setField(store, "nextClosingAt", nextClosingAt);
     return store;
+  }
+
+  private Dish dish(Long storeId) {
+    return Dish.create(
+        storeId,
+        "테스트 상품",
+        LocalDateTime.of(2026, 8, 22, 18, 0),
+        "상품 설명",
+        "한식",
+        null,
+        10L,
+        BigDecimal.valueOf(10_000),
+        BigDecimal.valueOf(7_000),
+        LocalTime.of(18, 0),
+        LocalTime.of(20, 0));
   }
 }
