@@ -26,6 +26,7 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
 
 @Slf4j
 @Service
@@ -46,14 +47,27 @@ public class StoreIndexerService {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
 
-    coreInternalApiClient
-        .fetchStoreRenewalData(storeId)
-        .ifPresentOrElse(
+    StopWatch stopWatch = new StopWatch("StoreIndexRenewal-" + storeId);
+
+    stopWatch.start("1. Core API 가게 정보 조회");
+    var storeDataOpt = coreInternalApiClient.fetchStoreRenewalData(storeId);
+    stopWatch.stop();
+
+    storeDataOpt.ifPresentOrElse(
             response -> {
+              stopWatch.start("2. 기존 문서 조회");
               StoreDocument existing = repository.findById(storeId).orElse(null);
+              stopWatch.stop();
+
+              stopWatch.start("3. 임베딩 및 Document 매핑");
               StoreDocument document = mapToDocument(response, existing, eventType);
+              stopWatch.stop();
+
+              stopWatch.start("4. ES 색인 저장 (Save)");
               repository.save(document);
-              log.info("Store 색인 갱신 완료. storeId={}", storeId);
+              stopWatch.stop();
+
+              log.info("Store 단건 색인 갱신 완료. storeId={}\n{}", storeId, stopWatch.prettyPrint());
             },
             () -> {
               deleteStoreIndex(storeId);
@@ -190,7 +204,20 @@ public class StoreIndexerService {
     }
   }
 
+  public void indexTestStoresBulk(List<TestStoreIndexRequest> requests) {
+    if (requests == null || requests.isEmpty()) {
+      return;
+    }
+
+    for (TestStoreIndexRequest request : requests) {
+      indexTestStore(request);
+    }
+  }
+
   public void indexTestStore(TestStoreIndexRequest req) {
+    StopWatch stopWatch = new StopWatch("TestStoreSingleIndexing-" + req.storeId());
+    stopWatch.start("1. 텍스트 조립");
+
     StringBuilder textBuilder = new StringBuilder();
     textBuilder.append("가게: ").append(req.storeName()).append(" ");
 
@@ -224,8 +251,13 @@ public class StoreIndexerService {
                 .toList();
 
     String embeddingText = textBuilder.toString();
-    List<Float> vectorList = embeddingService.getEmbeddingList(embeddingText);
+    stopWatch.stop();
 
+    stopWatch.start("2. OpenAI 임베딩 생성 (API 통신)");
+    List<Float> vectorList = embeddingService.getEmbeddingList(embeddingText);
+    stopWatch.stop();
+
+    stopWatch.start("3. ES Document 생성 및 Save");
     StoreDocument document =
         StoreDocument.builder()
             .storeId(req.storeId())
@@ -242,7 +274,8 @@ public class StoreIndexerService {
             .build();
 
     repository.save(document);
-    log.info("[TEST] Store 색인 완료. storeId={}", req.storeId());
+    stopWatch.stop();
+    log.info("[TEST] Store 색인 완료. storeId={}\n{}", req.storeId(), stopWatch.prettyPrint());
   }
 
   public void retryFailedEmbeddings() {
