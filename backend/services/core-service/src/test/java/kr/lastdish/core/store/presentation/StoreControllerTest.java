@@ -141,6 +141,7 @@ class StoreControllerTest {
             storeName,
             "business-" + memberId,
             "서울시 테스트 주소",
+            "명정빌딩",
             "010-0000-000" + memberId,
             LocalTime.of(9, 0),
             LocalTime.of(22, 0),
