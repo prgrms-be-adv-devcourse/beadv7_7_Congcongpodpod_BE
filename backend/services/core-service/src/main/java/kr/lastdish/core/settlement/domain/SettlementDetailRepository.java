@@ -9,6 +9,8 @@ public interface SettlementDetailRepository {
 
   List<SettlementDetail> saveAll(List<SettlementDetail> settlementDetails);
 
+  void bulkInsert(List<SettlementDetail> settlementDetails);
+
   boolean existsByOrderId(Long orderId);
 
   Set<Long> findSettledOrderIds(Collection<Long> orderIds);

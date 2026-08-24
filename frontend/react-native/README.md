@@ -28,9 +28,9 @@ npm run web:build
 - `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`: 웹 네이버 지도 Client ID
 - `EXPO_PUBLIC_KAKAO_REST_API_KEY`: 카카오 REST API 키
 - `EXPO_PUBLIC_KAKAO_REDIRECT_URI`: 네이티브 카카오 Redirect URI
-- `EXPO_PUBLIC_KAKAO_WEB_REDIRECT_URI`: 웹 카카오 Redirect URI
+- `EXPO_PUBLIC_KAKAO_WEB_REDIRECT_URI`: 웹 카카오 Redirect URI. 백엔드와 동일한 URI를 사용합니다.
 
-네이버 Cloud Maps 애플리케이션의 Web 서비스 URL에 운영 도메인과 로컬 개발 주소를 등록해야 합니다. 카카오 개발자 콘솔에도 `EXPO_PUBLIC_KAKAO_WEB_REDIRECT_URI`와 동일한 Redirect URI를 등록해야 합니다.
+네이버 Cloud Maps 애플리케이션의 Web 서비스 URL에 운영 도메인과 로컬 개발 주소를 등록해야 합니다. 카카오 로그인은 앱·웹·백엔드가 동일한 Redirect URI를 사용하며, 카카오 개발자 콘솔에도 같은 URI를 등록해야 합니다.
 
 ## 플랫폼 분리
 

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { type PropsWithChildren, useEffect, useRef } from 'react';
 
 import { showInAppNotification } from '@/lib/app-overlay';
+import { canShowNotification, DEFAULT_NOTIFICATION_PREFERENCES, loadNotificationPreferences, subscribeNotificationPreferences } from '@/lib/notification-preferences';
 import { connectNotificationStream, notificationRoute, type ServerNotification } from '@/lib/notifications';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -13,14 +14,39 @@ const demoNotifications: ServerNotification[] = [
   { id: -2, type: 'PICKUP_READY', title: '픽업 준비가 완료됐어요', body: '주문 내역에서 픽업 코드를 확인해주세요.', linkTarget: 'ORDER', readYn: false, createdAt: '' },
   { id: -3, type: 'PICKED_UP', title: '픽업이 완료됐어요', body: '맛있는 한 끼를 구조했어요. 이용해주셔서 감사합니다.', linkTarget: 'ORDER', readYn: false, createdAt: '' },
 ];
+const knownNotificationTypes = new Set(['ORDER_ACCEPTED', 'PICKUP_READY', 'PICKED_UP', 'ORDER_CANCELLED', 'ORDER_REJECTED']);
+
+function readablePayload(data?: string | null) {
+  if (!data) return undefined;
+  try {
+    const parsed = JSON.parse(data) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return String(parsed);
+    return Object.entries(parsed as Record<string, unknown>).map(([key, value]) => `${key}: ${String(value)}`).join(' · ');
+  } catch {
+    return data;
+  }
+}
 
 function present(notification: ServerNotification) {
-  showInAppNotification(notification.title, notification.body, () => router.push(notificationRoute(notification) as never), notification.type);
+  const unknownType = !knownNotificationTypes.has(notification.type?.toUpperCase() ?? '');
+  const payload = readablePayload(notification.data);
+  const title = notification.title?.trim() || '새 알림이 도착했어요';
+  const message = unknownType
+    ? payload || notification.body?.trim() || '새로운 소식을 확인해주세요.'
+    : notification.body?.trim() || payload || '알림 내용을 확인해주세요.';
+  showInAppNotification(title, message, () => router.push(notificationRoute(notification) as never), notification.type, unknownType ? payload : undefined);
 }
 
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { member } = useAuth();
   const reconnectAttempt = useRef(0);
+  const preferences = useRef(DEFAULT_NOTIFICATION_PREFERENCES);
+
+  useEffect(() => {
+    const unsubscribe = subscribeNotificationPreferences(next => { preferences.current = next; });
+    void loadNotificationPreferences();
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!member) return;
@@ -32,7 +58,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       disconnect?.();
       disconnect = connectNotificationStream(notification => {
         reconnectAttempt.current = 0;
-        present(notification);
+        if (canShowNotification(preferences.current, notification.type)) present(notification);
       }, () => {
         if (disposed) return;
         const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt.current, RECONNECT_DELAYS.length - 1)];
@@ -54,7 +80,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     if (!member || !DEMO_ENABLED) return;
     let index = 0;
     const timer = setInterval(() => {
-      present(demoNotifications[index % demoNotifications.length]);
+      const notification = demoNotifications[index % demoNotifications.length];
+      if (canShowNotification(preferences.current, notification.type)) present(notification);
       index += 1;
     }, DEMO_INTERVAL_MS);
     return () => clearInterval(timer);

@@ -1,8 +1,10 @@
 package kr.lastdish.core.dish.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.dish.domain.Dish;
@@ -21,6 +24,7 @@ import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.domain.event.DishPriceChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishStateChangedEvent;
 import kr.lastdish.core.dish.domain.event.DishUpdatedEvent;
+import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +50,7 @@ class DishServiceTest {
   }
 
   @Test
-  void records_event_when_dish_becomes_unavailable() {
+  void 상품_정보를_수정해도_기존_재고를_유지한다() {
     // given
     Dish dish = createDish(1L);
 
@@ -59,48 +63,34 @@ class DishServiceTest {
 
     when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
-    DishUpdateRequest request = createUpdateRequest(0L);
-
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+    DishUpdateRequest request = createUpdateRequest();
 
     // when
-    dishService.updateDish(10L, request);
+    DishResponse response = dishService.updateDish(10L, request);
 
     // then
-    List<DomainEvent> events = captureEvents(eventCaptor);
-    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
-
-    assertThat(event.dishId()).isEqualTo(10L);
-    assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.payload().available()).isFalse();
-    assertThat(event.schemaVersion()).isEqualTo(DishStateChangedEvent.SCHEMA_VERSION);
-    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
+    assertThat(response.stockQuantity()).isEqualTo(1L);
+    verify(outboxEventWriter, never()).append(any(DishStateChangedEvent.class));
+    verify(outboxEventWriter).append(any(DishUpdatedEvent.class));
   }
 
   @Test
-  void records_event_when_stock_quantity_changes() {
+  void 상품_정보_수정은_Dish_상태_이벤트를_기록하지_않는다() {
     // given
     Dish dish = createDish(10L);
     ReflectionTestUtils.setField(dish, "id", 10L);
 
     when(dishRepository.findWithLockByIdAndIsDeletedFalse(10L)).thenReturn(dish);
 
-    DishUpdateRequest request = createUpdateRequest(5L);
-
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+    DishUpdateRequest request = createUpdateRequest();
 
     // when
-    dishService.updateDish(10L, request);
+    DishResponse response = dishService.updateDish(10L, request);
 
     // then
-    List<DomainEvent> events = captureEvents(eventCaptor);
-    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
-
-    assertThat(event.dishId()).isEqualTo(10L);
-    assertThat(event.aggregateVersion()).isEqualTo(1L);
-    assertThat(event.payload().available()).isTrue();
-    assertThat(event.payload().stockQuantity()).isEqualTo(5L);
-    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
+    assertThat(response.stockQuantity()).isEqualTo(10L);
+    verify(outboxEventWriter, never()).append(any(DishStateChangedEvent.class));
+    verify(outboxEventWriter).append(any(DishUpdatedEvent.class));
   }
 
   @Test
@@ -117,7 +107,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.valueOf(7_000),
             LocalTime.of(18, 0),
@@ -154,7 +143,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            10L,
             BigDecimal.valueOf(12_000),
             BigDecimal.ZERO,
             LocalTime.of(18, 0),
@@ -188,7 +176,6 @@ class DishServiceTest {
             "김치찌개",
             LocalDateTime.now(),
             "상품 설명",
-            10L,
             BigDecimal.valueOf(10_000),
             BigDecimal.ZERO,
             LocalTime.of(18, 0),
@@ -199,7 +186,6 @@ class DishServiceTest {
 
     // then
     verify(outboxEventWriter, never()).append(any(DishPriceChangedEvent.class));
-    verify(outboxEventWriter).append(any(DishUpdatedEvent.class));
   }
 
   @Test
@@ -240,13 +226,12 @@ class DishServiceTest {
         LocalTime.of(19, 0));
   }
 
-  private DishUpdateRequest createUpdateRequest(Long stockQuantity) {
+  private DishUpdateRequest createUpdateRequest() {
     return new DishUpdateRequest(
         10L,
         "김치찌개",
         LocalDateTime.now(),
         "상품 설명",
-        stockQuantity,
         BigDecimal.valueOf(10000),
         BigDecimal.ZERO,
         LocalTime.of(18, 0),
@@ -331,5 +316,41 @@ class DishServiceTest {
         .map(eventType::cast)
         .findFirst()
         .orElseThrow(() -> new AssertionError("발행되지 않은 이벤트: " + eventType.getSimpleName()));
+  }
+
+  @Test
+  void 재고_조정_delta가_양수면_재고를_늘린다() {
+    Dish dish = createDish(10L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+
+    DishResponse response = dishService.adjustStock(1L, 5L);
+
+    assertThat(response.stockQuantity()).isEqualTo(15L);
+    then(outboxEventWriter).should().append(any());
+  }
+
+  @Test
+  void 재고_조정_delta가_음수면_재고를_줄인다() {
+    Dish dish = createDish(10L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+
+    DishResponse response = dishService.adjustStock(1L, -4L);
+
+    assertThat(response.stockQuantity()).isEqualTo(6L);
+    then(outboxEventWriter).should().append(any());
+  }
+
+  @Test
+  void 재고_조정_delta가_0이면_예외를_던진다() {
+    assertThatThrownBy(() -> dishService.adjustStock(1L, 0L))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> {
+              assertThat(exception.getErrorCode().getCode()).isEqualTo("D008");
+              assertThat(exception.getMessage()).isEqualTo("재고 변경량은 0이 아니어야 합니다.");
+            });
+
+    then(dishRepository).shouldHaveNoInteractions();
+    then(outboxEventWriter).shouldHaveNoInteractions();
   }
 }

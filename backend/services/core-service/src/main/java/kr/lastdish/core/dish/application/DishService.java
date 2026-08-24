@@ -69,20 +69,15 @@ public class DishService {
     BigDecimal dishPriceBefore = dish.getDishPrice();
     BigDecimal unitPriceBefore = dish.getDiscountPrice();
 
-    boolean availableBefore = dish.isAvailable();
-    Long stockQuantityBefore = dish.getStockQuantity();
-
     dish.update(
         request.dishName(),
         request.registeredAt(),
         request.description(),
-        request.stockQuantity(),
         request.dishPrice(),
         request.discountPrice(),
         request.pickupStartTime(),
         request.pickupEndTime());
 
-    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendPriceEventIfChanged(dish, dishPriceBefore, unitPriceBefore);
     appendUpdatedEvent(dish);
 
@@ -101,6 +96,34 @@ public class DishService {
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendUpdatedEvent(dish);
+
+    return DishResponse.from(dish);
+  }
+
+  /**
+   * 판매자가 재고를 상대값(delta)으로 조정합니다.
+   *
+   * <p>Order 흐름의 {@link #increaseStock}/{@link #decreaseStock}과 달리, 판매자가 직접 입력한 증감분을 부호로 판단해 그중 하나로
+   * 위임합니다.
+   */
+  @Transactional
+  public DishResponse adjustStock(Long dishId, Long quantityDelta) {
+    if (quantityDelta == null || quantityDelta == 0) {
+      throw new BusinessException(ErrorCode.INVALID_STOCK_DELTA);
+    }
+
+    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+
+    boolean availableBefore = dish.isAvailable();
+    Long stockQuantityBefore = dish.getStockQuantity();
+
+    if (quantityDelta > 0) {
+      dish.increaseStock(quantityDelta);
+    } else {
+      dish.decreaseStock(-quantityDelta);
+    }
+
+    appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
 
     return DishResponse.from(dish);
   }
@@ -326,6 +349,12 @@ public class DishService {
             .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_FOUND));
 
     return DishResponse.from(dish);
+  }
+
+  public List<DishResponse> getDishesByStoreId(Long storeId) {
+    return dishRepository.findAllByStoreIdAndIsDeletedFalse(storeId).stream()
+        .map(DishResponse::from)
+        .toList();
   }
 
   // 검색 색인 재생성용 조회 — 상품 미등록 매장은 비어 있는 Optional을 반환한다.

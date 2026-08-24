@@ -13,7 +13,7 @@ export const colors = {
   green50: '#F0FFF6',
   green100: '#DDF9E9',
   green200: '#B4F0CC',
-  green300: '#62DD91',
+  green300: '#03C75A',
   green500: '#03C75A',
   green700: '#008F42',
   green900: '#005D2D',
@@ -28,7 +28,7 @@ export const colors = {
 } as const;
 
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
-export const radius = { control: 10, input: 12, card: 16, sheet: 22, pill: 999 } as const;
+export const radius = { control: 10, input: 12, card: 16, sheet: 22, navigation: 26, pill: 999 } as const;
 export const fonts = {
   body: Platform.select({ ios: 'Apple SD Gothic Neo', android: 'sans-serif', default: 'system-ui' }),
   fallback: Platform.select({ ios: 'Apple SD Gothic Neo', android: 'sans-serif', default: 'system-ui' }),

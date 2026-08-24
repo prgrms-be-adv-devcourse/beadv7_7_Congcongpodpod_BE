@@ -18,6 +18,8 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
 
   boolean existsByStoreIdAndIsDeletedFalse(Long storeId);
 
+  List<Dish> findAllByStoreIdAndIsDeletedFalseOrderByIdDesc(Long storeId);
+
   Optional<Dish> findByStoreIdAndIsDeletedFalse(Long storeId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -33,4 +35,15 @@ public interface DishJpaRepository extends JpaRepository<Dish, Long> {
     """)
   List<Dish> findOnSaleByStoreId(
       @Param("storeId") Long storeId, @Param("status") DishStatus status);
+
+  @Query(
+      """
+    SELECT d
+    FROM Dish d
+    WHERE d.storeId IN :storeIds
+        AND d.isDeleted = false
+        AND d.dishStatus = :status
+    """)
+  List<Dish> findOnSaleByStoreIds(
+      @Param("storeIds") List<Long> storeIds, @Param("status") DishStatus status);
 }

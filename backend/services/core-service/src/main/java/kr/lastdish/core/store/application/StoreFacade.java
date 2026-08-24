@@ -14,10 +14,8 @@ import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
 import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.NearbyStoreResult;
-import kr.lastdish.core.store.application.dto.RegisterStoreCommand;
 import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
-import kr.lastdish.core.store.application.port.out.SellerRoleGrantPort;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
@@ -36,15 +34,7 @@ public class StoreFacade {
   private final StoreService storeService;
   private final DishService dishService;
   private final StorePayoutAccountRepository storePayoutAccountRepository;
-  private final SellerRoleGrantPort sellerRoleGrantPort;
   private final StoreRepository storeRepository;
-
-  @Transactional
-  public StoreResult register(RegisterStoreCommand command) {
-    StoreResult result = storeService.register(command);
-    sellerRoleGrantPort.grantSellerRole(command.memberId());
-    return result;
-  }
 
   public void validateStoreOwner(Long storeId, Long memberId) {
     storeService.validateSeller(storeId, memberId);
@@ -104,6 +94,11 @@ public class StoreFacade {
   public DishResponse getMyDish(Long storeId, Long memberId) {
     storeService.getOwnedStore(storeId, memberId);
     return dishService.getDishByStoreId(storeId);
+  }
+
+  public List<DishResponse> getMyDishes(Long storeId, Long memberId) {
+    storeService.getOwnedStore(storeId, memberId);
+    return dishService.getDishesByStoreId(storeId);
   }
 
   // 검색 색인 재생성용 조회 — 매장 정보와 상품 정보를 합쳐 반환한다.

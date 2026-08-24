@@ -99,6 +99,7 @@ class StoreJpaRepositoryTest {
             "테스트 매장",
             businessNumber,
             "서울시 테스트 주소",
+            "명정빌딩",
             "02-0000-0000",
             LocalTime.of(9, 0),
             LocalTime.of(22, 0),

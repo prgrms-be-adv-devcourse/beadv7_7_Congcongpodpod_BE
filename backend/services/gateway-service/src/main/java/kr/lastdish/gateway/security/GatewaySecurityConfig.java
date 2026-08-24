@@ -65,7 +65,11 @@ public class GatewaySecurityConfig {
                         "/openapi/**")
                     .permitAll()
                     // Seller 본인 매장/상품 조회는 공개 조회 규칙보다 먼저 판단해 SELLER 인증을 요구한다.
-                    .pathMatchers(GET, "/api/v1/stores/mine", "/api/v1/stores/*/dish")
+                    .pathMatchers(
+                        GET,
+                        "/api/v1/stores/mine",
+                        "/api/v1/stores/*/dish",
+                        "/api/v1/stores/*/dishes")
                     .hasRole("SELLER")
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
@@ -77,6 +81,12 @@ public class GatewaySecurityConfig {
                     .pathMatchers(
                         "/api/v1/stores/**", "/api/v1/dishes/**", "/api/v1/settlements/**")
                     .hasRole("SELLER")
+                    // 상품 등록 중 음식 이미지 분류는 로그인한 회원과 판매자에게 허용한다.
+                    .pathMatchers(POST, "/api/v1/ai/classify")
+                    .hasAnyRole("MEMBER", "SELLER")
+                    // 매장 등록·수정용 주소 검색은 로그인한 회원과 판매자에게 허용한다.
+                    .pathMatchers(GET, "/api/v1/locations/geocode")
+                    .hasAnyRole("MEMBER", "SELLER")
                     // 로그아웃과 회원·장바구니·주문·결제·입금(예치금) 기능은 회원과 판매자 모두 이용한다.
                     .pathMatchers(
                         "/api/v1/auth/logout",
@@ -87,7 +97,8 @@ public class GatewaySecurityConfig {
                         "/api/v1/payments/**",
                         "/api/v1/deposits/**",
                         "/api/v1/levels/**",
-                        "/api/v1/points/**")
+                        "/api/v1/points/**",
+                        "/api/v1/favorites/**")
                     .hasAnyRole("MEMBER", "SELLER")
                     // 실수로 새 API가 무인증 공개되는 것을 막는 기본 거부 정책이다.
                     .anyExchange()

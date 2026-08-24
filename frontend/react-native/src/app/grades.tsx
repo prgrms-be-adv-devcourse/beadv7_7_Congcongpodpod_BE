@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 

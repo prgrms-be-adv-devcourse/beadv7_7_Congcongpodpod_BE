@@ -54,6 +54,9 @@ toss:
   client-key: ${TOSS_CLIENT_KEY}
   secret-key: ${TOSS_SECRET_KEY}
 
+encryption:
+  secret-key: ${ENCRYPTION_SECRET_KEY}
+
 swagger:
   servers:
     gateway-url: ${SWAGGER_GATEWAY_URL:http://localhost:8080}

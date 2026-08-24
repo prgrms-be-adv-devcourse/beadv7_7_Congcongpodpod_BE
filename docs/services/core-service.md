@@ -8,8 +8,12 @@
 kr.lastdish.core
 ├── cart
 ├── dish
+├── favorite
+├── geocoding
+├── level
 ├── order
 ├── payment
+├── point
 ├── settlement
 ├── store
 ├── common
@@ -18,8 +22,12 @@ kr.lastdish.core
 
 - `cart`: 사용자의 장바구니와 장바구니 항목을 관리한다.
 - `dish`: 메뉴 정보와 판매 가능 상태를 관리한다.
+- `favorite`: 회원의 매장 찜을 관리한다.
+- `geocoding`: 주소와 좌표 변환 경계를 관리한다.
+- `level`: 회원 등급 조회와 정책을 관리한다.
 - `order`: 주문 생성과 주문 상태를 관리한다.
 - `payment`: 결제와 예치금 상태를 관리한다.
+- `point`: 포인트 잔액과 이력을 관리한다.
 - `settlement`: 정산 기능의 업무 경계다.
 - `store`: 매장 정보와 영업 상태를 관리한다.
 - `common`: Core Service 내부에서만 사용하는 공통 타입을 관리한다.
@@ -47,6 +55,13 @@ kr.lastdish.core
 1. 각 모듈은 자신의 도메인 모델과 데이터베이스 테이블을 소유한다.
 2. 다른 모듈은 해당 모듈의 `domain`, `infrastructure`, `presentation` 패키지를 직접 참조하지 않는다.
 3. 즉시 결과가 필요한 모듈 간 동기 호출은 명시적으로 공개된 `application` API를 사용한다.
-4. 즉시 결과가 필요하지 않은 후속 처리는 Spring Application Event를 사용한다.
+4. 즉시 결과가 필요하지 않은 후속 처리는 `event-common` 계약과 Kafka를 사용한다.
 5. `common`에는 도메인 비즈니스 규칙을 두지 않으며, 모듈 간 결합을 우회하는 용도로 사용하지 않는다.
-6. 별도 서비스와 통신이 필요하면 Spring Application Event가 아닌 명시적인 외부 통신 계약을 사용한다.
+6. 별도 서비스와 통신이 필요하면 내부 HTTP 또는 Kafka 이벤트 계약을 명시하고 Inbox로 멱등성을 보장한다.
+
+## 외부 의존성
+
+- Core PostgreSQL, Redis, Kafka
+- Toss Payments, Naver Map
+- 선택적 S3 이미지 저장소
+- Member Service 내부 조회 API

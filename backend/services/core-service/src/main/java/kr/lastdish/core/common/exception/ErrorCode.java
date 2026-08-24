@@ -16,8 +16,8 @@ public enum ErrorCode implements ErrorCodeSpec {
   DISH_ALREADY_EXISTS(HttpStatus.CONFLICT, "D006", "한 개의 상품만 등록이 가능합니다."),
   DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS(
       HttpStatus.BAD_REQUEST, "D007", "픽업 시간은 매장 영업시간 안에 있어야 합니다."),
+  INVALID_STOCK_DELTA(HttpStatus.BAD_REQUEST, "D008", "재고 변경량은 0이 아니어야 합니다."),
   INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다."),
-  INVALID_PAYMENT_STATUS(HttpStatus.CONFLICT, "PAY001", "결제 대기 상태에서만 처리할 수 있습니다."),
   ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD001", "주문을 찾을 수 없습니다."),
   ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "주문을 취소할 권한이 없습니다."),
   PICKUP_CODE_EXISTS(HttpStatus.CONFLICT, "ORD003", "사용중인 픽업 코드입니다."),
@@ -26,6 +26,7 @@ public enum ErrorCode implements ErrorCodeSpec {
   CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD006", "주문할 장바구니 상품을 찾을 수 없습니다."),
   CART_ITEM_NOT_ORDERABLE(HttpStatus.CONFLICT, "ORD007", "현재 주문할 수 없는 장바구니 상품입니다."),
   ORDER_PICKUP_TIME_NOT_ENDED(HttpStatus.CONFLICT, "ORD008", "픽업 종료 시간 이후에 노쇼 처리할 수 있습니다."),
+  INVALID_ORDER_PAYMENT_STATUS(HttpStatus.CONFLICT, "ORD009", "결제 대기 상태에서만 결제 완료 처리할 수 있습니다."),
   ORDER_STORE_CLOSED(HttpStatus.CONFLICT, "ORD010", "매장이 영업 중이 아닙니다."),
   ORDER_PICKUP_DEADLINE_PASSED(HttpStatus.CONFLICT, "ORD011", "상품의 픽업 마감 시간이 지났습니다."),
   ORDER_DISH_PRICE_CHANGED(HttpStatus.CONFLICT, "ORD012", "상품 가격이 변경되었습니다. 다시 확인해 주세요."),
@@ -40,7 +41,10 @@ public enum ErrorCode implements ErrorCodeSpec {
   PRESIGNED_UPLOAD_INVALID_STATE(HttpStatus.CONFLICT, "IMG006", "이미지 업로드를 확정할 수 없는 상태입니다."),
   IMAGE_METADATA_MISMATCH(HttpStatus.BAD_REQUEST, "IMG007", "업로드된 이미지 정보가 발급 이력과 다릅니다."),
   IMAGE_OBJECT_NOT_FOUND(HttpStatus.BAD_REQUEST, "IMG008", "업로드된 이미지를 찾을 수 없습니다."),
-  IMAGE_STORAGE_ERROR(HttpStatus.BAD_GATEWAY, "IMG009", "이미지 저장소 처리에 실패했습니다.");
+  IMAGE_STORAGE_ERROR(HttpStatus.BAD_GATEWAY, "IMG009", "이미지 저장소 처리에 실패했습니다."),
+  GEOCODING_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "GEO001", "검색한 주소를 찾을 수 없습니다."),
+  GEOCODING_SERVICE_ERROR(HttpStatus.BAD_GATEWAY, "GEO002", "주소 검색 서비스 처리에 실패했습니다."),
+  GEOCODING_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "GEO003", "주소 검색 서비스가 설정되지 않았습니다.");
 
   private final HttpStatus status;
   private final String code;
