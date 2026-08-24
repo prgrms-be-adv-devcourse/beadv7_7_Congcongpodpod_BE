@@ -4,11 +4,14 @@ import { type PropsWithChildren, useEffect, useRef } from 'react';
 import { showInAppNotification } from '@/lib/app-overlay';
 import { canShowNotification, DEFAULT_NOTIFICATION_PREFERENCES, loadNotificationPreferences, subscribeNotificationPreferences } from '@/lib/notification-preferences';
 import { connectNotificationStream, notificationRoute, type ServerNotification } from '@/lib/notifications';
+import { refreshAccessToken } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 
-const DEMO_ENABLED = process.env.EXPO_PUBLIC_NOTIFICATION_DEMO !== 'false';
+const DEMO_ENABLED = process.env.EXPO_PUBLIC_NOTIFICATION_DEMO === 'true';
 const DEMO_INTERVAL_MS = 30_000;
-const RECONNECT_DELAYS = [2_000, 5_000, 15_000, 30_000] as const;
+const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
+const RECONNECT_JITTER = 0.25;
 const demoNotifications: ServerNotification[] = [
   { id: -1, type: 'ORDER_ACCEPTED', title: '주문이 접수됐어요', body: '매장에서 주문을 확인하고 음식을 준비하고 있어요.', linkTarget: 'ORDER', readYn: false, createdAt: '' },
   { id: -2, type: 'PICKUP_READY', title: '픽업 준비가 완료됐어요', body: '주문 내역에서 픽업 코드를 확인해주세요.', linkTarget: 'ORDER', readYn: false, createdAt: '' },
@@ -37,6 +40,12 @@ function present(notification: ServerNotification) {
   showInAppNotification(title, message, () => router.push(notificationRoute(notification) as never), notification.type, unknownType ? payload : undefined);
 }
 
+export function notificationReconnectDelay(attempt: number, random = Math.random) {
+  const exponential = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** Math.max(0, attempt));
+  const jitter = 1 - RECONNECT_JITTER + random() * RECONNECT_JITTER * 2;
+  return Math.min(RECONNECT_MAX_MS, Math.round(exponential * jitter));
+}
+
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { member } = useAuth();
   const reconnectAttempt = useRef(0);
@@ -53,17 +62,38 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     let disposed = false;
     let disconnect: (() => void) | undefined;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let refreshingToken = false;
+
+    const scheduleReconnect = () => {
+      if (disposed || reconnectTimer) return;
+      const delay = notificationReconnectDelay(reconnectAttempt.current);
+      reconnectAttempt.current += 1;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = undefined;
+        connect();
+      }, delay);
+    };
 
     const connect = () => {
+      if (disposed) return;
       disconnect?.();
       disconnect = connectNotificationStream(notification => {
-        reconnectAttempt.current = 0;
         if (canShowNotification(preferences.current, notification.type)) present(notification);
-      }, () => {
+      }, ({ status }) => {
         if (disposed) return;
-        const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt.current, RECONNECT_DELAYS.length - 1)];
-        reconnectAttempt.current += 1;
-        reconnectTimer = setTimeout(connect, delay);
+        if (status === 401 && !refreshingToken) {
+          refreshingToken = true;
+          void refreshAccessToken()
+            .then(() => { if (!disposed) connect(); })
+            .catch(scheduleReconnect)
+            .finally(() => { refreshingToken = false; });
+          return;
+        }
+        scheduleReconnect();
+      }, () => {
+        reconnectAttempt.current = 0;
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = undefined;
       });
     };
 

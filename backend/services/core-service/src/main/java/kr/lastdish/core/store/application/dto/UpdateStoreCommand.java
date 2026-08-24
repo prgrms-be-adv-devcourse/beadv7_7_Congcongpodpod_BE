@@ -9,6 +9,7 @@ import kr.lastdish.core.store.domain.Category;
 public record UpdateStoreCommand(
     String storeName,
     String storeAddress,
+    String storeDetailAddress,
     String storePhone,
     LocalTime openTime,
     LocalTime closeTime,

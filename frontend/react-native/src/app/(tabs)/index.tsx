@@ -2,11 +2,12 @@ import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Keyboard, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Keyboard, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Reanimated, { Easing as ReanimatedEasing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand-logo';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 import { AppRefreshControl } from '@/components/app-refresh-control';
 import { MapCanvas } from '@/components/map-canvas';
 import type { MapCamera as CameraState, MapCameraCommand, MapCoordinate as Coordinate, MapCameraEventSource } from '@/components/map-canvas.types';
@@ -21,6 +22,8 @@ import { getStoreCategoryVisual, STORE_CATEGORY_KEYS } from '@/lib/store-categor
 import { getStoreProfileImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
 import { formatCheapestDishOffer, getCheapestDish } from '@/lib/store-pricing';
+import { searchStores as searchAllStores } from '@/lib/stores';
+import { radiusForBounds } from '@/lib/map-viewport';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 import type { Store } from '@/types/store';
@@ -37,10 +40,10 @@ const distanceKm = (a: Coordinate, b: Coordinate) => {
 };
 
 export default function HomeScreen() {
-  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(3);
+  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(5);
   const { member } = useAuth();
   const { item: cartItem } = useCart();
-  const { contentWidth, gutter, isCompact } = useResponsiveLayout();
+  const { contentWidth, gutter, isCompact, isDesktopWeb } = useResponsiveLayout();
   const reducedMotion = useReducedMotion();
   const { top, bottom } = useSafeAreaInsets();
   const floatingBarGap = Math.max(20, Math.min(28, bottom - 6));
@@ -54,17 +57,21 @@ export default function HomeScreen() {
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [globalSearchResults, setGlobalSearchResults] = useState<Store[]>([]);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
   const [underTen, setUnderTen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<HomeCategory>();
   const [mapControlsHidden, setMapControlsHidden] = useState(false);
   const loadedCenter = useRef<Coordinate>(location);
+  const loadedViewport = useRef<CameraState>({ ...location, zoom: 14.5, bearing: 0 });
+  const viewportInitialized = useRef(false);
+  const searchOrigin = useRef<Coordinate>(location);
   const programmaticCameraUntil = useRef(0);
   const centeredOnResolvedLocation = useRef(false);
   const sheetVisibleHeight = useRef(new Animated.Value(130)).current;
   const mapControlsOpacity = useRef(new Animated.Value(1)).current;
   const searchExpansion = useSharedValue(0);
 
-  useEffect(() => { loadedCenter.current = location; }, [location]);
   useEffect(() => {
     Animated.timing(mapControlsOpacity, { toValue: mapControlsHidden ? 0 : 1, duration: 140, useNativeDriver: true }).start();
   }, [mapControlsHidden, mapControlsOpacity]);
@@ -91,19 +98,30 @@ export default function HomeScreen() {
   }), [selectedCategory, stores, underTen]);
   const markerStores = useMemo(() => {
     if (mapCamera.zoom < 13.5) return [];
-    const radiusByZoom = Math.min(3, Math.max(0.18, 8 / (2 ** (mapCamera.zoom - 12))));
-    const limit = mapCamera.zoom < 14.5 ? 10 : mapCamera.zoom < 16 ? 18 : 30;
-    return filteredStores
-      .filter((store) => distanceKm(mapCamera, store) <= radiusByZoom)
-      .sort((left, right) => distanceKm(mapCamera, left) - distanceKm(mapCamera, right))
-      .slice(0, limit);
-  }, [filteredStores, mapCamera]);
-  const searchResults = useMemo(() => {
-    const keyword = query.trim().toLocaleLowerCase('ko');
-    if (!keyword) return [];
-    return stores.filter((store) => [store.storeName, getStoreCategoryVisual(store.category).label, store.address]
-      .some((value) => value.toLocaleLowerCase('ko').includes(keyword))).slice(0, 5);
-  }, [query, stores]);
+    // 지도 SDK가 실제 화면 밖 마커를 클리핑합니다. 카메라 중심의 임의 원형 범위나
+    // 개수 제한을 다시 적용하면 화면 모서리와 조밀한 지역의 매장이 누락됩니다.
+    return selected && !filteredStores.some((store) => store.storeId === selected.storeId)
+      ? [...filteredStores, selected]
+      : filteredStores;
+  }, [filteredStores, mapCamera.zoom, selected]);
+  useEffect(() => {
+    const keyword = query.trim();
+    if (!keyword) {
+      setGlobalSearchResults([]);
+      setGlobalSearchLoading(false);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      setGlobalSearchLoading(true);
+      const origin = searchOrigin.current;
+      void searchAllStores(keyword, origin.latitude, origin.longitude)
+        .then((results) => { if (active) setGlobalSearchResults(results); })
+        .catch(() => { if (active) setGlobalSearchResults([]); })
+        .finally(() => { if (active) setGlobalSearchLoading(false); });
+    }, 260);
+    return () => { active = false; clearTimeout(timer); };
+  }, [query]);
 
   const issueCameraCommand = useCallback((command: MapCameraCommand) => {
     programmaticCameraUntil.current = Date.now() + 650;
@@ -125,12 +143,15 @@ export default function HomeScreen() {
     if (!locationResolved || centeredOnResolvedLocation.current) return;
     centeredOnResolvedLocation.current = true;
     loadedCenter.current = location;
+    loadedViewport.current = { ...loadedViewport.current, ...location, zoom: 15 };
     setPendingCenter(null);
     issueCameraCommand({ id: Date.now(), type: 'location' });
   }, [issueCameraCommand, location, locationResolved]);
 
   const focusStore = (store: Store) => {
+    const target = { latitude: store.latitude, longitude: store.longitude, zoom: 16, bearing: mapCamera.bearing };
     setSelected(store);
+    if (!stores.some((current) => current.storeId === store.storeId)) setPendingCenter(target);
     setQuery(store.storeName);
     setSearchOpen(false);
     setSearchFocused(false);
@@ -141,14 +162,23 @@ export default function HomeScreen() {
   const handleCameraIdle = (camera: CameraState, source?: MapCameraEventSource) => {
     setMapCamera(camera);
     setMapBearing(camera.bearing);
+    if (!viewportInitialized.current && source !== 'gesture') {
+      viewportInitialized.current = true;
+      loadedViewport.current = camera;
+      loadedCenter.current = camera;
+      return;
+    }
+    const centerChanged = distanceKm(loadedCenter.current, camera) >= 0.01;
+    const radiusChanged = Math.abs(radiusForBounds(camera, camera.bounds) - radiusForBounds(loadedViewport.current, loadedViewport.current.bounds)) >= 0.08;
+    const nextPending = centerChanged || radiusChanged ? camera : null;
     if (source === 'gesture') {
-      setPendingCenter(distanceKm(loadedCenter.current, camera) >= 0.01 ? camera : null);
+      setPendingCenter(nextPending);
       return;
     }
     if (Date.now() < programmaticCameraUntil.current) {
       return;
     }
-    setPendingCenter(distanceKm(loadedCenter.current, camera) >= 0.01 ? camera : null);
+    setPendingCenter(nextPending);
   };
 
   const refreshArea = async () => {
@@ -157,31 +187,34 @@ export default function HomeScreen() {
     setSelected(null);
     setAreaRefreshing(true);
     try {
-      await reload(next);
+      await reload(next, false, next.bounds);
       loadedCenter.current = next;
+      loadedViewport.current = next;
+      viewportInitialized.current = true;
       setPendingCenter(null);
     } finally {
       setAreaRefreshing(false);
     }
   };
-  const refreshSheetStores = useCallback(() => reload(loadedCenter.current, true), [reload]);
+  const refreshSheetStores = useCallback(() => reload(mapCamera, true, mapCamera.bounds), [mapCamera, reload]);
   const { refreshing: sheetRefreshing, onRefresh: refreshSheet } = usePullToRefresh(refreshSheetStores);
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <ScreenEntrance style={styles.mapWrap}>
-        <MapCanvas
-          stores={markerStores}
-          center={location}
-          userLocation={location}
-          userHeading={heading}
-          cameraCommand={cameraCommand}
-          selectedStoreId={selected?.storeId}
-          onCameraIdle={handleCameraIdle}
-          onSelect={setSelected}
-        />
+      <ScreenEntrance style={[styles.mapWrap, isDesktopWeb && styles.desktopStage]}>
+        <View style={[styles.mapPane, isDesktopWeb && styles.desktopMapPane]}>
+          <MapCanvas
+            stores={markerStores}
+            center={location}
+            userLocation={location}
+            userHeading={heading}
+            cameraCommand={cameraCommand}
+            selectedStoreId={selected?.storeId}
+            onCameraIdle={handleCameraIdle}
+            onSelect={setSelected}
+          />
 
-        <View style={[styles.header, { top: top + 8, width: contentWidth - gutter * 2 }]}> 
+        <View style={[styles.header, { top: top + 8 }, isDesktopWeb ? { left: gutter, right: gutter } : { width: contentWidth - gutter * 2 }]}>
           <View style={styles.searchGroup}>
             <View style={styles.search}>
               <BrandLogo size={30} />
@@ -189,7 +222,7 @@ export default function HomeScreen() {
                 accessibilityLabel="지도에서 매장 검색"
                 autoCorrect={false}
                 onChangeText={(value) => { setQuery(value); setSearchOpen(Boolean(value.trim())); }}
-                onFocus={() => { setSearchFocused(true); setSearchOpen(Boolean(query.trim())); }}
+                onFocus={() => { searchOrigin.current = location; setSearchFocused(true); setSearchOpen(Boolean(query.trim())); }}
                 placeholder="남부터미널역 · 매장 검색"
                 placeholderTextColor={colors.ink500}
                 returnKeyType="search"
@@ -199,14 +232,14 @@ export default function HomeScreen() {
               {searchFocused ? <Pressable accessibilityLabel="검색 닫기" hitSlop={10} onPress={() => { setQuery(''); setSearchOpen(false); setSearchFocused(false); Keyboard.dismiss(); }}><Ionicons name="close" size={20} color={colors.ink700}/></Pressable> : query ? <Pressable accessibilityLabel="검색어 지우기" hitSlop={8} onPress={() => { setQuery(''); setSearchOpen(false); }}><Ionicons name="close-circle" size={18} color={colors.ink400}/></Pressable> : null}
             </View>
             {searchOpen ? <Reanimated.View style={[styles.searchResults, searchResultsAnimatedStyle]}>
-              {searchResults.length ? searchResults.map((store) => {
+              {globalSearchResults.length ? globalSearchResults.map((store) => {
                 const category = getStoreCategoryVisual(store.category);
                 return <Pressable key={store.storeId} onPress={() => focusStore(store)} style={({ pressed }) => [styles.searchResult, pressed && styles.pressed]}>
                   <View style={[styles.resultIcon, { backgroundColor: category.color }]}><Ionicons name={category.icon} size={15} color={colors.white}/></View>
                   <View style={styles.resultCopy}><Text numberOfLines={1} style={styles.resultName}>{store.storeName}</Text><Text numberOfLines={1} style={styles.resultMeta}>{category.label} · {store.address}</Text></View>
                   <Ionicons name="locate-outline" size={18} color={colors.green700}/>
                 </Pressable>;
-              }) : <Text style={styles.noResult}>현재 지도 범위에서 일치하는 매장이 없어요.</Text>}
+              }) : <Text style={styles.noResult}>{globalSearchLoading ? '전체 매장에서 찾는 중이에요.' : '일치하는 매장이 없어요.'}</Text>}
             </Reanimated.View> : null}
           </View>
           <Reanimated.View pointerEvents={searchFocused ? 'none' : 'auto'} style={[styles.headerActions, headerActionsAnimatedStyle]}>
@@ -225,12 +258,19 @@ export default function HomeScreen() {
           <Ionicons name="refresh" size={16} color={colors.green700}/><Text style={styles.areaRefreshText}>{areaRefreshing ? '이 지역 매장을 찾는 중' : '이 지역 매장 검색'}</Text>
         </Pressable> : null}
 
-        <Animated.View pointerEvents={mapControlsHidden ? 'none' : 'auto'} style={[styles.mapActionStack, { bottom: floatingBarClearance, opacity: mapControlsOpacity, transform: [{ translateY: Animated.multiply(sheetVisibleHeight, -1) }] }]}>
+        <Animated.View
+          pointerEvents={!isDesktopWeb && mapControlsHidden ? 'none' : 'auto'}
+          style={[
+            styles.mapActionStack,
+            { bottom: floatingBarClearance + 18, opacity: mapControlsOpacity },
+            !isDesktopWeb && { transform: [{ translateY: Animated.multiply(sheetVisibleHeight, -1) }] },
+          ]}
+        >
           <Pressable accessibilityLabel="나침반, 현재 바라보는 방향으로 지도 정렬" style={({ pressed }) => [styles.compass, pressed && styles.controlPressed]} onPress={() => issueCameraCommand({ id: Date.now(), type: 'heading', bearing: heading })}>
             <View style={[styles.compassRose, { transform: [{ rotate: `${-mapBearing}deg` }] }]}><Text style={styles.compassNorth}>N</Text><Ionicons name="navigate" size={16} color={colors.ink900}/></View>
           </Pressable>
           <View style={styles.mapControls}><Pressable accessibilityLabel={`지도 확대, 현재 줌 ${mapCamera.zoom.toFixed(1)}`} style={({ pressed }) => [styles.control, pressed && styles.controlPressed]} onPress={() => issueCameraCommand({ id: Date.now(), type: 'zoomIn' })}><Ionicons name="add" size={21} color={colors.ink900} /></Pressable><View style={styles.controlLine}/><Pressable accessibilityLabel={`지도 축소, 현재 줌 ${mapCamera.zoom.toFixed(1)}`} style={({ pressed }) => [styles.control, pressed && styles.controlPressed]} onPress={() => issueCameraCommand({ id: Date.now(), type: 'zoomOut' })}><Ionicons name="remove" size={21} color={colors.ink900} /></Pressable></View>
-          <Pressable accessibilityLabel="내 위치로 이동" style={({ pressed }) => [styles.recenter, pressed && styles.controlPressed]} onPress={() => { setSelected(null); setPendingCenter(null); loadedCenter.current = location; issueCameraCommand({ id: Date.now(), type: 'location' }); }}><Ionicons name="locate" size={19} color={colors.green500} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="내 위치로 이동" style={({ pressed }) => [styles.recenter, pressed && styles.controlPressed]} onPress={() => { setSelected(null); setPendingCenter(null); loadedCenter.current = location; loadedViewport.current = { ...mapCamera, ...location, zoom: 15 }; issueCameraCommand({ id: Date.now(), type: 'location' }); }}><Ionicons name="locate" size={19} color={colors.green500} /></Pressable>
         </Animated.View>
 
         {(loading || error) && !pendingCenter && <View style={[styles.notice, { top: top + 111, width: Math.min(contentWidth - gutter * 2, 360) }]}> 
@@ -239,7 +279,9 @@ export default function HomeScreen() {
           {error && <Text onPress={() => void reload()} style={styles.retry}>재시도</Text>}
         </View>}
 
-        <HomeStoreSheet bottomOffset={floatingBarClearance} stores={filteredStores} location={location} selected={selected} refreshing={sheetRefreshing} visibleHeight={sheetVisibleHeight} onControlsHiddenChange={setMapControlsHidden} onClearSelection={() => setSelected(null)} onRefresh={refreshSheet} onSelect={focusStore}/>
+          {!isDesktopWeb ? <HomeStoreSheet bottomOffset={floatingBarClearance} stores={filteredStores} location={location} selected={selected} refreshing={sheetRefreshing} visibleHeight={sheetVisibleHeight} onControlsHiddenChange={setMapControlsHidden} onClearSelection={() => setSelected(null)} onRefresh={refreshSheet} onSelect={focusStore}/> : null}
+        </View>
+        {isDesktopWeb ? <HomeStorePanel bottomInset={floatingBarClearance} stores={filteredStores} location={location} selected={selected} refreshing={sheetRefreshing} onClearSelection={() => setSelected(null)} onRefresh={refreshSheet} onSelect={focusStore}/> : null}
       </ScreenEntrance>
     </SafeAreaView>
   );
@@ -339,6 +381,29 @@ function HomeStoreSheet({ bottomOffset, stores, location, selected, refreshing, 
   </Animated.View>;
 }
 
+function HomeStorePanel({ bottomInset, stores, location, selected, refreshing, onClearSelection, onRefresh, onSelect }: { bottomInset: number; stores: Store[]; location: Coordinate; selected: Store | null; refreshing: boolean; onClearSelection: () => void; onRefresh: () => void; onSelect: (store: Store) => void }) {
+  return <View style={styles.desktopStorePanel}>
+    {selected ? <View style={styles.selectedStore}>
+      <Image accessibilityLabel={`${selected.storeName} 프로필 이미지`} source={getStoreProfileImageSource(selected)} style={styles.selectedStoreImage}/>
+      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {selected.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{getCheapestDish(selected) ? `${getCheapestDish(selected)!.dishName} · ${formatCheapestDishOffer(selected)}` : selected.address}</Text></View>
+      <Pressable accessibilityLabel="매장 선택 닫기" hitSlop={8} onPress={onClearSelection} style={styles.selectedStoreClose}><Ionicons name="close" size={18} color={colors.ink700}/></Pressable>
+    </View> : <View style={styles.storeSheetHeading}>
+      <View><Text style={styles.storeSheetTitle}>주변 매장</Text><Text style={styles.storeSheetMeta}>현재 지도 범위 · {stores.length}곳</Text></View>
+      <View style={styles.desktopPanelBadge}><Ionicons name="location-outline" size={15} color={colors.ink700}/></View>
+    </View>}
+    {!selected ? <RefreshStatus visible={refreshing}/> : null}
+    <ScrollView
+      alwaysBounceVertical
+      contentContainerStyle={[styles.storeSheetList, { paddingBottom: bottomInset + 24 }]}
+      refreshControl={!selected ? <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/> : undefined}
+      showsVerticalScrollIndicator={false}
+      style={styles.desktopPanelScroll}>
+      {selected ? <SelectedStoreDetail store={selected} distance={distanceKm(location, selected)}/> : stores.map((store) => <HomeStoreRow key={store.storeId} store={store} distance={distanceKm(location, store)} onPress={() => onSelect(store)}/>)}
+      {!selected && !stores.length ? <View style={styles.storeSheetEmpty}><Text style={styles.storeSheetEmptyTitle}>이 지역에 표시할 매장이 없어요</Text><Text style={styles.storeSheetEmptyBody}>지도를 이동하고 이 지역 매장 검색을 눌러보세요.</Text></View> : null}
+    </ScrollView>
+  </View>;
+}
+
 function SelectedStoreDetail({ store, distance }: { store: Store; distance: number }) {
   return <View style={styles.selectedDetail}>
     <View style={styles.selectedDetailTop}><View><Text style={styles.selectedDetailEyebrow}>매장 미리보기</Text><Text style={styles.selectedDetailTitle}>오늘 픽업 가능한 상품</Text></View><Text style={styles.selectedDetailDistance}>{distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}</Text></View>
@@ -357,21 +422,19 @@ function HomeStoreRow({ store, distance, onPress }: { store: Store; distance: nu
   </Pressable>;
 }
 
-const homeControlShadow = {
-  shadowColor: colors.ink900,
-  shadowOpacity: 0.16,
-  shadowRadius: 4,
-  shadowOffset: { width: 0, height: 3 },
-  elevation: 4,
-} as const;
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas },
   mapWrap: { flex: 1, overflow: 'hidden' },
+  mapPane: { flex: 1, minWidth: 0, overflow: 'hidden' },
+  desktopStage: { flexDirection: 'row' },
+  desktopMapPane: { width: '62%', flexGrow: 0, flexShrink: 0 },
+  desktopStorePanel: { width: '38%', minWidth: 360, overflow: 'hidden', backgroundColor: colors.white, borderLeftWidth: 1, borderLeftColor: colors.lineStrong },
+  desktopPanelScroll: { flex: 1 },
+  desktopPanelBadge: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.canvas },
   header: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', zIndex: 20, backgroundColor: 'transparent' },
   searchGroup: { flex: 1, minWidth: 0, backgroundColor: 'transparent' },
   headerActions: { flexDirection: 'row', gap: 0, paddingLeft: 3, overflow: 'visible', backgroundColor: 'transparent' },
-  search: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 7, paddingRight: 12, backgroundColor: colors.white, borderRadius: 22, ...homeControlShadow },
+  search: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 7, paddingRight: 12, backgroundColor: colors.white, borderRadius: 22, ...shadow.control },
   searchInput: { flex: 1, height: 44, paddingVertical: 0, color: colors.ink900, fontSize: 15, fontWeight: '600', fontFamily: fonts.body },
   searchInputCompact: { fontSize: 14 },
   searchResults: { position: 'absolute', top: 50, left: 0, right: 0, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, ...shadow.float },
@@ -383,30 +446,30 @@ const styles = StyleSheet.create({
   noResult: { padding: 15, color: colors.ink500, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },
   iconTouch: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   lastIconTouch: { alignItems: 'flex-end' },
-  iconSurface: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderRadius: 19, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,28,22,.08)', ...homeControlShadow },
+  iconSurface: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderRadius: 19, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,28,22,.08)', ...shadow.control },
   cartBadge: { position: 'absolute', right: 0, top: -3, minWidth: 16, height: 16, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.green500, borderWidth: 1.5, borderColor: colors.white },
   cartBadgeText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
   chipScroller: { position: 'absolute', left: 0, right: 0, zIndex: 10, backgroundColor: 'transparent' },
   chips: { flexDirection: 'row', gap: 6, paddingTop: 7, paddingBottom: 10, paddingRight: 30, backgroundColor: 'transparent' },
-  chip: { minHeight: 34, paddingHorizontal: 12, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(20,28,22,.14)', ...homeControlShadow },
+  chip: { minHeight: 34, paddingHorizontal: 12, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(20,28,22,.16)' },
   chipActive: { borderColor: colors.green500 },
   chipText: { color: colors.ink700, fontSize: 13, fontWeight: '700', fontFamily: fonts.body },
   chipActiveText: { color: colors.green700 },
-  areaRefresh: { position: 'absolute', alignSelf: 'center', minHeight: 38, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.green300, ...shadow.float },
+  areaRefresh: { position: 'absolute', alignSelf: 'center', minHeight: 38, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.green300, ...shadow.control },
   areaRefreshText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   mapActionStack: { position: 'absolute', right: 14, alignItems: 'center', gap: 9, zIndex: 12 },
-  mapControls: { width: 42, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.float },
-  compass: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.float },
+  mapControls: { width: 42, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  compass: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compassRose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   compassNorth: { position: 'absolute', top: -1, color: '#E2473E', fontFamily: fonts.body, fontSize: 9, fontWeight: '900' },
   control: { width: 42, height: 40, alignItems: 'center', justifyContent: 'center' },
   controlLine: { height: 1, backgroundColor: colors.line },
   controlPressed: { backgroundColor: colors.green50 },
-  recenter: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.float },
+  recenter: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   notice: { position: 'absolute', alignSelf: 'center', minHeight: 46, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: radius.input, backgroundColor: colors.white, ...shadow.card },
   noticeText: { flex: 1, color: colors.ink700, fontSize: 13, fontWeight: '700', fontFamily: fonts.body },
   retry: { color: colors.green700, fontWeight: '800', fontFamily: fonts.body },
-  storeSheet: { position: 'absolute', left: 0, right: 0, zIndex: 15, overflow: 'hidden', borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.lineStrong, ...shadow.float },
+  storeSheet: { position: 'absolute', left: 0, right: 0, zIndex: 15, overflow: 'hidden', borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.lineStrong, ...shadow.sheet },
   storeSheetHandleArea: { height: 22, paddingTop: 8 },
   storeSheetHandle: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: colors.lineStrong },
   storeSheetHeading: { minHeight: 76, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },

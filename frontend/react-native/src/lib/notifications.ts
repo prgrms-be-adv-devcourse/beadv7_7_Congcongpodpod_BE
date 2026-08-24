@@ -16,6 +16,9 @@ export type ServerNotification = {
 };
 
 export type NotificationPage = { items: ServerNotification[]; total: number; page: number; size: number; hasNext: boolean };
+export type NotificationDisconnect = { status?: number; reason: 'network' | 'closed' | 'heartbeat_timeout' };
+
+const HEARTBEAT_TIMEOUT_MS = 75_000;
 
 export async function getNotifications(page = 0, size = 20) {
   return unwrap(await api<NotificationPage | Envelope<NotificationPage>>(`/notifications?page=${page}&size=${size}`));
@@ -44,16 +47,32 @@ function parseSseFrames(chunk: string, emit: (notification: ServerNotification) 
 
 export function connectNotificationStream(
   onNotification: (notification: ServerNotification) => void,
-  onDisconnected: () => void,
+  onDisconnected: (event: NotificationDisconnect) => void,
+  onConnected?: () => void,
 ) {
   let closed = false;
   let request: XMLHttpRequest | undefined;
   let consumed = 0;
   let disconnectReported = false;
-  const reportDisconnected = () => {
+  let connectedReported = false;
+  let heartbeatTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearHeartbeat = () => {
+    if (heartbeatTimer) clearTimeout(heartbeatTimer);
+    heartbeatTimer = undefined;
+  };
+  const reportDisconnected = (reason: NotificationDisconnect['reason'] = 'network') => {
     if (closed || disconnectReported) return;
     disconnectReported = true;
-    onDisconnected();
+    clearHeartbeat();
+    onDisconnected({ status: request?.status || undefined, reason });
+  };
+  const armHeartbeat = () => {
+    clearHeartbeat();
+    heartbeatTimer = setTimeout(() => {
+      if (closed) return;
+      reportDisconnected('heartbeat_timeout');
+      request?.abort();
+    }, HEARTBEAT_TIMEOUT_MS);
   };
 
   void getAccessToken().then(token => {
@@ -62,7 +81,16 @@ export function connectNotificationStream(
     request.open('GET', `${getApiBaseUrl()}/notifications/stream`, true);
     request.setRequestHeader('Accept', 'text/event-stream');
     request.setRequestHeader('Authorization', `Bearer ${token}`);
+    request.onreadystatechange = () => {
+      if (!request || request.readyState < 2 || connectedReported) return;
+      if (request.status >= 200 && request.status < 300) {
+        connectedReported = true;
+        onConnected?.();
+        armHeartbeat();
+      }
+    };
     request.onprogress = () => {
+      armHeartbeat();
       const received = request?.responseText ?? '';
       const completeEnd = Math.max(received.lastIndexOf('\n\n'), received.lastIndexOf('\r\n\r\n'));
       if (completeEnd < consumed) return;
@@ -70,13 +98,14 @@ export function connectNotificationStream(
       parseSseFrames(received.slice(consumed, end), onNotification);
       consumed = end;
     };
-    request.onerror = reportDisconnected;
-    request.onloadend = reportDisconnected;
+    request.onerror = () => reportDisconnected('network');
+    request.onloadend = () => reportDisconnected('closed');
     request.send();
   }).catch(reportDisconnected);
 
   return () => {
     closed = true;
+    clearHeartbeat();
     request?.abort();
   };
 }

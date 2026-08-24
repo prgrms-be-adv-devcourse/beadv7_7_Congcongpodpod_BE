@@ -1,7 +1,8 @@
 import type { Store } from '@/types/store';
 
 export type MapCoordinate = { latitude: number; longitude: number };
-export type MapCamera = MapCoordinate & { zoom: number; bearing: number };
+export type MapBounds = { southWest: MapCoordinate; northEast: MapCoordinate };
+export type MapCamera = MapCoordinate & { zoom: number; bearing: number; bounds?: MapBounds };
 export type MapCameraEventSource = 'idle' | 'gesture' | 'move' | 'zoom';
 export type MapCameraCommand =
   | { id: number; type: 'location' | 'zoomIn' | 'zoomOut' }

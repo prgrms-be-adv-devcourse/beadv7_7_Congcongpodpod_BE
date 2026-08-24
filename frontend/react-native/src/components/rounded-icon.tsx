@@ -12,6 +12,7 @@ import { Camera } from 'reicon-react-native/icons/Camera';
 import { CartShopping } from 'reicon-react-native/icons/CartShopping';
 import { Chat } from 'reicon-react-native/icons/Chat';
 import { Check } from 'reicon-react-native/icons/Check';
+import { CheckCircle } from 'reicon-react-native/icons/CheckCircle';
 import { ChevronDown } from 'reicon-react-native/icons/ChevronDown';
 import { ChevronLeft } from 'reicon-react-native/icons/ChevronLeft';
 import { ChevronRight } from 'reicon-react-native/icons/ChevronRight';
@@ -32,6 +33,7 @@ import { Headset } from 'reicon-react-native/icons/Headset';
 import { Heart } from 'reicon-react-native/icons/Heart';
 import { HelpCircle } from 'reicon-react-native/icons/HelpCircle';
 import { Home } from 'reicon-react-native/icons/Home';
+import { Hourglass } from 'reicon-react-native/icons/Hourglass';
 import { Image } from 'reicon-react-native/icons/Image';
 import { Images } from 'reicon-react-native/icons/Images';
 import { InfoCircle } from 'reicon-react-native/icons/InfoCircle';
@@ -85,12 +87,15 @@ const iconMap: Record<string, IconComponent> = {
   'cash-outline': Money,
   'chatbox-ellipses-outline': Chat,
   checkmark: Check,
+  'checkmark-circle': CheckCircle,
+  'checkmark-circle-outline': CheckCircle,
   'chevron-back': ChevronLeft,
   'chevron-down': ChevronDown,
   'chevron-forward': ChevronRight,
   'chevron-up': ChevronUp,
   close: X,
   'close-circle': XCircle,
+  'close-circle-outline': XCircle,
   'cloud-offline-outline': CloudX,
   compass: Compass,
   'create-outline': Edit,
@@ -110,6 +115,7 @@ const iconMap: Record<string, IconComponent> = {
   'help-circle-outline': HelpCircle,
   home: Home,
   'home-outline': Home,
+  'hourglass-outline': Hourglass,
   grid: Grid,
   'grid-outline': Grid,
   image: Image,
@@ -126,6 +132,7 @@ const iconMap: Record<string, IconComponent> = {
   location: Location,
   'location-outline': Location,
   'lock-closed': Lock,
+  'lock-closed-outline': Lock,
   'log-out-outline': Exit,
   'megaphone-outline': Bell,
   my: User,

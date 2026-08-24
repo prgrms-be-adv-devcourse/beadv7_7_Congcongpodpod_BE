@@ -2,8 +2,7 @@ package kr.lastdish.core.store.application;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -147,6 +146,7 @@ class StoreServiceTest {
         "테스트 매장",
         "123-45-67890",
         "서울시 강남구",
+        "명정빌딩",
         "02-1234-5678",
         openTime,
         closeTime,
@@ -168,6 +168,7 @@ class StoreServiceTest {
         new UpdateStoreCommand(
             "수정된 매장명",
             "서울특별시 강남구 테헤란로 123",
+            "명정빌딩",
             "02-1234-5678",
             LocalTime.of(9, 0),
             LocalTime.of(21, 0),
@@ -319,6 +320,7 @@ class StoreServiceTest {
             "테스트 매장",
             "123-45-67890",
             "서울특별시 강남구 테헤란로 123",
+            "명정빌딩",
             "02-1234-5678",
             LocalTime.of(9, 0),
             LocalTime.of(21, 0),
@@ -358,9 +360,15 @@ class StoreServiceTest {
     assertThat(savedStore.getNextClosingAt()).isNotNull();
 
     // 회원 권한을 SELLER로 변경하기 위한 이벤트 검증
-    verify(outboxEventWriter).append(eventCaptor.capture());
+    verify(outboxEventWriter, times(2)).append(eventCaptor.capture());
 
-    StoreRegisteredEvent event = (StoreRegisteredEvent) eventCaptor.getValue();
+    List<DomainEvent> capturedEvents = eventCaptor.getAllValues();
+    StoreRegisteredEvent event =
+        capturedEvents.stream()
+            .filter(e -> e instanceof StoreRegisteredEvent)
+            .map(StoreRegisteredEvent.class::cast)
+            .findFirst()
+            .orElseThrow();
 
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
