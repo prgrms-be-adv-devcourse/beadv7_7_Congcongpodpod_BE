@@ -33,6 +33,7 @@ public class MonthlySettlementTasklet implements Tasklet {
 
     YearMonth settlementMonth = YearMonth.parse(monthValue);
 
+    // 기존 방식의 매장 도메인을 통한 정산 대상 매장 조회 -> Settlement 내부 정산 대상 조회 (당월에 주문 내역이 존재하는 매장은 Settlements에 Accumulating 상태로 존재)
     List<Long> targetStoreIds =
         settlementEventService.findMonthlySettlementTargetStoreIds(settlementMonth);
 
@@ -41,6 +42,7 @@ public class MonthlySettlementTasklet implements Tasklet {
     int skippedCount = 0;
     int failedCount = 0;
 
+    // 정산 대상 매장별로 월별 정산을 진행
     for (Long storeId : targetStoreIds) {
       try {
         SettlementProcessResult result =

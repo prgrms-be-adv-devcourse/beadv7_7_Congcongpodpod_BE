@@ -60,8 +60,10 @@ public class SettlementEventService {
 
     try {
       if (retry) {
+        // Failed 상태 정산인 경우 restart, 매장 정산 계좌 스냅샷 이미 존재
         settlementTransactionalManager.restart(settlement.getId());
       } else {
+        // Accumulating 상태 정산의 경우 매장 정산 계좌 미등록 시 skipped
         Optional<SettlementAccountData> account =
             settlementStoreReader.readAccountByStoreId(storeId);
 
@@ -75,6 +77,7 @@ public class SettlementEventService {
 
       settlementTransactionalManager.completeAccumulatedSettlement(settlement.getId());
 
+      // 실패 재처리 분기
       return retry
           ? SettlementProcessResult.retried(storeId, settlement.getId())
           : SettlementProcessResult.created(storeId, settlement.getId());
@@ -82,6 +85,7 @@ public class SettlementEventService {
     } catch (Exception exception) {
       String failureReason = extractFailureReason(exception);
 
+      // Accumulating -> Processing 전환 중 오류 시 Accumulating 상태로 남음, 상태 변경 시 오류 발생 해소 (누적 중 상태는 failed 처리 불가)
       saveFailureIfProcessing(settlement.getId(), failureReason);
 
       return SettlementProcessResult.failed(storeId, settlement.getId(), failureReason);
