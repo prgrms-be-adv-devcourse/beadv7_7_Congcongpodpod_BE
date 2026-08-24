@@ -18,7 +18,15 @@ public class StoreEventListener {
   private final ObjectMapper objectMapper;
 
   @KafkaListener(
-      topics = {"STORE_CREATED", "STORE_INFO_CHANGED", "STORE_STATUS_CHANGED", "STORE_IS_DELETED"},
+      topics = {
+        "STORE_CREATED",
+        "STORE_INFO_CHANGED",
+        "STORE_STATUS_CHANGED",
+        "STORE_IS_DELETED",
+        "DISH_IS_CREATED",
+        "DISH_IS_UPDATED",
+        "DISH_IS_DELETED"
+      },
       groupId = "${spring.kafka.consumer.group-id:ai-service-group}")
   public void listen(EventMessage message) {
     log.info(
