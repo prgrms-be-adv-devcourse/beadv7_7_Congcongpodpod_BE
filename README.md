@@ -1,163 +1,175 @@
-<p align="center">
-  <img src="docs/assets/last-dish-logo.png" alt="Last Dish" width="720">
-</p>
+<div align="center">
+  <img src="docs/assets/app/lastdish-logo-official.png" alt="LastDish" width="132">
+  <h3>남은 맛을, 좋은 가격에.</h3>
+  <p>가까운 매장의 마감 할인 음식을 예약하고 픽업하는 로컬 푸드 세이빙 플랫폼</p>
 
-# LastDish
+  [![Backend Services](https://github.com/prgrms-be-adv-devcourse/beadv7_7_Congcongpodpod_BE/actions/workflows/backend-services.yml/badge.svg?branch=develop)](https://github.com/prgrms-be-adv-devcourse/beadv7_7_Congcongpodpod_BE/actions/workflows/backend-services.yml)
+  ![Java](https://img.shields.io/badge/Java-21-171a18?logo=openjdk)
+  ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white)
+  ![Expo](https://img.shields.io/badge/Expo-55-000020?logo=expo&logoColor=white)
+  [![License](https://img.shields.io/badge/license-source--available-03C75A)](LICENSE)
 
-> 매장 마감 재고를 할인된 가격에 예약하고 픽업할 수 있도록 판매자와 소비자를 연결하는 플랫폼
+  [데모 사이트](https://lastdish.kr) · [제품 둘러보기](https://prgrms-be-adv-devcourse.github.io/beadv7_7_Congcongpodpod_BE/index.html) · [빠른 시작](#빠른-시작) · [아키텍처](docs/architecture.md) · [개발 문서](docs/README.md)
+</div>
 
-LastDish는 폐기될 수 있는 마감 재고를 **Surprise Bag(랜덤 마감팩)** 으로 판매합니다.
-판매자는 남은 식품을 수익으로 전환하고, 소비자는 양질의 식품을 합리적인 가격에
-구매하며, 함께 음식물 폐기로 인한 환경 부담을 줄입니다.
+<br>
 
-덴마크에서 시작된 잉여 식품 마켓플레이스 **Too Good To Go**의 핵심 경험을 국내 환경에
-맞게 재해석했습니다.
+## LastDish
 
-## 프로젝트 목표
+영업 종료를 앞둔 매장의 남은 음식을 **마감팩**으로 판매합니다. 구매자는 주변 상품을 찾아 예약·결제한 뒤 정해진 시간에 픽업하고, 판매자는 재고·주문·정산을 하나의 앱에서 관리합니다.
 
-- 회원가입부터 결제, 픽업, 정산까지 서비스의 전체 흐름 구현
-- 한정 수량 상품의 선착순 주문에서 안전한 재고 차감과 동시성 제어
-- 결제·예치금의 트랜잭션 통제와 변경 이력 추적
-- 서비스별 책임과 데이터 소유권이 분리된 멀티 서비스 구성
+| 구매자 경험 | 판매자 경험 | 플랫폼 기반 |
+| --- | --- | --- |
+| 지도 기반 주변 매장 탐색 | 매장·상품·재고 관리 | JWT 인증과 역할 기반 접근 제어 |
+| 장바구니와 예치금 결제 | 주문 접수와 픽업 코드 확인 | 한정 재고 동시성 제어 |
+| 주문 상태·픽업 코드 확인 | 월별 판매·수수료 정산 | Outbox 기반 이벤트 전달 |
+| 찜·포인트·등급·알림 | AI 상품 카테고리 추천 | 서비스별 데이터 소유권 분리 |
 
-## 핵심 비즈니스 모델: Surprise Bag
-
-개별 메뉴를 하나씩 판매하는 대신, 마감 시점에 남은 식품을 하나의 랜덤 구성 상품으로
-묶어 판매합니다. 구매자는 정확한 구성품을 미리 알 수 없는 대신 정가보다 **30% 이상
-할인된 가격**으로 구매합니다.
-
-- **판매자:** 반복적인 개별 메뉴 관리 없이 상품명, 수량, 가격, 픽업 시간대를 등록
-- **구매자:** 주변 매장의 한정 수량 마감팩을 찾아 예약하고 지정 시간에 픽업
-- **기술 과제:** 특정 시간대에 집중되는 주문의 재고 정합성과 동시 요청 제어
-
-## 핵심 기능
-
-| 구매자 | 판매자 |
-|---|---|
-| 위치 기반 주변 매장·상품 조회 | 매장과 마감 할인 상품 관리 |
-| 장바구니, 주문, 결제 | 주문 접수와 픽업 처리 |
-| 픽업 코드 확인 | 매출 정산과 정산 계좌 관리 |
-| 예치금 충전과 내역 조회 | 판매 현황 확인 |
-
-판매자도 구매자 기능을 함께 사용할 수 있습니다.
-
-## LastDish의 차별점
-
-| 구분 | 적용 내용 |
-|---|---|
-| 예치금 기반 주문 | 선충전한 예치금으로 주문해 반복적인 PG 승인 흐름을 줄입니다. |
-| 간편한 판매자 전환 | 일반 회원이 판매자로 전환한 뒤 자신의 매장을 등록할 수 있습니다. |
-| 서버 기반 장바구니 | 장바구니와 주문 정보를 서버에 보관해 일관된 구매 흐름을 제공합니다. |
-| 정산 자동화 | 월별 판매 금액에서 수수료를 계산하고 매장별 정산 내역을 생성합니다. |
-
-## 도메인 구조
-
-| Context | 주요 책임 |
-|---|---|
-| Auth / Member | JWT 인증, 회원과 판매자 권한, 프로필 관리 |
-| Store / Dish | 매장, Surprise Bag, 판매 수량·시간·상태 관리 |
-| Cart | 상품 추가·수정·삭제와 주문 가능 여부 확인 |
-| Order / Pickup | 주문 상태 전이, 재고 차감, 픽업 코드 발급·검증 |
-| Payment / Deposit | PG 충전, 예치금 증감과 이력, 주문 금액 차감 |
-| Settlement | 월별 수수료 계산과 매장별 정산 처리 |
-
-## 시스템 구성
+## 핵심 흐름
 
 ```mermaid
 flowchart LR
-    Client["Flutter Web"] --> Gateway["Gateway"]
-    Gateway --> Member["Member Service"]
-    Gateway --> Core["Core Service"]
-    Config["Config Server"] -.-> Gateway
-    Config -.-> Member
-    Config -.-> Core
-    Member --> MemberDB[(Member DB)]
-    Core --> CoreDB[(Core DB)]
+    Discover[주변 매장 탐색] --> Select[마감팩 선택]
+    Select --> Pay[장바구니 · 결제]
+    Pay --> Accept[판매자 주문 접수]
+    Accept --> Pickup[픽업 코드 확인]
+    Pickup --> Settle[월별 정산]
 ```
 
-Gateway가 외부 요청의 단일 진입점이며, Member와 Core Service는 각자의 PostgreSQL을
-소유합니다. 상세 구조는 [시스템 아키텍처](docs/architecture.md)를 참고합니다.
+## 아키텍처
+
+```mermaid
+flowchart LR
+    Client[Expo 앱 · Web] --> Gateway[Gateway Service]
+    Gateway --> Member[Member Service]
+    Gateway --> Core[Core Service]
+    Gateway -. OpenAPI 집계 .-> Payment[Payment Service]
+    Gateway -. OpenAPI 집계 .-> AI[AI Service]
+    Core <--> Kafka[(Kafka)]
+    Payment <--> Kafka
+    AI <--> Kafka
+
+    Config[Config Server] -. 구성 제공 .-> Gateway
+    Config -.-> Member
+    Config -.-> Core
+    Config -.-> Payment
+    Config -.-> AI
+
+    Member --> MemberDB[(Member PostgreSQL)]
+    Core --> CoreDB[(Core PostgreSQL)]
+    Core --> Redis[(Redis)]
+    AI --> Search[(Elasticsearch)]
+```
+
+| 구성 요소 | 책임 |
+| --- | --- |
+| Gateway Service | 외부 요청 진입점, JWT 검증, 역할 기반 라우팅 |
+| Member Service | 이메일·카카오 인증, 회원, 알림과 SSE |
+| Core Service | 매장, 상품, 장바구니, 주문, 예치금, 포인트, 정산 |
+| Payment Service | 결제 연동과 결제 처리 경계 |
+| AI Service | 상품 이미지 기반 카테고리 분류 |
+| Config Server | 환경별 Spring 설정 제공 |
+
+각 서비스는 자신의 데이터와 도메인 책임을 소유하며 다른 서비스의 테이블을 직접 조회하지 않습니다. 요청·인증·이벤트·오류 계약은 [아키텍처 문서](docs/architecture.md)에 정리되어 있습니다.
 
 ## 기술 스택
 
 | 영역 | 기술 |
-|---|---|
-| Frontend | Flutter, Riverpod, GoRouter, Dio |
-| Backend | Java 21, Spring Boot, Spring Cloud, JPA, Flyway |
-| Data | PostgreSQL |
-| Infrastructure | Docker Compose, Kubernetes, GitHub Actions |
+| --- | --- |
+| Client | Expo 55, React Native 0.83, React 19, Expo Router, React Native Web |
+| Backend | Java 21, Spring Boot 4.1, Spring Cloud, Spring Data JPA, Flyway |
+| Data & Messaging | PostgreSQL, Redis, Kafka, Elasticsearch |
+| Infrastructure | Docker Compose, Kubernetes, GitHub Actions, GHCR |
+| Quality | Gradle, JUnit, Spotless, ESLint, TypeScript |
 
-## 저장소 구성
+## 빠른 시작
 
-- `frontend/`: Flutter 애플리케이션
-- `backend/`: Spring Boot 멀티 서비스와 공통 모듈
-- `infra/`: 로컬 Docker Compose 설정과 Kubernetes 매니페스트
-- `docs/`: 아키텍처, 개발, 운영 문서
-- `dev/`: 로컬 Compose, 환경변수 예시, 실행 스크립트와 개발 보조 설정
+### 요구 사항
 
-## 로컬 실행
+- Docker와 Docker Compose
+- Node.js LTS와 npm
+- iOS·Android 네이티브 실행 시 해당 플랫폼의 Expo 개발 환경
 
-백엔드 전체 환경은 `dev/compose.yaml`로 실행합니다.
+### 1. 백엔드 통합 환경
 
 ```bash
 cp dev/.env.example dev/.env
 ./dev/local/member-service/generate-jwt-keys.sh
 ./dev/dev.sh
-docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
 
-세부 명령과 Windows 사용법은 [`dev/README.md`](dev/README.md)를 참고합니다. `dev.sh`는 빌드와 컨테이너 교체가 성공한 뒤 이번 빌드로 교체된 이전 LastDish 이미지만 삭제합니다. 현재 컨테이너나 다른 컨테이너가 사용하는 이미지는 강제로 삭제하지 않습니다.
+`dev.sh`는 PostgreSQL, Redis, Kafka, Elasticsearch, Config Server와 백엔드 서비스를 빌드하고 실행합니다. 환경변수와 시연 데이터, 서비스별 실행·초기화 방법은 [로컬 개발 가이드](dev/README.md)를 확인하세요.
 
-특정 서비스만 다시 빌드할 수도 있습니다.
+### 2. 앱과 웹
 
 ```bash
-./dev/dev.sh config-server payment-service ai-service gateway-service
+cd frontend/react-native
+cp .env.example .env.local
+npm ci
+npm run web
 ```
 
-초기화할 로컬 데이터 저장소를 하나씩 선택할 수 있습니다. PostgreSQL은 선택한 논리 DB만 재생성하고 해당 서비스의 Flyway를 다시 실행합니다.
+네이티브 앱은 같은 디렉터리에서 `npm run ios` 또는 `npm run android`로 실행합니다. 지도·결제 키를 포함한 환경변수는 [프론트엔드 가이드](frontend/react-native/README.md)를 확인하세요.
+
+> [!IMPORTANT]
+> `.env`, 개인 키, 결제 키와 클라우드 자격 증명은 커밋하지 마세요. 저장소의 예제 환경변수 파일에는 개발용 기본값 또는 변수 이름만 유지합니다.
+
+## 검증
 
 ```bash
-./dev/dev.sh reset member-db
-./dev/dev.sh reset core-db
-./dev/dev.sh reset payment-db
-./dev/dev.sh reset ai-db
-./dev/dev.sh reset kafka
-./dev/dev.sh reset redis
-./dev/dev.sh reset elasticsearch
-./dev/dev.sh reset all
+# Backend tests and formatting
+cd backend
+./gradlew test spotlessCheck
+
+# Frontend lint and web production build
+cd ../frontend/react-native
+npm run lint
+npm run web:build
 ```
 
-`all`은 PostgreSQL 네 개 논리 DB, Kafka 메시지·KRaft 데이터, Redis 데이터, Elasticsearch 인덱스를 모두 삭제하고 전체 환경을 다시 빌드·실행합니다.
+백엔드 CI는 변경된 서비스와 공통 모듈의 영향을 계산해 테스트·패키징·컨테이너 이미지 빌드를 수행합니다. 자세한 내용은 [빌드와 CI](docs/backend/build-and-ci.md)를 참고하세요.
 
-```bash
-cd frontend
-flutter pub get
-flutter run -d chrome --web-port 3000
+## 저장소 구조
+
+```text
+.
+├── backend/
+│   ├── services/        # Gateway, Member, Core, Payment, AI, Config Server
+│   └── modules/         # API, MVC, Event, Outbox, Inbox, S3 공통 모듈
+├── frontend/
+│   └── react-native/    # iOS · Android · Web 공용 Expo 앱
+├── dev/                 # Docker Compose 로컬 통합 환경과 개발 도구
+├── infra/               # Kubernetes 배포 매니페스트
+└── docs/                # 제품, 아키텍처, 개발, 운영 문서
 ```
-
-- Flutter Web: `http://localhost:3000`
-- Gateway: `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- Redis: `localhost:6379` (`REDIS_PASSWORD` 미지정 시 개발 전용 비밀번호 사용)
-- Kafka: `localhost:9092` (단일 KRaft broker, PLAINTEXT)
-
-환경 준비, 개별 서비스 실행, DB 초기화 방법은 [로컬 통합 환경](docs/dev/local-development.md),
-Flutter 설치와 빌드는 [프론트엔드 가이드](frontend/README.md)를 참고합니다.
 
 ## 문서
 
-- [문서 전체 목차](docs/README.md)
-- [시스템 아키텍처](docs/architecture.md)
-- [Gateway와 인증](docs/backend/gateway.md)
-- [Kubernetes 구성](docs/infra/kubernetes.md)
-- [빌드와 CI](docs/backend/build-and-ci.md)
+| 문서 | 내용 |
+| --- | --- |
+| [문서 인덱스](docs/README.md) | 전체 개발·운영 문서 탐색 |
+| [시스템 아키텍처](docs/architecture.md) | 서비스 책임, 인증, 오류, 이벤트 흐름 |
+| [Swagger](docs/backend/swagger.md) | 통합 API 문서 사용법 |
+| [로컬 통합 환경](docs/infra/local-development.md) | Compose 구성과 로컬 실행 |
+| [Kubernetes](docs/infra/kubernetes.md) | 배포 리소스와 적용 순서 |
+| [운영 가이드](docs/infra/lastdish-operations.md) | 배포·점검·장애 대응 절차 |
 
-## 향후 발전 방향
+## 기여
 
-아래 기능은 현재 구현 범위가 아닌 후속 아이디어입니다.
+일반 변경은 작업 브랜치에서 `develop`으로 Pull Request를 보냅니다. `main`에는 검증된 `develop` 릴리스만 병합합니다.
 
-- 판매자가 입력한 상품 설명을 분석한 알레르기 유발 성분 경고
-- 판매 이력을 활용한 매장·상품 성향 태깅
-- 요일과 시간대별 수요 예측 및 마감팩 수량 추천
-- 과거 판매 추이에 기반한 적정 할인율 제안
-- 구매·픽업에 따른 환경 기여 기록과 보상 체계
+```text
+feature | fix | refactor → develop → main
+hotfix → main
+```
+
+- PR 제목: `[Feature|Fix|Refactor|Docs|Test|Deploy] 한글 설명`
+- 변경 이유와 영향 범위(Config, DB, API, 배포)를 함께 기록
+- 관련 테스트와 CI 통과 여부 기록
+- 최종 리뷰 전 최신 `develop` 반영
+
+## 라이선스
+
+이 저장소는 소스 열람과 GitHub 약관이 허용하는 서비스 내부 포크를 허용하지만 오픈소스가 아닙니다. 그 범위를 벗어난 사용, 수정, 재배포, 상업적 이용과 서비스 배포에는 사전 서면 허가가 필요합니다. 자세한 조건은 [LICENSE](LICENSE)를 확인하세요.
+
+<p align="center"><sub>LastDish · 버려지기 전에 한 번 더.</sub></p>

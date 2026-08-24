@@ -56,6 +56,10 @@ public class StoreService {
 
     Store savedStore = storeRepository.save(store);
 
+    // 매장 등록 후 회원 권한 seller 변경 이벤트 발행
+    appendRegisteredEvent(savedStore);
+
+    // 매장 생성 후 검색 문서 갱신을 위한 이벤트 발행
     //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendCreatedEvent(savedStore);
 
@@ -312,6 +316,24 @@ public class StoreService {
         new StoreDeletedEvent(
             UUID.randomUUID(),
             StoreDeletedEvent.SCHEMA_VERSION,
+            store.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  // 매장 등록 후 회원의 역할 seller 승급을 위한 이벤트
+  private void appendRegisteredEvent(Store store) {
+    StoreRegisteredPayload payload = new StoreRegisteredPayload(store.getMemberId());
+
+    long aggregateVersion = store.nextEventVersion();
+
+    StoreRegisteredEvent event =
+        new StoreRegisteredEvent(
+            UUID.randomUUID(),
+            StoreRegisteredEvent.SCHEMA_VERSION,
             store.getId(),
             aggregateVersion,
             payload,

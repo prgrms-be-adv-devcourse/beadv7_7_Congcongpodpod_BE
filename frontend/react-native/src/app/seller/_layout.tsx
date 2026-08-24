@@ -1,8 +1,11 @@
-import { Redirect, router, Slot, Tabs, useSegments } from 'expo-router';
+import { Redirect, router, Tabs, useSegments } from 'expo-router';
+import { Text } from 'react-native';
 
 import { AnimatedTabIcon, triggerTabFeedback } from '@/components/animated-tab-icon';
+import { FloatingTabBar } from '@/components/floating-tab-bar';
+import { GlassTabBackground } from '@/components/glass-tab-background';
 import { LoadingState } from '@/components/loading-state';
-import { colors, fonts } from '@/constants/theme';
+import { colors, fonts, radius } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
 
 const tabs = {
@@ -20,19 +23,22 @@ export default function SellerLayout() {
 
   if (initializing) return <LoadingState label="판매자 권한을 확인하고 있어요"/>;
   if (!member) return <Redirect href="/login"/>;
-  if (isStoreRegistration) return <Slot/>;
-  if (member.role !== 'SELLER') return <Redirect href="/my"/>;
+  if (member.role !== 'SELLER' && !isStoreRegistration) return <Redirect href="/my"/>;
 
-  return <Tabs screenListeners={({ route }) => ({ tabPress: () => triggerTabFeedback(route.name) })} screenOptions={({ route }) => {
+  return <Tabs tabBar={(props) => <FloatingTabBar {...props}/>} screenListeners={({ route }) => ({ tabPress: () => triggerTabFeedback(route.name) })} screenOptions={({ route }) => {
     const item = tabs[route.name as keyof typeof tabs];
     return {
       headerShown: false,
       title: item?.[0],
-      tabBarActiveTintColor: colors.ink900,
-      tabBarInactiveTintColor: colors.ink400,
-      tabBarStyle: { height: 76, paddingTop: 8, paddingBottom: 10, borderTopColor: colors.line, backgroundColor: colors.white, shadowColor: '#17281C', shadowOpacity: .055, shadowRadius: 12, shadowOffset: { width: 0, height: -3 } },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', fontFamily: fonts.body },
-      tabBarIcon: ({ color, focused }) => item ? <AnimatedTabIcon tabKey={route.name} active={item[2]} color={color} focused={focused} idle={item[1]} size={focused ? 21 : 20} /> : null,
+      tabBarActiveTintColor: route.name === 'exit' ? colors.danger700 : colors.ink900,
+      tabBarInactiveTintColor: route.name === 'exit' ? colors.danger700 : colors.ink400,
+      tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 6, borderTopWidth: 0, borderRadius: radius.navigation, backgroundColor: 'transparent' },
+      tabBarBackground: () => <GlassTabBackground/>,
+      tabBarLabelStyle: { fontSize: 10, fontWeight: '700', fontFamily: fonts.body },
+      tabBarLabel: route.name === 'exit'
+        ? () => <Text style={{ color: colors.danger700, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' }}>나가기</Text>
+        : undefined,
+      tabBarIcon: ({ color, focused }) => item ? <AnimatedTabIcon tabKey={route.name} active={item[2]} color={route.name === 'exit' ? colors.danger700 : color} focused={focused} idle={item[1]} size={focused ? 20 : 19} /> : null,
     };
   }}>
     <Tabs.Screen name="home" />
@@ -40,7 +46,7 @@ export default function SellerLayout() {
     <Tabs.Screen name="orders" />
     <Tabs.Screen name="settlements" />
     <Tabs.Screen name="exit" listeners={{ tabPress: (event) => { event.preventDefault(); router.replace('/my'); } }} />
-    <Tabs.Screen name="store" options={{ href: null }} />
+    <Tabs.Screen name="store" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     <Tabs.Screen name="dishes/new" options={{ href: null }} />
   </Tabs>;
 }

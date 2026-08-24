@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router } from 'expo-router';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
   rowValue: { maxWidth: '62%', textAlign: 'right', color: colors.ink900, fontWeight: '700' },
   strong: { fontSize: 17, fontWeight: '700', fontFamily: fonts.body },
   button: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green300 },
-  buttonText: { color: colors.ink900, fontSize: 16, fontWeight: '700', fontFamily: fonts.body },
+  buttonText: { color: colors.white, fontSize: 16, fontWeight: '800', fontFamily: fonts.body },
   pressed: { opacity: 0.65, transform: [{ scale: 0.99 }] },
 });

@@ -2,7 +2,7 @@
 
 ## 1. 목적
 
-Swagger UI를 사용해 Member Service와 Core Service의 API 명세를 확인하고 브라우저에서 직접
+Swagger UI를 사용해 Member, Core, Payment, AI Service의 API 명세를 확인하고 브라우저에서 직접
 API를 호출한다. Swagger는 수동 API 확인 도구이며 자동화 테스트를 대체하지 않는다.
 
 ## 2. 현재 제공 범위
@@ -14,6 +14,8 @@ Gateway 통합 Swagger UI와 서비스별 Swagger UI를 모두 제공한다.
 | Gateway 통합 | `http://localhost:8080/swagger-ui/index.html` | 서비스별 문서를 Gateway가 프록시 |
 | Member | `http://localhost:8081/swagger-ui/index.html` | `http://localhost:8081/v3/api-docs` |
 | Core | `http://localhost:8082/swagger-ui/index.html` | `http://localhost:8082/v3/api-docs` |
+| Payment | `http://localhost:8083/swagger-ui/index.html` | `http://localhost:8083/v3/api-docs` |
+| AI | `http://localhost:8084/swagger-ui/index.html` | `http://localhost:8084/v3/api-docs` |
 
 Swagger는 `local` 프로필에서만 활성화된다. 기본 프로필과 운영 환경에서는 Swagger UI와
 OpenAPI 문서를 제공하지 않는다.
@@ -28,7 +30,7 @@ docker compose --env-file dev/.env --file dev/compose.yaml up --build -d
 docker compose --env-file dev/.env --file dev/compose.yaml ps
 ```
 
-Compose는 Member Service를 `8081`, Core Service를 `8082`에 노출하고 두 서비스의
+Compose는 Member `8081`, Core `8082`, Payment `8083`, AI `8084`를 노출하고 각 서비스의
 `local` 프로필을 활성화한다.
 
 실행 후 다음 주소에 접속한다.
@@ -37,9 +39,11 @@ Compose는 Member Service를 `8081`, Core Service를 `8082`에 노출하고 두 
 Gateway: http://localhost:8080/swagger-ui/index.html
 Member: http://localhost:8081/swagger-ui/index.html
 Core:   http://localhost:8082/swagger-ui/index.html
+Payment: http://localhost:8083/swagger-ui/index.html
+AI:      http://localhost:8084/swagger-ui/index.html
 ```
 
-통합 테스트는 Gateway UI를 사용하고, 서비스만 분리해 확인할 때는 Member/Core UI를 사용한다.
+통합 문서 탐색은 Gateway UI를 사용하고, 서비스를 분리해 확인할 때는 각 서비스 UI를 사용한다. Gateway의 실제 비즈니스 라우트는 Member와 Core에만 선언되어 있으므로 Payment·AI 문서의 API는 Gateway 경유 호출 가능 여부를 별도로 확인한다.
 
 ## 4. 서비스 개별 실행
 
@@ -92,6 +96,8 @@ $env:SERVER_PORT = "8082"
 |---|---|---|
 | Member | `http://localhost:8080` | `http://localhost:8081` |
 | Core | `http://localhost:8080` | `http://localhost:8082` |
+| Payment | Gateway 비즈니스 route 미등록 | `http://localhost:8083` |
+| AI | Gateway 비즈니스 route 미등록 | `http://localhost:8084` |
 
 - Gateway 경유: Gateway 라우팅을 포함한 요청 흐름을 확인한다.
 - 서비스 직접 호출: Gateway를 우회해 서비스 자체 동작을 확인한다.
@@ -135,12 +141,16 @@ Gateway를 우회하므로 Gateway의 인증, 인가, 사용자 헤더 주입을
 
 - `member-service`: Member API 문서
 - `core-service`: Core API 문서
+- `payment-service`: Payment API 문서
+- `ai-service`: AI API 문서
 
 Gateway는 다음 경로를 각 서비스의 `/v3/api-docs`로 프록시한다.
 
 ```text
 /openapi/member-service -> member-service:/v3/api-docs
 /openapi/core-service   -> core-service:/v3/api-docs
+/openapi/payment-service -> payment-service:/v3/api-docs
+/openapi/ai-service      -> ai-service:/v3/api-docs
 ```
 
 문서를 선택한 뒤 `Servers`에서 Gateway 또는 Direct 주소를 선택해 동일한 API를 통합·개별
@@ -158,4 +168,4 @@ DB 데이터까지 삭제해야 할 때만 다음 명령을 사용한다.
 docker compose --env-file dev/.env --file dev/compose.yaml down -v
 ```
 
-`down -v`는 Member/Core 로컬 DB 데이터를 모두 삭제하므로 주의한다.
+`down -v`는 Member, Core, Payment, AI 로컬 데이터베이스가 포함된 볼륨을 삭제하므로 주의한다.

@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Page } from '@/components/page';
 import { Pagination } from '@/components/pagination';
-import { colors, fonts, radius } from '@/constants/theme';
+import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { temporaryMemberStats as stats } from '@/lib/member-stats';
 
 const PAGE_SIZE = 7;
@@ -23,7 +23,18 @@ export default function PointsScreen() {
   const historyPages = Math.ceil(pointHistory.length / PAGE_SIZE);
   const visiblePolicies = useMemo(() => policies.slice(policyPage * PAGE_SIZE, (policyPage + 1) * PAGE_SIZE), [policyPage]);
   return <Page title="라디 포인트" description="포인트 잔액과 적립·사용내역을 확인하세요." onClose={() => router.replace('/my')} closeLabel="포인트 상세 닫기">
-    <View style={styles.balance}><View style={styles.balanceIcon}><Ionicons name="sparkles" size={20} color={colors.green700}/></View><Text style={styles.balanceLabel}>사용 가능한 포인트</Text><Text style={styles.balanceValue}>{stats.points.toLocaleString()}P</Text><Text style={styles.balanceHint}>포인트 사용 기능은 준비 중이에요.</Text></View>
+    <View style={styles.balanceCard}>
+      <View style={styles.balanceTop}>
+        <View style={styles.balanceBrand}><View style={styles.balanceIcon}><Ionicons name="sparkles" size={18} color={colors.green300}/></View><Text style={styles.pointBrand}>라디 포인트</Text></View>
+        <Text style={styles.earnLabel}>픽업으로 쌓는 혜택</Text>
+      </View>
+      <Text style={styles.balanceLabel}>사용 가능한 포인트</Text>
+      <Text style={styles.balanceValue}>{stats.points.toLocaleString()}P</Text>
+      <View style={styles.balanceBottom}>
+        <Text style={styles.balanceHint}>픽업을 완료할수록 포인트와 등급 혜택이 쌓여요.</Text>
+        <View style={styles.statusBadge}><View style={styles.statusDot}/><Text style={styles.statusText}>적립 준비 중</Text></View>
+      </View>
+    </View>
     <View style={styles.historyHead}><Text style={styles.heading}>사용내역</Text><Text style={styles.historyMeta}>0건</Text></View>
     <View style={styles.empty}><Ionicons name="receipt-outline" size={24} color={colors.ink400}/><Text style={styles.emptyTitle}>아직 포인트 내역이 없어요</Text><Text style={styles.emptyText}>적립하거나 사용하면 이곳에 기록됩니다.</Text></View>
     <Pagination page={historyPage} totalPages={historyPages} onChange={setHistoryPage}/>
@@ -34,4 +45,4 @@ export default function PointsScreen() {
 }
 
 function Policy({ icon, title, description, last }: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string; last?: boolean }) { return <View style={[styles.policyRow, last && styles.last]}><View style={styles.policyIcon}><Ionicons name={icon} size={17} color={colors.green700}/></View><View style={styles.policyCopy}><Text style={styles.policyTitle}>{title}</Text><Text style={styles.policyDescription}>{description}</Text></View></View>; }
-const styles = StyleSheet.create({ balance: { padding: 18, borderRadius: radius.card, backgroundColor: colors.ink900 }, balanceIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.green100 }, balanceLabel: { marginTop: 16, color: colors.ink400, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' }, balanceValue: { marginTop: 4, color: colors.white, fontFamily: fonts.body, fontSize: 30, fontWeight: '900', letterSpacing: -1 }, balanceHint: { marginTop: 8, color: colors.ink400, fontFamily: fonts.body, fontSize: 10 }, heading: { marginTop: 8, color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' }, policy: { paddingHorizontal: 14, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, policyRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line }, last: { borderBottomWidth: 0 }, policyIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: colors.green50 }, policyCopy: { flex: 1 }, policyTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' }, policyDescription: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 }, historyHead: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, historyMeta: { color: colors.ink500, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' }, empty: { minHeight: 150, alignItems: 'center', justifyContent: 'center', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, emptyTitle: { marginTop: 10, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' }, emptyText: { marginTop: 5, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 }, });
+const styles = StyleSheet.create({ balanceCard: { padding: 18, borderRadius: radius.card, backgroundColor: colors.ink900, borderWidth: 1, borderColor: '#2B352F', ...shadow.card }, balanceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, balanceBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 }, balanceIcon: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(3,199,90,0.14)' }, pointBrand: { color: colors.white, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' }, earnLabel: { color: colors.green200, fontFamily: fonts.body, fontSize: 9, fontWeight: '700' }, balanceLabel: { marginTop: 19, color: colors.ink400, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' }, balanceValue: { marginTop: 4, color: colors.white, fontFamily: fonts.body, fontSize: 31, fontWeight: '900', letterSpacing: -1.2 }, balanceBottom: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 }, balanceHint: { flex: 1, color: colors.ink400, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 }, statusBadge: { minHeight: 32, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: radius.pill, backgroundColor: 'rgba(3,199,90,0.13)' }, statusDot: { width: 5, height: 5, borderRadius: radius.pill, backgroundColor: colors.green300 }, statusText: { color: colors.green200, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' }, heading: { marginTop: 8, color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' }, policy: { paddingHorizontal: 14, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, policyRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line }, last: { borderBottomWidth: 0 }, policyIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: colors.green50 }, policyCopy: { flex: 1 }, policyTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' }, policyDescription: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 }, historyHead: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, historyMeta: { color: colors.ink500, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' }, empty: { minHeight: 150, alignItems: 'center', justifyContent: 'center', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, emptyTitle: { marginTop: 10, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' }, emptyText: { marginTop: 5, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 }, });

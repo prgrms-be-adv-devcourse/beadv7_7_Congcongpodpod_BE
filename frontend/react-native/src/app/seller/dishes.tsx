@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -153,10 +153,10 @@ const styles = StyleSheet.create({
   listTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 18, fontWeight: '900' },
   listMeta: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '600' },
   addButtonHit: { minHeight: 44, justifyContent: 'center' },
-  addButton: { height: 34, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 9, backgroundColor: colors.green500 },
+  addButton: { height: 34, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: radius.control, backgroundColor: colors.green500 },
   addButtonText: { color: colors.white, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
   list: { gap: 11 },
-  product: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, ...shadow.card },
+  product: { padding: 14, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, ...shadow.card },
   productSummary: { flexDirection: 'row', gap: 13 },
   image: { width: 96, height: 96, borderRadius: 10, backgroundColor: colors.canvas },
   productCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   draftValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 23, lineHeight: 28, fontWeight: '900' },
   draftUnit: { marginLeft: 3, color: colors.ink700, fontFamily: fonts.body, fontSize: 11, lineHeight: 16, fontWeight: '700' },
   quickRow: { marginTop: 8, flexDirection: 'row', gap: 6 },
-  quickButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
+  quickButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
   quickText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
   editorActions: { marginTop: 10, flexDirection: 'row', gap: 8 },
   cancelButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white },

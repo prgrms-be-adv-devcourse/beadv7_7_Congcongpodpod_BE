@@ -72,6 +72,12 @@ public class DishFacade {
     return dishService.updateDishStatus(dishId, request);
   }
 
+  public DishResponse adjustStock(Long memberId, Long dishId, Long quantityDelta) {
+    Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
+    storeService.validateSeller(dish.getStoreId(), memberId);
+    return dishService.adjustStock(dishId, quantityDelta);
+  }
+
   public void deleteDish(Long memberId, Long dishId) {
     Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
     storeService.validateSeller(dish.getStoreId(), memberId);

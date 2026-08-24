@@ -1,10 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty-state';
+import { FLOATING_TAB_CONTENT_INSET } from '@/components/floating-tab-bar';
 import { AppRefreshControl } from '@/components/app-refresh-control';
 import { LoadingState } from '@/components/loading-state';
 import { RefreshStatus } from '@/components/refresh-status';
@@ -24,6 +25,14 @@ type Filter = (typeof filters)[number][0];
 const progress = (status: OrderStatus) => status === 'PICKED_UP' ? 2 : status === 'PICKUP_READY' ? 1 : 0;
 const isStopped = (status: OrderStatus) => ['NO_SHOW', 'CANCELLED', 'REJECTED'].includes(status);
 const isActive = (status: OrderStatus) => ['RESERVED', 'PICKUP_READY'].includes(status);
+const statusDescriptions: Record<OrderStatus, string> = {
+  RESERVED: '매장에서 주문을 확인하고 있어요',
+  PICKUP_READY: '픽업 코드를 준비하고 방문해주세요',
+  PICKED_UP: '맛있는 한 끼를 구조했어요',
+  NO_SHOW: '픽업 시간이 지나 미수령 처리됐어요',
+  CANCELLED: '취소가 완료된 주문이에요',
+  REJECTED: '매장 사정으로 주문이 거절됐어요',
+};
 
 export default function Orders() {
   const { member, initializing } = useAuth();
@@ -31,11 +40,12 @@ export default function Orders() {
   const [codes, setCodes] = useState<Record<number, string>>({});
   const [filter, setFilter] = useState<Filter>('ALL');
   const [loading, setLoading] = useState(true);
+  const loadedOnce = useRef(false);
   const [failed, setFailed] = useState(false);
   const { contentWidth, gutter, isCompact } = useResponsiveLayout();
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     setFailed(false);
     try {
       const rows = await getMyOrders();
@@ -48,6 +58,7 @@ export default function Orders() {
     } catch {
       setFailed(true);
     } finally {
+      loadedOnce.current = true;
       setLoading(false);
     }
   }, []);
@@ -89,7 +100,7 @@ export default function Orders() {
         data={visibleOrders}
         keyExtractor={(item) => String(item.orderId)}
         ListHeaderComponent={header}
-        contentContainerStyle={[styles.list, { width: contentWidth, paddingBottom: 24 }]}
+        contentContainerStyle={[styles.list, { width: contentWidth, paddingBottom: FLOATING_TAB_CONTENT_INSET }]}
         renderItem={({ item }) => <View style={{ paddingHorizontal: gutter }}><OrderCard order={item} code={codes[item.orderId]}/></View>}
         ItemSeparatorComponent={() => <View style={styles.separator}/>} 
         refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>}
@@ -113,10 +124,11 @@ function OrderCard({ order, code }: { order: CustomerOrder; code?: string }) {
           <View style={styles.storeCopy}><Text numberOfLines={1} style={styles.store}>{order.storeName ?? `매장 #${order.storeId}`}</Text><Text style={styles.orderNumber}>주문 #{order.orderId}</Text></View>
           <View style={[styles.statusBadge, stopped && styles.statusBadgeStopped]}><View style={[styles.statusDot, stopped && styles.statusDotStopped]}/><Text style={[styles.statusText, stopped && styles.statusTextStopped]}>{labels[order.status]}</Text></View>
         </View>
+        <Text style={styles.statusDescription}>{statusDescriptions[order.status]}</Text>
         <View style={styles.product}>
           <Image source={getDishImageSource({ imageUrl: order.storeImageUrl })} style={styles.photo}/>
-          <View style={styles.productCopy}><Text numberOfLines={1} style={styles.menu}>{order.dishName} × {order.quantity}</Text><Text style={styles.pickup}>{order.pickupStartAt?.slice(0, 5) ?? '--:--'} 픽업 · {Number(order.totalPrice).toLocaleString()}원</Text></View>
-          <Ionicons name="chevron-forward" size={18} color={colors.ink400}/>
+          <View style={styles.productCopy}><Text numberOfLines={1} style={styles.menu}>{order.dishName} × {order.quantity}</Text><Text style={styles.pickup}>{order.pickupStartAt?.slice(0, 5) ?? '--:--'}–{order.pickupEndAt?.slice(0, 5) ?? '--:--'} 픽업</Text><Text style={styles.price}>{Number(order.totalPrice).toLocaleString()}원</Text></View>
+          <View style={styles.detailLink}><Text style={styles.detailText}>상세</Text><Ionicons name="chevron-forward" size={15} color={colors.ink700}/></View>
         </View>
         {!stopped ? <View style={styles.sequence}>{steps.map((label, index) => <View key={label} style={styles.step}>{index ? <View style={[styles.connector, index <= step && styles.doneBg]}/> : null}<View style={[styles.dot, index <= step && styles.doneBg]}>{index <= step ? <Ionicons name="checkmark" size={9} color={colors.white}/> : null}</View><Text style={[styles.stepText, index <= step && styles.doneText]}>{label}</Text></View>)}</View> : <View style={styles.stopped}><Ionicons name="information-circle-outline" size={16} color={colors.ink700}/><Text style={styles.stoppedText}>{labels[order.status]} 처리된 주문입니다.</Text></View>}
       </Pressable>
@@ -148,7 +160,7 @@ const styles = StyleSheet.create({
   listTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 18, fontWeight: '900' },
   listCount: { color: colors.ink500, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' },
   separator: { height: 11 },
-  card: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, ...shadow.card },
+  card: { padding: 16, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, ...shadow.card },
   pressed: { opacity: 0.72 },
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   storeCopy: { flex: 1 },
@@ -160,12 +172,16 @@ const styles = StyleSheet.create({
   statusDotStopped: { backgroundColor: colors.ink400 },
   statusText: { color: colors.green700, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   statusTextStopped: { color: colors.ink700 },
-  product: { marginTop: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  photo: { width: 62, height: 62, borderRadius: 9, backgroundColor: colors.canvas },
+  statusDescription: { marginTop: 8, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },
+  product: { marginTop: 14, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.control, backgroundColor: colors.canvasWarm },
+  photo: { width: 68, height: 68, borderRadius: 10, backgroundColor: colors.canvas },
   productCopy: { flex: 1 },
   menu: { color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' },
-  pickup: { marginTop: 6, color: colors.ink700, fontFamily: fonts.body, fontSize: 11 },
-  sequence: { flexDirection: 'row', marginTop: 18, marginBottom: 5 },
+  pickup: { marginTop: 5, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 },
+  price: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' },
+  detailLink: { minWidth: 44, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 1 },
+  detailText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
+  sequence: { flexDirection: 'row', marginTop: 16, marginBottom: 3, paddingTop: 11, paddingBottom: 9, borderRadius: radius.control, backgroundColor: colors.canvas },
   step: { flex: 1, alignItems: 'center', paddingTop: 17 },
   dot: { position: 'absolute', top: 0, zIndex: 2, width: 13, height: 13, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.line },
   connector: { position: 'absolute', right: '50%', top: 5, width: '100%', height: 3, backgroundColor: colors.line },

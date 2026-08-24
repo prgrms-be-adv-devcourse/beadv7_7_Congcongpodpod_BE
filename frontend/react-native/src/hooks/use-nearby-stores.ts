@@ -4,7 +4,8 @@ import * as Location from 'expo-location';
 import { getNearbyStores } from '@/lib/stores';
 import type { Store } from '@/types/store';
 
-const defaultLocation = { latitude: 37.49972, longitude: 126.92825 };
+// 위치 권한·GPS·최근 위치가 모두 없을 때 앱과 웹이 공유하는 기준점입니다.
+const defaultLocation = { latitude: 37.485026405, longitude: 127.016271761 };
 type Coordinate = typeof defaultLocation;
 
 const distanceKm = (from: Coordinate, to: Coordinate) => {
@@ -21,6 +22,7 @@ export function useNearbyStores(radiusKm = 5) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [location, setLocation] = useState(defaultLocation);
+  const [locationResolved, setLocationResolved] = useState(false);
   const [heading, setHeading] = useState(0);
   const [locationGranted, setLocationGranted] = useState(false);
   const locationRef = useRef<Coordinate>(defaultLocation);
@@ -57,6 +59,7 @@ export function useNearbyStores(radiusKm = 5) {
       if (cancelled) return;
       locationRef.current = next;
       setLocation(next);
+      setLocationResolved(true);
       if (refreshStores) void loadStoresRef.current(next, true);
     };
     void (async () => {
@@ -96,6 +99,7 @@ export function useNearbyStores(radiusKm = 5) {
       const coordinate = { latitude: next.coords.latitude, longitude: next.coords.longitude };
       locationRef.current = coordinate;
       setLocation(coordinate);
+      setLocationResolved(true);
       if (!highAccuracyAppliedRef.current) {
         highAccuracyAppliedRef.current = true;
         if (distanceKm(lastStoreLocationRef.current, coordinate) >= 0.05) void loadStoresRef.current(coordinate, true);
@@ -107,5 +111,5 @@ export function useNearbyStores(radiusKm = 5) {
     };
   }, [locationGranted]);
 
-  return { stores, loading, error, reload, location, heading };
+  return { stores, loading, error, reload, location, locationResolved, heading };
 }

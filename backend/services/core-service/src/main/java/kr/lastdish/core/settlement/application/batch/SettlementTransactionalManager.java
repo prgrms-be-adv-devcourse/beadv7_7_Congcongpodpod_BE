@@ -60,7 +60,7 @@ public class SettlementTransactionalManager {
                         calculated.order().orderCompletedAt()))
             .toList();
 
-    settlementDetailRepository.saveAll(settlementDetailList);
+    settlementDetailRepository.bulkInsert(settlementDetailList);
     settlement.complete();
   }
 
