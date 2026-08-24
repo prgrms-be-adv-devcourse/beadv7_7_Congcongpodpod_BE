@@ -30,3 +30,6 @@ ALTER TABLE points ADD CONSTRAINT chk_points_balance_min_zero CHECK (balance >= 
 ALTER TABLE point_history ADD CONSTRAINT chk_point_history_remaining_min_zero CHECK (remaining_amount >= 0);
 ALTER TABLE point_history ADD CONSTRAINT uq_point_history_order_type UNIQUE (order_id, type);
 ALTER TABLE point_history ADD CONSTRAINT chk_point_history_type CHECK (type IN ('EARN', 'USE', 'EXPIRE', 'REFUND'));
+
+CREATE INDEX idx_point_history_member_created
+    ON point_history (member_id, created_at DESC);
