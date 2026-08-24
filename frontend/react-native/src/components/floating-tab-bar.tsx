@@ -1,16 +1,23 @@
 import { BottomTabBar, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
-export const FLOATING_TAB_CONTENT_INSET = 128;
+import { layout, radius, shadow } from '@/constants/theme';
+
+export const FLOATING_TAB_CONTENT_INSET = 136;
 
 export function FloatingTabBar(props: BottomTabBarProps) {
+  const { width } = useWindowDimensions();
   const gap = Math.max(20, Math.min(28, props.insets.bottom - 6));
-  return <View pointerEvents="box-none" style={[styles.stage, { left: gap, right: gap, bottom: gap }]}>
-    <View style={styles.clip}><BottomTabBar {...props}/></View>
+  const barWidth = Math.min(width - gap * 2, layout.content - gap * 2);
+  return <View pointerEvents="box-none" style={[styles.stage, { bottom: gap }]}>
+    <View style={[styles.bar, { width: barWidth }]}>
+      <View style={styles.clip}><BottomTabBar {...props}/></View>
+    </View>
   </View>;
 }
 
 const styles = StyleSheet.create({
-  stage: { position: 'absolute', height: 64, borderRadius: 26, shadowColor: '#17281C', shadowOpacity: 0.16, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 9 },
-  clip: { flex: 1, overflow: 'hidden', borderRadius: 26 },
+  stage: { position: 'absolute', left: 0, right: 0, height: 64, alignItems: 'center' },
+  bar: { height: 64, borderRadius: radius.navigation, ...shadow.nav },
+  clip: { flex: 1, overflow: 'hidden', borderRadius: radius.navigation },
 });

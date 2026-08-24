@@ -1,7 +1,8 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 
-import { colors, fonts, radius, shadow } from '@/constants/theme';
+import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
 import { getStoreImageSource } from '@/lib/food-image';
 import { getStoreCategoryVisual } from '@/lib/store-category';
 import { formatCheapestDishOffer } from '@/lib/store-pricing';
@@ -13,7 +14,7 @@ export function StoreCard({ store, onPress, favorite, compact = false }: Props) 
   return (
     <Pressable accessibilityHint="매장 상세를 엽니다" accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, compact && styles.compactRow, pressed && styles.pressed]}>
       <View style={[styles.media, compact && styles.compactMedia]}>
-        <Image source={getStoreImageSource(store)} style={[styles.image, compact && styles.compactImage]} />
+        <Image accessibilityLabel={`${store.storeName} 프로필 이미지`} source={getStoreImageSource(store)} style={[styles.image, compact && styles.compactImage]} />
         <View style={styles.openBadge}><Text style={styles.openText}>픽업 가능</Text></View>
       </View>
       <View style={styles.copy}>
@@ -41,8 +42,8 @@ const styles = StyleSheet.create({
   openText: { color: colors.white, fontFamily: fonts.body, fontSize: 9, fontWeight: '700' },
   copy: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-  title: { flex: 1, color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '800', letterSpacing: -0.45 },
+  title: { ...typography.cardTitle, flex: 1, color: colors.ink900, fontFamily: fonts.body },
   time: { marginTop: 5, color: colors.green700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' },
-  address: { marginTop: 4, color: colors.ink700, fontFamily: fonts.body, fontSize: 12 },
-  price: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '700' },
+  address: { ...typography.meta, marginTop: 4, color: colors.ink700, fontFamily: fonts.body },
+  price: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
 });
