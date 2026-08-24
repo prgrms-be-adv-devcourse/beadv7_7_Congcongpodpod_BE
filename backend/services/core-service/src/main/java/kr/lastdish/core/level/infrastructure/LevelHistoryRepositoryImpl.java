@@ -15,4 +15,9 @@ public class LevelHistoryRepositoryImpl implements LevelHistoryRepository {
   public LevelHistory save(LevelHistory levelHistory) {
     return levelHistoryJpaRepository.save(levelHistory);
   }
+
+  @Override
+  public boolean existsByOrderId(Long orderId) {
+    return levelHistoryJpaRepository.existsByOrderId(orderId);
+  }
 }
