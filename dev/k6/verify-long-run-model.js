@@ -7,6 +7,7 @@ import {
   orderableWindowKeysAt,
   stressRatesForDay,
 } from './lib/long-run-config.js';
+import { selectOldestNewReservedOrder } from './lib/order-selection.js';
 
 export const options = {
   vus: 1,
@@ -58,6 +59,31 @@ export default function () {
     '5일차 목표 이메일 고유': (rows) => uniqueCount(rows, (row) => row.email) === 200,
     '5일차 목표 사용자명 고유': (rows) => uniqueCount(rows, (row) => row.userName) === 200,
     '5일차 목표 전화번호 고유': (rows) => uniqueCount(rows, (row) => row.phone) === 200,
+  });
+
+  const selectedOrder = selectOldestNewReservedOrder(
+    [
+      { orderId: 750005, status: 'RESERVED', phone: '010-A' },
+      { orderId: 750002, status: 'RESERVED', phone: '010-B' },
+      { orderId: 750001, status: 'PICKUP_READY', phone: '010-C' },
+      { orderId: 700000, status: 'RESERVED', phone: '010-D' },
+    ],
+    750000,
+  );
+  const noSelectedOrder = selectOldestNewReservedOrder(
+    [
+      { orderId: 750000, status: 'RESERVED' },
+      { orderId: 750001, status: 'PICKUP_READY' },
+    ],
+    750000,
+  );
+
+  check(selectedOrder, {
+    '전화번호와 무관하게 가장 오래된 새 RESERVED 선택': (order) =>
+      order && order.orderId === 750002,
+  });
+  check(noSelectedOrder, {
+    '새 RESERVED 주문이 없으면 null': (order) => order === null,
   });
 
   for (let minute = 0; minute < 24 * 60; minute += 30) {
