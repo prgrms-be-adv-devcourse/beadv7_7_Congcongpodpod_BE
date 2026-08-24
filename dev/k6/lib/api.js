@@ -2,7 +2,7 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { API, REQUEST_TIMEOUT } from './config.js';
-import { stepTrend } from './metrics.js';
+import { expectedBusinessOutcomes, stepTrend } from './metrics.js';
 
 let requestCount = 0;
 
@@ -80,11 +80,36 @@ export function errorCodeOf(response) {
   }
 }
 
+const EXPECTED_BUSINESS_OUTCOMES = {
+  DEP001: 'deposit_exhausted',
+  CT004: 'stock_exhausted',
+  D001: 'stock_exhausted',
+  D003: 'stock_exhausted',
+  ORD007: 'stock_exhausted',
+  ORD010: 'target_unavailable',
+  ORD011: 'target_unavailable',
+};
+
+export function expectedBusinessOutcomeOf(response) {
+  if (!response || response.status < 400 || response.status >= 500) {
+    return null;
+  }
+  return EXPECTED_BUSINESS_OUTCOMES[errorCodeOf(response)] || null;
+}
+
 // 응답 하나를 검사하고 호출 수에 반영한다. 응답시간 기록 여부는 호출부가 정한다.
 function observe(step, response, recordDuration) {
   requestCount += 1;
   if (recordDuration) {
     stepTrend(step).add(response.timings.duration);
+  }
+
+  const expectedOutcome = expectedBusinessOutcomeOf(response);
+  if (expectedOutcome) {
+    const code = errorCodeOf(response);
+    expectedBusinessOutcomes.add(1, { reason: expectedOutcome, code });
+    console.warn(`[${step}] 예상 업무 결과: reason=${expectedOutcome} code=${code}`);
+    return true;
   }
 
   const ok = check(response, {

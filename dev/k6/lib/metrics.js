@@ -71,6 +71,9 @@ export const ordersPickedUp = new Counter('flow_orders_picked_up');
 export const sellerOrderNotFound = new Counter('flow_seller_order_not_found');
 export const dishStockAdjustSkipped = new Counter('flow_dish_stock_adjust_skipped');
 
+// 부하가 데이터를 정상적으로 소진해서 생긴 업무 결과. 서버 장애·계약 오류와 분리한다.
+export const expectedBusinessOutcomes = new Counter('flow_expected_business_outcomes');
+
 // 재고 조정 의도량. 최종 재고와 대조해 덮어쓰기 여부를 판정한다 (설계 문서 8.3절).
 export const dishStockDeltaUp = new Counter('flow_dish_stock_delta_up');
 export const dishStockDeltaDown = new Counter('flow_dish_stock_delta_down');

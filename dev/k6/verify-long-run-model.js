@@ -5,7 +5,12 @@ import {
   refreshIfExpiring,
   seedCredentials,
 } from './lib/accounts.js';
-import { dataOf, depositBalanceOf, errorCodeOf } from './lib/api.js';
+import {
+  dataOf,
+  depositBalanceOf,
+  errorCodeOf,
+  expectedBusinessOutcomeOf,
+} from './lib/api.js';
 import {
   TIME_WINDOWS,
   buildDailySellerSpecs,
@@ -19,6 +24,13 @@ import {
   validateLifecycleResult,
 } from './lib/lifecycle.js';
 import { selectOldestNewReservedOrder } from './lib/order-selection.js';
+import {
+  orderableTargetsAt,
+  parseRunState,
+  partitionSellerPools,
+  purchaseTargetOf,
+  validateRunState,
+} from './lib/run-state.js';
 
 export const options = {
   vus: 1,
@@ -44,6 +56,26 @@ function throwsContaining(action, expectedMessage) {
   } catch (error) {
     return String(error.message).includes(expectedMessage);
   }
+}
+
+function manifestSeller(spec, index) {
+  return {
+    key: spec.key,
+    windowKey: spec.windowKey,
+    slot: spec.slot,
+    email: spec.email,
+    memberId: 6000 + index,
+    storeId: 7000 + index,
+    dishId: 8000 + index,
+    openTime: spec.store.openTime,
+    closeTime: spec.store.closeTime,
+    pickupStartTime: spec.dish.pickupStartTime,
+    pickupEndTime: spec.dish.pickupEndTime,
+  };
+}
+
+function copy(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 export default function () {
@@ -87,6 +119,18 @@ export default function () {
       dishName: lifecycleSpec.dish.dishName,
     },
   );
+  const validState = {
+    schemaVersion: 1,
+    runId: 'ld273-20260824-a-day1',
+    campaignDate: '20260824',
+    campaignDay: 1,
+    datasetEpoch: '20260824-a',
+    reconstructedDataset: true,
+    partial: false,
+    shardIndexes: [0, 1, 2, 3],
+    sellers: daily.map(manifestSeller),
+  };
+  const expectedState = { campaignDay: 1, datasetEpoch: '20260824-a' };
 
   check(decodeJwtExpirationMs(jwtWithOneHourExpiration), {
     'JWT exp 초를 밀리초로 변환': (value) => value === 3600000,
@@ -102,6 +146,33 @@ export default function () {
   });
   check(errorCodeOf({ body: JSON.stringify({ error: { code: 'AUTH001' } }) }), {
     'API 오류 응답에서 코드 추출': (value) => value === 'AUTH001',
+  });
+  check(null, {
+    'DEP001은 예치금 소진으로 분류': () =>
+      expectedBusinessOutcomeOf({
+        status: 400,
+        body: JSON.stringify({ success: false, error: { code: 'DEP001' } }),
+      }) === 'deposit_exhausted',
+    'D003은 재고 소진으로 분류': () =>
+      expectedBusinessOutcomeOf({
+        status: 409,
+        body: JSON.stringify({ success: false, error: { code: 'D003' } }),
+      }) === 'stock_exhausted',
+    'ORD011은 주문 대상 소진으로 분류': () =>
+      expectedBusinessOutcomeOf({
+        status: 409,
+        body: JSON.stringify({ success: false, error: { code: 'ORD011' } }),
+      }) === 'target_unavailable',
+    '인증 오류는 예상 업무 결과로 분류하지 않음': () =>
+      expectedBusinessOutcomeOf({
+        status: 401,
+        body: JSON.stringify({ success: false, error: { code: 'AUTH001' } }),
+      }) === null,
+    '5xx는 오류 코드와 무관하게 예상 업무 결과로 분류하지 않음': () =>
+      expectedBusinessOutcomeOf({
+        status: 503,
+        body: JSON.stringify({ success: false, error: { code: 'DEP001' } }),
+      }) === null,
   });
   check(
     dataOf({
@@ -153,6 +224,119 @@ export default function () {
       !Object.prototype.hasOwnProperty.call(value, 'password') &&
       !Object.prototype.hasOwnProperty.call(value, 'accessToken') &&
       !Object.prototype.hasOwnProperty.call(value, 'refreshToken'),
+  });
+  check(null, {
+    '정상 상태 파일을 검증해 그대로 반환': () => {
+      try {
+        return validateRunState(validState, expectedState) === validState;
+      } catch (_) {
+        return false;
+      }
+    },
+    'JSON 상태 파일을 파싱하고 검증': () => {
+      try {
+        return parseRunState(JSON.stringify(validState), expectedState).sellers.length === 40;
+      } catch (_) {
+        return false;
+      }
+    },
+    '잘못된 JSON 상태 파일 거절': () =>
+      throwsContaining(() => parseRunState('{', expectedState), 'JSON'),
+  });
+
+  const wrongSchema = copy(validState);
+  wrongSchema.schemaVersion = 2;
+  const wrongCount = copy(validState);
+  wrongCount.sellers.pop();
+  const wrongCampaignDay = copy(validState);
+  wrongCampaignDay.campaignDay = 2;
+  const wrongDatasetEpoch = copy(validState);
+  wrongDatasetEpoch.datasetEpoch = 'old-db';
+  const notReconstructed = copy(validState);
+  notReconstructed.reconstructedDataset = false;
+  const partialState = copy(validState);
+  partialState.partial = true;
+  const duplicateEmail = copy(validState);
+  duplicateEmail.sellers[1].email = duplicateEmail.sellers[0].email;
+  const duplicateMember = copy(validState);
+  duplicateMember.sellers[1].memberId = duplicateMember.sellers[0].memberId;
+  const duplicateStore = copy(validState);
+  duplicateStore.sellers[1].storeId = duplicateStore.sellers[0].storeId;
+  const duplicateDish = copy(validState);
+  duplicateDish.sellers[1].dishId = duplicateDish.sellers[0].dishId;
+
+  check(null, {
+    'schemaVersion 불일치 거절': () =>
+      throwsContaining(() => validateRunState(wrongSchema, expectedState), 'schemaVersion'),
+    '판매자 목표 개수 불일치 거절': () =>
+      throwsContaining(() => validateRunState(wrongCount, expectedState), '판매자 목표 개수'),
+    'CAMPAIGN_DAY 불일치 거절': () =>
+      throwsContaining(() => validateRunState(wrongCampaignDay, expectedState), 'CAMPAIGN_DAY'),
+    'DATASET_EPOCH 불일치 거절': () =>
+      throwsContaining(() => validateRunState(wrongDatasetEpoch, expectedState), 'DATASET_EPOCH'),
+    '재구성되지 않은 상태 거절': () =>
+      throwsContaining(() => validateRunState(notReconstructed, expectedState), 'reconstructedDataset'),
+    '부분 검증 상태를 장기 실행 입력으로 거절': () =>
+      throwsContaining(() => validateRunState(partialState, expectedState), 'partial'),
+    '중복 이메일 거절': () =>
+      throwsContaining(() => validateRunState(duplicateEmail, expectedState), 'email'),
+    '중복 memberId 거절': () =>
+      throwsContaining(() => validateRunState(duplicateMember, expectedState), 'memberId'),
+    '중복 storeId 거절': () =>
+      throwsContaining(() => validateRunState(duplicateStore, expectedState), 'storeId'),
+    '중복 dishId 거절': () =>
+      throwsContaining(() => validateRunState(duplicateDish, expectedState), 'dishId'),
+  });
+
+  check(null, {
+    '상태 판매자를 실제 매장 상품 구매 대상으로 변환': () => {
+      try {
+        const target = purchaseTargetOf(validState.sellers[0]);
+        return target.storeId === 7000 && target.dishId === 8000;
+      } catch (_) {
+        return false;
+      }
+    },
+    '서버 ID가 없는 구매 대상 거절': () =>
+      throwsContaining(
+        () => purchaseTargetOf({ storeId: 7000, dishId: null }),
+        'storeId와 dishId',
+      ),
+    '현재 시각 주문 가능 대상만 반환': () => {
+      try {
+        const targets = orderableTargetsAt(validState, kstDateAtMinute(15 * 60));
+        return targets.length === 10 && targets.every((target) => target.windowKey === 'afternoon');
+      } catch (_) {
+        return false;
+      }
+    },
+    '현재 시각 주문 가능 대상이 없으면 거절': () => {
+      const noTargetState = copy(validState);
+      noTargetState.sellers = noTargetState.sellers.map((seller) => ({
+        ...seller,
+        windowKey: 'dawn',
+      }));
+      return throwsContaining(
+        () => orderableTargetsAt(noTargetState, kstDateAtMinute(15 * 60)),
+        '주문 가능 대상',
+      );
+    },
+    '판매자 주문 처리 풀과 재고 풀을 겹치지 않게 분리': () => {
+      try {
+        const pools = partitionSellerPools(validState, 5, 2);
+        const orderEmails = new Set(pools.orderSellers.map((seller) => seller.email));
+        return (
+          pools.orderSellers.length === 5 &&
+          pools.stockSellers.length === 2 &&
+          pools.activitySellers.length === 33 &&
+          pools.stockSellers.every((seller) => !orderEmails.has(seller.email))
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '판매자 풀 필요 계정이 상태보다 많으면 거절': () =>
+      throwsContaining(() => partitionSellerPools(validState, 30, 11), '판매자 계정'),
   });
   check(null, {
     '회원 역할이 SELLER가 아니면 생애주기 결과 거절': () =>

@@ -8,13 +8,12 @@ import {
   SELLER_ORDER_RETRY_WAIT,
   THINK_MAX,
   THINK_MIN,
-  dishIdFor,
-  storeIdFor,
 } from './config.js';
 import { loginWithCredentials, seedCredentials } from './accounts.js';
 import { apiBatchGet, apiGet, apiSend, dataOf } from './api.js';
 import * as metrics from './metrics.js';
 import { selectOldestNewReservedOrder } from './order-selection.js';
+import { purchaseTargetOf } from './run-state.js';
 
 let thinkTotal = 0;
 
@@ -86,9 +85,8 @@ function loadOrderList(session) {
 
 // 구매 동선: 주변 매장 → 매장 상세 → 상품 상세 → 장바구니 → 주문 → 주문 목록.
 // 대기 1~6번이 여기에 있다.
-export function buyerPurchase(session, targetAccountNo) {
-  const storeId = storeIdFor(targetAccountNo);
-  const dishId = dishIdFor(targetAccountNo);
+export function buyerPurchase(session, target) {
+  const { storeId, dishId } = purchaseTargetOf(target);
 
   apiGet(
     'store_nearby',

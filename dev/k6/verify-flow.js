@@ -6,7 +6,7 @@
 //
 // 자기 매장 주문을 만들지 않기 위해 한 VU가 두 계정의 토큰을 따로 보관한다.
 import exec from 'k6/execution';
-import { ORDER_WINDOW, businessHourNow, storeIdFor } from './lib/config.js';
+import { ORDER_WINDOW, businessHourNow, dishIdFor, storeIdFor } from './lib/config.js';
 import { getRequestCount, resetRequestCount } from './lib/api.js';
 import {
   buyerPurchase,
@@ -62,7 +62,10 @@ export default function () {
   clearLeftoverCartItem(buyer);
   clearLeftoverCartItem(seller);
 
-  const order = buyerPurchase(buyer, SELLER_ACCOUNT);
+  const order = buyerPurchase(buyer, {
+    storeId: storeIdFor(SELLER_ACCOUNT),
+    dishId: dishIdFor(SELLER_ACCOUNT),
+  });
   const store = sellerAdjustStock(seller, 1);
   const handledOrderId = sellerHandleOrder(
     seller,
