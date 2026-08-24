@@ -53,14 +53,6 @@ public class CoreKafkaTopicConfig {
   }
 
   @Bean
-  NewTopic dishCreatedTopic() {
-    return TopicBuilder.name(kr.lastdish.core.dish.domain.event.DishCreatedEvent.EVENT_TYPE)
-        .partitions(3)
-        .replicas(1)
-        .build();
-  }
-
-  @Bean
   NewTopic storeChangedTopic() {
     return TopicBuilder.name(kr.lastdish.core.store.domain.event.StoreChangedEvent.EVENT_TYPE)
         .partitions(3)
