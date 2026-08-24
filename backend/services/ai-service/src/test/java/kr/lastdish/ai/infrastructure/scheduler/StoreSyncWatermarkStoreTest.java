@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import java.time.Duration;
 import java.time.Instant;
+import kr.lastdish.ai.elastic.infrastructure.scheduler.StoreSyncWatermarkStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

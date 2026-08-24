@@ -9,7 +9,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
-import kr.lastdish.ai.application.StoreIndexerService;
+import kr.lastdish.ai.elastic.application.StoreIndexerService;
+import kr.lastdish.ai.elastic.infrastructure.scheduler.StoreSyncScheduler;
+import kr.lastdish.ai.elastic.infrastructure.scheduler.StoreSyncWatermarkStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
