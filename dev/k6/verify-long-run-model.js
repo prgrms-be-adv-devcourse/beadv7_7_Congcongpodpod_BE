@@ -10,6 +10,7 @@ import {
   depositBalanceOf,
   errorCodeOf,
   expectedBusinessOutcomeOf,
+  infrastructureFailureOf,
 } from './lib/api.js';
 import {
   TIME_WINDOWS,
@@ -29,6 +30,12 @@ import {
   partitionAccountsByVu,
   selectWeightedTarget,
 } from './lib/operations-config.js';
+import { buildOperationsAccountModel } from './lib/operations-runtime.js';
+import {
+  buildStressScenarioOptions,
+  buildStressThresholds,
+  stressVuLimitsForDay,
+} from './lib/stress-config.js';
 import {
   orderableTargetsAt,
   parseRunState,
@@ -579,6 +586,88 @@ export default function () {
         value.browse + value.purchase + value.seller + value.stock === value.total,
     });
   }
+
+  check(null, {
+    '스트레스 실행은 네 ramping-arrival-rate 시나리오로 구성': () => {
+      const scenarios = buildStressScenarioOptions(1);
+      return (
+        Object.keys(scenarios).length === 4 &&
+        Object.values(scenarios).every(
+          (scenario) =>
+            scenario.executor === 'ramping-arrival-rate' &&
+            scenario.timeUnit === '1m' &&
+            scenario.tags.phase === 'stress_recovery',
+        )
+      );
+    },
+    '1일차 흐름별 상한과 회복 도착률이 설계값과 일치': () => {
+      const scenarios = buildStressScenarioOptions(1);
+      return (
+        JSON.stringify(Object.values(scenarios).map((scenario) => scenario.stages[0].target)) ===
+          JSON.stringify([61, 22, 22, 5]) &&
+        JSON.stringify(Object.values(scenarios).map((scenario) => scenario.stages[2].target)) ===
+          JSON.stringify([12, 4, 4, 2])
+      );
+    },
+    '각 스트레스 시나리오는 40분 뒤 신규 반복을 중단': () => {
+      const scenarios = buildStressScenarioOptions(1);
+      return Object.values(scenarios).every(
+        (scenario) =>
+          JSON.stringify(scenario.stages.map((stage) => stage.duration)) ===
+            JSON.stringify(['5m', '10m', '10m', '3m', '12m']) &&
+          scenario.gracefulStop === '10m',
+      );
+    },
+    '3일차 흐름별 maxVUs 합계는 전체 상한 150': () => {
+      const scenarios = buildStressScenarioOptions(3);
+      const maxVUs = Object.values(scenarios).map((scenario) => scenario.maxVUs);
+      return (
+        JSON.stringify(maxVUs) === JSON.stringify([83, 30, 30, 7]) &&
+        maxVUs.reduce((sum, value) => sum + value, 0) === 150
+      );
+    },
+    '1일차 스트레스 판매자와 재고 VU는 서로 다른 계정을 배정 가능': () => {
+      const limits = stressVuLimitsForDay(1);
+      const pools = partitionSellerPools(validState, limits.seller, limits.stock);
+      const sellerGroups = partitionAccountsByVu(
+        pools.orderSellers.concat(pools.activitySellers),
+        limits.seller,
+      );
+      const stockEmails = new Set(pools.stockSellers.map((seller) => seller.email));
+      return (
+        sellerGroups.length === 10 &&
+        pools.stockSellers.length === 2 &&
+        sellerGroups.flat().every((seller) => !stockEmails.has(seller.email))
+      );
+    },
+    '1일차 스트레스 계정 모델은 판매자 10개와 재고 2개 VU 묶음을 생성': () => {
+      const model = buildOperationsAccountModel(validState, {
+        sellerVuLimit: 10,
+        stockVuLimit: 2,
+      });
+      const stockEmails = new Set(model.stockSellerAccounts.map((seller) => seller.email));
+      return (
+        model.sellerGroups.length === 10 &&
+        model.stockGroups.length === 2 &&
+        model.sellerGroups.flat().every((seller) => !stockEmails.has(seller.email))
+      );
+    },
+    '5xx와 네트워크 실패만 인프라 실패로 분류': () =>
+      infrastructureFailureOf({ status: 503 }) &&
+      infrastructureFailureOf({ status: 0 }) &&
+      !infrastructureFailureOf({ status: 429 }) &&
+      !infrastructureFailureOf({ status: 400 }),
+    '유휴 p95의 3배를 스트레스 보호 중단 기준으로 사용': () => {
+      const thresholds = buildStressThresholds(250);
+      return (
+        thresholds.http_req_duration[0].threshold === 'p(95)<750' &&
+        thresholds.flow_infrastructure_failures[0].threshold === 'rate<0.03' &&
+        thresholds.flow_order_create_success[0].threshold === 'rate>=0.95'
+      );
+    },
+    '유휴 p95가 없으면 스트레스 임계값 생성을 거절': () =>
+      throwsContaining(() => buildStressThresholds(0), 'BASELINE_P95_MS'),
+  });
 
   console.log('순수 모델 검증 완료: HTTP 요청 0회');
 }

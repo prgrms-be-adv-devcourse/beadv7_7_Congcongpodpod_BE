@@ -130,6 +130,7 @@ export function buyerPurchase(session, target) {
 
   const cartItem = findCartItem(revalidated, dishId) || added;
   if (!cartItem || !cartItem.cartItemId) {
+    metrics.orderCreateSuccess.add(false);
     console.error(`[${session.email}] 장바구니 항목을 찾지 못해 주문을 건너뜁니다.`);
     return null;
   }
@@ -145,6 +146,7 @@ export function buyerPurchase(session, target) {
       dishPriceVersion,
     }),
   );
+  metrics.orderCreateSuccess.add(Boolean(order && order.orderId));
 
   apiGet('cart_after_order', '/carts/members', session.token);
   loadOrderList(session);

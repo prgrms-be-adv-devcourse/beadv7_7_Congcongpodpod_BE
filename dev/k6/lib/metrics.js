@@ -1,6 +1,6 @@
 // 설계 문서 9절 "실행 후 반드시 기록할 값"을 k6 커스텀 지표로 옮긴 것이다.
 // k6는 init 컨텍스트에서만 지표를 만들 수 있어 구간 이름을 여기에 전부 선언한다.
-import { Trend, Counter } from 'k6/metrics';
+import { Counter, Rate, Trend } from 'k6/metrics';
 
 // 화면 흐름의 직렬 응답 대기 구간. 병렬(batch) 묶음은 한 구간으로 센다.
 export const STEPS = [
@@ -73,6 +73,10 @@ export const dishStockAdjustSkipped = new Counter('flow_dish_stock_adjust_skippe
 
 // 부하가 데이터를 정상적으로 소진해서 생긴 업무 결과. 서버 장애·계약 오류와 분리한다.
 export const expectedBusinessOutcomes = new Counter('flow_expected_business_outcomes');
+
+// 예상 업무 4xx를 제외한 네트워크·5xx 비율과 실제 주문 생성 성공률이다.
+export const infrastructureFailures = new Rate('flow_infrastructure_failures');
+export const orderCreateSuccess = new Rate('flow_order_create_success');
 
 // 독립 scenario가 실제로 완료한 반복 수. 흐름별 처리량과 비율을 계산한다.
 export const browseIterations = new Counter('flow_browse_iterations');

@@ -2,7 +2,7 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { API, REQUEST_TIMEOUT } from './config.js';
-import { expectedBusinessOutcomes, stepTrend } from './metrics.js';
+import { expectedBusinessOutcomes, infrastructureFailures, stepTrend } from './metrics.js';
 
 let requestCount = 0;
 
@@ -97,9 +97,15 @@ export function expectedBusinessOutcomeOf(response) {
   return EXPECTED_BUSINESS_OUTCOMES[errorCodeOf(response)] || null;
 }
 
+// 업무 4xx와 분리해 보호 중단에 사용할 네트워크·서버 실패만 판정한다.
+export function infrastructureFailureOf(response) {
+  return Boolean(response) && (response.status === 0 || response.status >= 500);
+}
+
 // 응답 하나를 검사하고 호출 수에 반영한다. 응답시간 기록 여부는 호출부가 정한다.
 function observe(step, response, recordDuration) {
   requestCount += 1;
+  infrastructureFailures.add(infrastructureFailureOf(response));
   if (recordDuration) {
     stepTrend(step).add(response.timings.duration);
   }
