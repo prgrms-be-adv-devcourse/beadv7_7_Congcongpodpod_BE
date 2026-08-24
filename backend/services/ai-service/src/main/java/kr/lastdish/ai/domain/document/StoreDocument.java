@@ -41,6 +41,9 @@ public class StoreDocument {
   @Field(type = FieldType.Dense_Vector, dims = 1536, index = true, similarity = "cosine")
   private List<Float> vector;
 
+  @Field(type = FieldType.Keyword)
+  private String embeddingSourceHash;
+
   private String category;
 
   // Nested 타입으로 지정하여 개별 메뉴 단위의 조건 검색 지원

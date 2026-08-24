@@ -1,7 +1,6 @@
 package kr.lastdish.ai.infrastructure.embedding;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +16,7 @@ public class EmbeddingService {
 
   public List<Float> getEmbeddingList(String text) {
     if (text == null || text.isBlank()) {
-      return Collections.emptyList();
+      return null;
     }
 
     try {
@@ -36,7 +35,7 @@ public class EmbeddingService {
 
     } catch (Exception e) {
       log.error("텍스트 임베딩 생성 실패 - 대상 텍스트: {}", text, e);
-      return Collections.emptyList();
+      return null;
     }
   }
 }

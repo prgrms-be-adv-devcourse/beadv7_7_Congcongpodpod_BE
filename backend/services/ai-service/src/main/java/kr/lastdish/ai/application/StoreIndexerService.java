@@ -1,6 +1,11 @@
 package kr.lastdish.ai.application;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,6 +20,10 @@ import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.stereotype.Service;
 
@@ -26,24 +35,27 @@ public class StoreIndexerService {
   private final StoreElasticsearchRepository repository;
   private final CoreInternalApiClient coreInternalApiClient;
   private final EmbeddingService embeddingService;
+  private final ElasticsearchOperations elasticsearchOperations;
 
   public void renewStoreIndex(Long storeId) {
+    renewStoreIndex(storeId, null);
+  }
+
+  public void renewStoreIndex(Long storeId, String eventType) {
     if (storeId == null || storeId <= 0) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
 
-    // Core API 호출
     coreInternalApiClient
         .fetchStoreRenewalData(storeId)
         .ifPresentOrElse(
             response -> {
-              StoreDocument document = mapToDocument(response);
-              // ES Overwrite - upsert
+              StoreDocument existing = repository.findById(storeId).orElse(null);
+              StoreDocument document = mapToDocument(response, existing, eventType);
               repository.save(document);
               log.info("Store 색인 갱신 완료. storeId={}", storeId);
             },
             () -> {
-              // 404일 때만 오직 삭제 실행
               deleteStoreIndex(storeId);
             });
   }
@@ -59,9 +71,9 @@ public class StoreIndexerService {
     }
   }
 
-  public void syncUpdatedStores(int minutes) {
+  public void syncUpdatedStores(Instant from, Instant to) {
     List<InternalStoreResponse> updatedStores =
-        coreInternalApiClient.fetchStoresUpdatedWithin(minutes);
+        coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
 
     if (updatedStores.isEmpty()) {
       return;
@@ -74,14 +86,20 @@ public class StoreIndexerService {
         StreamSupport.stream(existingDocs.spliterator(), false)
             .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
 
-    List<StoreDocument> documents = updatedStores.stream().map(this::mapToDocument).toList();
+    // 폴링은 이벤트 타입 정보가 없으므로, 텍스트 해시 비교로만 재임베딩 여부 판단
+    List<StoreDocument> documents =
+        updatedStores.stream()
+            .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
+            .toList();
 
-    // ES Bulk Save
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
 
-  private StoreDocument mapToDocument(InternalStoreResponse res) {
+  private static final String STATUS_ONLY_EVENT = "STORE_STATUS_CHANGED";
+
+  private StoreDocument mapToDocument(
+      InternalStoreResponse res, StoreDocument existing, String eventType) {
     StringBuilder textBuilder = new StringBuilder();
     textBuilder.append("가게: ").append(res.storeName()).append(" ");
 
@@ -90,7 +108,6 @@ public class StoreIndexerService {
             ? res.dishes().stream()
                 .map(
                     d -> {
-                      // 메뉴명 및 설명을 임베딩용 텍스트로 결합
                       textBuilder
                           .append("메뉴: ")
                           .append(d.dishName())
@@ -115,8 +132,37 @@ public class StoreIndexerService {
                 .toList()
             : Collections.emptyList();
 
-    // 결합된 전체 텍스트를 OpenAI 1536차원 실수 벡터로 전환
-    List<Float> vectorList = embeddingService.getEmbeddingList(textBuilder.toString());
+    String embeddingText = textBuilder.toString();
+    List<Float> vectorList;
+    String embeddingHash;
+
+    boolean hasValidExistingVector =
+        existing != null && existing.getVector() != null && !existing.getVector().isEmpty();
+
+    if (STATUS_ONLY_EVENT.equals(eventType) && hasValidExistingVector) {
+      // 영업 상태만 바뀌는 이벤트는 텍스트에 영향 없음 - 단, 기존 벡터가 유효할 때만 재사용
+      vectorList = existing.getVector();
+      embeddingHash = existing.getEmbeddingSourceHash();
+      log.info("상태 변경 이벤트 - 재임베딩 스킵. storeId={}", res.storeId());
+    } else {
+      embeddingHash = hashText(embeddingText);
+
+      if (hasValidExistingVector && embeddingHash.equals(existing.getEmbeddingSourceHash())) {
+        // 텍스트 불변 + 기존 벡터가 실제로 존재할 때만 재사용
+        vectorList = existing.getVector();
+        log.info("임베딩 텍스트 변경 없음 - 재임베딩 스킵. storeId={}", res.storeId());
+      } else {
+        // 텍스트가 바뀌었거나, 이전에 임베딩이 비어있었던 경우 재시도
+        vectorList = embeddingService.getEmbeddingList(embeddingText);
+        if (existing == null) {
+          log.info("신규 가게 최초 임베딩 수행. storeId={}", res.storeId());
+        } else if (!hasValidExistingVector) {
+          log.info("이전 임베딩 실패 이력 감지 - 재시도 수행. storeId={}", res.storeId());
+        } else {
+          log.info("임베딩 텍스트 변경 감지 - 재임베딩 수행. storeId={}", res.storeId());
+        }
+      }
+    }
 
     return StoreDocument.builder()
         .storeId(res.storeId())
@@ -129,7 +175,19 @@ public class StoreIndexerService {
         .category(res.category())
         .dishes(dishItems)
         .vector(vectorList)
+        .embeddingSourceHash(embeddingHash)
         .build();
+  }
+
+  private String hashText(String text) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hashBytes = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+      return HexFormat.of().formatHex(hashBytes);
+    } catch (NoSuchAlgorithmException e) {
+      // SHA-256은 JDK 표준 알고리즘이라 정상 환경에서는 발생하지 않음
+      throw new IllegalStateException("해시 알고리즘을 사용할 수 없습니다.", e);
+    }
   }
 
   public void indexTestStore(TestStoreIndexRequest req) {
@@ -165,7 +223,8 @@ public class StoreIndexerService {
                     })
                 .toList();
 
-    List<Float> vectorList = embeddingService.getEmbeddingList(textBuilder.toString());
+    String embeddingText = textBuilder.toString();
+    List<Float> vectorList = embeddingService.getEmbeddingList(embeddingText);
 
     StoreDocument document =
         StoreDocument.builder()
@@ -179,9 +238,26 @@ public class StoreIndexerService {
             .category(req.category())
             .dishes(dishItems)
             .vector(vectorList)
+            .embeddingSourceHash(hashText(embeddingText))
             .build();
 
     repository.save(document);
     log.info("[TEST] Store 색인 완료. storeId={}", req.storeId());
+  }
+
+  public void retryFailedEmbeddings() {
+    NativeQuery query =
+        NativeQuery.builder()
+            .withQuery(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field("vector")))))
+            .build();
+
+    SearchHits<StoreDocument> hits = elasticsearchOperations.search(query, StoreDocument.class);
+
+    for (SearchHit<StoreDocument> hit : hits.getSearchHits()) {
+      StoreDocument doc = hit.getContent();
+      renewStoreIndex(doc.getStoreId());
+    }
+
+    log.info("임베딩 실패 재시도 스캔 완료. count={}", hits.getTotalHits());
   }
 }
