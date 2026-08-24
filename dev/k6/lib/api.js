@@ -54,6 +54,19 @@ export function dataOf(response) {
   }
 }
 
+// ApiResponse 오류 봉투에서 분류용 error.code만 안전하게 꺼낸다.
+export function errorCodeOf(response) {
+  if (!response || !response.body) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(response.body);
+    return parsed && parsed.error && parsed.error.code ? parsed.error.code : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 // 응답 하나를 검사하고 호출 수에 반영한다. 응답시간 기록 여부는 호출부가 정한다.
 function observe(step, response, recordDuration) {
   requestCount += 1;

@@ -5,6 +5,7 @@ import { Trend, Counter } from 'k6/metrics';
 // 화면 흐름의 직렬 응답 대기 구간. 병렬(batch) 묶음은 한 구간으로 센다.
 export const STEPS = [
   'auth_login',
+  'auth_refresh',
   'member_me',
   'cart_get',
   'cart_cleanup',
@@ -28,6 +29,10 @@ export const STEPS = [
   'order_accept',
   'seller_orders_pickup_ready',
   'order_pickup',
+  'lifecycle_signup',
+  'lifecycle_store_create',
+  'lifecycle_image_upload',
+  'lifecycle_dish_create',
 ];
 
 const trends = {};

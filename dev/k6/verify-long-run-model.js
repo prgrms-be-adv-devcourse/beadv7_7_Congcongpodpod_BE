@@ -1,6 +1,12 @@
 import { check } from 'k6';
 
 import {
+  decodeJwtExpirationMs,
+  refreshIfExpiring,
+  seedCredentials,
+} from './lib/accounts.js';
+import { errorCodeOf } from './lib/api.js';
+import {
   TIME_WINDOWS,
   buildDailySellerSpecs,
   buildTargetSellerSpecs,
@@ -29,6 +35,25 @@ function kstDateAtMinute(minute) {
 export default function () {
   const daily = buildDailySellerSpecs('20260824');
   const target = buildTargetSellerSpecs('20260828', 5);
+  const jwtWithOneHourExpiration = 'eyJhbGciOiJub25lIn0.eyJleHAiOjM2MDB9.';
+  const credentials = seedCredentials(1);
+  const stableSession = { accessTokenExpiresAtMs: 120000 };
+
+  check(decodeJwtExpirationMs(jwtWithOneHourExpiration), {
+    'JWT exp 초를 밀리초로 변환': (value) => value === 3600000,
+  });
+  check(credentials, {
+    '시드 계정 번호를 로그인 자격 증명으로 변환': (value) =>
+      value.accountNo === 1 &&
+      value.email === 'seller001@seed.lastdish.kr' &&
+      value.password === __ENV.SEED_PASSWORD,
+  });
+  check(refreshIfExpiring(stableSession, 0), {
+    '만료까지 60초 초과면 refresh 없이 같은 세션 유지': (value) => value === stableSession,
+  });
+  check(errorCodeOf({ body: JSON.stringify({ error: { code: 'AUTH001' } }) }), {
+    'API 오류 응답에서 코드 추출': (value) => value === 'AUTH001',
+  });
 
   check(daily, {
     '일일 판매자 40개': (rows) => rows.length === 40,

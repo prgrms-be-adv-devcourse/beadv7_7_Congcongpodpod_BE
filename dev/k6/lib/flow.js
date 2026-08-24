@@ -8,10 +8,10 @@ import {
   SELLER_ORDER_RETRY_WAIT,
   THINK_MAX,
   THINK_MIN,
-  accountEmail,
   dishIdFor,
   storeIdFor,
 } from './config.js';
+import { loginWithCredentials, seedCredentials } from './accounts.js';
 import { apiBatchGet, apiGet, apiSend, dataOf } from './api.js';
 import * as metrics from './metrics.js';
 import { selectOldestNewReservedOrder } from './order-selection.js';
@@ -37,29 +37,7 @@ const unique = (values) => Array.from(new Set(values));
 
 // 로그인 1회 + 내 정보 + 장바구니 회원 정보. VU당 최초 1회만 실행한다 (설계 문서 4.1절).
 export function openSession(accountNo) {
-  const email = accountEmail(accountNo);
-  const loginResponse = apiSend('auth_login', 'POST', '/auth/login', null, {
-    email,
-    password: SEED.password,
-  });
-  const tokens = dataOf(loginResponse);
-  if (!tokens || !tokens.accessToken) {
-    throw new Error(`로그인 실패: ${email} status=${loginResponse.status}`);
-  }
-  const token = tokens.accessToken;
-
-  const profile = dataOf(apiGet('member_me', '/members/me', token));
-  const cart = dataOf(apiGet('cart_get', '/carts/members', token));
-
-  return {
-    accountNo,
-    email,
-    token,
-    memberId: profile ? profile.id : null,
-    cartId: cart ? cart.cartId : null,
-    cartItems: cart && cart.items ? cart.items : [],
-    storeId: null,
-  };
+  return loginWithCredentials(seedCredentials(accountNo));
 }
 
 // 이전 실행이 남긴 장바구니 항목을 비운다. 검증 스크립트 전용이라 반복 호출 수에 넣지 않는다.
