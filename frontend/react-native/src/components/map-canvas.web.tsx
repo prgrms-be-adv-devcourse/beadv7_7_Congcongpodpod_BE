@@ -6,7 +6,9 @@ import { colors } from '@/constants/theme';
 import { getStoreCategoryVisual } from '@/lib/store-category';
 import { nextMapZoom, type MapCameraCommand, type MapCameraEventSource, type MapCanvasProps } from './map-canvas.types';
 
-type MapInstance = { getCenter(): { lat(): number; lng(): number }; getZoom(): number; getHeading?: () => number; refresh(): void; setCenter(value: unknown): void; setZoom(value: number, animate?: boolean): void; setHeading?: (value: number) => void; panTo(value: unknown): void };
+type LatLngValue = { lat(): number; lng(): number };
+type MapBoundsValue = { getSW(): LatLngValue; getNE(): LatLngValue };
+type MapInstance = { getCenter(): LatLngValue; getBounds(): MapBoundsValue; getZoom(): number; getHeading?: () => number; refresh(): void; setCenter(value: unknown): void; setZoom(value: number, animate?: boolean): void; setHeading?: (value: number) => void; panTo(value: unknown): void };
 type MarkerInstance = { setMap(map: MapInstance | null): void; setVisible(visible: boolean): void };
 type MapsApi = { Map: new (node: HTMLElement, options: object) => MapInstance; Marker: new (options: object) => MarkerInstance; LatLng: new (lat: number, lng: number) => unknown; Point: new (x: number, y: number) => unknown; Event: { addListener(target: object, name: string, listener: () => void): unknown; removeListener(listener: unknown): void } };
 
@@ -14,6 +16,20 @@ let loader: Promise<MapsApi> | undefined;
 
 function getMapHeading(instance: MapInstance) {
   return typeof instance.getHeading === 'function' ? instance.getHeading() : 0;
+}
+
+function getMapCamera(instance: MapInstance) {
+  const position = instance.getCenter();
+  const bounds = instance.getBounds();
+  const southWest = bounds.getSW();
+  const northEast = bounds.getNE();
+  return {
+    latitude: position.lat(), longitude: position.lng(), zoom: instance.getZoom(), bearing: getMapHeading(instance),
+    bounds: {
+      southWest: { latitude: southWest.lat(), longitude: southWest.lng() },
+      northEast: { latitude: northEast.lat(), longitude: northEast.lng() },
+    },
+  };
 }
 
 function loadMaps() {
@@ -98,9 +114,8 @@ export function MapCanvas({ stores, center, userLocation, cameraCommand, zoom = 
       window.setTimeout(() => {
         const current = map.current;
         if (!current) return;
-        const position = current.getCenter();
         syncMarkerVisibility(current.getZoom());
-        onCameraIdleRef.current?.({ latitude: position.lat(), longitude: position.lng(), zoom: current.getZoom(), bearing: getMapHeading(current) });
+        onCameraIdleRef.current?.(getMapCamera(current));
       }, 80);
     });
   };
@@ -123,9 +138,8 @@ export function MapCanvas({ stores, center, userLocation, cameraCommand, zoom = 
       observer.observe(container.current);
       instance.refresh();
       const reportCamera = (source: MapCameraEventSource = 'idle') => {
-        const position = instance.getCenter();
         syncMarkerVisibility(instance.getZoom());
-        onCameraIdleRef.current?.({ latitude: position.lat(), longitude: position.lng(), zoom: instance.getZoom(), bearing: getMapHeading(instance) }, source);
+        onCameraIdleRef.current?.(getMapCamera(instance), source);
       };
       const mapNode = container.current;
       let pointerStart: { x: number; y: number } | undefined;

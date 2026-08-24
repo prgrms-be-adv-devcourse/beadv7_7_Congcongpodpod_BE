@@ -13,6 +13,7 @@ import kr.lastdish.core.store.domain.Category;
 public record UpdateStoreRequest(
     @NotBlank String storeName,
     @NotBlank String storeAddress,
+    String storeDetailAddress,
     @NotBlank String storePhone,
     @NotNull @JsonFormat(pattern = "HH:mm") LocalTime openTime,
     @NotNull @JsonFormat(pattern = "HH:mm") LocalTime closeTime,
@@ -25,6 +26,7 @@ public record UpdateStoreRequest(
     return new UpdateStoreCommand(
         storeName,
         storeAddress,
+        storeDetailAddress,
         storePhone,
         openTime,
         closeTime,

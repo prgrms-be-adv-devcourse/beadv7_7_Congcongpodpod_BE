@@ -29,7 +29,7 @@ type MenuRowProps = {
 function MenuRow({ icon, label, description, onPress, danger }: MenuRowProps) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-      <View style={[styles.menuIcon, danger && styles.menuIconDanger]}><Ionicons name={icon} size={18} color={danger ? colors.danger700 : colors.ink700}/></View>
+      <View style={styles.menuIcon}><Ionicons name={icon} size={19} color={danger ? colors.danger700 : colors.ink700}/></View>
       <View style={styles.menuCopy}><Text style={[styles.menuText, danger && styles.menuTextDanger]}>{label}</Text>{description ? <Text numberOfLines={1} style={styles.menuDescription}>{description}</Text> : null}</View>
       <Ionicons name="chevron-forward" size={17} color={colors.ink400}/>
     </Pressable>
@@ -37,7 +37,7 @@ function MenuRow({ icon, label, description, onPress, danger }: MenuRowProps) {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><View style={styles.sectionSurface}>{children}</View></View>;
+  return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><View style={styles.sectionRows}>{children}</View></View>;
 }
 
 export default function MyScreen() {
@@ -73,7 +73,7 @@ export default function MyScreen() {
   if (initializing) return <SafeAreaView style={styles.center}><LoadingState label="내 정보를 불러오고 있어요"/></SafeAreaView>;
   if (!member) return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text><Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text></View>
+      <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text accessibilityRole="header" style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text><Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text></View>
       <ScrollView contentContainerStyle={[styles.guestScroll, { width: contentWidth, paddingHorizontal: gutter, paddingBottom: FLOATING_TAB_CONTENT_INSET }]} showsVerticalScrollIndicator={false}>
         <GuestContent/>
       </ScrollView>
@@ -82,7 +82,7 @@ export default function MyScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text>{!member ? <Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text> : null}</View><RefreshStatus visible={refreshing}/>
+      <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text accessibilityRole="header" style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text>{!member ? <Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text> : null}</View><RefreshStatus visible={refreshing}/>
       <View style={styles.body}><ScrollView alwaysBounceVertical style={styles.scrollView} contentContainerStyle={[styles.scroll, { paddingBottom: FLOATING_TAB_CONTENT_INSET }]} refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>} showsVerticalScrollIndicator={false}>
         <View style={[styles.content, { width: contentWidth, paddingHorizontal: gutter }]}> 
           <SignedInContent memberName={member.name} role={member.role} depositBalance={depositBalance} orderCount={orderCount} openSeller={openSeller} signOut={signOut}/>
@@ -117,7 +117,9 @@ function SignedInContent({ memberName, role, depositBalance, orderCount, openSel
 
     <View style={styles.quickRow}>
       <QuickItem icon="receipt-outline" value={orderCount === null ? '—' : String(orderCount)} label="주문" onPress={() => router.push('/orders')}/>
+      <View style={styles.quickDivider}/>
       <QuickItem icon="heart-outline" value="보기" label="찜" onPress={() => router.push('/favorites')}/>
+      <View style={styles.quickDivider}/>
       <QuickItem icon="star-outline" value="관리" label="리뷰"/>
     </View>
 
@@ -185,16 +187,16 @@ const styles = StyleSheet.create({
   walletHint: { marginTop: 6, color: colors.ink400, fontFamily: fonts.body, fontSize: 10 },
   chargeButton: { minWidth: 70, minHeight: 44, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: radius.control, backgroundColor: colors.white },
   chargeText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
-  quickRow: { minHeight: 88, marginTop: 12, flexDirection: 'row', overflow: 'hidden', borderRadius: 12, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
+  quickRow: { minHeight: 88, marginTop: 12, flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
   quickItem: { flex: 1, minHeight: 80, alignItems: 'center', justifyContent: 'center' },
+  quickDivider: { width: StyleSheet.hairlineWidth, marginVertical: 17, backgroundColor: colors.line },
   quickValue: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
   quickLabel: { marginTop: 2, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '600' },
   section: { marginTop: 24 },
   sectionTitle: { marginBottom: 9, color: colors.ink900, fontFamily: fonts.body, fontSize: 16, fontWeight: '900' },
-  sectionSurface: { paddingHorizontal: 13, overflow: 'hidden', borderRadius: 12, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
-  menuRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  menuIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: colors.canvas },
-  menuIconDanger: { backgroundColor: colors.danger50 },
+  sectionRows: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  menuRow: { minHeight: 66, paddingLeft: 8, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  menuIcon: { width: 24, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
   menuCopy: { flex: 1 },
   menuText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   menuTextDanger: { color: colors.danger700 },

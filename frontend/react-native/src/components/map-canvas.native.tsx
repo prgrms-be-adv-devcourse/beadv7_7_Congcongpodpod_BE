@@ -14,11 +14,13 @@ const directionMarker = require('../../assets/images/map-icons/current-location-
 export function MapCanvas({ stores, center, userLocation = center, cameraCommand, zoom = 14.5, showUserLocation = true, selectedStoreId, userHeading = 0, onCameraIdle, onSelect }: MapCanvasProps) {
   const mapRef = useRef<NaverMapViewRef>(null);
   const camera = useRef({ ...center, zoom, bearing: 0 });
+  const handledCommandId = useRef<number | undefined>(undefined);
   const [cameraTarget, setCameraTarget] = useState({ ...center, zoom, bearing: 0 });
   const [mapBearing, setMapBearing] = useState(0);
 
   useEffect(() => {
-    if (!cameraCommand) return;
+    if (!cameraCommand || handledCommandId.current === cameraCommand.id) return;
+    handledCommandId.current = cameraCommand.id;
     if (cameraCommand.type === 'location') {
       const target = { ...userLocation, zoom: 15, bearing: camera.current.bearing };
       setCameraTarget(target);
@@ -47,9 +49,15 @@ export function MapCanvas({ stores, center, userLocation = center, cameraCommand
       animationDuration={240}
       onTapMap={() => onSelect(null)}
       onCameraChanged={({ latitude, longitude, zoom, bearing }) => { camera.current = { latitude, longitude, zoom: zoom ?? camera.current.zoom, bearing: bearing ?? camera.current.bearing }; }}
-      onCameraIdle={({ latitude, longitude, zoom, bearing }) => {
+      onCameraIdle={({ latitude, longitude, zoom, bearing, region }) => {
         const nextBearing = bearing ?? camera.current.bearing;
-        const settledCamera = { latitude, longitude, zoom: zoom ?? camera.current.zoom, bearing: nextBearing };
+        const settledCamera = {
+          latitude, longitude, zoom: zoom ?? camera.current.zoom, bearing: nextBearing,
+          bounds: {
+            southWest: { latitude: region.latitude - region.latitudeDelta / 2, longitude: region.longitude - region.longitudeDelta / 2 },
+            northEast: { latitude: region.latitude + region.latitudeDelta / 2, longitude: region.longitude + region.longitudeDelta / 2 },
+          },
+        };
         camera.current = settledCamera;
         setCameraTarget(settledCamera);
         setMapBearing(nextBearing);

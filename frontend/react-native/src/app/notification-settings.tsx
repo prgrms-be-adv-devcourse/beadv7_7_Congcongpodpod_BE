@@ -22,7 +22,7 @@ export default function NotificationSettingsScreen() {
 
   return <Page title="알림 설정" description="앱에서 바로 표시할 알림을 선택하세요.">
     <Panel>
-      <SettingRow icon="notifications-outline" title="인앱 팝업 알림" description="앱 사용 중 화면 상단에 알림을 표시해요." value={preferences.enabled} onValueChange={(enabled) => update({ ...preferences, enabled })}/>
+      <SettingRow icon="notifications-outline" title="인앱 팝업 알림" description="앱 사용 중 화면 상단에 알림을 표시해요." value={preferences.enabled} onValueChange={(enabled) => update({ ...preferences, enabled })} last/>
     </Panel>
     <View style={styles.sectionHead}><Text style={styles.sectionTitle}>알림 유형</Text><Text style={styles.sectionDescription}>꺼도 알림센터의 기록은 유지돼요.</Text></View>
     <View style={[styles.group, !preferences.enabled && styles.disabled]}>

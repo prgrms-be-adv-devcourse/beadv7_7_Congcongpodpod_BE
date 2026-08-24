@@ -1,4 +1,5 @@
 import { api } from './api';
+import { cachedQuery, invalidateQueries } from './query-cache';
 import type { Dish, Store } from '@/types/store';
 
 type Envelope<T> = { data?: T };
@@ -56,8 +57,8 @@ const mapStore = (store: FavoriteStore): Store => ({
   dishes: (store.dishes ?? []).map(mapDish),
 });
 
-export async function getFavorites() {
-  return unwrap(await api<FavoriteStore[] | Envelope<FavoriteStore[]>>('/favorites', undefined, { globalLoading: false })).map(mapStore);
+export async function getFavorites(force = false) {
+  return cachedQuery('favorites', async () => unwrap(await api<FavoriteStore[] | Envelope<FavoriteStore[]>>('/favorites', undefined, { globalLoading: false })).map(mapStore), 10_000, force);
 }
 
 export async function getFavoriteStatus(storeId: number) {
@@ -66,8 +67,10 @@ export async function getFavoriteStatus(storeId: number) {
 
 export async function addFavorite(storeId: number) {
   await api('/favorites', { method: 'POST', body: JSON.stringify({ storeId }) }, { globalLoading: false });
+  invalidateQueries('favorites');
 }
 
 export async function removeFavorite(storeId: number) {
   await api(`/favorites/${storeId}`, { method: 'DELETE' }, { globalLoading: false });
+  invalidateQueries('favorites');
 }

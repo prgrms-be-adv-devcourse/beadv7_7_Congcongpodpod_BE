@@ -1,4 +1,5 @@
 import { api } from './api';
+import { cachedQuery } from './query-cache';
 import type { Dish, Store } from '@/types/store';
 
 type ApiDish = {
@@ -75,23 +76,39 @@ const mapStore = (store: ApiStore): Store => ({
   dishes: (store.dishes ?? []).map(mapDish),
 });
 
-export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5) {
+export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5, size = 60, signal?: AbortSignal) {
   const query = new URLSearchParams({
-    latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm), page: '0', size: '30',
+    latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm), page: '0', size: String(size),
   });
-  const result = unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`));
+  const result = unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`, { signal }));
   return unwrapList(result).map(mapStore);
 }
 
-export async function getStore(storeId: number) {
-  return mapStore(unwrapData(await api<ApiStore | Envelope<ApiStore>>(`/stores/${storeId}`)));
+export async function searchStores(keyword: string, latitude: number, longitude: number) {
+  const normalized = keyword.trim().toLocaleLowerCase('ko');
+  if (!normalized) return [];
+  const query = new URLSearchParams({
+    latitude: String(latitude), longitude: String(longitude), radiusKm: '500', page: '0', size: '100',
+  });
+  const result = unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`));
+  return unwrapList(result)
+    .map(mapStore)
+    .filter((store) => [store.storeName, store.category, store.address]
+      .some((value) => value.toLocaleLowerCase('ko').includes(normalized)))
+    .slice(0, 8);
 }
 
-export async function getStoreDishes(storeId: number) {
-  const result = unwrapData(await api<Page<ApiDish> | Envelope<Page<ApiDish>>>(`/dishes?storeId=${storeId}`));
-  return unwrapList(result).map(mapDish);
+export async function getStore(storeId: number, force = false) {
+  return cachedQuery(`store:${storeId}`, async () => mapStore(unwrapData(await api<ApiStore | Envelope<ApiStore>>(`/stores/${storeId}`))), 20_000, force);
 }
 
-export async function getDish(dishId: number) {
-  return mapDish(unwrapData(await api<ApiDish | Envelope<ApiDish>>(`/dishes/${dishId}`)));
+export async function getStoreDishes(storeId: number, force = false) {
+  return cachedQuery(`store-dishes:${storeId}`, async () => {
+    const result = unwrapData(await api<Page<ApiDish> | Envelope<Page<ApiDish>>>(`/dishes?storeId=${storeId}`));
+    return unwrapList(result).map(mapDish);
+  }, 10_000, force);
+}
+
+export async function getDish(dishId: number, force = false) {
+  return cachedQuery(`dish:${dishId}`, async () => mapDish(unwrapData(await api<ApiDish | Envelope<ApiDish>>(`/dishes/${dishId}`))), 10_000, force);
 }

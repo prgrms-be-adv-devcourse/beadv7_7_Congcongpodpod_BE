@@ -1,7 +1,8 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 
 import { LoadingState } from '@/components/loading-state';
 import { PrimaryButton } from '@/components/page';
