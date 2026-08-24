@@ -37,6 +37,10 @@ spring:
               uri: ${MEMBER_SERVICE_URL}
               predicates:
                 - Path=/api/v1/auth/**,/api/v1/members/**,/api/v1/notifications/**
+            - id: ai-service
+              uri: ${AI_SERVICE_URL}
+              predicates:
+                - Path=/api/v1/ai/**
             - id: member-openapi
               uri: ${MEMBER_SERVICE_URL}
               predicates:
