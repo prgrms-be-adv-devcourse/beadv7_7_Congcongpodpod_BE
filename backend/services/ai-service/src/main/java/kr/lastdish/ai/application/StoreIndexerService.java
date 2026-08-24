@@ -54,24 +54,24 @@ public class StoreIndexerService {
     stopWatch.stop();
 
     storeDataOpt.ifPresentOrElse(
-            response -> {
-              stopWatch.start("2. 기존 문서 조회");
-              StoreDocument existing = repository.findById(storeId).orElse(null);
-              stopWatch.stop();
+        response -> {
+          stopWatch.start("2. 기존 문서 조회");
+          StoreDocument existing = repository.findById(storeId).orElse(null);
+          stopWatch.stop();
 
-              stopWatch.start("3. 임베딩 및 Document 매핑");
-              StoreDocument document = mapToDocument(response, existing, eventType);
-              stopWatch.stop();
+          stopWatch.start("3. 임베딩 및 Document 매핑");
+          StoreDocument document = mapToDocument(response, existing, eventType);
+          stopWatch.stop();
 
-              stopWatch.start("4. ES 색인 저장 (Save)");
-              repository.save(document);
-              stopWatch.stop();
+          stopWatch.start("4. ES 색인 저장 (Save)");
+          repository.save(document);
+          stopWatch.stop();
 
-              log.info("Store 단건 색인 갱신 완료. storeId={}\n{}", storeId, stopWatch.prettyPrint());
-            },
-            () -> {
-              deleteStoreIndex(storeId);
-            });
+          log.info("Store 단건 색인 갱신 완료. storeId={}\n{}", storeId, stopWatch.prettyPrint());
+        },
+        () -> {
+          deleteStoreIndex(storeId);
+        });
   }
 
   public void deleteStoreIndex(Long storeId) {
