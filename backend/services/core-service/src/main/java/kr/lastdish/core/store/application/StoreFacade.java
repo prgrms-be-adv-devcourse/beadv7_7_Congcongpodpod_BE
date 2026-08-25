@@ -22,7 +22,6 @@ import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
