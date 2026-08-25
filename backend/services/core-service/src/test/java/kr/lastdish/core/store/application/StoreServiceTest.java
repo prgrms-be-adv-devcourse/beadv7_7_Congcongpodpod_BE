@@ -23,7 +23,10 @@ import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import kr.lastdish.core.store.domain.StoreStatus;
+import kr.lastdish.core.store.domain.event.StoreChangedEvent;
+import kr.lastdish.core.store.domain.event.StoreDeletedEvent;
 import kr.lastdish.core.store.domain.event.StoreRegisteredEvent;
+import kr.lastdish.core.store.domain.event.StoreStatusChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -180,12 +183,8 @@ class StoreServiceTest {
     StoreResult result = storeService.update(storeId, store.getMemberId(), command);
 
     // then
-    // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
-    /*
-    org.mockito.ArgumentCaptor<kr.lastdish.core.store.domain.event.StoreChangedEvent>
-        eventArgumentCaptor =
-            org.mockito.ArgumentCaptor.forClass(
-                kr.lastdish.core.store.domain.event.StoreChangedEvent.class);
+    ArgumentCaptor<StoreChangedEvent> eventArgumentCaptor =
+        ArgumentCaptor.forClass(StoreChangedEvent.class);
 
     verify(outboxEventWriter).append(eventArgumentCaptor.capture());
 
@@ -194,7 +193,6 @@ class StoreServiceTest {
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().storeId()).isEqualTo(storeId);
-    */
 
     assertThat(result.storeId()).isEqualTo(storeId);
   }
@@ -207,19 +205,12 @@ class StoreServiceTest {
     Store store = createStore(LocalTime.now(), LocalTime.now());
     ReflectionTestUtils.setField(store, "id", storeId);
 
-    when(storeRepository.findWithLockById(storeId)).thenReturn(Optional.of(store));
-
     // when
-    StoreResult result =
-        storeService.changeStatus(storeId, store.getMemberId(), StoreStatus.CLOSED);
+    StoreResult result = storeService.changeStatus(store, StoreStatus.CLOSED);
 
     // then
-    // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
-    /*
-    org.mockito.ArgumentCaptor<kr.lastdish.core.store.domain.event.StoreStatusChangedEvent>
-        eventCaptor =
-            org.mockito.ArgumentCaptor.forClass(
-                kr.lastdish.core.store.domain.event.StoreStatusChangedEvent.class);
+    ArgumentCaptor<StoreStatusChangedEvent> eventCaptor =
+        ArgumentCaptor.forClass(StoreStatusChangedEvent.class);
 
     verify(outboxEventWriter).append(eventCaptor.capture());
 
@@ -228,7 +219,6 @@ class StoreServiceTest {
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().storeId()).isEqualTo(storeId);
-    */
 
     assertThat(result.storeId()).isEqualTo(storeId);
     assertThat(result.status()).isEqualTo(StoreStatus.CLOSED);
@@ -251,11 +241,9 @@ class StoreServiceTest {
     assertThat(store.isDeleted()).isTrue();
 
     verify(payoutAccountRepository).deleteByStoreId(storeId);
-    // TODO(#288): 리스너 구현 후 이벤트 발행을 켜면 아래 단언을 되살린다
-    /*
-    org.mockito.ArgumentCaptor<kr.lastdish.core.store.domain.event.StoreDeletedEvent> eventCaptor =
-        org.mockito.ArgumentCaptor.forClass(
-            kr.lastdish.core.store.domain.event.StoreDeletedEvent.class);
+
+    ArgumentCaptor<StoreDeletedEvent> eventCaptor =
+        ArgumentCaptor.forClass(StoreDeletedEvent.class);
 
     verify(outboxEventWriter).append(eventCaptor.capture());
 
@@ -264,7 +252,6 @@ class StoreServiceTest {
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().storeId()).isEqualTo(storeId);
-    */
   }
 
   @Test

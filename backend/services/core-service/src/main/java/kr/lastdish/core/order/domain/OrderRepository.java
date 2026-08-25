@@ -29,4 +29,6 @@ public interface OrderRepository {
   List<Order> findPickupExpirationTargets(LocalDateTime now);
 
   boolean existsActiveOrderByDishId(Long dishId);
+  
+  boolean existsNotCompletedOrder(Long storeId);
 }

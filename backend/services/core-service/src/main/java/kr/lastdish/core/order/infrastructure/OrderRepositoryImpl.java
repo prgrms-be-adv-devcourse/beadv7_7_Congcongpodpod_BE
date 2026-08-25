@@ -89,4 +89,10 @@ public class OrderRepositoryImpl implements OrderRepository {
   public boolean existsActiveOrderByDishId(Long dishId) {
     return orderJpaRepository.existsActiveOrderByDishId(dishId);
   }
+
+  @Override
+  public boolean existsNotCompletedOrder(Long storeId) {
+    return orderJpaRepository.existsNotCompletedOrder(
+        storeId, List.of(OrderStatus.RESERVED, OrderStatus.PICKUP_READY));
+  }
 }

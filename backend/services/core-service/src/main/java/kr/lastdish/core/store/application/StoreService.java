@@ -95,9 +95,7 @@ public class StoreService {
   }
 
   @Transactional
-  public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
-    Store store = getOwnedStoreWithLock(storeId, memberId);
-
+  public StoreResult changeStatus(Store store, StoreStatus status) {
     store.changeStatus(status);
 
     appendStatusChangedEvent(store);

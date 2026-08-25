@@ -49,7 +49,7 @@ public class StoreController {
       @PathVariable Long storeId,
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @Valid @RequestBody ChangeStoreStatusRequest request) {
-    StoreResult result = storeService.changeStatus(storeId, memberId, request.status());
+    StoreResult result = storeFacade.changeStatus(storeId, memberId, request.status());
 
     return ApiResponse.ok(StoreResponse.from(result));
   }
