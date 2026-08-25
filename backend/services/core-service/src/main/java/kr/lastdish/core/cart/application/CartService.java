@@ -218,6 +218,12 @@ public class CartService {
   private CartResponse toResponse(Cart cart) {
     List<CartItem> items =
         cartItemRepository.findByCartId(cart.getId()).map(List::of).orElseGet(List::of);
-    return CartResponse.of(cart, items);
+    boolean dishDeleted =
+        items.stream()
+            .findFirst()
+            .map(CartItem::getDishId)
+            .map(dishFacade::isDishDeleted)
+            .orElse(false);
+    return CartResponse.of(cart, items, dishDeleted);
   }
 }

@@ -1,8 +1,11 @@
 package kr.lastdish.core.settlement.infrastructure;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import kr.lastdish.core.settlement.domain.Settlement;
 import kr.lastdish.core.settlement.domain.SettlementStatus;
 import org.springframework.data.domain.Page;
@@ -36,6 +39,61 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
       @Param("storeIds") List<Long> storeIds,
       @Param("settlementMonth") YearMonth settlementMonth,
       @Param("settlementStatus") SettlementStatus settlementStatus);
+
+  @Modifying
+  @Query(
+      value =
+          """
+        INSERT INTO settlements (
+            store_id,
+            settlement_month,
+            period_start,
+            period_end,
+            total_order_count,
+            gross_amount,
+            fee_rate,
+            fee_amount,
+            settlement_amount,
+            settlement_status,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            :storeId,
+            :settlementMonth,
+            :periodStart,
+            :periodEnd,
+            0,
+            0,
+            :feeRate,
+            0,
+            0,
+            'ACCUMULATING',
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+        ON CONFLICT (store_id, settlement_month)
+        DO NOTHING
+        """,
+      nativeQuery = true)
+  void insertAccumulatingIfAbsent(
+      @Param("storeId") Long storeId,
+      @Param("settlementMonth") String settlementMonth,
+      @Param("periodStart") LocalDateTime periodStart,
+      @Param("periodEnd") LocalDateTime periodEnd,
+      @Param("feeRate") BigDecimal feeRate);
+
+  @Query(
+      """
+          SELECT s.storeId
+          FROM Settlement s
+          WHERE s.settlementMonth = :settlementMonth
+            AND s.settlementStatus IN :statuses
+          ORDER BY s.storeId ASC
+          """)
+  List<Long> findTargetStoreIds(
+      @Param("settlementMonth") YearMonth settlementMonth,
+      @Param("statuses") Set<SettlementStatus> statuses);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(

@@ -4,8 +4,8 @@ import java.time.YearMonth;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.core.settlement.application.SettlementEventService;
 import kr.lastdish.core.settlement.application.SettlementService;
-import kr.lastdish.core.settlement.application.SettlementStoreReader;
 import kr.lastdish.core.settlement.application.dto.SettlementProcessResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class MonthlySettlementTasklet implements Tasklet {
-  private final SettlementStoreReader settlementStoreReader;
   private final SettlementService settlementService;
+  private final SettlementEventService settlementEventService;
 
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
@@ -33,19 +33,21 @@ public class MonthlySettlementTasklet implements Tasklet {
 
     YearMonth settlementMonth = YearMonth.parse(monthValue);
 
-    List<Long> storeIds = settlementStoreReader.readSettlementTargetStoreIds();
-
-    List<Long> unsettledStoreIds = settlementService.excludeSettledStore(storeIds, settlementMonth);
+    // 기존 방식의 매장 도메인을 통한 정산 대상 매장 조회 -> Settlement 내부 정산 대상 조회 (당월에 주문 내역이 존재하는 매장은 Settlements에
+    // Accumulating 상태로 존재)
+    List<Long> targetStoreIds =
+        settlementEventService.findMonthlySettlementTargetStoreIds(settlementMonth);
 
     int createdCount = 0;
     int retriedCount = 0;
     int skippedCount = 0;
     int failedCount = 0;
 
-    for (Long storeId : unsettledStoreIds) {
+    // 정산 대상 매장별로 월별 정산을 진행
+    for (Long storeId : targetStoreIds) {
       try {
         SettlementProcessResult result =
-            settlementService.processMonthlySettlement(storeId, settlementMonth);
+            settlementEventService.processMonthlySettlement(storeId, settlementMonth);
 
         switch (result.status()) {
           case CREATED -> createdCount++;
@@ -73,7 +75,7 @@ public class MonthlySettlementTasklet implements Tasklet {
     }
     var context = contribution.getStepExecution().getExecutionContext();
 
-    context.putInt("targetStoreCount", unsettledStoreIds.size());
+    context.putInt("targetStoreCount", targetStoreIds.size());
     context.putInt("createdStoreCount", createdCount);
     context.putInt("retriedStoreCount", retriedCount);
     context.putInt("skippedStoreCount", skippedCount);
@@ -82,7 +84,7 @@ public class MonthlySettlementTasklet implements Tasklet {
     log.info(
         "월 정산 배치 완료. settlementMonth={}, targetCount={}, createdCount={}, retriedCount={}, skippedCount={}, failedCount={}",
         settlementMonth,
-        unsettledStoreIds.size(),
+        targetStoreIds.size(),
         createdCount,
         retriedCount,
         skippedCount,

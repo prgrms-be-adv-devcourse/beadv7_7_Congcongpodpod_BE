@@ -24,7 +24,7 @@ cp dev/.env.example dev/.env
 SPRING_FLYWAY_LOCATIONS=classpath:db/migration
 ```
 
-시연 계정은 `seller001@seed.lastdish.kr`부터 `seller300@seed.lastdish.kr`까지이며 공통 비밀번호는 `LastDish!2026`입니다. 사용자 1~150의 최종 예치금은 10,000,000원, 사용자 151~300은 0원이고 주문 사용·환불 원장과 일치합니다. 공개 매장명·주소·좌표는 [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)의 2026-08-20 스냅샷이며, 실제 개인정보 대신 가상 소유자·전화·계좌 정보를 사용합니다.
+시연 계정은 `seller001@seed.lastdish.kr`부터 `seller300@seed.lastdish.kr`까지이며 공통 비밀번호는 `LastDish!2026`입니다. 모든 사용자의 최종 예치금은 1조 원이고 주문 사용·환불 원장과 일치합니다. 공개 매장명·주소·좌표는 [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)의 2026-08-20 스냅샷이며, 실제 개인정보 대신 가상 소유자·전화·계좌 정보를 사용합니다.
 
 ## 2. 실행
 
