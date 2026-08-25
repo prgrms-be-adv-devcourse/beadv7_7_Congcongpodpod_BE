@@ -9,9 +9,11 @@ import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
+@EnableScheduling
 @RequiredArgsConstructor
 public class SettlementBatchConfig {
   private final JobRepository jobRepository;
