@@ -1,11 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, fonts, motion, radius } from '@/constants/theme';
+import { colors, fonts, motion, radius, shadow } from '@/constants/theme';
 import { CartQuantityBadge } from '@/components/cart-quantity-badge';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -15,6 +16,10 @@ import { useCart } from '@/providers/cart-provider';
 type CartOrigin = '/' | '/stores' | '/favorites' | '/orders' | '/my';
 const OPEN_CART_THRESHOLD_Y = -18;
 const MAX_OVERSCROLL_Y = -34;
+
+export function getCartSummarySheetHeight(bottomInset: number, compact = false, hasAction = false) {
+  return (hasAction ? 174 : compact ? 110 : 140) + Math.max(bottomInset, 20);
+}
 
 export function CartSummarySheet({ origin, bottomOffset = 0, compact = false, actionLabel, actionDisabled = false, onAction }: { origin: CartOrigin; bottomOffset?: number; compact?: boolean; actionLabel?: string; actionDisabled?: boolean; onAction?: () => void }) {
   const { item } = useCart();
@@ -26,7 +31,7 @@ export function CartSummarySheet({ origin, bottomOffset = 0, compact = false, ac
   const [expanded, setExpanded] = useState(true);
   const hasAction = compact && Boolean(actionLabel && onAction);
   const safeBottom = Math.max(insets.bottom, 20);
-  const sheetHeight = (hasAction ? 174 : compact ? 110 : 140) + safeBottom;
+  const sheetHeight = getCartSummarySheetHeight(insets.bottom, compact, hasAction);
   const collapsedY = hasAction ? 130 : compact ? 66 : 96;
 
   const moveTo = useCallback((open: boolean) => {
@@ -78,10 +83,15 @@ export function CartSummarySheet({ origin, bottomOffset = 0, compact = false, ac
 
   return <View pointerEvents="box-none" style={[styles.stage, { bottom: bottomOffset }]}><Animated.View accessibilityLabel={`장바구니 요약, ${item.dishName} ${item.cartQuantity}개`} style={[styles.sheet, compact && styles.compactSheet, { width: contentWidth, height: sheetHeight, paddingBottom: safeBottom, transform: [{ translateY }] }]}> 
     <View
-      accessibilityActions={[{ name: expanded ? 'collapse' : 'expand', label: expanded ? '장바구니 요약 내리기' : '장바구니 요약 올리기' }]}
+      accessibilityActions={[{ name: 'expand', label: '장바구니 요약 올리기' }, { name: 'collapse', label: '장바구니 요약 내리기' }]}
       accessibilityHint={expanded ? '손잡이를 아래로 끌어 접거나 위로 당겨 장바구니를 엽니다' : '손잡이를 위로 끌어 요약을 펼칩니다'}
       accessibilityRole="adjustable"
-      onAccessibilityAction={() => moveTo(!expanded)}
+      accessibilityState={{ expanded }}
+      accessibilityValue={{ text: expanded ? '펼쳐짐' : '접힘' }}
+      onAccessibilityAction={({ nativeEvent }) => {
+        if (nativeEvent.actionName === 'expand') moveTo(true);
+        if (nativeEvent.actionName === 'collapse') moveTo(false);
+      }}
       style={styles.handleArea}
       {...panResponder.panHandlers}>
       <View style={styles.handle}/>
@@ -98,19 +108,15 @@ export function CartSummarySheet({ origin, bottomOffset = 0, compact = false, ac
 const styles = StyleSheet.create({
   stage: { position: 'absolute', left: 0, right: 0, zIndex: 30, alignItems: 'center' },
   sheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderColor: colors.lineStrong,
-    shadowColor: colors.ink900,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 18,
-    elevation: 18,
+    ...shadow.sheet,
   },
   compactSheet: { backgroundColor: colors.white },
-  handleArea: { height: 22, paddingTop: 8, alignItems: 'center', borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: colors.white },
+  handleArea: { height: 22, paddingTop: 8, alignItems: 'center', borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, backgroundColor: colors.white },
   handle: { width: 38, height: 4, borderRadius: 2, backgroundColor: colors.lineStrong },
   summary: { height: 88, paddingHorizontal: 12, paddingBottom: 9, flexDirection: 'row', alignItems: 'center', gap: 10 },
   compactSummary: { height: 66, paddingHorizontal: 16, paddingBottom: 10 },
@@ -121,7 +127,7 @@ const styles = StyleSheet.create({
   total: { marginTop: 4, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
   compactCount: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
   compactTotal: { marginTop: 2, color: colors.ink900, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.4 },
-  shortcut: { minHeight: 44, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: radius.control, backgroundColor: colors.green500 },
+  shortcut: { minHeight: 44, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: radius.control, backgroundColor: colors.ink900 },
   compactShortcut: { paddingHorizontal: 15 },
   shortcutText: { color: colors.white, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
   sheetActionWrap: { height: 64, paddingHorizontal: 14, paddingBottom: 10, backgroundColor: colors.white },

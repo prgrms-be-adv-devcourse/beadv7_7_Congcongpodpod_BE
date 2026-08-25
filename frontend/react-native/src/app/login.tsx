@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import * as Crypto from 'expo-crypto';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   error: { marginBottom: 8, color: '#B42318', fontSize: 13, fontWeight: '700' },
   login: { minHeight: 52, marginTop: 8, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green300 },
   pressed: { opacity: 0.66 },
-  loginText: { fontWeight: '900', color: colors.ink900 },
+  loginText: { fontWeight: '900', color: colors.white },
   signup: { marginTop: 24, textAlign: 'center', color: colors.green700, fontWeight: '700' },
   kakaoSheet: { flex: 1, backgroundColor: colors.white },
   kakaoHeader: { height: 54, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line },

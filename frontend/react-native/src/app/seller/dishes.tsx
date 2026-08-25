@@ -1,7 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty-state';
@@ -11,6 +12,7 @@ import { SellerShell } from '@/components/seller-shell';
 import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { getDishImageSource } from '@/lib/food-image';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { adjustDishStock, getMyStores, getSellerDishes } from '@/lib/seller';
 import type { Dish, Store } from '@/types/store';
 
@@ -18,6 +20,7 @@ const filters = [['ALL', '전체'], ['ON_SALE', '판매 중'], ['SOLD_OUT', '품
 type Filter = (typeof filters)[number][0];
 
 export default function SellerDishes() {
+  const { isTablet } = useResponsiveLayout();
   const [store, setStore] = useState<Store | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [filter, setFilter] = useState<Filter>('ALL');
@@ -59,12 +62,22 @@ export default function SellerDishes() {
         <Pressable accessibilityRole="button" disabled={!store} onPress={() => router.push('/seller/dishes/new')} style={({ pressed }) => [styles.addButtonHit, pressed && styles.pressed, !store && styles.disabled]}><View style={styles.addButton}><Ionicons name="add" size={15} color={colors.white}/><Text style={styles.addButtonText}>상품 등록</Text></View></Pressable>
       </View>
 
-      {loading && !dishes.length ? <LoadingState label="등록 상품을 확인하고 있어요" compact/> : failed && !dishes.length ? <EmptyState title="상품을 불러오지 못했어요" description="잠시 후 다시 시도해주세요." actionLabel="다시 불러오기" onAction={() => void load()}/> : visible.length ? <View style={styles.list}>{visible.map((dish) => <ProductRow category={store?.category} dish={dish} key={dish.dishId} onChanged={updateDish}/>)}</View> : <EmptyState title={filter === 'ALL' ? '등록된 상품이 없어요' : '이 상태의 상품이 없어요'} description={filter === 'ALL' ? '첫 상품을 등록하고 마감 판매를 시작해보세요.' : '다른 상태의 상품을 확인해보세요.'}/>} 
+      {loading && !dishes.length ? (
+        <LoadingState label="등록 상품을 확인하고 있어요" compact/>
+      ) : failed && !dishes.length ? (
+        <EmptyState title="상품을 불러오지 못했어요" description="잠시 후 다시 시도해주세요." actionLabel="다시 불러오기" onAction={() => void load()}/>
+      ) : visible.length ? (
+        <View style={[styles.list, isTablet && styles.listWide]}>
+          {visible.map((dish, index) => <ProductRow category={store?.category} count={visible.length} dish={dish} index={index} key={dish.dishId} onChanged={updateDish} wide={isTablet}/>)}
+        </View>
+      ) : (
+        <EmptyState title={filter === 'ALL' ? '등록된 상품이 없어요' : '이 상태의 상품이 없어요'} description={filter === 'ALL' ? '첫 상품을 등록하고 마감 판매를 시작해보세요.' : '다른 상태의 상품을 확인해보세요.'}/>
+      )}
     </SellerShell>
   );
 }
 
-function ProductRow({ dish, category, onChanged }: { dish: Dish; category?: string; onChanged: (dish: Dish) => void }) {
+function ProductRow({ dish, category, onChanged, wide, index, count }: { dish: Dish; category?: string; onChanged: (dish: Dish) => void; wide: boolean; index: number; count: number }) {
   const [open, setOpen] = useState(false);
   const [draftStock, setDraftStock] = useState(dish.quantity);
   const [saving, setSaving] = useState(false);
@@ -99,8 +112,10 @@ function ProductRow({ dish, category, onChanged }: { dish: Dish; category?: stri
     }
   };
 
+  const isLastRow = wide ? index >= count - (count % 2 || 2) : index === count - 1;
   return (
-    <View style={styles.product}>
+    <>
+    <View style={[styles.product, wide && styles.productWide, wide && index % 2 === 0 && styles.productWideLeft, isLastRow && styles.productLast]}>
       <View style={styles.productSummary}>
         <Image accessible accessibilityLabel={`${dish.dishName} 상품 이미지`} source={getDishImageSource(dish, category)} style={styles.image}/>
         <View style={styles.productCopy}>
@@ -109,10 +124,9 @@ function ProductRow({ dish, category, onChanged }: { dish: Dish; category?: stri
           <Text style={styles.price}>{dish.discountPrice.toLocaleString()}원{dish.price > dish.discountPrice ? <Text style={styles.originalPrice}>  {dish.price.toLocaleString()}원</Text> : null}</Text>
           <Text style={styles.stock}>현재 재고 <Text style={styles.stockStrong}>{dish.quantity}개</Text></Text>
         </View>
+        <Pressable accessibilityLabel={`${dish.dishName} 재고 조정`} accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={openEditor} style={({ pressed }) => [styles.stockButton, pressed && styles.pressed]}><Ionicons name="options-outline" size={17} color={colors.ink900}/><Text style={styles.stockButtonText}>조정</Text></Pressable>
       </View>
-
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={openEditor} style={({ pressed }) => [styles.stockButton, pressed && styles.pressed]}><Ionicons name="options-outline" size={17} color={colors.ink900}/><Text style={styles.stockButtonText}>재고 조정</Text><Ionicons name="chevron-forward" size={16} color={colors.ink500}/></Pressable>
-
+    </View>
       <Modal animationType="fade" onRequestClose={closeEditor} presentationStyle="overFullScreen" transparent visible={open}>
         <View style={styles.modalRoot}>
           <Pressable accessibilityLabel="재고 조정 닫기" accessibilityRole="button" onPress={closeEditor} style={styles.scrim}/>
@@ -139,7 +153,7 @@ function ProductRow({ dish, category, onChanged }: { dish: Dish; category?: stri
           </SafeAreaView>
         </View>
       </Modal>
-    </View>
+    </>
   );
 }
 
@@ -153,25 +167,29 @@ const styles = StyleSheet.create({
   listTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 18, fontWeight: '900' },
   listMeta: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '600' },
   addButtonHit: { minHeight: 44, justifyContent: 'center' },
-  addButton: { height: 34, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 9, backgroundColor: colors.green500 },
+  addButton: { height: 34, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: radius.control, backgroundColor: colors.green500 },
   addButtonText: { color: colors.white, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
-  list: { gap: 11 },
-  product: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, ...shadow.card },
-  productSummary: { flexDirection: 'row', gap: 13 },
-  image: { width: 96, height: 96, borderRadius: 10, backgroundColor: colors.canvas },
+  list: { overflow: 'hidden', borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  listWide: { flexDirection: 'row', flexWrap: 'wrap' },
+  product: { width: '100%', minHeight: 104, padding: 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, backgroundColor: colors.white },
+  productWide: { width: '50%' },
+  productWideLeft: { borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: colors.line },
+  productLast: { borderBottomWidth: 0 },
+  productSummary: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  image: { width: 76, height: 76, borderRadius: 10, backgroundColor: colors.canvas },
   productCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green500 },
   dotStop: { backgroundColor: colors.ink400 },
   status: { color: colors.green700, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   stop: { color: colors.ink500 },
-  name: { marginTop: 6, color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900', letterSpacing: -0.35 },
+  name: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 15, fontWeight: '900', letterSpacing: -0.3 },
   price: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' },
   originalPrice: { color: colors.ink400, fontSize: 10, fontWeight: '500', textDecorationLine: 'line-through' },
   stock: { marginTop: 5, color: colors.ink700, fontFamily: fonts.body, fontSize: 11 },
   stockStrong: { color: colors.ink900, fontWeight: '900' },
-  stockButton: { minHeight: 44, marginTop: 13, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radius.control, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
-  stockButtonText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '800' },
+  stockButton: { minWidth: 48, minHeight: 44, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center', gap: 1, borderRadius: radius.control, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
+  stockButtonText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 20, 17, 0.46)' },
   sheetStage: { width: '100%', alignItems: 'center' },
@@ -199,7 +217,7 @@ const styles = StyleSheet.create({
   draftValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 23, lineHeight: 28, fontWeight: '900' },
   draftUnit: { marginLeft: 3, color: colors.ink700, fontFamily: fonts.body, fontSize: 11, lineHeight: 16, fontWeight: '700' },
   quickRow: { marginTop: 8, flexDirection: 'row', gap: 6 },
-  quickButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
+  quickButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
   quickText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
   editorActions: { marginTop: 10, flexDirection: 'row', gap: 8 },
   cancelButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white },

@@ -6,8 +6,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
@@ -99,6 +101,27 @@ class StoreFacadeTest {
     verify(dishService).getDishByStoreIdForRenewal(storeId);
   }
 
+  @Test
+  void 기간_내_변경된_매장과_상품을_검색_갱신_응답으로_반환한다() {
+    Instant from = Instant.parse("2026-08-22T13:00:00Z");
+    Instant to = Instant.parse("2026-08-22T13:01:00Z");
+    LocalDateTime localFrom = LocalDateTime.of(2026, 8, 22, 22, 0);
+    LocalDateTime localTo = LocalDateTime.of(2026, 8, 22, 22, 1);
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    ReflectionTestUtils.setField(store, "id", 10L);
+    InternalDishResult dish = createDishResult(10L);
+
+    when(storeRepository.findRenewalTargets(localFrom, localTo)).thenReturn(List.of(store));
+    when(dishService.getDishByStoreIdForRenewal(10L)).thenReturn(Optional.of(dish));
+
+    List<InternalStoreResult> result = storeFacade.getDishAndStoresForRenewal(from, to);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().storeId()).isEqualTo(10L);
+    assertThat(result.getFirst().dish()).isEqualTo(dish);
+    verify(storeRepository).findRenewalTargets(localFrom, localTo);
+  }
+
   private StoreResult createStoreResult(Long storeId) {
     Store store = createStore(LocalTime.now(), LocalTime.now());
     ReflectionTestUtils.setField(store, "id", storeId);
@@ -119,6 +142,7 @@ class StoreFacadeTest {
         "테스트 매장",
         "123-45-67890",
         "서울시 강남구",
+        "명정빌딩",
         "02-1234-5678",
         openTime,
         closeTime,

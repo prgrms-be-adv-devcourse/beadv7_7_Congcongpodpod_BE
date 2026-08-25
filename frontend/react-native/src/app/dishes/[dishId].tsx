@@ -1,8 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Image, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 
 import { EmptyState } from '@/components/empty-state';
 import { AppRefreshControl } from '@/components/app-refresh-control';
@@ -11,6 +12,7 @@ import { ConfirmModal } from '@/components/confirm-modal';
 import { showAppAlert } from '@/lib/app-overlay';
 import { LoadingState } from '@/components/loading-state';
 import { ScreenEntrance } from '@/components/motion';
+import { RefreshStatus } from '@/components/refresh-status';
 import { colors, fonts, radius } from '@/constants/theme';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
@@ -28,7 +30,7 @@ const detailOrigins = new Set<DetailOrigin>(['/', '/stores', '/favorites', '/ord
 export default function DishDetail() {
   const params = useLocalSearchParams<{ dishId: string; storeId?: string; storeName?: string; category?: string; origin?: string }>();
   const insets = useSafeAreaInsets();
-  const { width, contentWidth } = useResponsiveLayout();
+  const { contentWidth } = useResponsiveLayout();
   const [dish, setDish] = useState<Dish | null>(null);
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,7 @@ export default function DishDetail() {
   const atStockLimit = !soldOut && cartQuantity >= dish.quantity;
   const primaryLabel = soldOut ? '품절된 상품이에요' : atStockLimit ? `재고 ${dish.quantity}개를 모두 담았어요` : !member ? '로그인 후 담기' : cartQuantity ? '1개 더 담기' : `${dish.discountPrice.toLocaleString()}원 담기`;
   const pickupTime = store?.closeTime ? `오늘 ${store.closeTime.slice(0, 5)}까지` : '오늘 매장 마감 전까지';
-  const heroHeight = Math.min(360, Math.max(300, width * 0.78));
+  const heroHeight = contentWidth * 3 / 4;
   const commitAdd = async () => {
     try {
       await add({ ...dish, storeCategory: category }, storeName, storeId);
@@ -108,9 +110,10 @@ export default function DishDetail() {
   };
 
   return <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <RefreshStatus visible={refreshing}/>
     <ScreenEntrance><ScrollView alwaysBounceVertical contentContainerStyle={styles.scroll} refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>} showsVerticalScrollIndicator={false}>
       <View style={[styles.hero, { height: heroHeight, maxWidth: contentWidth }]}>
-        <Image source={getDishImageSource(dish, category)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        <Image accessibilityLabel={`${dish.dishName} 상품 이미지`} source={getDishImageSource(dish, category)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         <View style={styles.heroShade}/>
         <Pressable accessibilityLabel="뒤로 가기" onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]}><Ionicons name="chevron-back" size={24} color={colors.ink900} /></Pressable>
         <Pressable accessibilityLabel="상품 상세 닫기" onPress={closeToOrigin} style={[styles.close, { top: insets.top + 8 }]}><Ionicons name="close" size={24} color={colors.ink900}/></Pressable>
@@ -123,7 +126,7 @@ export default function DishDetail() {
         </Pressable>
         <View style={styles.info}>
           <Text style={styles.saleLabel}>오늘 마감 할인</Text>
-          <Text style={styles.title}>{dish.dishName}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{dish.dishName}</Text>
           <Text style={styles.description}>{dish.description || '오늘 준비한 상품을 좋은 가격에 픽업하세요.'}</Text>
           <View style={styles.priceBlock}>
             {dish.price > 0 && dish.price !== dish.discountPrice ? <Text style={styles.original}>{dish.price.toLocaleString()}원</Text> : null}
@@ -135,7 +138,7 @@ export default function DishDetail() {
         </View>
       </View>
     </ScrollView></ScreenEntrance>
-    <View style={styles.footer}><View style={styles.footerActions}><Pressable accessibilityRole="button" accessibilityHint={!member ? '로그인 화면으로 이동합니다' : undefined} accessibilityState={{ disabled: soldOut || atStockLimit }} disabled={soldOut || atStockLimit} onPress={handlePrimary} style={({ pressed }) => [styles.cartButton, (soldOut || atStockLimit) && styles.cartButtonDisabled, pressed && !soldOut && !atStockLimit && styles.pressed]}><Ionicons name={member ? 'cart-outline' : 'lock-closed-outline'} size={20} color={soldOut || atStockLimit ? colors.ink400 : colors.white} /><Text numberOfLines={1} style={[styles.cartButtonText, (soldOut || atStockLimit) && styles.cartButtonTextDisabled]}>{primaryLabel}</Text></Pressable>{cartQuantity > 0 ? <Pressable accessibilityRole="button" accessibilityLabel={`장바구니로 이동, 현재 ${cartQuantity}개`} onPress={() => router.push({ pathname: '/cart', params: { origin } })} style={({ pressed }) => [styles.goToCartButton, pressed && styles.pressed]}><CartQuantityBadge quantity={cartQuantity}/><Text style={styles.goToCartText}>장바구니 이동</Text><Ionicons name="arrow-forward" size={17} color={colors.white}/></Pressable> : null}</View></View>
+    <View style={styles.footer}><View style={[styles.footerActions, { maxWidth: contentWidth }]}><Pressable accessibilityRole="button" accessibilityHint={!member ? '로그인 화면으로 이동합니다' : undefined} accessibilityState={{ disabled: soldOut || atStockLimit }} disabled={soldOut || atStockLimit} onPress={handlePrimary} style={({ pressed }) => [styles.cartButton, (soldOut || atStockLimit) && styles.cartButtonDisabled, pressed && !soldOut && !atStockLimit && styles.pressed]}><Ionicons name={member ? 'cart-outline' : 'lock-closed-outline'} size={20} color={soldOut || atStockLimit ? colors.ink400 : colors.white} /><Text numberOfLines={1} style={[styles.cartButtonText, (soldOut || atStockLimit) && styles.cartButtonTextDisabled]}>{primaryLabel}</Text></Pressable>{cartQuantity > 0 ? <Pressable accessibilityRole="button" accessibilityLabel={`장바구니로 이동, 현재 ${cartQuantity}개`} onPress={() => router.push({ pathname: '/cart', params: { origin } })} style={({ pressed }) => [styles.goToCartButton, pressed && styles.pressed]}><CartQuantityBadge quantity={cartQuantity}/><Text style={styles.goToCartText}>장바구니 이동</Text><Ionicons name="arrow-forward" size={17} color={colors.white}/></Pressable> : null}</View></View>
     <ConfirmModal visible={replaceConfirming} icon="cart-outline" title="장바구니를 새로 담을까요?" description={`${cartItem?.storeName ?? '다른 매장'} 상품이 이미 담겨 있어요. 계속하면 기존 장바구니가 삭제됩니다.`} confirmLabel="기존 상품 삭제 후 담기" onCancel={()=>setReplaceConfirming(false)} onConfirm={()=>void (async()=>{try{await clear();await commitAdd();}catch(clearError){showAppAlert('장바구니를 비우지 못했어요',clearError instanceof Error?clearError.message:'잠시 후 다시 시도해주세요.');}})()}/>
   </SafeAreaView>;
 }
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white }, state: { flex: 1, justifyContent: 'center', backgroundColor: colors.canvas }, stateBack: { position: 'absolute', left: 14, top: 12, zIndex: 2, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, stateClose: { position: 'absolute', right: 14, top: 12, zIndex: 2, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, scroll: { paddingBottom: 30, backgroundColor: colors.white },
   hero: { width: '100%', alignSelf: 'center', overflow: 'hidden', backgroundColor: colors.canvas }, heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.04)' }, back: { position: 'absolute', left: 14, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.94)' }, close: { position: 'absolute', right: 14, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.94)' }, stock: { position: 'absolute', right: 16, bottom: 14, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 7, backgroundColor: 'rgba(23,26,24,0.82)' }, stockDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green300 }, stockDotSoldOut: { backgroundColor: colors.ink400 }, stockText: { color: colors.white, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
   content: { width: '100%', alignSelf: 'center', paddingHorizontal: 20 }, storeRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line }, storeName: { color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' }, storeCategory: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 11 }, storeLinkWrap: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 2 }, storeLink: { color: colors.ink700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' },
-  info: { paddingTop: 20 }, saleLabel: { color: colors.green700, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' }, title: { marginTop: 6, color: colors.ink900, fontFamily: fonts.body, fontSize: 28, lineHeight: 35, fontWeight: '900', letterSpacing: -1 }, description: { marginTop: 9, color: colors.ink700, fontFamily: fonts.body, fontSize: 14, lineHeight: 21 }, priceBlock: { marginTop: 20 }, original: { color: colors.ink400, fontFamily: fonts.body, fontSize: 13, textDecorationLine: 'line-through' }, priceRow: { marginTop: 2, flexDirection: 'row', alignItems: 'baseline', gap: 8 }, discount: { color: colors.green700, fontFamily: fonts.body, fontSize: 23, fontWeight: '900' }, price: { color: colors.ink900, fontFamily: fonts.body, fontSize: 28, fontWeight: '900', letterSpacing: -0.7 }, saving: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 12, fontWeight: '600' },
+  info: { paddingTop: 20 }, saleLabel: { color: colors.green700, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' }, title: { marginTop: 6, color: colors.ink900, fontFamily: fonts.body, fontSize: 28, lineHeight: 35, fontWeight: '900', letterSpacing: -1 }, description: { marginTop: 9, color: colors.ink700, fontFamily: fonts.body, fontSize: 14, lineHeight: 21 }, priceBlock: { marginTop: 20 }, original: { color: colors.ink400, fontFamily: fonts.body, fontSize: 13, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] }, priceRow: { marginTop: 2, flexDirection: 'row', alignItems: 'baseline', gap: 8 }, discount: { color: colors.green700, fontFamily: fonts.body, fontSize: 23, fontWeight: '900', fontVariant: ['tabular-nums'] }, price: { color: colors.ink900, fontFamily: fonts.body, fontSize: 28, fontWeight: '900', letterSpacing: -0.7, fontVariant: ['tabular-nums'] }, saving: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
   pickup: { minHeight: 72, marginTop: 22, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: colors.blue50, borderWidth: 1, borderColor: colors.blue300, borderRadius: radius.input }, pickupIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: colors.white }, pickupCopy: { flex: 1 }, pickupLabel: { color: colors.ink500, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' }, pickupValue: { marginTop: 3, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' }, guide: { marginTop: 24, paddingTop: 18, borderTopWidth: 1, borderTopColor: colors.line }, guideTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, fontWeight: '800' }, guideText: { marginTop: 8, color: colors.ink500, fontFamily: fonts.body, fontSize: 12, lineHeight: 19 },
-  footer: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.line }, footerActions: { width: '100%', flexDirection: 'row', gap: 8 }, cartButton: { minWidth: 0, minHeight: 54, flex: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radius.input, backgroundColor: colors.green500 }, cartButtonDisabled: { backgroundColor: colors.line }, cartButtonText: { flexShrink: 1, color: colors.white, fontFamily: fonts.body, fontSize: 15, fontWeight: '900' }, cartButtonTextDisabled: { color: colors.ink400 }, goToCartButton: { minHeight: 54, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: radius.input, backgroundColor: colors.ink900 }, goToCartText: { color: colors.white, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' }, pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
+  footer: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.line }, footerActions: { width: '100%', alignSelf: 'center', flexDirection: 'row', gap: 8 }, cartButton: { minWidth: 0, minHeight: 54, flex: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radius.input, backgroundColor: colors.green500 }, cartButtonDisabled: { backgroundColor: colors.line }, cartButtonText: { flexShrink: 1, color: colors.white, fontFamily: fonts.body, fontSize: 15, fontWeight: '900' }, cartButtonTextDisabled: { color: colors.ink400 }, goToCartButton: { minHeight: 54, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: radius.input, backgroundColor: colors.ink900 }, goToCartText: { color: colors.white, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' }, pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
 });

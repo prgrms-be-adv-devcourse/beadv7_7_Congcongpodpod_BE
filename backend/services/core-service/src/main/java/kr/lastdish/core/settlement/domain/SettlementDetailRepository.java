@@ -16,4 +16,6 @@ public interface SettlementDetailRepository {
   Set<Long> findSettledOrderIds(Collection<Long> orderIds);
 
   List<SettlementDetail> findAllBySettlementId(Long settlementId);
+
+  SettlementDetailSummary summarizeBySettlementId(Long settlementId);
 }

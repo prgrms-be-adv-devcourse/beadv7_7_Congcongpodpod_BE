@@ -1,5 +1,6 @@
 import { beginGlobalLoading, endGlobalLoading } from './app-overlay';
 import { storage } from './storage';
+import { invalidateQueries } from './query-cache';
 
 const baseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8080/api/v1').replace(/\/$/, '');
 type Tokens = { accessToken: string; refreshToken: string };
@@ -10,6 +11,7 @@ let refreshPromise: Promise<string> | null = null;
 let cachedAccessToken: string | null | undefined;
 
 export function cacheAccessToken(token: string | null) {
+  if (cachedAccessToken !== token) invalidateQueries();
   cachedAccessToken = token;
 }
 
@@ -27,6 +29,13 @@ export class NetworkUnavailableError extends Error {
   constructor() {
     super('네트워크 연결이 필요합니다. 연결 상태를 확인해주세요.');
     this.name = 'NetworkUnavailableError';
+  }
+}
+
+export class RequestCancelledError extends Error {
+  constructor() {
+    super('요청이 취소됐어요.');
+    this.name = 'RequestCancelledError';
   }
 }
 
@@ -51,13 +60,18 @@ async function renewAccessToken() {
   return refreshPromise;
 }
 
+export function refreshAccessToken() {
+  return renewAccessToken();
+}
+
 async function request(path: string, init: RequestInit | undefined, token: string | null, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
   const controller = new AbortController();
   const abortFromCaller = () => controller.abort();
   if (init?.signal?.aborted) controller.abort();
   else init?.signal?.addEventListener('abort', abortFromCaller, { once: true });
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let timedOut = false;
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
     return await fetch(`${baseUrl}${path}`, {
       ...init,
@@ -70,7 +84,8 @@ async function request(path: string, init: RequestInit | undefined, token: strin
       },
     });
   } catch {
-    if (controller.signal.aborted) throw new Error('요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요.');
+    if (init?.signal?.aborted && !timedOut) throw new RequestCancelledError();
+    if (timedOut) throw new Error('요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요.');
     throw new NetworkUnavailableError();
   } finally {
     clearTimeout(timeout);
@@ -79,7 +94,9 @@ async function request(path: string, init: RequestInit | undefined, token: strin
 }
 
 export async function api<T>(path: string, init?: RequestInit, options: ApiOptions = {}): Promise<T> {
-  const globalLoading = options.globalLoading !== false;
+  // 화면은 자체 loading/refreshing 상태로 피드백을 제어한다. 모든 네트워크
+  // 요청을 전역 Modal로 막으면 이전 화면의 요청이 다음 화면의 터치까지 차단한다.
+  const globalLoading = options.globalLoading === true;
   if (globalLoading) beginGlobalLoading();
   try {
     const token = cachedAccessToken === undefined

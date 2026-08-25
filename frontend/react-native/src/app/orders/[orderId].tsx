@@ -1,7 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { OptimizedImage as Image } from '@/components/optimized-image';
 import { LoadingState } from '@/components/loading-state';
 import { showAppAlert } from '@/lib/app-overlay';
 import { Page } from '@/components/page';

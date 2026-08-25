@@ -8,7 +8,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
-import kr.lastdish.core.payment.domain.deposit.Deposit;
+import kr.lastdish.core.deposit.domain.Deposit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

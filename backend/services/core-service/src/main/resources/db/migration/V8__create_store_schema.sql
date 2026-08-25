@@ -51,6 +51,7 @@ CREATE TABLE public.stores (
     category character varying(255) NOT NULL,
     status character varying(255) NOT NULL,
     store_address character varying(255) NOT NULL,
+    store_detail_address character varying(255),
     store_name character varying(255) NOT NULL,
     store_phone character varying(255) NOT NULL,
     CONSTRAINT stores_category_check CHECK (((category)::text = ANY ((ARRAY['CHICKEN'::character varying, 'CHINESE'::character varying, 'BUNSIK'::character varying, 'KOREAN'::character varying, 'SOUP_STEW'::character varying, 'CUTLET_SUSHI'::character varying, 'PIZZA'::character varying, 'CAFE_DESSERT'::character varying, 'FAST_FOOD'::character varying, 'JOKBAL_BOSSAM'::character varying, 'MEAT'::character varying, 'LATE_NIGHT'::character varying, 'WESTERN'::character varying, 'ASIAN'::character varying, 'LUNCH_BOX'::character varying])::text[]))),

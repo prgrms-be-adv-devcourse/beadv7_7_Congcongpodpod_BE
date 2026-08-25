@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import type { PropsWithChildren } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/loading-state';
-import { colors, fonts, radius, shadow } from '@/constants/theme';
+import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
 import { type AppAlertRequest, type AppNotificationRequest, subscribeAppAlerts, subscribeGlobalLoading, subscribeInAppNotifications } from '@/lib/app-overlay';
 
 const MIN_LOADING_VISIBLE_MS = 160;
@@ -113,19 +113,17 @@ export function AppOverlayProvider({ children }: PropsWithChildren) {
         </View> : null}
       </View>
     </Modal>
-    <Modal animationType="fade" presentationStyle="overFullScreen" transparent visible={showLoading}>
-      <View accessibilityLabel="처리 중" accessibilityRole="progressbar" style={styles.loadingRoot}><View style={styles.loadingCard}><LoadingState compact inline label="잠시만 기다려주세요"/></View></View>
-    </Modal>
+    {showLoading ? <View accessibilityLabel="처리 중" accessibilityRole="progressbar" pointerEvents="none" style={styles.loadingRoot}><View style={styles.loadingCard}><LoadingState compact inline label="잠시만 기다려주세요"/></View></View> : null}
   </>;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,20,17,0.48)' },
-  card: { width: '100%', maxWidth: 360, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 18, alignItems: 'center', borderRadius: radius.card, backgroundColor: colors.white, ...shadow.float },
+  card: { width: '100%', maxWidth: 360, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 18, alignItems: 'center', borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong, backgroundColor: colors.white, ...shadow.sheet },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.green50 },
   iconDanger: { backgroundColor: colors.danger50 },
-  title: { marginTop: 15, color: colors.ink900, fontFamily: fonts.body, fontSize: 20, lineHeight: 27, fontWeight: '900', letterSpacing: -0.5, textAlign: 'center' },
+  title: { ...typography.sectionTitle, marginTop: 15, color: colors.ink900, fontFamily: fonts.body, textAlign: 'center' },
   message: { marginTop: 7, color: colors.ink700, fontFamily: fonts.body, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   actions: { width: '100%', marginTop: 22, flexDirection: 'row', gap: 8 },
   action: { minHeight: 50, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green500 },
@@ -134,18 +132,18 @@ const styles = StyleSheet.create({
   actionText: { color: colors.white, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
   cancelText: { color: colors.ink900 },
   pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
-  loadingRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(15,20,17,0.34)' },
-  loadingCard: { width: 184, minHeight: 142, alignItems: 'center', justifyContent: 'center', borderRadius: radius.card, backgroundColor: colors.white, ...shadow.float },
+  loadingRoot: { ...StyleSheet.absoluteFillObject, zIndex: 2000, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(247,248,246,0.82)' },
+  loadingCard: { width: 148, minHeight: 104, alignItems: 'center', justifyContent: 'center' },
   notificationLayer: { position: 'absolute', left: 12, right: 12, zIndex: 1000, alignItems: 'center', gap: 8 },
   notificationAnimated: { width: '100%', maxWidth: 440 },
-  notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 10, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
+  notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 10, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
   notificationIcon: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.green50 },
   notificationUnread: { position: 'absolute', right: 5, top: 5, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.green500, borderWidth: 2, borderColor: colors.white },
   notificationCopy: { flex: 1, minWidth: 0 },
   notificationMeta: { marginBottom: 3, flexDirection: 'row', alignItems: 'center', gap: 6 },
   notificationLabel: { color: colors.green700, fontFamily: fonts.body, fontSize: 11, lineHeight: 15, fontWeight: '800' },
   notificationTime: { color: colors.ink400, fontFamily: fonts.body, fontSize: 10, lineHeight: 14 },
-  notificationTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '900', letterSpacing: -0.25 },
+  notificationTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800', letterSpacing: -0.25 },
   notificationMessage: { marginTop: 3, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
   notificationActions: { minHeight: 76, alignItems: 'center', justifyContent: 'space-between' },
   notificationClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.canvas },

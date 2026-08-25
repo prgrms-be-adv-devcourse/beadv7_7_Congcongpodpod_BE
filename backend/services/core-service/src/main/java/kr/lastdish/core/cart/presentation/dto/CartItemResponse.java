@@ -17,6 +17,10 @@ public record CartItemResponse(
     Long lastAppliedDishPriceVersion) {
 
   public static CartItemResponse from(CartItem cartItem) {
+    return from(cartItem, true);
+  }
+
+  public static CartItemResponse from(CartItem cartItem, boolean activeDish) {
     return new CartItemResponse(
         cartItem.getId(),
         cartItem.getDishId(),
@@ -24,8 +28,8 @@ public record CartItemResponse(
         cartItem.getUnitPrice(),
         cartItem.getQuantity(),
         cartItem.getSubtotalPrice(),
-        cartItem.getStatus(),
-        cartItem.isOrderable(),
+        activeDish ? cartItem.getStatus() : CartItemStatus.DISH_UNAVAILABLE,
+        activeDish && cartItem.isOrderable(),
         cartItem.getLastAppliedDishPriceVersion());
   }
 }
