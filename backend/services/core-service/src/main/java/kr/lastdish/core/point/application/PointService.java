@@ -37,6 +37,11 @@ public class PointService {
     return new PointBalanceResponse(usableBalance);
   }
 
+  @Transactional(readOnly = true)
+  public boolean hasAlreadyEarned(Long orderId) {
+    return pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.EARN);
+  }
+
   // 포인트 적립 (Level 적립률 * 최종 주문 금액)
   @Transactional
   public PointTransactionResult earn(Long memberId, Long orderId, BigDecimal finalOrderAmount) {

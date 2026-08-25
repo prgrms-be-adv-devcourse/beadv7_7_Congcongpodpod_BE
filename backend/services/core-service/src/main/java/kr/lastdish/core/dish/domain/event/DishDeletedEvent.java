@@ -4,19 +4,17 @@ import java.time.Instant;
 import java.util.UUID;
 import kr.lastdish.common.event.DomainEvent;
 
-public record DishPriceChangedEvent(
+public record DishDeletedEvent(
     UUID eventId,
     int schemaVersion,
     Long dishId,
     long aggregateVersion,
-    DishPriceChangedPayload payload,
+    DishAIEventPayload payload,
     Instant occurredAt)
-    implements DomainEvent<DishPriceChangedPayload> {
+    implements DomainEvent<DishAIEventPayload> {
 
-  public static final String EVENT_TYPE = "DISH_PRICE_CHANGED";
-
-  /** v2에서 payload에 정가(dishPrice)가 추가됐습니다. v1 payload에는 판매가만 있습니다. */
-  public static final int SCHEMA_VERSION = 2;
+  public static final String EVENT_TYPE = "DISH_IS_DELETED";
+  public static final int SCHEMA_VERSION = 1;
 
   @Override
   public String eventType() {

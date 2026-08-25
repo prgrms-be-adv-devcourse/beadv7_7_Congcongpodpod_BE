@@ -1,6 +1,9 @@
 package kr.lastdish.core.store.application;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -19,12 +22,15 @@ import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class StoreFacade {
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
+
   private final StoreService storeService;
   private final DishService dishService;
   private final StorePayoutAccountRepository storePayoutAccountRepository;
@@ -76,6 +82,25 @@ public class StoreFacade {
     InternalDishResult dish = dishService.getDishByStoreIdForRenewal(storeId).orElse(null);
 
     return InternalStoreResult.from(store, dish);
+  }
+
+  // 검색 색인 증분 갱신용 조회 — 조회 구간에 Store 또는 Dish가 변경된 매장을 반환한다.
+  public List<InternalStoreResult> getDishAndStoresForRenewal(Instant from, Instant to) {
+    if (!from.isBefore(to)) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "from은 to보다 이전이어야 합니다.");
+    }
+
+    LocalDateTime fromDateTime = LocalDateTime.ofInstant(from, BUSINESS_ZONE);
+    LocalDateTime toDateTime = LocalDateTime.ofInstant(to, BUSINESS_ZONE);
+
+    return storeRepository.findRenewalTargets(fromDateTime, toDateTime).stream()
+        .map(this::toInternalStoreResult)
+        .toList();
+  }
+
+  private InternalStoreResult toInternalStoreResult(Store store) {
+    InternalDishResult dish = dishService.getDishByStoreIdForRenewal(store.getId()).orElse(null);
+    return InternalStoreResult.from(StoreResult.from(store), dish);
   }
 
   public StorePageResult getNearbyStores(

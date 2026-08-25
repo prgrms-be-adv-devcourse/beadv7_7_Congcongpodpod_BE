@@ -6,6 +6,7 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
@@ -36,6 +37,10 @@ public class DishFacade {
     storeService.validateDishPickupTime(
         request.storeId(), request.pickupStartTime(), request.pickupEndTime());
     dishService.validateCreateDish(request);
+
+    if (request.imageKey() == null) {
+      return dishService.createDish(request, null);
+    }
 
     String finalImageKey = DishImageService.resolveFinalKey(request.storeId(), request.imageKey());
     boolean uploadConfirmed = false;
@@ -105,7 +110,7 @@ public class DishFacade {
   public Optional<DishSnapshot> findDishSnapshot(Long dishId) {
     return dishRepository
         .findAvailableById(dishId)
-        .filter(Dish::isAvailable)
+        .filter(dish -> dish.getDishStatus() == DishStatus.ON_SALE)
         .map(DishFacade::toSnapshot);
   }
 
@@ -114,6 +119,11 @@ public class DishFacade {
         .findAvailableById(dishId)
         .filter(Dish::isAvailable)
         .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_ON_SALE));
+  }
+
+  /** Dish가 soft delete되었거나 존재하지 않으면 true를 반환합니다. */
+  public boolean isDishDeleted(Long dishId) {
+    return dishRepository.findByIdIncludingDeleted(dishId).map(Dish::getIsDeleted).orElse(true);
   }
 
   // 마감할인 서비스 특성상 스냅샷 단가는 discountPrice로 잡는다.

@@ -160,11 +160,9 @@ public class OrderService {
     orderStatusChangedEventWriter.append(order, aggregateVersion);
 
     if (command.status() == OrderStatus.PICKED_UP) {
-      // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
-      // orderPickedUpEventWriter.append(order, aggregateVersion);
+      orderPickedUpEventWriter.append(order, aggregateVersion);
     } else if (command.status() == OrderStatus.NO_SHOW) {
-      // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
-      // orderNoShowEventWriter.append(order, aggregateVersion);
+      orderNoShowEventWriter.append(order, aggregateVersion);
     }
 
     return PickupStatusResult.from(order);

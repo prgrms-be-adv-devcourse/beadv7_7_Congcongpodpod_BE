@@ -320,7 +320,6 @@ class OrderServiceTest {
     verify(order).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
-    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test
@@ -341,7 +340,6 @@ class OrderServiceTest {
     verify(order, never()).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
-    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
   }
 
   @Test

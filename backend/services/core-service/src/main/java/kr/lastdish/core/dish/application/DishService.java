@@ -46,8 +46,7 @@ public class DishService {
 
     Dish savedDish = dishRepository.save(dish);
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
-    //    appendCreatedEvent(savedDish);
+    appendCreatedEvent(savedDish);
 
     return DishResponse.from(savedDish);
   }
@@ -65,23 +64,21 @@ public class DishService {
     validateDiscountRate(request.dishPrice(), request.discountPrice());
 
     // 동시에 같은 Dish가 변경되면 동일한 event Version이 생성되지 않도록 이벤트가 발생하는 변경 메서드는 잠금 조회를 사용합니다.
-    Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
-    // Dish 변경 전 가격을 저장합니다. Cart가 절약 금액 산출에 정가도 쓰므로 정가 변경도 함께 본다.
-    BigDecimal dishPriceBefore = dish.getDishPrice();
-    BigDecimal unitPriceBefore = dish.getDiscountPrice();
+    Dish existingDish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
+    Dish replacement =
+        existingDish.replace(
+            request.dishName(),
+            request.registeredAt(),
+            request.description(),
+            request.dishPrice(),
+            request.discountPrice(),
+            request.pickupStartTime(),
+            request.pickupEndTime());
 
-    dish.update(
-        request.dishName(),
-        request.registeredAt(),
-        request.description(),
-        request.dishPrice(),
-        request.discountPrice(),
-        request.pickupStartTime(),
-        request.pickupEndTime());
+    dishRepository.save(replacement);
+    appendCreatedEvent(replacement); // 새로 업데이트되어 생성된 Dish Event
 
-    appendPriceEventIfChanged(dish, dishPriceBefore, unitPriceBefore);
-
-    return DishResponse.from(dish);
+    return DishResponse.from(replacement);
   }
 
   @Transactional
@@ -95,6 +92,7 @@ public class DishService {
     dish.updateStatus(request.dishStatus());
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
 
     return DishResponse.from(dish);
   }
@@ -146,6 +144,7 @@ public class DishService {
     dish.decreaseStock(quantity);
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
   }
 
   @Transactional
@@ -160,6 +159,21 @@ public class DishService {
     dish.increaseStock(quantity);
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
+  }
+
+  @Transactional
+  public void closeSaleByStoreId(Long storeId) {
+    dishRepository
+        .findWithLockByStoreIdAndIsDeletedFalse(storeId)
+        .ifPresent(
+            dish -> {
+              boolean availableBefore = dish.isAvailable();
+              Long stockQuantityBefore = dish.getStockQuantity();
+              dish.closeSale();
+              appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+              appendUpdatedEvent(dish);
+            });
   }
 
   @Transactional
@@ -172,6 +186,7 @@ public class DishService {
     dish.delete();
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendDeletedEvent(dish);
     return dish.getThumbnailUrl();
   }
 
@@ -233,50 +248,49 @@ public class DishService {
     outboxEventWriter.append(event);
   }
 
-  /**
-   * Cart의 가격 표시에 영향을 주는 Dish 상태가 바뀌었을 때 Outbox 이벤트를 기록합니다.
-   *
-   * <p>정가나 판매가 중 하나라도 변경되면 해당 이벤트를 발행 합니다. Cart가 절약 금액(정가 - 판매가) 산출에 두 값을 모두 쓰기 때문에 판매가만 보고 판단하면
-   * 정가만 바뀐 변경을 놓친다.
-   *
-   * @param dish 변경이 완료된 Dish
-   * @param dishPriceBefore 변경 전 정가
-   * @param unitPriceBefore 변경 전 판매가
-   */
-  private void appendPriceEventIfChanged(
-      Dish dish, BigDecimal dishPriceBefore, BigDecimal unitPriceBefore) {
-
-    BigDecimal dishPriceAfter = dish.getDishPrice();
-    BigDecimal unitPriceAfter = dish.getDiscountPrice();
-
-    if (dishPriceBefore.compareTo(dishPriceAfter) == 0
-        && unitPriceBefore.compareTo(unitPriceAfter) == 0) {
-      return;
-    }
-
-    long aggregateVersion = dish.nextAggregateVersion();
-
-    DishPriceChangedEvent event =
-        new DishPriceChangedEvent(
-            UUID.randomUUID(),
-            DishPriceChangedEvent.SCHEMA_VERSION,
-            dish.getId(),
-            aggregateVersion,
-            new DishPriceChangedPayload(dishPriceAfter, unitPriceAfter),
-            Instant.now());
-
-    outboxEventWriter.append(event);
-  }
-
   // 검색 문서 갱신을 요청하는 상품 생성 이벤트를 Outbox에 기록한다.
   private void appendCreatedEvent(Dish dish) {
     long aggregateVersion = dish.nextAggregateVersion();
-    DishCreatedPayload payload = new DishCreatedPayload(dish.getStoreId());
+    DishAIEventPayload payload = new DishAIEventPayload(dish.getStoreId());
 
     DishCreatedEvent event =
         new DishCreatedEvent(
             UUID.randomUUID(),
             DishCreatedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  // 검색 문서 갱신을 요청하는 상품 수정 이벤트를 Outbox에 기록한다.
+  private void appendUpdatedEvent(Dish dish) {
+    long aggregateVersion = dish.nextAggregateVersion();
+    DishAIEventPayload payload = new DishAIEventPayload(dish.getStoreId());
+
+    DishUpdatedEvent event =
+        new DishUpdatedEvent(
+            UUID.randomUUID(),
+            DishUpdatedEvent.SCHEMA_VERSION,
+            dish.getId(),
+            aggregateVersion,
+            payload,
+            Instant.now());
+
+    outboxEventWriter.append(event);
+  }
+
+  // 검색 문서 갱신을 요청하는 상품 삭제 이벤트를 Outbox에 기록한다.
+  private void appendDeletedEvent(Dish dish) {
+    long aggregateVersion = dish.nextAggregateVersion();
+    DishAIEventPayload payload = new DishAIEventPayload(dish.getStoreId());
+
+    DishDeletedEvent event =
+        new DishDeletedEvent(
+            UUID.randomUUID(),
+            DishDeletedEvent.SCHEMA_VERSION,
             dish.getId(),
             aggregateVersion,
             payload,

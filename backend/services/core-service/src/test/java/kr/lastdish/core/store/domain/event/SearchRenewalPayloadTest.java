@@ -6,7 +6,7 @@ import java.lang.reflect.RecordComponent;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
-import kr.lastdish.core.dish.domain.event.DishCreatedPayload;
+import kr.lastdish.core.dish.domain.event.DishAIEventPayload;
 import org.junit.jupiter.api.Test;
 
 class SearchRenewalPayloadTest {
@@ -47,7 +47,7 @@ class SearchRenewalPayloadTest {
 
   @Test
   void dish_created_payload_contains_only_store_id() {
-    assertContainsOnlyStoreId(DishCreatedPayload.class);
+    assertContainsOnlyStoreId(DishAIEventPayload.class);
   }
 
   private void assertContainsOnlyStoreId(Class<?> payloadType) {

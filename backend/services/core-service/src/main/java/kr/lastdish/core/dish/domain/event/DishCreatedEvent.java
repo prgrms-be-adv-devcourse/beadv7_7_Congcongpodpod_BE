@@ -9,9 +9,9 @@ public record DishCreatedEvent(
     int schemaVersion,
     Long dishId,
     long aggregateVersion,
-    DishCreatedPayload payload,
+    DishAIEventPayload payload,
     Instant occurredAt)
-    implements DomainEvent<DishCreatedPayload> {
+    implements DomainEvent<DishAIEventPayload> {
 
   public static final String EVENT_TYPE = "DISH_IS_CREATED";
   public static final int SCHEMA_VERSION = 1;
