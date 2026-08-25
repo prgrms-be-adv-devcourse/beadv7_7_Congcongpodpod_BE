@@ -13,7 +13,7 @@ import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.inbox.domain.InboxProcessingPolicy;
 import kr.lastdish.core.order.domain.event.OrderPickedUpEvent;
 import kr.lastdish.core.point.application.PointFacade;
-import kr.lastdish.core.point.application.event.kafka.OrderPickedUpKafkaListener;
+import kr.lastdish.core.point.application.event.kafka.PointOrderPickedUpKafkaListener;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,21 +23,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
-class OrderPickedUpMessageHandlerTest {
+class PointOrderPickedUpMessageHandlerTest {
 
   @Mock private PointFacade pointFacade;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private OrderPickedUpMessageHandler handler;
+  private PointOrderPickedUpMessageHandler handler;
 
   @BeforeEach
   void setUp() {
-    handler = new OrderPickedUpMessageHandler(objectMapper, pointFacade);
+    handler = new PointOrderPickedUpMessageHandler(objectMapper, pointFacade);
   }
 
   @Test
   void consumerId_eventType_processingPolicy가_올바르게_반환된다() {
-    assertThat(handler.consumerId()).isEqualTo(OrderPickedUpKafkaListener.CONSUMER_ID);
+    assertThat(handler.consumerId()).isEqualTo(PointOrderPickedUpKafkaListener.CONSUMER_ID);
     assertThat(handler.eventType()).isEqualTo(OrderPickedUpEvent.EVENT_TYPE);
     assertThat(handler.processingPolicy()).isEqualTo(InboxProcessingPolicy.IDEMPOTENT);
   }

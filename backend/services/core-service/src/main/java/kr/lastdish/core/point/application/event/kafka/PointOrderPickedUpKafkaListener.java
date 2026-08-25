@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class OrderPickedUpKafkaListener {
+public class PointOrderPickedUpKafkaListener {
 
   public static final String CONSUMER_ID = "core-point-order-picked-up";
 

@@ -6,7 +6,7 @@ import kr.lastdish.common.inbox.domain.InboxProcessingPolicy;
 import kr.lastdish.core.order.domain.event.OrderPickedUpEvent;
 import kr.lastdish.core.order.domain.event.OrderPickedUpPayload;
 import kr.lastdish.core.point.application.PointFacade;
-import kr.lastdish.core.point.application.event.kafka.OrderPickedUpKafkaListener;
+import kr.lastdish.core.point.application.event.kafka.PointOrderPickedUpKafkaListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
@@ -14,14 +14,14 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
-public class OrderPickedUpMessageHandler implements InboxEventHandler {
+public class PointOrderPickedUpMessageHandler implements InboxEventHandler {
 
   private final ObjectMapper objectMapper;
   private final PointFacade pointFacade;
 
   @Override
   public String consumerId() {
-    return OrderPickedUpKafkaListener.CONSUMER_ID;
+    return PointOrderPickedUpKafkaListener.CONSUMER_ID;
   }
 
   @Override
