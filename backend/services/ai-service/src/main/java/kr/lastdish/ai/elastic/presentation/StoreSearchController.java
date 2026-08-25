@@ -4,10 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import kr.lastdish.ai.elastic.application.StoreSearchFacade;
-import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import kr.lastdish.ai.elastic.presentation.dto.StoreSearchRequest;
+import kr.lastdish.ai.elastic.presentation.dto.StoreSearchResult;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,19 +18,9 @@ public class StoreSearchController {
 
   private final StoreSearchFacade storeSearchFacade;
 
-  @Operation(summary = "자연어 쿼리 기반 하이브리드 검색")
+  @Operation(summary = "자연어 쿼리 기반 하이브리드 검색 (배지 + 상위 5개 RAG 추천 이유 포함)")
   @PostMapping
-  public ResponseEntity<List<StoreSearchController.StoreSearchResult>> search(
-      @RequestBody StoreSearchRequest request) {
-
-    List<SearchHit<StoreDocument>> hits = storeSearchFacade.search(request);
-
-    List<StoreSearchResult> results =
-        hits.stream().map(hit -> new StoreSearchResult(hit.getScore(), hit.getContent())).toList();
-
-    return ResponseEntity.ok(results);
+  public ResponseEntity<List<StoreSearchResult>> search(@RequestBody StoreSearchRequest request) {
+    return ResponseEntity.ok(storeSearchFacade.search(request));
   }
-
-  // ES SearchHit는 Jackson 기본 직렬화가 지저분해서, 테스트 편의를 위한 얇은 응답 래퍼
-  public record StoreSearchResult(float score, StoreDocument store) {}
 }
