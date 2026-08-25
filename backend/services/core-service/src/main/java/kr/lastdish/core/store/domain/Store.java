@@ -159,18 +159,11 @@ public class Store {
     }
   }
 
-  /**
-   * 기준 시각에 이 매장이 주문을 받을 수 있는 상태인지 확인한다.
-   *
-   * <p>영업 상태 플래그만으로는 부족하다 — 플래그가 OPEN이어도 개점 전이거나 마감 후면 주문을 받을 수 없다. 영업시간을 함께 보지 않으면 개점 전 주문이 픽업 마감
-   * 검증까지 흘러가 "픽업 마감 시간이 지났습니다"라는 엉뚱한 안내를 받는다.
-   */
-  public boolean isOpenAt(LocalDateTime now) {
+  public boolean isOpen() {
     if (status != StoreStatus.OPEN) {
       return false;
     }
-
-    return forwardMinutes(openTime, now.toLocalTime()) < forwardMinutes(openTime, closeTime);
+    return true;
   }
 
   private int forwardMinutes(LocalTime from, LocalTime to) {

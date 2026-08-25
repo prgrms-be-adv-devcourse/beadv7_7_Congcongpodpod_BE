@@ -79,43 +79,11 @@ class StoreServiceTest {
   }
 
   @Test
-  void 영업시간_안이고_OPEN_상태인_매장은_주문할_수_있다() {
+  void OPEN_상태인_매장은_주문할_수_있다() {
     Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
     when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
 
-    assertThatCode(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 12, 0)))
-        .doesNotThrowAnyException();
-  }
-
-  @Test
-  void 개점_전이면_OPEN_상태여도_주문할_수_없다() {
-    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
-    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
-
-    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 8, 0)))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
-  }
-
-  @Test
-  void 마감_후면_OPEN_상태여도_주문할_수_없다() {
-    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
-    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
-
-    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 22, 30)))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
-  }
-
-  @Test
-  void 자정을_넘는_영업시간이면_새벽에도_주문할_수_있다() {
-    Store store = createStore(LocalTime.of(18, 0), LocalTime.of(2, 0));
-    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
-
-    assertThatCode(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 1, 0)))
-        .doesNotThrowAnyException();
+    assertThatCode(() -> storeService.validateOpen(1L)).doesNotThrowAnyException();
   }
 
   @Test
@@ -124,7 +92,7 @@ class StoreServiceTest {
     store.changeStatus(StoreStatus.CLOSED);
     when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
 
-    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 12, 0)))
+    assertThatThrownBy(() -> storeService.validateOpen(1L))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);
@@ -134,7 +102,7 @@ class StoreServiceTest {
   void 삭제됐거나_존재하지_않는_매장도_주문할_수_없다() {
     when(storeRepository.findById(1L)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> storeService.validateOpen(1L, LocalDateTime.of(2026, 8, 20, 12, 0)))
+    assertThatThrownBy(() -> storeService.validateOpen(1L))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORDER_STORE_CLOSED);

@@ -10,10 +10,12 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
+import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
@@ -59,6 +61,33 @@ class DishFacadeTest {
     inOrder.verify(dishImageService).confirmUpload(7L, 1L, request.imageKey());
     inOrder.verify(dishService).createDish(request, "dish/1/test.jpg");
     assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void 판매중인_Dish는_주문할_수_있다() {
+    Dish dish = createDish();
+    when(dishRepository.findAvailableById(10L)).thenReturn(Optional.of(dish));
+
+    dishFacade.validateAvailable(10L);
+
+    verify(dishRepository).findAvailableById(10L);
+  }
+
+  @Test
+  void 삭제됐거나_판매중이_아닌_Dish는_주문할_수_없다() {
+    Dish soldOutDish = createDish();
+    soldOutDish.updateStatus(DishStatus.SOLD_OUT);
+    when(dishRepository.findAvailableById(10L)).thenReturn(Optional.of(soldOutDish));
+    when(dishRepository.findAvailableById(20L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> dishFacade.validateAvailable(10L))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DISH_NOT_ON_SALE);
+    assertThatThrownBy(() -> dishFacade.validateAvailable(20L))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DISH_NOT_ON_SALE);
   }
 
   @Test

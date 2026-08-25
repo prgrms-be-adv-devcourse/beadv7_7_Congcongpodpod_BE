@@ -2,10 +2,10 @@ package kr.lastdish.core.dish.application;
 
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
-import kr.lastdish.core.dish.domain.DishStatus;
 import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
@@ -101,8 +101,15 @@ public class DishFacade {
   public Optional<DishSnapshot> findDishSnapshot(Long dishId) {
     return dishRepository
         .findAvailableById(dishId)
-        .filter(dish -> dish.getDishStatus() == DishStatus.ON_SALE)
+        .filter(Dish::isAvailable)
         .map(DishFacade::toSnapshot);
+  }
+
+  public void validateAvailable(Long dishId) {
+    dishRepository
+        .findAvailableById(dishId)
+        .filter(Dish::isAvailable)
+        .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_ON_SALE));
   }
 
   // 마감할인 서비스 특성상 스냅샷 단가는 discountPrice로 잡는다.

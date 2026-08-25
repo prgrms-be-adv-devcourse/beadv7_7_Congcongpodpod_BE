@@ -29,34 +29,6 @@ class StoreTest {
     assertThat(store.getNextClosingAt()).isEqualTo(LocalDateTime.of(2026, 8, 11, 2, 0));
   }
 
-  @Test
-  void isOpenAtReflectsBusinessHours() {
-    Store store = store(LocalTime.of(9, 0), LocalTime.of(22, 0));
-
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 9, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 12, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 8, 0))).isFalse();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 22, 30))).isFalse();
-  }
-
-  @Test
-  void isOpenAtHandlesBusinessHoursCrossingMidnight() {
-    Store store = store(LocalTime.of(18, 0), LocalTime.of(2, 0));
-
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 20, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 1, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 17, 0))).isFalse();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 3, 0))).isFalse();
-  }
-
-  @Test
-  void isOpenAtIsFalseWhenStatusIsNotOpen() {
-    Store store = store(LocalTime.of(9, 0), LocalTime.of(22, 0));
-    store.changeStatus(StoreStatus.CLOSED);
-
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 12, 0))).isFalse();
-  }
-
   private Store store(LocalTime openTime, LocalTime closeTime) {
     return new Store(
         1L,

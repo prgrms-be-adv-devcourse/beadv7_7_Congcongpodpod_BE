@@ -1,7 +1,6 @@
 package kr.lastdish.core.store.application;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -35,8 +34,8 @@ public class StoreFacade {
     storeService.validateSeller(storeId, memberId);
   }
 
-  public void validateOpen(Long storeId, LocalDateTime now) {
-    storeService.validateOpen(storeId, now);
+  public void validateOpen(Long storeId) {
+    storeService.validateOpen(storeId);
   }
 
   public List<Long> findSettlementTargetStoreIds() {

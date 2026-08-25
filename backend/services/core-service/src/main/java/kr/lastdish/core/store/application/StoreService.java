@@ -146,14 +146,14 @@ public class StoreService {
     return store;
   }
 
-  /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. 영업 상태 플래그와 영업시간을 함께 본다. */
-  public void validateOpen(Long storeId, LocalDateTime now) {
+  /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. */
+  public void validateOpen(Long storeId) {
     Store store =
         storeRepository
             .findById(storeId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_STORE_CLOSED));
 
-    if (!store.isOpenAt(now)) {
+    if (!store.isOpen()) {
       throw new BusinessException(ErrorCode.ORDER_STORE_CLOSED);
     }
   }
