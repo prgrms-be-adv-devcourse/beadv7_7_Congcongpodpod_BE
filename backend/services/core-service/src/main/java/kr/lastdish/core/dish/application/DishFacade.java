@@ -35,6 +35,10 @@ public class DishFacade {
         request.storeId(), request.pickupStartTime(), request.pickupEndTime());
     dishService.validateCreateDish(request);
 
+    if (request.imageKey() == null) {
+      return dishService.createDish(request, null);
+    }
+
     String finalImageKey = DishImageService.resolveFinalKey(request.storeId(), request.imageKey());
     boolean uploadConfirmed = false;
 
