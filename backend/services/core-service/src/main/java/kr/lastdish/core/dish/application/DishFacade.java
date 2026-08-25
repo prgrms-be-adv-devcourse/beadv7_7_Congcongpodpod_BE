@@ -10,6 +10,7 @@ import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class DishFacade {
   private final DishService dishService;
   private final StoreService storeService;
   private final DishImageService dishImageService;
+  private final OrderService orderService;
 
   public DishResponse createDish(Long memberId, DishCreateRequest request) {
     storeService.validateSeller(request.storeId(), memberId);
@@ -60,9 +62,11 @@ public class DishFacade {
   @Transactional
   public DishResponse updateDish(Long memberId, Long dishId, DishUpdateRequest request) {
     Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
-    storeService.validateSeller(dish.getStoreId(), memberId);
-    storeService.validateDishPickupTime(
-        dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
+    storeService.validateDishUpdate(
+        dish.getStoreId(), memberId, request.pickupStartTime(), request.pickupEndTime());
+    if (orderService.hasActiveOrdersForDish(dishId)) {
+      throw new BusinessException(ErrorCode.DISH_HAS_ACTIVE_ORDERS);
+    }
     return dishService.updateDish(dishId, request);
   }
 

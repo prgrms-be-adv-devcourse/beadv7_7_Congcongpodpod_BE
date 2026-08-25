@@ -87,6 +87,15 @@ class OrderServiceTest {
   }
 
   @Test
+  void Dish의_진행중_주문_존재_여부를_조회한다() {
+    when(orderRepository.existsActiveOrderByDishId(10L)).thenReturn(true);
+
+    assertThat(orderService.hasActiveOrdersForDish(10L)).isTrue();
+
+    verify(orderRepository).existsActiveOrderByDishId(10L);
+  }
+
+  @Test
   @DisplayName("장바구니 스냅샷과 회원 정보로 주문을 생성한다")
   void createOrder_success() {
     Long memberId = 1L;

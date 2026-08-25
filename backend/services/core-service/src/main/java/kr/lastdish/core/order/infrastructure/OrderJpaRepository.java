@@ -33,6 +33,16 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
 
   @Query(
       """
+      select count(o) > 0
+      from Order o
+      where o.dishId = :dishId
+        and o.isDeleted = false
+        and o.status in ("RESERVED", "PICKUP_READY")
+      """)
+  boolean existsActiveOrderByDishId(@Param("dishId") Long dishId);
+
+  @Query(
+      """
             SELECT
               o.id AS id,
               o.storeId AS storeId,

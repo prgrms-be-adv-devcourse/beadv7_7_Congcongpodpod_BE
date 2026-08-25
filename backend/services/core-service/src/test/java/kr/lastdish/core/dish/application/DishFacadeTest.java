@@ -20,6 +20,7 @@ import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,12 +36,14 @@ class DishFacadeTest {
   @Mock private DishService dishService;
   @Mock private StoreService storeService;
   @Mock private DishImageService dishImageService;
+  @Mock private OrderService orderService;
 
   private DishFacade dishFacade;
 
   @BeforeEach
   void setUp() {
-    dishFacade = new DishFacade(dishRepository, dishService, storeService, dishImageService);
+    dishFacade =
+        new DishFacade(dishRepository, dishService, storeService, dishImageService, orderService);
   }
 
   @Test
@@ -126,7 +129,7 @@ class DishFacadeTest {
   }
 
   @Test
-  void Dish_수정시_소유권과_매장_영업시간을_검증한_뒤_수정을_위임한다() {
+  void Dish_수정시_소유권과_매장_상태와_진행중_주문을_검증한_뒤_수정을_위임한다() {
     Dish dish = createDish();
     DishUpdateRequest request = updateRequest();
     DishResponse expected = org.mockito.Mockito.mock(DishResponse.class);
@@ -135,14 +138,29 @@ class DishFacadeTest {
 
     DishResponse result = dishFacade.updateDish(7L, 10L, request);
 
-    InOrder inOrder = inOrder(storeService, dishService);
-    inOrder.verify(storeService).validateSeller(dish.getStoreId(), 7L);
+    InOrder inOrder = inOrder(storeService, orderService, dishService);
     inOrder
         .verify(storeService)
-        .validateDishPickupTime(
-            dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
+        .validateDishUpdate(
+            dish.getStoreId(), 7L, request.pickupStartTime(), request.pickupEndTime());
+    inOrder.verify(orderService).hasActiveOrdersForDish(10L);
     inOrder.verify(dishService).updateDish(10L, request);
     assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void 진행중인_주문이_있으면_Dish를_수정할_수_없다() {
+    Dish dish = createDish();
+    DishUpdateRequest request = updateRequest();
+    when(dishRepository.findByIdAndIsDeletedFalse(10L)).thenReturn(dish);
+    when(orderService.hasActiveOrdersForDish(10L)).thenReturn(true);
+
+    assertThatThrownBy(() -> dishFacade.updateDish(7L, 10L, request))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DISH_HAS_ACTIVE_ORDERS);
+
+    verify(dishService, never()).updateDish(10L, request);
   }
 
   @Test

@@ -119,11 +119,7 @@ public class StoreService {
 
   // 이벤트를 발행하는 변경 메서드용 — 행 잠금으로 eventVersion 경합을 막고 소유권을 검증한다.
   private Store getOwnedStoreWithLock(Long storeId, Long memberId) {
-    Store store =
-        storeRepository
-            .findWithLockById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store = findStoreWithLock(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
@@ -133,11 +129,7 @@ public class StoreService {
   }
 
   public Store getOwnedStore(Long storeId, Long memberId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store = findStore(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
@@ -148,10 +140,7 @@ public class StoreService {
 
   /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. */
   public void validateOpen(Long storeId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_STORE_CLOSED));
+    Store store = findStore(storeId);
 
     if (!store.isOpen()) {
       throw new BusinessException(ErrorCode.ORDER_STORE_CLOSED);
@@ -170,13 +159,7 @@ public class StoreService {
 
   // 매장 상세 조회
   public StoreResult getStore(Long storeId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
-
-    return StoreResult.from(store);
+    return StoreResult.from(findStore(storeId));
   }
 
   // 매장 정산 계좌
@@ -217,11 +200,7 @@ public class StoreService {
 
   // StoreFacade 검증 메서드
   public void validateSeller(Long storeId, Long memberId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store = findStore(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
@@ -238,9 +217,30 @@ public class StoreService {
     findStore(storeId).validatePickupTime(pickupStartTime, pickupEndTime);
   }
 
+  public void validateDishUpdate(
+      Long storeId, Long memberId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
+    Store store = findStore(storeId);
+
+    if (!store.isOwnedBy(memberId)) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
+    }
+    if (store.getStatus() != StoreStatus.CLOSED) {
+      throw new BusinessException(ErrorCode.STORE_MUST_BE_CLOSED_FOR_DISH_UPDATE);
+    }
+
+    store.validatePickupTime(pickupStartTime, pickupEndTime);
+  }
+
   private Store findStore(Long storeId) {
     return storeRepository
         .findById(storeId)
+        .orElseThrow(
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+  }
+
+  private Store findStoreWithLock(Long storeId) {
+    return storeRepository
+        .findWithLockById(storeId)
         .orElseThrow(
             () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
   }

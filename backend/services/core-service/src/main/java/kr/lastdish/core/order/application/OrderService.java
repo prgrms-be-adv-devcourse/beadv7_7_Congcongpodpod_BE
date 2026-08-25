@@ -82,6 +82,11 @@ public class OrderService {
     return expirationTargets.size();
   }
 
+  @Transactional(readOnly = true)
+  public boolean hasActiveOrdersForDish(Long dishId) {
+    return orderRepository.existsActiveOrderByDishId(dishId);
+  }
+
   public OrderResult completePayment(Long orderId) {
     Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
     order.paymentSuccess();
