@@ -2,43 +2,30 @@ const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 export const SLOTS_PER_WINDOW = Number(__ENV.SLOTS_PER_WINDOW || 10);
 
+// 부하용 매장·상품은 영업시간과 픽업 창을 모두 24시간으로 통일한다.
+//
+// 시간대별 창을 쓰면 실행 시각에 따라 주문 가능 대상이 사라진다(2026-08-25 새벽 실행이
+// 이 이유로 중단). 그런데 픽업 창만 24시간으로 바꾸면 상품 생성 자체가 거부된다 —
+// Store.validatePickupTime()이 "픽업 창 ⊆ 영업시간"을 요구하기 때문이다.
+// 주문 시점 검사인 Store.isOpenAt()도 영업시간을 함께 보므로 영업시간이 좁으면
+// 그 시간대 밖에서는 주문이 되지 않는다.
+//
+// 따라서 부하용 데이터는 영업시간도 24시간으로 연다. 시간 정책 자체의 검증은
+// 실제 시간 창을 쓰는 verify-flow.js의 1 VU 실행으로 분리한다.
+//
+// 네 유형은 이제 시간이 아니라 데이터를 네 갈래로 나누는 이름표로만 쓴다.
+const ALL_DAY = {
+  openTime: '00:00',
+  closeTime: '23:59',
+  pickupStartTime: '00:00',
+  pickupEndTime: '23:59',
+};
+
 export const TIME_WINDOWS = [
-  {
-    key: 'dawn',
-    label: '새벽',
-    code: 'd',
-    openTime: '23:00',
-    closeTime: '07:00',
-    pickupStartTime: '00:00',
-    pickupEndTime: '06:30',
-  },
-  {
-    key: 'morning',
-    label: '아침',
-    code: 'm',
-    openTime: '05:00',
-    closeTime: '13:00',
-    pickupStartTime: '06:00',
-    pickupEndTime: '12:30',
-  },
-  {
-    key: 'afternoon',
-    label: '오후',
-    code: 'a',
-    openTime: '11:00',
-    closeTime: '19:00',
-    pickupStartTime: '12:00',
-    pickupEndTime: '18:30',
-  },
-  {
-    key: 'night',
-    label: '야간',
-    code: 'n',
-    openTime: '17:00',
-    closeTime: '01:00',
-    pickupStartTime: '18:00',
-    pickupEndTime: '00:30',
-  },
+  { key: 'dawn', label: '새벽', code: 'd', ...ALL_DAY },
+  { key: 'morning', label: '아침', code: 'm', ...ALL_DAY },
+  { key: 'afternoon', label: '오후', code: 'a', ...ALL_DAY },
+  { key: 'night', label: '야간', code: 'n', ...ALL_DAY },
 ];
 
 const STRESS_RATES = {

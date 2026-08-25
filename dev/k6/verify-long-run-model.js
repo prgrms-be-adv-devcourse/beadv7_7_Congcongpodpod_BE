@@ -30,7 +30,7 @@ import {
   partitionAccountsByVu,
   selectWeightedTarget,
 } from './lib/operations-config.js';
-import { buildOperationsAccountModel } from './lib/operations-runtime.js';
+import * as operationsRuntime from './lib/operations-runtime.js';
 import {
   buildStressScenarioOptions,
   buildStressThresholds,
@@ -142,6 +142,10 @@ export default function () {
     shardIndexes: [0, 1, 2, 3],
     sellers: daily.map(manifestSeller),
   };
+  const shardOrderedState = copy(validState);
+  shardOrderedState.sellers = [0, 1, 2, 3].flatMap((shardIndex) =>
+    validState.sellers.filter((_, index) => index % 4 === shardIndex),
+  );
   const expectedState = { campaignDay: 1, datasetEpoch: '20260824-a' };
 
   check(decodeJwtExpirationMs(jwtWithOneHourExpiration), {
@@ -314,19 +318,21 @@ export default function () {
         () => purchaseTargetOf({ storeId: 7000, dishId: null }),
         'storeId와 dishId',
       ),
-    '현재 시각 주문 가능 대상만 반환': () => {
+    '24시간 픽업 정책에서는 어느 시각에도 전체 판매자가 주문 대상': () => {
       try {
-        const targets = orderableTargetsAt(validState, kstDateAtMinute(15 * 60));
-        return targets.length === 10 && targets.every((target) => target.windowKey === 'afternoon');
+        return [3, 12, 15, 22].every((hour) => {
+          const targets = orderableTargetsAt(validState, kstDateAtMinute(hour * 60));
+          return targets.length === validState.sellers.length;
+        });
       } catch (_) {
         return false;
       }
     },
-    '현재 시각 주문 가능 대상이 없으면 거절': () => {
+    '알 수 없는 시간대 유형만 있으면 거절': () => {
       const noTargetState = copy(validState);
       noTargetState.sellers = noTargetState.sellers.map((seller) => ({
         ...seller,
-        windowKey: 'dawn',
+        windowKey: 'unknown',
       }));
       return throwsContaining(
         () => orderableTargetsAt(noTargetState, kstDateAtMinute(15 * 60)),
@@ -352,12 +358,21 @@ export default function () {
   });
 
   check(null, {
-    '운영 유사 시간표는 네 ramping-vus 시나리오로 구성': () => {
+    '운영 유사 시간표는 판매자 전용 슬롯을 포함한 여덟 ramping-vus 시나리오로 구성': () => {
       try {
         const scenarios = buildDailyScenarioOptions({ scheduleScale: 1, calibration: false });
+        const sellerScenarios = Array.from({ length: 5 }, (_, index) =>
+          scenarios[`seller_${index + 1}`],
+        );
         return (
-          Object.keys(scenarios).length === 4 &&
-          Object.values(scenarios).every((scenario) => scenario.executor === 'ramping-vus')
+          Object.keys(scenarios).length === 8 &&
+          Object.values(scenarios).every((scenario) => scenario.executor === 'ramping-vus') &&
+          sellerScenarios.every(
+            (scenario, index) =>
+              scenario &&
+              scenario.exec === 'sellerFlow' &&
+              scenario.tags.seller_slot === String(index),
+          )
         );
       } catch (_) {
         return false;
@@ -389,6 +404,33 @@ export default function () {
         return false;
       }
     },
+    '12시38분 재개는 현재 구간의 남은 52분과 17시까지만 실행': () => {
+      try {
+        const stages = buildDailyScenarioOptions({
+          scheduleScale: 1,
+          scheduleOffsetMinutes: 188,
+          calibration: false,
+        }).browse.stages;
+        const holds = stages.filter((stage) => stage.duration !== '0s');
+        return (
+          JSON.stringify(holds.map((stage) => stage.target)) === JSON.stringify([14, 8, 14]) &&
+          JSON.stringify(holds.map((stage) => stage.duration)) ===
+            JSON.stringify(['3120s', '10800s', '1800s'])
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '운영 시간표 450분을 모두 지난 후 재개는 거절': () =>
+      throwsContaining(
+        () =>
+          buildDailyScenarioOptions({
+            scheduleScale: 1,
+            scheduleOffsetMinutes: 450,
+            calibration: false,
+          }),
+        'SCHEDULE_OFFSET_MINUTES',
+      ),
     '캘리브레이션은 네 흐름을 각각 1 VU 1회 실행': () => {
       try {
         const scenarios = buildDailyScenarioOptions({ scheduleScale: 1, calibration: true });
@@ -404,6 +446,56 @@ export default function () {
       try {
         const scenarios = buildDailyScenarioOptions({ scheduleScale: 1, calibration: true });
         return scenarios.purchase.startTime === '0s' && scenarios.seller.startTime === '30s';
+      } catch (_) {
+        return false;
+      }
+    },
+  });
+
+  check(null, {
+    '판매자 실행 풀은 24시간 정책에서 네 유형을 모두 유지': () => {
+      try {
+        const candidates = operationsRuntime.orderableSellerCandidates(
+          validState.sellers,
+          kstDateAtMinute(12 * 60 + 38),
+        );
+        const windowKeys = new Set(candidates.map((seller) => seller.windowKey));
+        return candidates.length === validState.sellers.length && windowKeys.size === 4;
+      } catch (_) {
+        return false;
+      }
+    },
+    '샤드 순서 상태도 주문 가능한 판매자를 빠짐없이 VU별 분배': () => {
+      try {
+        if (typeof operationsRuntime.buildOrderableSellerGroups !== 'function') {
+          return false;
+        }
+        const accountModel = operationsRuntime.buildOperationsAccountModel(shardOrderedState, {
+          sellerVuLimit: 5,
+          stockVuLimit: 1,
+        });
+        const groups = operationsRuntime.buildOrderableSellerGroups(
+          accountModel.orderSellerAccounts,
+          5,
+          kstDateAtMinute(12 * 60 + 38),
+        );
+        const assigned = groups.reduce((sum, group) => sum + group.length, 0);
+        return (
+          groups.length === 5 &&
+          groups.every((group) => group.length > 0) &&
+          assigned === accountModel.orderSellerAccounts.length
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    '판매자 슬롯 시나리오는 VU 번호와 무관하게 고정 그룹을 선택': () => {
+      try {
+        return (
+          typeof operationsRuntime.sellerSlotIndex === 'function' &&
+          operationsRuntime.sellerSlotIndex('seller_1', 5) === 0 &&
+          operationsRuntime.sellerSlotIndex('seller_5', 5) === 4
+        );
       } catch (_) {
         return false;
       }
@@ -446,6 +538,53 @@ export default function () {
         return false;
       }
     },
+    'uniform 분포는 대상 10개를 같은 폭으로 나눠 선택': () => {
+      try {
+        return (
+          selectWeightedTarget(weightedTargets, 0, 'uniform').storeId === 1 &&
+          selectWeightedTarget(weightedTargets, 0.05, 'uniform').storeId === 1 &&
+          selectWeightedTarget(weightedTargets, 0.15, 'uniform').storeId === 2 &&
+          selectWeightedTarget(weightedTargets, 0.55, 'uniform').storeId === 6 &&
+          selectWeightedTarget(weightedTargets, 0.999999, 'uniform').storeId === 10
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    'uniform 분포는 1000회 추출에서 각 대상이 10퍼센트 근처': () => {
+      try {
+        const counts = new Map();
+        for (let index = 0; index < 1000; index += 1) {
+          const picked = selectWeightedTarget(weightedTargets, index / 1000, 'uniform');
+          counts.set(picked.storeId, (counts.get(picked.storeId) || 0) + 1);
+        }
+        return (
+          counts.size === 10 &&
+          [...counts.values()].every((count) => count >= 90 && count <= 110)
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    'weighted 분포는 같은 추출에서 인기 대상에 60퍼센트가 몰림': () => {
+      try {
+        let popular = 0;
+        for (let index = 0; index < 1000; index += 1) {
+          const picked = selectWeightedTarget(weightedTargets, index / 1000, 'weighted');
+          if (picked.storeId <= 2) {
+            popular += 1;
+          }
+        }
+        return popular >= 590 && popular <= 610;
+      } catch (_) {
+        return false;
+      }
+    },
+    '알 수 없는 분포 이름은 거절': () =>
+      throwsContaining(
+        () => selectWeightedTarget(weightedTargets, 0.5, 'random'),
+        '주문 대상 분포',
+      ),
     '난수 범위를 벗어나면 대상 선택 거절': () =>
       throwsContaining(() => selectWeightedTarget(weightedTargets, 1), '난수'),
   });
@@ -652,7 +791,7 @@ export default function () {
       );
     },
     '1일차 스트레스 계정 모델은 판매자 10개와 재고 2개 VU 묶음을 생성': () => {
-      const model = buildOperationsAccountModel(validState, {
+      const model = operationsRuntime.buildOperationsAccountModel(validState, {
         sellerVuLimit: 10,
         stockVuLimit: 2,
       });

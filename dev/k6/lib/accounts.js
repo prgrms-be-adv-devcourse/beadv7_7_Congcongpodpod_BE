@@ -26,6 +26,37 @@ export function decodeJwtExpirationMs(token) {
   return expirationSeconds * 1000;
 }
 
+// JWT payload에 실제로 박힌 역할을 읽는다.
+//
+// /members/me의 역할과 토큰의 역할은 다를 수 있다. 매장 생성 뒤 역할이 SELLER로 바뀌는데
+// 로그인 시점에 아직 반영되지 않았으면 토큰에는 MEMBER가 박히고, 그 직후 호출한
+// /members/me는 이미 SELLER를 돌려준다. Gateway는 토큰만 보므로 이 차이가 403이 된다.
+// 권한을 판단할 때는 프로필이 아니라 이 값을 봐야 한다.
+export function decodeJwtRole(token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3 || !parts[1]) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(encoding.b64decode(parts[1], 'rawurl', 's'));
+    if (typeof payload.role === 'string') {
+      return payload.role;
+    }
+    // 배포에 따라 authorities/scope로 들어올 수 있어 함께 본다.
+    const authorities = payload.authorities || payload.scope || payload.roles;
+    if (typeof authorities === 'string') {
+      return authorities.replace('ROLE_', '');
+    }
+    if (Array.isArray(authorities) && authorities.length > 0) {
+      return String(authorities[0]).replace('ROLE_', '');
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 // 시드 계정 번호를 로그인 입력으로 바꾸고 번호 범위를 즉시 검증한다.
 export function seedCredentials(accountNo) {
   if (!Number.isInteger(accountNo) || accountNo < 1 || accountNo > SEED.accountCount) {

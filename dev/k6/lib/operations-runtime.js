@@ -9,7 +9,11 @@ import {
   sellerHandleOrder,
 } from './flow.js';
 import * as metrics from './metrics.js';
-import { partitionAccountsByVu, selectWeightedTarget } from './operations-config.js';
+import {
+  partitionAccountsByVu,
+  selectWeightedTarget,
+  targetDistributionFromEnv,
+} from './operations-config.js';
 import { loadRunState, orderableTargetsAt, partitionSellerPools } from './run-state.js';
 
 export function buildOperationsAccountModel(state, { sellerVuLimit, stockVuLimit }) {
@@ -25,6 +29,28 @@ export function buildOperationsAccountModel(state, { sellerVuLimit, stockVuLimit
   };
 }
 
+export function orderableSellerCandidates(sellers, date = new Date()) {
+  return orderableTargetsAt({ sellers }, date);
+}
+
+export function buildOrderableSellerGroups(sellers, sellerVuLimit, date = new Date()) {
+  const candidates = orderableSellerCandidates(sellers, date);
+  return partitionAccountsByVu(candidates, Math.min(sellerVuLimit, candidates.length));
+}
+
+export function sellerSlotIndex(scenarioName, groupCount) {
+  const match = /^seller_(\d+)$/.exec(String(scenarioName || ''));
+  if (!match) {
+    return null;
+  }
+
+  const index = Number(match[1]) - 1;
+  if (!Number.isInteger(index) || index < 0 || index >= groupCount) {
+    throw new Error(`판매자 슬롯이 계정 그룹 범위를 벗어났습니다: ${scenarioName}`);
+  }
+  return index;
+}
+
 export function createOperationsRuntime({ sellerVuLimit, stockVuLimit, calibration = false }) {
   const loadtestPassword = __ENV.LOADTEST_PASSWORD;
   if (!loadtestPassword || loadtestPassword === 'change-me-before-data-creation') {
@@ -33,6 +59,9 @@ export function createOperationsRuntime({ sellerVuLimit, stockVuLimit, calibrati
 
   const runState = loadRunState(__ENV.STATE_FILE);
   const accountModel = buildOperationsAccountModel(runState, { sellerVuLimit, stockVuLimit });
+  // 주문 대상 분포는 주문 흐름에만 적용한다. 조회는 두 실험군에서 똑같이 두어야
+  // "집중도만 바꿨다"고 말할 수 있다.
+  const orderDistribution = targetDistributionFromEnv();
   const calibrationSeller = calibration
     ? orderableTargetsAt({ sellers: accountModel.orderSellerAccounts }, new Date())[0]
     : null;
@@ -88,13 +117,17 @@ export function createOperationsRuntime({ sellerVuLimit, stockVuLimit, calibrati
     const candidates = calibration
       ? [calibrationSeller]
       : currentOrderableTargets(accountModel.orderSellerAccounts);
-    const target = selectWeightedTarget(candidates);
+    const target = selectWeightedTarget(candidates, Math.random(), orderDistribution);
     buyerPurchase(session, target);
     metrics.purchaseIterations.add(1);
   }
 
   function sellerFlow() {
-    const group = calibration ? [calibrationSeller] : groupForVu(accountModel.sellerGroups);
+    const groups = calibration
+      ? [[calibrationSeller]]
+      : buildOrderableSellerGroups(accountModel.orderSellerAccounts, sellerVuLimit);
+    const slotIndex = sellerSlotIndex(exec.scenario.name, groups.length);
+    const group = slotIndex === null ? groupForVu(groups) : groups[slotIndex];
     const seller = nextSeller(group, sellerCursor);
     sellerCursor += 1;
     const session = loadtestSession(seller);

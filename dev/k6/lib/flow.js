@@ -226,9 +226,6 @@ function findNewReservedOrder(session, storeId) {
 
   metrics.sellerOrderRetries.add(retries);
   metrics.sellerOrderNotFound.add(1);
-  console.error(
-    `[${session.email}] 매장 ${storeId}에서 새 주문(RESERVED, id>${SEED.newOrderIdMin})을 찾지 못했습니다.`,
-  );
   return null;
 }
 

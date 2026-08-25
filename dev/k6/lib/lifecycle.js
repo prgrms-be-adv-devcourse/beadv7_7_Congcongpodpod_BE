@@ -1,6 +1,6 @@
 import { sleep } from 'k6';
 
-import { decodeJwtExpirationMs } from './accounts.js';
+import { decodeJwtExpirationMs, decodeJwtRole } from './accounts.js';
 import { apiGet, apiSend, dataOf, errorCodeOf } from './api.js';
 
 const ACCOUNT_NOT_FOUND = 'A002';
@@ -189,8 +189,14 @@ function ensureMember(spec, password) {
   return login;
 }
 
+// 프로필과 토큰이 둘 다 SELLER여야 SELLER 전용 경로를 호출할 수 있다.
+// Gateway는 토큰만 보므로 프로필만 맞으면 403이 난다.
+function hasUsableSellerToken(profile, token) {
+  return canReadOwnedStore(profile) && decodeJwtRole(token) === 'SELLER';
+}
+
 function findOwnedStore(spec, profile, token) {
-  if (!canReadOwnedStore(profile)) {
+  if (!hasUsableSellerToken(profile, token)) {
     return null;
   }
 
@@ -213,7 +219,7 @@ function findOwnedStore(spec, profile, token) {
 
 function ensureStore(spec, login, password) {
   let store = findOwnedStore(spec, login.profile, login.session.accessToken);
-  let sellerLogin = canReadOwnedStore(login.profile) ? login : null;
+  let sellerLogin = hasUsableSellerToken(login.profile, login.session.accessToken) ? login : null;
   if (!store) {
     const storePayload = buildLifecyclePayloads(spec, password, null, null).store;
     const createResponse = apiSend(
@@ -235,8 +241,17 @@ function ensureStore(spec, login, password) {
   return { sellerLogin, store };
 }
 
+// 매장 생성 뒤 SELLER 권한이 실제로 쓸 수 있는 토큰에 담길 때까지 재로그인한다.
+//
+// 프로필(/members/me)이 SELLER여도 같은 로그인이 준 토큰은 아직 MEMBER일 수 있다.
+// 역할 반영이 비동기라 로그인 시점과 프로필 조회 시점 사이에 바뀌기 때문이다.
+// Gateway는 토큰만 보므로 프로필로 판단하면 POST /dishes가 403 G002로 거절된다.
+// 따라서 토큰 자체의 role이 SELLER가 될 때까지 기다린다.
 function waitForSellerRole(spec, password) {
   const credentials = { email: spec.email, password };
+  let lastProfileRole = null;
+  let lastTokenRole = null;
+
   for (let attempt = 0; attempt <= SELLER_ROLE_RETRY; attempt += 1) {
     if (attempt > 0) {
       sleep(SELLER_ROLE_RETRY_WAIT_SECONDS);
@@ -246,11 +261,19 @@ function waitForSellerRole(spec, password) {
       fail(`${spec.email} SELLER 확인용 재로그인 실패: code=${login.errorCode || 'UNKNOWN'}`);
     }
     validateProfileIdentity(spec, login.profile);
-    if (login.profile.role === 'SELLER') {
+
+    lastProfileRole = login.profile.role;
+    lastTokenRole = decodeJwtRole(login.session.accessToken);
+
+    if (lastProfileRole === 'SELLER' && lastTokenRole === 'SELLER') {
       return login;
     }
   }
-  fail(`${spec.email} 역할이 ${SELLER_ROLE_RETRY}초 안에 SELLER로 동기화되지 않았습니다.`);
+
+  fail(
+    `${spec.email} 역할이 ${SELLER_ROLE_RETRY}초 안에 SELLER로 동기화되지 않았습니다: ` +
+      `프로필=${lastProfileRole} 토큰=${lastTokenRole}`,
+  );
 }
 
 function findOwnedDish(spec, store, token) {

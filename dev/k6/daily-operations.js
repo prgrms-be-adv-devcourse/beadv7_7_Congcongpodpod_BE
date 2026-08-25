@@ -5,6 +5,7 @@ import { createOperationsRuntime } from './lib/operations-runtime.js';
 
 const CALIBRATION = __ENV.CALIBRATION === '1';
 const SCHEDULE_SCALE = Number(__ENV.SCHEDULE_SCALE || 1);
+const SCHEDULE_OFFSET_MINUTES = Number(__ENV.SCHEDULE_OFFSET_MINUTES || 0);
 const CAMPAIGN_DAY = Number(__ENV.CAMPAIGN_DAY);
 const RUN_ID = __ENV.RUN_ID;
 const DATASET_EPOCH = __ENV.DATASET_EPOCH;
@@ -24,6 +25,7 @@ const runtime = createOperationsRuntime({
 export const options = {
   scenarios: buildDailyScenarioOptions({
     scheduleScale: SCHEDULE_SCALE,
+    scheduleOffsetMinutes: SCHEDULE_OFFSET_MINUTES,
     calibration: CALIBRATION,
   }),
   thresholds: {
@@ -34,9 +36,14 @@ export const options = {
     phase: 'daily_operations',
     campaign_day: String(CAMPAIGN_DAY),
     dataset_epoch: DATASET_EPOCH,
+    schedule_offset_minutes: String(SCHEDULE_OFFSET_MINUTES),
     state_file_sha256: stateFileSha256,
   },
 };
+
+if (!CALIBRATION && SCHEDULE_OFFSET_MINUTES > 0) {
+  console.info(`운영 유사 시간표를 ${SCHEDULE_OFFSET_MINUTES}분 지난 구간부터 재개합니다.`);
+}
 
 export function browseFlow() {
   runtime.browseFlow();

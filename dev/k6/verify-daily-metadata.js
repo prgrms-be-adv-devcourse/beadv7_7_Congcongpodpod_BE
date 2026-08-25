@@ -21,6 +21,7 @@ export default function () {
       tags.phase === 'daily_operations' &&
       tags.campaign_day === __ENV.CAMPAIGN_DAY &&
       tags.dataset_epoch === __ENV.DATASET_EPOCH &&
+      tags.schedule_offset_minutes === String(Number(__ENV.SCHEDULE_OFFSET_MINUTES || 0)) &&
       tags.state_file_sha256 === expectedStateSha256,
   });
 
