@@ -121,11 +121,6 @@ public class DishFacade {
         .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_ON_SALE));
   }
 
-  /** Dish가 soft delete되었거나 존재하지 않으면 true를 반환합니다. */
-  public boolean isDishDeleted(Long dishId) {
-    return dishRepository.findByIdIncludingDeleted(dishId).map(Dish::getIsDeleted).orElse(true);
-  }
-
   // 마감할인 서비스 특성상 스냅샷 단가는 discountPrice로 잡는다.
   private static DishSnapshot toSnapshot(Dish dish) {
 
