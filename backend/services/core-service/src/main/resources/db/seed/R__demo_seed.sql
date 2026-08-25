@@ -517,7 +517,7 @@ CREATE TEMP TABLE demo_member_charge AS
 SELECT
     member_id,
     sum(total_price) FILTER (WHERE status NOT IN ('CANCELLED', 'REJECTED'))
-        + CASE WHEN member_id <= 150 THEN 10000000 ELSE 0 END AS charge_amount
+        + 1000000000000 AS charge_amount
 FROM public.orders
 GROUP BY member_id;
 
@@ -538,7 +538,7 @@ SELECT
 FROM demo_member_charge;
 
 INSERT INTO public.deposits (deposit_id, member_id, balance, updated_at)
-SELECT member_id, member_id, CASE WHEN member_id <= 150 THEN 10000000 ELSE 0 END, current_timestamp
+SELECT member_id, member_id, 1000000000000, current_timestamp
 FROM demo_member_charge;
 
 INSERT INTO public.deposit_history (
