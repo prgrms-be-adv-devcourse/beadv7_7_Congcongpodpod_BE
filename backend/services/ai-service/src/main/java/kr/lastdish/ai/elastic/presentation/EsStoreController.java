@@ -21,14 +21,14 @@ public class EsStoreController {
   @Operation(summary = "반경 내 매장 목록 및 대표 메뉴 조회")
   @GetMapping("/nearby")
   public ResponseEntity<ApiResponse<List<StoreResponse>>> getNearbyStores(
-          @RequestParam Double latitude,
-          @RequestParam Double longitude,
-          @RequestParam(defaultValue = "3.0") Double radiusKm,
-          @RequestParam(defaultValue = "0") int page,
-          @RequestParam(defaultValue = "20") int size) {
+      @RequestParam Double latitude,
+      @RequestParam Double longitude,
+      @RequestParam(defaultValue = "3.0") Double radiusKm,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size) {
 
     List<StoreResponse> stores =
-            storeQueryService.getStoresByLocation(latitude, longitude, radiusKm, page, size);
+        storeQueryService.getStoresByLocation(latitude, longitude, radiusKm, page, size);
 
     return ResponseEntity.ok(ApiResponse.ok(stores));
   }
