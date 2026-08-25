@@ -359,6 +359,8 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
+      core-service:
+        condition: service_started
       core-db:
         condition: service_healthy
       database-initializer:
