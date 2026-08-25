@@ -13,7 +13,7 @@ WITH generated_orders AS (
     SELECT
         member_id,
         sum(total_price) FILTER (WHERE order_no <= 850)
-            + CASE WHEN member_id <= 150 THEN 10000000 ELSE 0 END AS charge_amount
+            + 1000000000000 AS charge_amount
     FROM generated_orders
     GROUP BY member_id
 )

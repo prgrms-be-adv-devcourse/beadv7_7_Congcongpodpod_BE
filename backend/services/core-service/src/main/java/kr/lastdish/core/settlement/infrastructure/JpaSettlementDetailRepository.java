@@ -3,6 +3,7 @@ package kr.lastdish.core.settlement.infrastructure;
 import java.util.Collection;
 import java.util.List;
 import kr.lastdish.core.settlement.domain.SettlementDetail;
+import kr.lastdish.core.settlement.domain.SettlementDetailSummaryProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,4 +20,18 @@ public interface JpaSettlementDetailRepository extends JpaRepository<SettlementD
   List<Long> findSettledOrderIds(@Param("orderIds") Collection<Long> orderIds);
 
   List<SettlementDetail> findAllBySettlementIdOrderByIdAsc(Long settlementId);
+
+  @Query(
+      """
+          SELECT
+              COUNT(d.id) AS totalOrderCount,
+              COALESCE(SUM(d.salesAmount), 0) AS grossAmount,
+              COALESCE(SUM(d.feeAmount), 0) AS feeAmount,
+              COALESCE(SUM(d.settlementAmount), 0)
+                  AS settlementAmount
+          FROM SettlementDetail d
+          WHERE d.settlementId = :settlementId
+          """)
+  SettlementDetailSummaryProjection summarizeBySettlementId(
+      @Param("settlementId") Long settlementId);
 }
