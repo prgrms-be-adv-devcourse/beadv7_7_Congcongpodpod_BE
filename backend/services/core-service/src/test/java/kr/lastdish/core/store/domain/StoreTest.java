@@ -30,18 +30,6 @@ class StoreTest {
   }
 
   @Test
-  void calculatesPickupDeadlineFromBusinessDate() {
-    Store store = store(LocalTime.of(22, 0), LocalTime.of(2, 0));
-
-    assertThat(
-            store.calculatePickupDeadline(LocalDateTime.of(2026, 8, 20, 3, 0), LocalTime.of(2, 0)))
-        .isEqualTo(LocalDateTime.of(2026, 8, 20, 2, 0));
-    assertThat(
-            store.calculatePickupDeadline(LocalDateTime.of(2026, 8, 20, 1, 0), LocalTime.of(2, 0)))
-        .isEqualTo(LocalDateTime.of(2026, 8, 20, 2, 0));
-  }
-
-  @Test
   void isOpenAtReflectsBusinessHours() {
     Store store = store(LocalTime.of(9, 0), LocalTime.of(22, 0));
 

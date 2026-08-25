@@ -14,7 +14,6 @@ import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +31,6 @@ public class OrderService {
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
-  private final StoreService storeService;
 
   // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
   public Order createOrder(
@@ -63,12 +61,25 @@ public class OrderService {
   /** 픽업 마감 일시를 한 번 계산해 검증하고 주문 생성에 사용할 값으로 반환한다. */
   public LocalDateTime validatePickupDeadline(CartOrderSnapshot cartItem, LocalDateTime now) {
     LocalDateTime pickupDeadline =
-        storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now);
+        Order.calculatePickupDeadline(now, cartItem.pickupStartAt(), cartItem.pickupEndAt());
     if (now.isAfter(pickupDeadline)) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
 
     return pickupDeadline;
+  }
+
+  @Transactional
+  public int expirePickupOrders(LocalDateTime now) {
+    var expirationTargets = orderRepository.findPickupExpirationTargets(now);
+    expirationTargets.forEach(
+        order -> {
+          order.markNoShow(now);
+          long aggregateVersion = order.nextEventVersion();
+          orderStatusChangedEventWriter.append(order, aggregateVersion);
+          orderNoShowEventWriter.append(order, aggregateVersion);
+        });
+    return expirationTargets.size();
   }
 
   public OrderResult completePayment(Long orderId) {

@@ -24,7 +24,6 @@ import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,8 +51,6 @@ class OrderServiceTest {
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
 
-  @Mock private StoreService storeService;
-
   private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
 
   private OrderService orderService;
@@ -66,8 +63,27 @@ class OrderServiceTest {
             orderStatusChangedEventWriter,
             orderPickedUpEventWriter,
             orderNoShowEventWriter,
-            pickupCodeGenerator,
-            storeService);
+            pickupCodeGenerator);
+  }
+
+  @Test
+  void dish_픽업_마감_시간이_지난_주문을_노쇼_처리한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 10, 19, 0);
+    Order firstOrder = mock(Order.class);
+    Order secondOrder = mock(Order.class);
+    when(orderRepository.findPickupExpirationTargets(now))
+        .thenReturn(List.of(firstOrder, secondOrder));
+    when(firstOrder.nextEventVersion()).thenReturn(3L);
+    when(secondOrder.nextEventVersion()).thenReturn(5L);
+
+    assertThat(orderService.expirePickupOrders(now)).isEqualTo(2);
+
+    verify(firstOrder).markNoShow(now);
+    verify(secondOrder).markNoShow(now);
+    verify(orderStatusChangedEventWriter).append(firstOrder, 3L);
+    verify(orderStatusChangedEventWriter).append(secondOrder, 5L);
+    verify(orderNoShowEventWriter).append(firstOrder, 3L);
+    verify(orderNoShowEventWriter).append(secondOrder, 5L);
   }
 
   @Test
@@ -116,8 +132,6 @@ class OrderServiceTest {
   @DisplayName("자정을 넘기는 픽업의 마감 일시를 계산한다")
   void 자정을_넘기는_픽업의_마감_일시를_계산한다(LocalDateTime now, LocalDateTime expectedDeadline) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now))
-        .thenReturn(expectedDeadline);
     LocalDateTime pickupDeadline = orderService.validatePickupDeadline(cartItem, now);
 
     assertThat(pickupDeadline).isEqualTo(expectedDeadline);
@@ -134,9 +148,6 @@ class OrderServiceTest {
   @DisplayName("픽업 마감 전이면 주문할 수 있다")
   void 픽업_마감_전이면_주문할_수_있다(LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(pickupStartAt, pickupEndAt);
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), pickupEndAt, now))
-        .thenReturn(now.toLocalDate().atTime(pickupEndAt));
-
     orderService.validatePickupDeadline(cartItem, now);
   }
 
@@ -155,9 +166,6 @@ class OrderServiceTest {
   void 픽업_마감이_지났으면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
     LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0, 1);
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now))
-        .thenReturn(LocalDateTime.of(2026, 8, 19, 19, 0));
-
     assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem, now))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")

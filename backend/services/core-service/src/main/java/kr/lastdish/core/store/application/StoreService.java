@@ -61,7 +61,6 @@ public class StoreService {
     appendRegisteredEvent(savedStore);
 
     // 매장 생성 후 검색 문서 갱신을 위한 이벤트 발행
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendCreatedEvent(savedStore);
 
     return StoreResult.from(savedStore);
@@ -90,7 +89,6 @@ public class StoreService {
     store.replaceHolidays(command.holidays());
     store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendChangedEvent(store);
 
     return StoreResult.from(store);
@@ -102,7 +100,6 @@ public class StoreService {
 
     store.changeStatus(status);
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendStatusChangedEvent(store);
 
     return StoreResult.from(store);
@@ -117,7 +114,6 @@ public class StoreService {
     store.delete();
     payoutAccountRepository.deleteByStoreId(storeId);
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendDeletedEvent(store);
   }
 
@@ -240,17 +236,6 @@ public class StoreService {
   public void validateDishPickupTime(
       Long storeId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
     findStore(storeId).validatePickupTime(pickupStartTime, pickupEndTime);
-  }
-
-  /**
-   * 매장 영업일 기준으로 픽업 마감 일시를 확정한다.
-   *
-   * <p>픽업 창이 영업시간 안에 있는지는 다시 보지 않는다 — 그 불변식은 Dish 등록·수정 시점에 이미 검증되며, 주문 시점에 다시 던지면 구매자가 상품 등록용
-   * 에러(DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS)를 받게 된다.
-   */
-  public LocalDateTime calculatePickupDeadline(
-      Long storeId, LocalTime pickupEndTime, LocalDateTime now) {
-    return findStore(storeId).calculatePickupDeadline(now, pickupEndTime);
   }
 
   private Store findStore(Long storeId) {

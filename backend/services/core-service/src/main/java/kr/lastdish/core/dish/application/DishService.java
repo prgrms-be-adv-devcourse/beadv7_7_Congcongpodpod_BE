@@ -163,19 +163,6 @@ public class DishService {
   }
 
   @Transactional
-  public void closeSaleByStoreId(Long storeId) {
-    dishRepository
-        .findWithLockByStoreIdAndIsDeletedFalse(storeId)
-        .ifPresent(
-            dish -> {
-              boolean availableBefore = dish.isAvailable();
-              Long stockQuantityBefore = dish.getStockQuantity();
-              dish.closeSale();
-              appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
-            });
-  }
-
-  @Transactional
   public String deleteDish(Long dishId) {
     Dish dish = dishRepository.findWithLockByIdAndIsDeletedFalse(dishId);
 

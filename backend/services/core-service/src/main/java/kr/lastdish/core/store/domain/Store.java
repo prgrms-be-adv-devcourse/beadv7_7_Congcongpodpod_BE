@@ -173,12 +173,6 @@ public class Store {
     return forwardMinutes(openTime, now.toLocalTime()) < forwardMinutes(openTime, closeTime);
   }
 
-  public LocalDateTime calculatePickupDeadline(LocalDateTime now, LocalTime pickupEndTime) {
-    LocalDate businessDate =
-        now.toLocalTime().isBefore(openTime) ? now.toLocalDate().minusDays(1) : now.toLocalDate();
-    return businessDate.atTime(openTime).plusMinutes(forwardMinutes(openTime, pickupEndTime));
-  }
-
   private int forwardMinutes(LocalTime from, LocalTime to) {
     int minutes = to.toSecondOfDay() / 60 - from.toSecondOfDay() / 60;
     return Math.floorMod(minutes, 24 * 60);
