@@ -15,8 +15,8 @@ public class SettlementScheduler {
 
   private final SettlementBatchService settlementBatchService;
 
-  /** 매월 27일 10시와 12시에 직전 달 정산을 실행한다. */
-  @Scheduled(cron = "0 0 10,12 27 * *", zone = "Asia/Seoul")
+  /** 매월 3일 10시와 12시에 직전 달 정산을 실행한다. */
+  @Scheduled(cron = "0 0 10,12 3 * *", zone = "Asia/Seoul")
   public void runMonthlySettlement() {
     YearMonth settlementMonth = YearMonth.now(BUSINESS_ZONE).minusMonths(1);
 
