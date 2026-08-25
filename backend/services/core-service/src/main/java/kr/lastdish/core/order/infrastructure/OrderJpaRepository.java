@@ -107,6 +107,7 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
           SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END
           FROM Order o
           WHERE o.storeId = :storeId
+            AND o.isDeleted = false
             AND o.status IN :orderStatuses
           """)
   boolean existsNotCompletedOrder(
