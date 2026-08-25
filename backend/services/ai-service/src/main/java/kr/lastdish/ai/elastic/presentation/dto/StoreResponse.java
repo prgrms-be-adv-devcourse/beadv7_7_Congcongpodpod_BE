@@ -63,13 +63,13 @@ public record StoreResponse(
 
     return new StoreResponse(
         doc.getStoreId(),
-        null, // ES Document 미존재 필드
+        null,
         doc.getStoreName(),
         doc.getStoreAddress(),
-        null, // ES Document 미존재 필드
+        null,
         doc.getOpenTime(),
         doc.getCloseTime(),
-        null, // ES Document 미존재 필드
+        null,
         doc.getStatus(),
         doc.getLocation() != null ? BigDecimal.valueOf(doc.getLocation().getLat()) : null,
         doc.getLocation() != null ? BigDecimal.valueOf(doc.getLocation().getLon()) : null,
