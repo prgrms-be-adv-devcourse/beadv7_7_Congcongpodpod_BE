@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import kr.lastdish.ai.elastic.infrastructure.client.CoreInternalApiClient;
+import kr.lastdish.ai.elastic.infrastructure.client.dto.InternalDishResponse;
 import kr.lastdish.ai.elastic.infrastructure.client.dto.InternalStoreResponse;
 import kr.lastdish.ai.elastic.infrastructure.embedding.EmbeddingService;
 import kr.lastdish.ai.elastic.infrastructure.persistence.StoreElasticsearchRepository;
@@ -118,38 +119,37 @@ public class StoreIndexerService {
 
   private static final String STATUS_ONLY_EVENT = "STORE_STATUS_CHANGED";
 
+  private StoreDocument.DishItem mapToDishItem(InternalDishResponse d, StringBuilder textBuilder) {
+    textBuilder
+        .append("메뉴: ")
+        .append(d.dishName())
+        .append(" ")
+        .append(d.description() != null ? d.description() : "")
+        .append(" ");
+
+    return StoreDocument.DishItem.builder()
+        .dishId(d.dishId())
+        .dishName(d.dishName())
+        .description(d.description())
+        .category(d.category())
+        .thumbnailUrl(d.thumbnailUrl())
+        .stockQuantity(d.stockQuantity())
+        .dishStatus(d.dishStatus())
+        .dishPrice(d.dishPrice())
+        .discountPrice(d.discountPrice())
+        .pickupStartTime(d.pickupStartTime())
+        .pickupEndTime(d.pickupEndTime())
+        .build();
+  }
+
   private StoreDocument mapToDocument(
       InternalStoreResponse res, StoreDocument existing, String eventType) {
     StringBuilder textBuilder = new StringBuilder();
     textBuilder.append("가게: ").append(res.storeName()).append(" ");
 
     List<StoreDocument.DishItem> dishItems =
-        res.dishes() != null
-            ? res.dishes().stream()
-                .map(
-                    d -> {
-                      textBuilder
-                          .append("메뉴: ")
-                          .append(d.dishName())
-                          .append(" ")
-                          .append(d.description() != null ? d.description() : "")
-                          .append(" ");
-
-                      return StoreDocument.DishItem.builder()
-                          .dishId(d.dishId())
-                          .dishName(d.dishName())
-                          .description(d.description())
-                          .category(d.category())
-                          .thumbnailUrl(d.thumbnailUrl())
-                          .stockQuantity(d.stockQuantity())
-                          .dishStatus(d.dishStatus())
-                          .dishPrice(d.dishPrice())
-                          .discountPrice(d.discountPrice())
-                          .pickupStartTime(d.pickupStartTime())
-                          .pickupEndTime(d.pickupEndTime())
-                          .build();
-                    })
-                .toList()
+        res.dish() != null
+            ? List.of(mapToDishItem(res.dish(), textBuilder))
             : Collections.emptyList();
 
     String embeddingText = textBuilder.toString();

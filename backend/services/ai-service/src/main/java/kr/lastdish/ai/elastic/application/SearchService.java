@@ -99,7 +99,7 @@ public class SearchService {
         RangeQuery.of(r -> r.number(n -> n.field("dishes.stockQuantity").gt(0.0)));
     dishBool.filter(Query.of(q -> q.range(stockQuery)));
 
-    TermQuery sellingQuery = TermQuery.of(t -> t.field("dishes.dishStatus").value("SELLING"));
+    TermQuery sellingQuery = TermQuery.of(t -> t.field("dishes.dishStatus").value("ON_SALE"));
     dishBool.filter(Query.of(q -> q.term(sellingQuery)));
 
     if (cond.maxPrice() != null) {
