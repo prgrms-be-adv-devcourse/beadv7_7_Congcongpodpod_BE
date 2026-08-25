@@ -1,4 +1,4 @@
-package kr.lastdish.core.order.domain.event;
+package kr.lastdish.core.settlement.application.event;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
