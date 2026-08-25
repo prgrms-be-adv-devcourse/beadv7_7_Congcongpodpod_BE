@@ -31,4 +31,12 @@ public class TestIndexController {
     storeIndexerService.indexTestStoresBulk(requests);
     return ResponseEntity.ok(requests.size() + "건의 더미 데이터 색인이 완료되었습니다.");
   }
+
+  @Operation(summary = "지정 기간 동안 변경된 매장을 Core에서 조회해 색인 (운영 경로 재사용, 테스트용)")
+  @PostMapping("/sync")
+  public ResponseEntity<String> syncByRange(
+      @RequestParam java.time.Instant from, @RequestParam java.time.Instant to) {
+    storeIndexerService.syncUpdatedStores(from, to);
+    return ResponseEntity.ok("동기화 트리거 완료 (from=" + from + ", to=" + to + ")");
+  }
 }
