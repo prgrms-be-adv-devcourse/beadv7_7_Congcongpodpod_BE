@@ -35,8 +35,11 @@ public class TestIndexController {
   @Operation(summary = "지정 기간 동안 변경된 매장을 Core에서 조회해 색인 (운영 경로 재사용, 테스트용)")
   @PostMapping("/sync")
   public ResponseEntity<String> syncByRange(
-      @RequestParam java.time.Instant from, @RequestParam java.time.Instant to) {
-    storeIndexerService.syncUpdatedStores(from, to);
-    return ResponseEntity.ok("동기화 트리거 완료 (from=" + from + ", to=" + to + ")");
+      @RequestParam java.time.Instant from,
+      @RequestParam java.time.Instant to,
+      @RequestParam(defaultValue = "50") int limit) { // limit 추가
+
+    storeIndexerService.syncUpdatedStores(from, to, limit);
+    return ResponseEntity.ok("동기화 완료 (from=" + from + ", to=" + to + ", limit=" + limit + ")");
   }
 }

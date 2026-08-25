@@ -85,27 +85,33 @@ public class StoreIndexerService {
     }
   }
 
-  public void syncUpdatedStores(Instant from, Instant to) {
+  public void syncUpdatedStores(Instant from, Instant to, int limit) {
+    // 1. Core API로부터 변경된 매장 데이터 조회
     List<InternalStoreResponse> updatedStores =
         coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
 
     if (updatedStores.isEmpty()) {
       return;
     }
-    // N번 개별 findById 대신 findAllById로 묶어서 Bulk 조회
-    List<Long> storeIds = updatedStores.stream().map(InternalStoreResponse::storeId).toList();
+
+    // 2. 지정된 limit만큼만 대상 선별
+    List<InternalStoreResponse> targetStores = updatedStores.stream().limit(limit).toList();
+
+    // 3. targetStores 기반으로 N번 개별 findById 대신 findAllById로 Bulk 조회
+    List<Long> storeIds = targetStores.stream().map(InternalStoreResponse::storeId).toList();
     Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
 
     Map<Long, StoreDocument> existingMap =
         StreamSupport.stream(existingDocs.spliterator(), false)
             .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
 
-    // 폴링은 이벤트 타입 정보가 없으므로, 텍스트 해시 비교로만 재임베딩 여부 판단
+    // 4. 폴링은 이벤트 타입 정보가 없으므로 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
     List<StoreDocument> documents =
-        updatedStores.stream()
+        targetStores.stream()
             .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
             .toList();
 
+    // 5. Bulk 색인 저장
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
