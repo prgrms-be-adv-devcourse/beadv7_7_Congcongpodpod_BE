@@ -333,6 +333,7 @@ services:
       SPRING_PROFILES_ACTIVE: local
       SPRINGDOC_ENABLED: "true"
       CONFIG_SERVER_URL: http://config-server:8888
+      SERVICES_CORE_BASE_URL: http://core-service:8080
       AI_DB_URL: jdbc:postgresql://core-db:5432/ai_db
       AI_DB_USERNAME: ai
       AI_DB_PASSWORD: ai_local_password
@@ -361,6 +362,8 @@ services:
         condition: service_healthy
       core-db:
         condition: service_healthy
+      core-service:
+        condition: service_started
       database-initializer:
         condition: service_completed_successfully
       redis:

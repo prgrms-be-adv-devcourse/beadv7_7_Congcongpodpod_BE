@@ -70,10 +70,6 @@ public class LlmParsingService {
     Prompt prompt =
         promptTemplate.create(Map.of("userQuery", userQuery, "format", converter.getFormat()));
 
-    // 임시 디버깅 로그 - 확인 후 삭제
-    String fullText = prompt.getContents();
-    log.info("=== LLM 프롬프트 길이: {} chars ===\n{}\n=== 프롬프트 끝 ===", fullText.length(), fullText);
-
     return prompt;
   }
 }
