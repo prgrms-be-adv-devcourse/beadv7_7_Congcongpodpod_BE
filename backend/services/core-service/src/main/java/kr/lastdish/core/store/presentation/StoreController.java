@@ -110,6 +110,14 @@ public class StoreController {
   }
 
   // 매장 정산 계좌
+  @GetMapping("/{storeId}/payoutAccount")
+  public ApiResponse<StoreAccountResponse> getPayoutAccount(
+      @PathVariable Long storeId,
+      @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    return ApiResponse.ok(
+        StoreAccountResponse.from(storeService.getPayoutAccount(storeId, memberId)));
+  }
+
   @PostMapping("/{storeId}/payoutAccount")
   public ApiResponse<StoreAccountResponse> registerPayoutAccount(
       @PathVariable Long storeId,

@@ -20,6 +20,7 @@ import kr.lastdish.core.store.application.dto.StoreResult;
 import kr.lastdish.core.store.application.dto.UpdateStoreCommand;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
+import kr.lastdish.core.store.domain.StorePayoutAccount;
 import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
 import kr.lastdish.core.store.domain.StoreRepository;
 import kr.lastdish.core.store.domain.StoreStatus;
@@ -253,6 +254,26 @@ class StoreServiceTest {
     assertThat(event.storeId()).isEqualTo(storeId);
     assertThat(event.aggregateVersion()).isEqualTo(1L);
     assertThat(event.payload().storeId()).isEqualTo(storeId);
+  }
+
+  @Test
+  void returns_owned_store_payout_account() {
+    Long storeId = 10L;
+    Store store = createStore(LocalTime.now(), LocalTime.now());
+    ReflectionTestUtils.setField(store, "id", storeId);
+    StorePayoutAccount account =
+        new StorePayoutAccount(storeId, "국민은행", "1234567890", "홍길동");
+    ReflectionTestUtils.setField(account, "id", 20L);
+
+    when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+    when(payoutAccountRepository.findByStoreId(storeId)).thenReturn(Optional.of(account));
+
+    var result = storeService.getPayoutAccount(storeId, store.getMemberId());
+
+    assertThat(result.storeId()).isEqualTo(storeId);
+    assertThat(result.bankName()).isEqualTo("국민은행");
+    assertThat(result.accountNumber()).endsWith("7890");
+    assertThat(result.accountHolder()).isEqualTo("홍길동");
   }
 
   @Test

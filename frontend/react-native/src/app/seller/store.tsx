@@ -11,7 +11,7 @@ import { colors, fonts, radius } from '@/constants/theme';
 import { getStoreCoverImageSource, getStoreProfileImageSource } from '@/lib/food-image';
 import { type GeocodingAddress, searchStoreAddresses } from '@/lib/geocoding';
 import { showAppAlert } from '@/lib/app-overlay';
-import { getMyStores, registerStore, registerStorePayoutAccount, updateStore, type StorePayoutAccount } from '@/lib/seller';
+import { getMyStores, getStorePayoutAccount, registerStore, registerStorePayoutAccount, updateStore, updateStorePayoutAccount, type StorePayoutAccount } from '@/lib/seller';
 import { getStoreCategoryVisual, STORE_CATEGORY_KEYS, type StoreCategoryKey } from '@/lib/store-category';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -89,6 +89,12 @@ export default function SellerStore() {
         setCoverImageUrl(store.coverImageUrl);
         setProfileImageUrl(store.profileImageUrl);
         setCoordinates({ latitude: store.latitude, longitude: store.longitude });
+        return getStorePayoutAccount(store.storeId).then((account) => {
+          if (!account) return;
+          setRegisteredAccount(account);
+          setBankName(account.bankName);
+          setAccountHolder(account.accountHolder);
+        });
       })
       .catch(() => showAppAlert('매장 정보를 불러오지 못했어요'))
       .finally(() => setLoading(false));
@@ -183,16 +189,19 @@ export default function SellerStore() {
     }
     try {
       setAccountSubmitting(true);
-      const account = await registerStorePayoutAccount(storeId, {
+      const payload = {
         bankName: bankName.trim(),
         accountNumber: accountNumber.replace(/\D/g, ''),
         accountHolder: accountHolder.trim(),
-      });
+      };
+      const account = registeredAccount
+        ? await updateStorePayoutAccount(storeId, payload)
+        : await registerStorePayoutAccount(storeId, payload);
       setRegisteredAccount(account);
       setAccountNumber('');
-      showAppAlert('정산 계좌를 등록했어요', `${account.bankName} ${account.accountNumber}\n예금주 ${account.accountHolder}`);
+      showAppAlert(registeredAccount ? '정산 계좌를 수정했어요' : '정산 계좌를 등록했어요', `${account.bankName} ${account.accountNumber}\n예금주 ${account.accountHolder}`);
     } catch (error) {
-      showAppAlert('정산 계좌를 등록하지 못했어요', error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.');
+      showAppAlert(registeredAccount ? '정산 계좌를 수정하지 못했어요' : '정산 계좌를 등록하지 못했어요', error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.');
     } finally {
       setAccountSubmitting(false);
     }
@@ -238,13 +247,12 @@ export default function SellerStore() {
 
       {editing && storeId ? <View style={styles.formSection}>
         <SectionHeader title="정산 계좌" description="판매 대금 정산에 사용할 본인 명의 계좌를 등록해주세요."/>
-        {registeredAccount ? <View style={styles.accountConfirmed}><View style={styles.accountConfirmedCopy}><Text style={styles.accountConfirmedLabel}>등록 완료</Text><Text style={styles.accountConfirmedValue}>{registeredAccount.bankName} · {registeredAccount.accountNumber}</Text><Text style={styles.accountConfirmedHolder}>예금주 {registeredAccount.accountHolder}</Text></View><Ionicons name="checkmark-circle-outline" size={22} color={colors.green700}/></View> : <>
+        {registeredAccount ? <View style={styles.accountConfirmed}><View style={styles.accountConfirmedCopy}><Text style={styles.accountConfirmedLabel}>현재 정산 계좌</Text><Text style={styles.accountConfirmedValue}>{registeredAccount.bankName} · {registeredAccount.accountNumber}</Text><Text style={styles.accountConfirmedHolder}>예금주 {registeredAccount.accountHolder}</Text></View><Ionicons name="checkmark-circle-outline" size={22} color={colors.green700}/></View> : null}
           <LabeledField label="은행명" value={bankName} onChangeText={setBankName} placeholder="예: 국민은행" maxLength={20}/>
-          <LabeledField label="계좌번호" value={accountNumber} onChangeText={(value) => setAccountNumber(value.replace(/\D/g, '').slice(0, 20))} placeholder="숫자만 입력해주세요" keyboardType="number-pad" maxLength={20}/>
+          <LabeledField label={registeredAccount ? '새 계좌번호' : '계좌번호'} value={accountNumber} onChangeText={(value) => setAccountNumber(value.replace(/\D/g, '').slice(0, 20))} placeholder={registeredAccount ? '변경할 계좌번호를 입력해주세요' : '숫자만 입력해주세요'} keyboardType="number-pad" maxLength={20}/>
           <LabeledField label="예금주" value={accountHolder} onChangeText={setAccountHolder} placeholder="예: 홍길동" maxLength={30}/>
           <View style={styles.accountNotice}><Ionicons name="information-circle-outline" size={16} color={colors.ink500}/><Text style={styles.accountNoticeText}>등록한 계좌는 정산 처리에 사용되며 계좌번호는 이후 마스킹되어 표시됩니다.</Text></View>
-          <Pressable accessibilityRole="button" disabled={accountSubmitting} onPress={() => void submitPayoutAccount()} style={({ pressed }) => [styles.accountButton, (pressed || accountSubmitting) && styles.pressed]}><Text style={styles.accountButtonText}>{accountSubmitting ? '등록하는 중…' : '정산 계좌 등록하기'}</Text></Pressable>
-        </>}
+          <Pressable accessibilityRole="button" disabled={accountSubmitting} onPress={() => void submitPayoutAccount()} style={({ pressed }) => [styles.accountButton, (pressed || accountSubmitting) && styles.pressed]}><Text style={styles.accountButtonText}>{accountSubmitting ? (registeredAccount ? '수정하는 중…' : '등록하는 중…') : (registeredAccount ? '정산 계좌 수정하기' : '정산 계좌 등록하기')}</Text></Pressable>
       </View> : null}
 
       <PrimaryButton disabled={submitting} label={submitting ? (editing ? '저장하는 중…' : '등록하는 중…') : (editing ? '매장 정보 저장하기' : '상점 등록하고 판매 시작하기')} onPress={() => void submit()}/>

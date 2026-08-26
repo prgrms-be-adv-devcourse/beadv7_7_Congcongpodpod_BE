@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, ApiError } from './api';
 import { prepareFoodImage } from './ai';
 import { cachedQuery, invalidateQueries } from './query-cache';
 import type { ImagePickerAsset } from 'expo-image-picker';
@@ -27,6 +27,8 @@ export async function registerStore(payload: StoreRegistration) { const result =
 export async function updateStore(storeId: number, payload: Omit<StoreRegistration, 'businessNumber'>) { const result = mapStore(unwrap(await api<RawStore | Envelope<RawStore>>(`/stores/${storeId}`, { method: 'PUT', body: JSON.stringify(payload) }))); invalidateQueries('seller:'); invalidateQueries(`store:${storeId}`); return result; }
 export async function changeStoreStatus(storeId: number, status: 'OPEN' | 'CLOSED') { const result = mapStore(unwrap(await api<RawStore | Envelope<RawStore>>(`/stores/${storeId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }))); invalidateQueries('seller:'); invalidateQueries(`store:${storeId}`); return result; }
 export async function registerStorePayoutAccount(storeId: number, payload: Pick<StorePayoutAccount, 'bankName' | 'accountNumber' | 'accountHolder'>) { return unwrap(await api<StorePayoutAccount | Envelope<StorePayoutAccount>>(`/stores/${storeId}/payoutAccount`, { method: 'POST', body: JSON.stringify(payload) })); }
+export async function getStorePayoutAccount(storeId: number) { try { return unwrap(await api<StorePayoutAccount | Envelope<StorePayoutAccount>>(`/stores/${storeId}/payoutAccount`)); } catch (error) { if (error instanceof ApiError && error.status === 404) return null; throw error; } }
+export async function updateStorePayoutAccount(storeId: number, payload: Pick<StorePayoutAccount, 'bankName' | 'accountNumber' | 'accountHolder'>) { return unwrap(await api<StorePayoutAccount | Envelope<StorePayoutAccount>>(`/stores/${storeId}/payoutAccount`, { method: 'PUT', body: JSON.stringify(payload) })); }
 export async function registerDish(payload: DishRegistration, image: ImagePickerAsset) {
   const prepared = await prepareFoodImage(image, undefined, true);
   const upload = unwrap(await api<DishImageUploadUrl | Envelope<DishImageUploadUrl>>('/dishes/images/presigned-url', {
