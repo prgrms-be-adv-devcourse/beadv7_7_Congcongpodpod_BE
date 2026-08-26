@@ -32,6 +32,7 @@ public class PointFacade {
     LevelPurchaseResult levelResult = levelService.recordPurchase(memberId, orderId, savedAmount);
 
     memberRewardEventWriter.append(
-        memberId, earnResult.amount(), levelResult.upgraded(), levelResult.currentLevel());
+            memberId, earnResult.amount(), levelResult.upgraded(), levelResult.currentLevel());
+    memberRewardEventWriter.appendDishReportCompleted(memberId);
   }
 }
