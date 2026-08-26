@@ -3,6 +3,8 @@ package kr.lastdish.ai.elastic.presentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+
+import jakarta.validation.Valid;
 import kr.lastdish.ai.elastic.application.StoreSearchFacade;
 import kr.lastdish.ai.elastic.presentation.dto.StoreSearchRequest;
 import kr.lastdish.ai.elastic.presentation.dto.StoreSearchResult;
@@ -20,7 +22,7 @@ public class StoreSearchController {
 
   @Operation(summary = "자연어 쿼리 기반 하이브리드 검색 (배지 + 상위 5개 RAG 추천 이유 포함)")
   @PostMapping
-  public ResponseEntity<List<StoreSearchResult>> search(@RequestBody StoreSearchRequest request) {
+  public ResponseEntity<List<StoreSearchResult>> search(@Valid @RequestBody StoreSearchRequest request) {
     return ResponseEntity.ok(storeSearchFacade.search(request));
   }
 }
