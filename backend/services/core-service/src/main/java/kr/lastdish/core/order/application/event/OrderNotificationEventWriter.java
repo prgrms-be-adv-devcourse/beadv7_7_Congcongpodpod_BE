@@ -18,6 +18,19 @@ public class OrderNotificationEventWriter {
 
   private final OutboxEventWriter outboxEventWriter;
 
+  public void appendCreated(Order order, Long sellerMemberId) {
+    append(
+        order,
+        new OrderNotificationPayload(
+            sellerMemberId,
+            "ORDER_CREATED",
+            "새로운 주문이 들어왔어요",
+            order.getDishName() + " 주문이 접수 대기 중입니다.",
+            null,
+            null,
+            null));
+  }
+
   public void appendCancelled(Order order, Long sellerMemberId) {
     append(
         order,

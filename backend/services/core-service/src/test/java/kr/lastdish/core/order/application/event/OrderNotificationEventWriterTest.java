@@ -33,6 +33,17 @@ class OrderNotificationEventWriterTest {
   }
 
   @Test
+  void appendCreated_createsNotificationForSeller() {
+    when(order.getDishName()).thenReturn("마감 할인 도시락");
+
+    writer.appendCreated(order, 20L);
+
+    assertEvent(
+        new OrderNotificationPayload(
+            20L, "ORDER_CREATED", "새로운 주문이 들어왔어요", "마감 할인 도시락 주문이 접수 대기 중입니다.", null, null, null));
+  }
+
+  @Test
   void appendCancelled_createsNotificationForSeller() {
     when(order.getDishName()).thenReturn("마감 할인 도시락");
 

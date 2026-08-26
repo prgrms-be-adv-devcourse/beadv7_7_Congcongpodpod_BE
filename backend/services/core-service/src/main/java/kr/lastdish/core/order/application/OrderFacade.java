@@ -73,6 +73,9 @@ public class OrderFacade {
     // 주문이 완료된 상품을 장바구니에서 제거
     cartFacade.removeOrderedItem(memberId, cartItemId);
 
+    Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
+    orderNotificationEventWriter.appendCreated(order, sellerMemberId);
+
     return result;
   }
 

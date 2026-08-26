@@ -43,6 +43,10 @@ public class StoreFacade {
     storeService.validateOpen(storeId, now);
   }
 
+  public Long getStoreOwnerMemberId(Long storeId) {
+    return storeService.getStore(storeId).memberId();
+  }
+
   public List<Long> findSettlementTargetStoreIds() {
     return storeService.findSettlementTargetStoreIds();
   }
