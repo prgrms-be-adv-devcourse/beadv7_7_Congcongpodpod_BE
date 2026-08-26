@@ -98,6 +98,7 @@ public class GatewaySecurityConfig {
                         "/api/v1/deposits/**",
                         "/api/v1/levels/**",
                         "/api/v1/points/**",
+                        "/api/v1/notifications/**",
                         "/api/v1/favorites/**")
                     .hasAnyRole("MEMBER", "SELLER")
                     // 실수로 새 API가 무인증 공개되는 것을 막는 기본 거부 정책이다.
