@@ -32,7 +32,7 @@ public class StoreSyncScheduler {
       to = Instant.now();
 
       // 최근 1분 + OVERLAP_SECONDS 내 변경된 데이터 동기화
-      storeIndexerService.syncUpdatedStores(from, to, Integer.MAX_VALUE);
+      storeIndexerService.syncUpdatedStores(from, to);
       watermarkStore.updateLastSyncedAt(to); // 성공하면 전진
       log.info("Store Polling 동기화 완료. from={}, to={}", from, to);
     } catch (Exception e) {
