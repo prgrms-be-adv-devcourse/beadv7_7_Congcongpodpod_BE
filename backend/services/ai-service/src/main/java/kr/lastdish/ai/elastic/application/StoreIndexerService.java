@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
@@ -86,7 +87,7 @@ public class StoreIndexerService {
     }
   }
 
-  public void syncUpdatedStores(Instant from, Instant to, int limit) {
+  public void syncUpdatedStores(Instant from, Instant to) {
     // 1. Core API로부터 변경된 매장 데이터 조회
     List<InternalStoreResponse> updatedStores =
         coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
@@ -95,24 +96,22 @@ public class StoreIndexerService {
       return;
     }
 
-    // 2. 지정된 limit만큼만 대상 선별
-    List<InternalStoreResponse> targetStores = updatedStores.stream().limit(limit).toList();
-
-    // 3. targetStores 기반으로 N번 개별 findById 대신 findAllById로 Bulk 조회
-    List<Long> storeIds = targetStores.stream().map(InternalStoreResponse::storeId).toList();
+    // 2. [from, to] 구간의 매장 전체를 대상으로 처리한다.
+    //    일부만 선별하고 watermark가 to로 전진하면 나머지가 영영 누락되므로 limit을 두지 않는다.
+    List<Long> storeIds = updatedStores.stream().map(InternalStoreResponse::storeId).toList();
     Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
 
     Map<Long, StoreDocument> existingMap =
         StreamSupport.stream(existingDocs.spliterator(), false)
             .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
 
-    // 4. 폴링은 이벤트 타입 정보가 없으므로 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
+    // 3. 폴링은 이벤트 타입 정보가 없으므로 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
     List<StoreDocument> documents =
-        targetStores.stream()
+        updatedStores.stream()
             .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
             .toList();
 
-    // 5. Bulk 색인 저장
+    // 4. Bulk 색인 저장
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
@@ -120,13 +119,7 @@ public class StoreIndexerService {
   private static final String STATUS_ONLY_EVENT = "STORE_STATUS_CHANGED";
 
   private StoreDocument.DishItem mapToDishItem(InternalDishResponse d, StringBuilder textBuilder) {
-    textBuilder
-        .append("메뉴: ")
-        .append(d.dishName())
-        .append(" ")
-        .append(d.description() != null ? d.description() : "")
-        .append(" ");
-
+    appendDishText(d.dishName(), d.description(), textBuilder);
     return StoreDocument.DishItem.builder()
         .dishId(d.dishId())
         .dishName(d.dishName())
@@ -140,6 +133,33 @@ public class StoreIndexerService {
         .pickupStartTime(d.pickupStartTime())
         .pickupEndTime(d.pickupEndTime())
         .build();
+  }
+
+  private StoreDocument.DishItem mapToDishItem(
+      TestStoreIndexRequest.DishRequest d, StringBuilder textBuilder) {
+    appendDishText(d.dishName(), d.description(), textBuilder);
+    return StoreDocument.DishItem.builder()
+        .dishId(d.dishId())
+        .dishName(d.dishName())
+        .description(d.description())
+        .category(d.category())
+        .thumbnailUrl(d.thumbnailUrl())
+        .stockQuantity(d.stockQuantity())
+        .dishStatus(d.dishStatus())
+        .dishPrice(d.dishPrice())
+        .discountPrice(d.discountPrice())
+        .pickupStartTime(d.pickupStartTime())
+        .pickupEndTime(d.pickupEndTime())
+        .build();
+  }
+
+  private void appendDishText(String dishName, String description, StringBuilder textBuilder) {
+    textBuilder
+        .append("메뉴: ")
+        .append(dishName)
+        .append(" ")
+        .append(description != null ? description : "")
+        .append(" ");
   }
 
   private StoreDocument mapToDocument(
@@ -230,31 +250,7 @@ public class StoreIndexerService {
     List<StoreDocument.DishItem> dishItems =
         req.dishes() == null
             ? Collections.emptyList()
-            : req.dishes().stream()
-                .map(
-                    d -> {
-                      textBuilder
-                          .append("메뉴: ")
-                          .append(d.dishName())
-                          .append(" ")
-                          .append(d.description() != null ? d.description() : "")
-                          .append(" ");
-
-                      return StoreDocument.DishItem.builder()
-                          .dishId(d.dishId())
-                          .dishName(d.dishName())
-                          .description(d.description())
-                          .category(d.category())
-                          .thumbnailUrl(d.thumbnailUrl())
-                          .stockQuantity(d.stockQuantity())
-                          .dishStatus(d.dishStatus())
-                          .dishPrice(d.dishPrice())
-                          .discountPrice(d.discountPrice())
-                          .pickupStartTime(d.pickupStartTime())
-                          .pickupEndTime(d.pickupEndTime())
-                          .build();
-                    })
-                .toList();
+            : req.dishes().stream().map(d -> mapToDishItem(d, textBuilder)).toList();
 
     String embeddingText = textBuilder.toString();
     stopWatch.stop();
@@ -295,9 +291,24 @@ public class StoreIndexerService {
 
     for (SearchHit<StoreDocument> hit : hits.getSearchHits()) {
       StoreDocument doc = hit.getContent();
-      renewStoreIndex(doc.getStoreId());
+      try {
+        renewStoreIndex(doc.getStoreId());
+      } catch (Exception e) {
+        log.error("임베딩 재시도 중 개별 매장 처리 실패 - 다음 매장으로 계속 진행. storeId={}", doc.getStoreId(), e);
+      }
     }
 
     log.info("임베딩 실패 재시도 스캔 완료. count={}", hits.getTotalHits());
+  }
+
+  public void ensureIndexExists() {
+    IndexOperations indexOps = elasticsearchOperations.indexOps(StoreDocument.class);
+    if (!indexOps.exists()) {
+      indexOps.create();
+      indexOps.putMapping(indexOps.createMapping());
+      log.info("stores 인덱스를 StoreDocument 매핑 기준으로 생성했습니다.");
+    } else {
+      log.info("stores 인덱스가 이미 존재합니다. 초기화를 건너뜁니다.");
+    }
   }
 }
