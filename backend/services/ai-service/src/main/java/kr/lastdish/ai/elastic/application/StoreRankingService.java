@@ -32,37 +32,37 @@ public class StoreRankingService {
   private static final double MEANING_SEARCH_ES_THRESHOLD = 1.0;
 
   public List<StoreSearchResult> rankAndAssignBadges(
-          List<SearchHit<StoreDocument>> searchHits,
-          GeoPoint userLocation,
-          Set<Long> completedPickupStoreIds) {
+      List<SearchHit<StoreDocument>> searchHits,
+      GeoPoint userLocation,
+      Set<Long> completedPickupStoreIds) {
 
     if (searchHits == null || searchHits.isEmpty()) {
       return Collections.emptyList();
     }
 
     List<StoreSearchResultDtoHolder> holders =
-            searchHits.stream()
-                    .map(hit -> calculateScore(hit, userLocation, completedPickupStoreIds))
-                    .sorted(
-                            Comparator.comparingDouble(StoreSearchResultDtoHolder::getTotalScore).reversed())
-                    .toList();
+        searchHits.stream()
+            .map(hit -> calculateScore(hit, userLocation, completedPickupStoreIds))
+            .sorted(
+                Comparator.comparingDouble(StoreSearchResultDtoHolder::getTotalScore).reversed())
+            .toList();
 
     assignBadges(holders);
 
     return holders.stream()
-            .map(
-                    holder ->
-                            StoreSearchResult.builder()
-                                    .store(StoreResponse.from(holder.hit.getContent()))
-                                    .totalScore(holder.totalScore)
-                                    .scoreBreakdown(holder.scoreBreakdown)
-                                    .badges(holder.badges)
-                                    .build())
-            .toList();
+        .map(
+            holder ->
+                StoreSearchResult.builder()
+                    .store(StoreResponse.from(holder.hit.getContent()))
+                    .totalScore(holder.totalScore)
+                    .scoreBreakdown(holder.scoreBreakdown)
+                    .badges(holder.badges)
+                    .build())
+        .toList();
   }
 
   private StoreSearchResultDtoHolder calculateScore(
-          SearchHit<StoreDocument> hit, GeoPoint userLocation, Set<Long> completedPickupStoreIds) {
+      SearchHit<StoreDocument> hit, GeoPoint userLocation, Set<Long> completedPickupStoreIds) {
 
     StoreDocument store = hit.getContent();
     double rawEsScore = hit.getScore();
@@ -75,34 +75,34 @@ public class StoreRankingService {
     double normDiscount = maxDiscountRate;
 
     boolean hasPickupHistory =
-            completedPickupStoreIds != null && completedPickupStoreIds.contains(store.getStoreId());
+        completedPickupStoreIds != null && completedPickupStoreIds.contains(store.getStoreId());
     double normPersonalization = hasPickupHistory ? 1.0 : 0.0;
 
     // 마감시간 요소를 제외한 4가지 요소 기반 점수 산출
     double totalScore =
-            (normEs * WEIGHT_ES)
-                    + (normDistance * WEIGHT_DISTANCE)
-                    + (normDiscount * WEIGHT_DISCOUNT)
-                    + (normPersonalization * WEIGHT_PERSONALIZATION);
+        (normEs * WEIGHT_ES)
+            + (normDistance * WEIGHT_DISTANCE)
+            + (normDiscount * WEIGHT_DISCOUNT)
+            + (normPersonalization * WEIGHT_PERSONALIZATION);
 
     ScoreBreakdown breakdown =
-            ScoreBreakdown.builder()
-                    .esScore(normEs)
-                    .distanceScore(normDistance)
-                    .deadlineScore(0.0) // 마감시간 점수 제거
-                    .discountRateScore(normDiscount)
-                    .personalizationScore(normPersonalization)
-                    .build();
+        ScoreBreakdown.builder()
+            .esScore(normEs)
+            .distanceScore(normDistance)
+            .deadlineScore(0.0) // 마감시간 점수 제거
+            .discountRateScore(normDiscount)
+            .personalizationScore(normPersonalization)
+            .build();
 
     return new StoreSearchResultDtoHolder(
-            hit, totalScore, breakdown, distanceKm, maxDiscountRate, hasPickupHistory, rawEsScore);
+        hit, totalScore, breakdown, distanceKm, maxDiscountRate, hasPickupHistory, rawEsScore);
   }
 
   private void assignBadges(List<StoreSearchResultDtoHolder> holders) {
     if (holders.isEmpty()) return;
 
     double minDistance =
-            holders.stream().mapToDouble(h -> h.distanceKm).min().orElse(Double.MAX_VALUE);
+        holders.stream().mapToDouble(h -> h.distanceKm).min().orElse(Double.MAX_VALUE);
     double maxDiscount = holders.stream().mapToDouble(h -> h.maxDiscountRate).max().orElse(0.0);
 
     for (StoreSearchResultDtoHolder holder : holders) {
@@ -123,7 +123,7 @@ public class StoreRankingService {
 
       // 4. '뜻으로 찾음' 배지
       if (holder.rawEsScore < MEANING_SEARCH_ES_THRESHOLD
-              && holder.scoreBreakdown.getEsScore() > 0.3) {
+          && holder.scoreBreakdown.getEsScore() > 0.3) {
         holder.badges.add("뜻으로 찾음");
       }
     }
@@ -140,8 +140,8 @@ public class StoreRankingService {
     double dLon = lon2 - lon1;
 
     double a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return 6371.0 * c;
@@ -151,19 +151,19 @@ public class StoreRankingService {
     if (dishes == null || dishes.isEmpty()) return 0.0;
 
     return dishes.stream()
-            .map(
-                    dish -> {
-                      BigDecimal price = dish.getDishPrice();
-                      BigDecimal discountPrice = dish.getDiscountPrice();
-                      if (price == null || discountPrice == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-                        return 0.0;
-                      }
-                      BigDecimal discount = price.subtract(discountPrice);
-                      return discount.divide(price, 4, RoundingMode.HALF_UP).doubleValue();
-                    })
-            .mapToDouble(Double::doubleValue)
-            .max()
-            .orElse(0.0);
+        .map(
+            dish -> {
+              BigDecimal price = dish.getDishPrice();
+              BigDecimal discountPrice = dish.getDiscountPrice();
+              if (price == null || discountPrice == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+                return 0.0;
+              }
+              BigDecimal discount = price.subtract(discountPrice);
+              return discount.divide(price, 4, RoundingMode.HALF_UP).doubleValue();
+            })
+        .mapToDouble(Double::doubleValue)
+        .max()
+        .orElse(0.0);
   }
 
   private static class StoreSearchResultDtoHolder {
@@ -177,13 +177,13 @@ public class StoreRankingService {
     private final List<String> badges = new ArrayList<>();
 
     public StoreSearchResultDtoHolder(
-            SearchHit<StoreDocument> hit,
-            double totalScore,
-            ScoreBreakdown scoreBreakdown,
-            double distanceKm,
-            double maxDiscountRate,
-            boolean hasPickupHistory,
-            double rawEsScore) {
+        SearchHit<StoreDocument> hit,
+        double totalScore,
+        ScoreBreakdown scoreBreakdown,
+        double distanceKm,
+        double maxDiscountRate,
+        boolean hasPickupHistory,
+        double rawEsScore) {
       this.hit = hit;
       this.totalScore = totalScore;
       this.scoreBreakdown = scoreBreakdown;
