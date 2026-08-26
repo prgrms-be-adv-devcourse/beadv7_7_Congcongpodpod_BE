@@ -16,6 +16,7 @@ import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
   private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
   private static final int MAX_PICKUP_CODE_RETRY = 5;
+  public static final int PICKUP_EXPIRATION_BATCH_SIZE = 1000;
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
@@ -62,7 +64,7 @@ public class OrderService {
   public LocalDateTime validatePickupDeadline(CartOrderSnapshot cartItem, LocalDateTime now) {
     LocalDateTime pickupDeadline =
         Order.calculatePickupDeadline(now, cartItem.pickupStartAt(), cartItem.pickupEndAt());
-    if (now.isAfter(pickupDeadline)) {
+    if (!now.isBefore(pickupDeadline)) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
 
@@ -71,7 +73,12 @@ public class OrderService {
 
   @Transactional
   public int expirePickupOrders(LocalDateTime now) {
-    var expirationTargets = orderRepository.findPickupExpirationTargets(now);
+    var expirationTargets =
+        orderRepository
+            .findPickupExpirationTargets(now, PageRequest.of(0, PICKUP_EXPIRATION_BATCH_SIZE))
+            .stream()
+            .limit(PICKUP_EXPIRATION_BATCH_SIZE)
+            .toList();
     expirationTargets.forEach(
         order -> {
           order.markNoShow(now);

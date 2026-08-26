@@ -106,9 +106,9 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       where o.isDeleted = false
         and o.status = "PICKUP_READY"
         and o.pickupDeadline <= :now
-      order by o.createdAt asc, o.id asc
+      order by o.pickupDeadline asc, o.id asc
       """)
-  List<Order> findPickupExpirationTargets(@Param("now") LocalDateTime now);
+  List<Order> findPickupExpirationTargets(@Param("now") LocalDateTime now, Pageable pageable);
 
   @Query(
       """

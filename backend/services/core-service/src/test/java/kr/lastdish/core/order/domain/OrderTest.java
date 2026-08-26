@@ -20,6 +20,14 @@ class OrderTest {
   }
 
   @Test
+  void 오늘_픽업_종료_후에는_다음날_마감_일시를_계산한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 20, 21, 0);
+
+    assertThat(Order.calculatePickupDeadline(now, LocalTime.of(10, 0), LocalTime.of(20, 0)))
+        .isEqualTo(LocalDateTime.of(2026, 8, 21, 20, 0));
+  }
+
+  @Test
   void 자정을_넘는_픽업은_종료_시간을_다음날로_계산한다() {
     LocalDateTime now = LocalDateTime.of(2026, 8, 20, 23, 30);
 

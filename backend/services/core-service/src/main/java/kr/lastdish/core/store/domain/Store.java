@@ -150,6 +150,10 @@ public class Store {
   }
 
   public void validatePickupTime(LocalTime pickupStartTime, LocalTime pickupEndTime) {
+    if (pickupStartTime.equals(pickupEndTime)) {
+      throw new BusinessException(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
+    }
+
     int businessDuration = forwardMinutes(openTime, closeTime);
     int pickupStartOffset = forwardMinutes(openTime, pickupStartTime);
     int pickupEndOffset = forwardMinutes(openTime, pickupEndTime);

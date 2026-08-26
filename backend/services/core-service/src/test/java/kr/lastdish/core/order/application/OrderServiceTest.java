@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
@@ -71,7 +72,7 @@ class OrderServiceTest {
     LocalDateTime now = LocalDateTime.of(2026, 8, 10, 19, 0);
     Order firstOrder = mock(Order.class);
     Order secondOrder = mock(Order.class);
-    when(orderRepository.findPickupExpirationTargets(now))
+    when(orderRepository.findPickupExpirationTargets(eq(now), any(Pageable.class)))
         .thenReturn(List.of(firstOrder, secondOrder));
     when(firstOrder.nextEventVersion()).thenReturn(3L);
     when(secondOrder.nextEventVersion()).thenReturn(5L);
@@ -84,6 +85,20 @@ class OrderServiceTest {
     verify(orderStatusChangedEventWriter).append(secondOrder, 5L);
     verify(orderNoShowEventWriter).append(firstOrder, 3L);
     verify(orderNoShowEventWriter).append(secondOrder, 5L);
+  }
+
+  @Test
+  void 픽업_만료_주문은_한_트랜잭션에서_1000건까지_처리한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 10, 19, 0);
+    List<Order> orders = IntStream.range(0, 1001).mapToObj(index -> mock(Order.class)).toList();
+    when(orderRepository.findPickupExpirationTargets(eq(now), any(Pageable.class)))
+        .thenReturn(orders);
+
+    assertThat(orderService.expirePickupOrders(now)).isEqualTo(1000);
+
+    verify(orderRepository).findPickupExpirationTargets(now, PageRequest.of(0, 1000));
+    verify(orders.get(999)).markNoShow(now);
+    verify(orders.get(1000), never()).markNoShow(now);
   }
 
   @Test
@@ -171,10 +186,10 @@ class OrderServiceTest {
   }
 
   @Test
-  @DisplayName("픽업 마감이 지나면 주문할 수 없다")
-  void 픽업_마감이_지났으면_주문할_수_없다() {
+  @DisplayName("정확히 픽업 마감 시각이면 주문할 수 없다")
+  void 정확히_픽업_마감_시각이면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
-    LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0, 1);
+    LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0);
     assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem, now))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")

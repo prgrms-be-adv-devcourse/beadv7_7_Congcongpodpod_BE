@@ -217,7 +217,7 @@ public class StoreService {
 
   public void validateDishUpdate(
       Long storeId, Long memberId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
-    Store store = findStore(storeId);
+    Store store = findStoreWithLock(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");

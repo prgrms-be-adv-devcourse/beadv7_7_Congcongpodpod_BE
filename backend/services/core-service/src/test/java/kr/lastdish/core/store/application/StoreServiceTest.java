@@ -92,16 +92,17 @@ class StoreServiceTest {
   }
 
   @Test
-  void Dish_수정_조건은_Store를_한번_조회해_검증한다() {
+  void Dish_수정_조건은_Store를_잠금_조회해_검증한다() {
     Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
     store.changeStatus(StoreStatus.CLOSED);
-    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+    when(storeRepository.findWithLockById(1L)).thenReturn(Optional.of(store));
 
     assertThatCode(
             () -> storeService.validateDishUpdate(1L, 1L, LocalTime.of(18, 0), LocalTime.of(19, 0)))
         .doesNotThrowAnyException();
 
-    verify(storeRepository, times(1)).findById(1L);
+    verify(storeRepository, times(1)).findWithLockById(1L);
+    verify(storeRepository, never()).findById(1L);
   }
 
   @ParameterizedTest
@@ -111,7 +112,7 @@ class StoreServiceTest {
   void CLOSED가_아닌_매장은_Dish를_수정할_수_없다(StoreStatus status) {
     Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
     store.changeStatus(status);
-    when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+    when(storeRepository.findWithLockById(1L)).thenReturn(Optional.of(store));
 
     assertThatThrownBy(
             () -> storeService.validateDishUpdate(1L, 1L, LocalTime.of(18, 0), LocalTime.of(19, 0)))

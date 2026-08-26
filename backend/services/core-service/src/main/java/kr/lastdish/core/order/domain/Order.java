@@ -147,7 +147,7 @@ public class Order {
       LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
     LocalDateTime pickupDeadline = now.toLocalDate().atTime(pickupEndAt);
 
-    if (pickupStartAt.isAfter(pickupEndAt) && now.toLocalTime().isAfter(pickupEndAt)) {
+    if (now.isAfter(pickupDeadline)) {
       return pickupDeadline.plusDays(1);
     }
 

@@ -1,11 +1,14 @@
 package kr.lastdish.core.store.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 class StoreTest {
@@ -27,6 +30,16 @@ class StoreTest {
     store.rescheduleNextClosingAt(LocalDateTime.of(2026, 8, 10, 19, 0));
 
     assertThat(store.getNextClosingAt()).isEqualTo(LocalDateTime.of(2026, 8, 11, 2, 0));
+  }
+
+  @Test
+  void 픽업_시작과_종료_시간이_같으면_거절한다() {
+    Store store = store(LocalTime.of(9, 0), LocalTime.of(22, 0));
+
+    assertThatThrownBy(() -> store.validatePickupTime(LocalTime.of(18, 0), LocalTime.of(18, 0)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
   }
 
   private Store store(LocalTime openTime, LocalTime closeTime) {
