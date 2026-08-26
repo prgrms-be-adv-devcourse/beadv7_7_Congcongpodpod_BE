@@ -73,6 +73,11 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void aiSearchRouteAllowsPostRequestsWithoutAuthentication() {
+    webTestClient.post().uri("/api/v1/ai/search").exchange().expectStatus().isOk();
+  }
+
+  @Test
   void myStoreRouteRejectsRequestsWithoutAuthentication() {
     webTestClient.get().uri("/api/v1/stores/mine").exchange().expectStatus().isUnauthorized();
   }
