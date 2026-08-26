@@ -52,8 +52,8 @@ class StoreSyncWatermarkStoreTest {
   }
 
   @Test
-  @DisplayName("Redis에 저장된 값이 1시간보다 오래됐으면 최대 1시간 전으로 클램핑된다")
-  void getLastSyncedAt_tooOldStoredValue_clampsToMaxLookback() {
+  @DisplayName("Redis에 저장된 값이 아무리 오래돼도 클램핑 없이 그대로 반환한다 (정합성 우선, 장애 시 전체 캐치업)")
+  void getLastSyncedAt_veryOldStoredValue_returnsAsIsWithoutClamping() {
     // given
     Instant stored = Instant.now().minus(Duration.ofDays(1));
     given(redisTemplate.opsForValue()).willReturn(valueOperations);
@@ -62,12 +62,8 @@ class StoreSyncWatermarkStoreTest {
     // when
     Instant result = watermarkStore.getLastSyncedAt();
 
-    // then: 정확히 1시간 전 근처(수 초 오차 허용)여야 하며, 저장된 값(1일 전)보다 훨씬 최근이어야 함
-    assertThat(result).isAfter(stored);
-    assertThat(result)
-        .isBetween(
-            Instant.now().minus(Duration.ofHours(1)).minusSeconds(5),
-            Instant.now().minus(Duration.ofHours(1)).plusSeconds(5));
+    // then
+    assertThat(result).isEqualTo(stored);
   }
 
   @Test
