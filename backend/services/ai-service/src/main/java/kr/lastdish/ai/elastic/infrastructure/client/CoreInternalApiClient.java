@@ -77,6 +77,11 @@ public class CoreInternalApiClient {
       }
       return List.of();
 
+      // 4xx 예외 - 통신 장애 예외를 샄며버리면 watermark가 멈추거나 원인을 찾기 어려워짐
+    } catch (HttpClientErrorException e) {
+      log.error("Polling 중 Core API 클라이언트 에러 발생 (4xx). from={}, to={}, status={}", from, to, e.getStatusCode());
+      return List.of();
+
     } catch (HttpServerErrorException | ResourceAccessException e) {
       // 5xx 서버 에러 또는 타임아웃, 통신 장애 -> 예외를 던져서 watermark가 전진하지 않도록 함
       log.error("Polling 중 Core API 통신 장애 발생. from={}, to={}, error={}", from, to, e.getMessage());
