@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OrderNotificationEventWriter {
 
+  private static final long NOT_APPLICABLE_VERSION = 0L;
+
   private final OutboxEventWriter outboxEventWriter;
 
   public void appendCancelled(Order order, Long sellerMemberId) {
@@ -113,7 +115,7 @@ public class OrderNotificationEventWriter {
             UUID.randomUUID(),
             OrderNotificationEvent.SCHEMA_VERSION,
             order.getId(),
-            order.nextEventVersion(),
+            NOT_APPLICABLE_VERSION,
             payload,
             Instant.now());
 

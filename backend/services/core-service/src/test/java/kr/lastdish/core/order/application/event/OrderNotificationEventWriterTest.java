@@ -2,6 +2,7 @@ package kr.lastdish.core.order.application.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +30,6 @@ class OrderNotificationEventWriterTest {
     order = mock(Order.class);
     when(order.getId()).thenReturn(10L);
     when(order.getMemberId()).thenReturn(1L);
-    when(order.nextEventVersion()).thenReturn(2L);
   }
 
   @Test
@@ -129,10 +129,11 @@ class OrderNotificationEventWriterTest {
     assertThat(event.eventType()).isEqualTo(OrderNotificationEvent.EVENT_TYPE);
     assertThat(event.aggregateType()).isEqualTo("ORDER");
     assertThat(event.aggregateId()).isEqualTo(10L);
-    assertThat(event.aggregateVersion()).isEqualTo(2L);
+    assertThat(event.aggregateVersion()).isZero();
     assertThat(event.schemaVersion()).isEqualTo(OrderNotificationEvent.SCHEMA_VERSION);
     assertThat(event.eventId()).isNotNull();
     assertThat(event.occurredAt()).isNotNull();
     assertThat(event.payload()).isEqualTo(expectedPayload);
+    verify(order, never()).nextEventVersion();
   }
 }
