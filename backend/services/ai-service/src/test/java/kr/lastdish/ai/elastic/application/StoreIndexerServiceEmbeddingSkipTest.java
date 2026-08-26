@@ -1,4 +1,4 @@
-package kr.lastdish.ai.application;
+package kr.lastdish.ai.elastic.application;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -13,7 +13,6 @@ import java.time.LocalTime;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
-import kr.lastdish.ai.elastic.application.StoreIndexerService;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import kr.lastdish.ai.elastic.infrastructure.client.CoreInternalApiClient;
 import kr.lastdish.ai.elastic.infrastructure.client.dto.InternalDishResponse;
@@ -41,15 +40,14 @@ class StoreIndexerServiceEmbeddingSkipTest {
   private String calculateExpectedHash(InternalStoreResponse store) {
     StringBuilder textBuilder = new StringBuilder();
     textBuilder.append("가게: ").append(store.storeName()).append(" ");
-    if (store.dishes() != null) {
-      for (InternalDishResponse d : store.dishes()) {
-        textBuilder
-            .append("메뉴: ")
-            .append(d.dishName())
-            .append(" ")
-            .append(d.description() != null ? d.description() : "")
-            .append(" ");
-      }
+    InternalDishResponse d = store.dish();
+    if (d != null) {
+      textBuilder
+          .append("메뉴: ")
+          .append(d.dishName())
+          .append(" ")
+          .append(d.description() != null ? d.description() : "")
+          .append(" ");
     }
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -69,7 +67,7 @@ class StoreIndexerServiceEmbeddingSkipTest {
         "분식",
         null,
         stock,
-        "SELLING",
+        "ON_SALE",
         price,
         discount,
         LocalTime.MIN,
@@ -87,7 +85,7 @@ class StoreIndexerServiceEmbeddingSkipTest {
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
         "KOREAN",
-        List.of(dish));
+        dish);
   }
 
   @Test

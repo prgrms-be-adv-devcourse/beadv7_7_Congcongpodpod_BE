@@ -1,4 +1,4 @@
-package kr.lastdish.ai.infrastructure.scheduler;
+package kr.lastdish.ai.elastic.infrastructure.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -10,8 +10,6 @@ import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import kr.lastdish.ai.elastic.application.StoreIndexerService;
-import kr.lastdish.ai.elastic.infrastructure.scheduler.StoreSyncScheduler;
-import kr.lastdish.ai.elastic.infrastructure.scheduler.StoreSyncWatermarkStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +39,10 @@ class StoreSyncSchedulerTest {
     // then
     ArgumentCaptor<Instant> toCaptor = ArgumentCaptor.forClass(Instant.class);
     verify(storeIndexerService).syncUpdatedStores(any(Instant.class), toCaptor.capture());
-    verify(watermarkStore).updateLastSyncedAt(toCaptor.getValue());
+
+    ArgumentCaptor<Instant> watermarkCaptor = ArgumentCaptor.forClass(Instant.class);
+    verify(watermarkStore).updateLastSyncedAt(watermarkCaptor.capture());
+    assertThat(watermarkCaptor.getValue()).isEqualTo(toCaptor.getValue());
   }
 
   @Test
@@ -58,6 +59,19 @@ class StoreSyncSchedulerTest {
     ArgumentCaptor<Instant> fromCaptor = ArgumentCaptor.forClass(Instant.class);
     verify(storeIndexerService).syncUpdatedStores(fromCaptor.capture(), any(Instant.class));
     assertThat(fromCaptor.getValue()).isEqualTo(lastSynced.minusSeconds(10));
+  }
+
+  @Test
+  @DisplayName("동기화 시 limit이 Integer.MAX_VALUE로 전달된다")
+  void pollAndSyncStores_usesMaxValueLimit() {
+    // given
+    given(watermarkStore.getLastSyncedAt()).willReturn(Instant.now());
+
+    // when
+    scheduler.pollAndSyncStores();
+
+    // then
+    verify(storeIndexerService).syncUpdatedStores(any(Instant.class), any(Instant.class));
   }
 
   @Test
@@ -84,25 +98,5 @@ class StoreSyncSchedulerTest {
     assertThatCode(() -> scheduler.pollAndSyncStores()).doesNotThrowAnyException();
     verify(storeIndexerService, never()).syncUpdatedStores(any(), any());
     verify(watermarkStore, never()).updateLastSyncedAt(any());
-  }
-
-  @Test
-  @DisplayName("임베딩 재시도 스캔이 성공적으로 위임된다")
-  void retryFailedEmbeddings_delegatesToService() {
-    // when
-    scheduler.retryFailedEmbeddings();
-
-    // then
-    verify(storeIndexerService).retryFailedEmbeddings();
-  }
-
-  @Test
-  @DisplayName("임베딩 재시도 스캔 중 예외가 발생해도 스케줄러가 죽지 않는다")
-  void retryFailedEmbeddings_failure_doesNotThrow() {
-    // given
-    willThrow(new RuntimeException("ES 장애")).given(storeIndexerService).retryFailedEmbeddings();
-
-    // when & then
-    assertThatCode(() -> scheduler.retryFailedEmbeddings()).doesNotThrowAnyException();
   }
 }

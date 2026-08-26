@@ -1,4 +1,4 @@
-package kr.lastdish.ai.infrastructure.event;
+package kr.lastdish.ai.elastic.infrastructure.event;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import kr.lastdish.ai.elastic.application.StoreIndexerService;
-import kr.lastdish.ai.elastic.infrastructure.event.StoreEventListener;
 import kr.lastdish.common.event.EventMessage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
