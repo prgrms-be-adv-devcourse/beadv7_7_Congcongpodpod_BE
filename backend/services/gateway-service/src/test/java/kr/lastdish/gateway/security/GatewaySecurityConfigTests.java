@@ -409,6 +409,7 @@ class GatewaySecurityConfigTests {
           .andRoute(POST("/api/v1/stores"), request -> ok().build())
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(POST("/api/v1/ai/classify"), request -> ok().build())
+          .andRoute(POST("/api/v1/ai/search"), request -> ok().build())
           .andRoute(GET("/api/v1/locations/geocode"), request -> ok().build())
           .andRoute(GET("/api/v1/notifications"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
