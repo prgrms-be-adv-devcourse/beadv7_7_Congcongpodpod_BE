@@ -253,7 +253,9 @@ services:
       SPRINGDOC_ENABLED: "true"
       SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/seed}
       CONFIG_SERVER_URL: http://config-server:8888
-      CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
+      CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db?reWriteBatchedInserts=true
+      NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
+      NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
       CORE_DB_USERNAME: core
       CORE_DB_PASSWORD: core_local_password
       MEMBER_SERVICE_BASE_URL: http://member-service:8080
