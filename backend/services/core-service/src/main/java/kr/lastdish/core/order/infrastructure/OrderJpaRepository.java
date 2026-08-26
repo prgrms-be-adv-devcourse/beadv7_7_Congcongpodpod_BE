@@ -34,6 +34,16 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
 
   @Query(
       """
+      select count(o) > 0
+      from Order o
+      where o.dishId = :dishId
+        and o.isDeleted = false
+        and o.status in ("RESERVED", "PICKUP_READY")
+      """)
+  boolean existsActiveOrderByDishId(@Param("dishId") Long dishId);
+
+  @Query(
+      """
             SELECT
               o.id AS id,
               o.storeId AS storeId,
@@ -96,12 +106,10 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       from Order o
       where o.isDeleted = false
         and o.status = "PICKUP_READY"
-        and o.storeId = :storeId
         and o.pickupDeadline <= :now
-      order by o.createdAt asc, o.id asc
+      order by o.pickupDeadline asc, o.id asc
       """)
-  List<Order> findPickupExpirationTargets(
-      @Param("storeId") Long storeId, @Param("now") LocalDateTime now);
+  List<Order> findPickupExpirationTargets(@Param("now") LocalDateTime now, Pageable pageable);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query(

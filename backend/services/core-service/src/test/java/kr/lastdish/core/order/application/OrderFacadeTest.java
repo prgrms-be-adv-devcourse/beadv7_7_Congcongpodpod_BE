@@ -111,7 +111,8 @@ class OrderFacadeTest {
 
     inOrder.verify(memberSnapshotRepository).findActiveByMemberId(memberId);
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
-    inOrder.verify(storeFacade).validateOpen(eq(1L), any());
+    inOrder.verify(storeFacade).validateOpen(1L);
+    inOrder.verify(dishFacade).validateAvailable(100L);
     inOrder.verify(orderService).validatePickupDeadline(eq(cartItem), any());
     inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem, pickupDeadline);
 
@@ -123,6 +124,32 @@ class OrderFacadeTest {
     inOrder.verify(cartFacade).removeOrderedItem(memberId, cartItemId);
     inOrder.verify(storeFacade).getStoreOwnerMemberId(1L);
     inOrder.verify(orderNotificationEventWriter).appendCreated(order, 20L);
+  }
+
+  @Test
+  @DisplayName("상품이 삭제됐거나 판매 중이 아니면 주문과 결제를 진행하지 않는다")
+  void payAndCreateOrder_dishNotAvailable() {
+    Long memberId = 1L;
+    Long cartItemId = 1L;
+    CartOrderSnapshot cartItem = createCartOrderSnapshot();
+    OrderMemberInfo memberInfo = new OrderMemberInfo("김나영", "010-9999-9999");
+
+    stubMemberSnapshot(memberId, memberInfo);
+    when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
+    doThrow(
+            new kr.lastdish.common.api.exception.BusinessException(
+                kr.lastdish.core.common.exception.ErrorCode.DISH_NOT_ON_SALE))
+        .when(dishFacade)
+        .validateAvailable(cartItem.dishId());
+
+    assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
+        .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(kr.lastdish.core.common.exception.ErrorCode.DISH_NOT_ON_SALE);
+
+    verify(orderService, never()).validatePickupDeadline(any(), any());
+    verify(orderService, never()).createOrder(anyLong(), any(), any(), any());
+    verifyNoInteractions(depositFacade);
   }
 
   @Test
@@ -155,7 +182,7 @@ class OrderFacadeTest {
             new kr.lastdish.common.api.exception.BusinessException(
                 kr.lastdish.core.common.exception.ErrorCode.ORDER_STORE_CLOSED))
         .when(storeFacade)
-        .validateOpen(eq(cartItem.storeId()), any());
+        .validateOpen(cartItem.storeId());
 
     assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
@@ -186,7 +213,7 @@ class OrderFacadeTest {
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .hasMessage("상품의 픽업 마감 시간이 지났습니다.");
 
-    verify(storeFacade).validateOpen(eq(cartItem.storeId()), any());
+    verify(storeFacade).validateOpen(cartItem.storeId());
     verify(orderService, never()).createOrder(anyLong(), any(), any(), any());
     verifyNoInteractions(depositFacade);
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());

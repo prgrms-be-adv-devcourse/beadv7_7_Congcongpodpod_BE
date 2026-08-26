@@ -14,9 +14,9 @@ public record CartResponse(
     return of(cart, items, false);
   }
 
-  public static CartResponse of(Cart cart, List<CartItem> items, boolean dishDeleted) {
+  public static CartResponse of(Cart cart, List<CartItem> items, boolean dishUnavailable) {
     List<CartItemResponse> itemResponses =
-        items.stream().map(item -> CartItemResponse.from(item, !dishDeleted)).toList();
+        items.stream().map(item -> CartItemResponse.from(item, !dishUnavailable)).toList();
     BigDecimal totalPrice =
         items.stream().map(CartItem::getSubtotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
 

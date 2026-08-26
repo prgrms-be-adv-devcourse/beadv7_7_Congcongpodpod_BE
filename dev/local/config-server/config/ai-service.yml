@@ -41,6 +41,16 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
+          temperature: 0.0
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
 
 event:
   publisher: ${EVENT_PUBLISHER:kafka}
@@ -80,7 +90,3 @@ store:
   sync:
     scheduler:
       enabled: false #core에서 dish update 작업 후 활성화
-  openai:
-    api-key: ${OPENAI_API_KEY:}
-    embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
-    chat-model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}

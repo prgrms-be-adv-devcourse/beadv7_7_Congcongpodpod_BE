@@ -36,7 +36,7 @@ public class StoreEventListener {
       }
 
       if (storeId != null) {
-        storeIndexerService.renewStoreIndex(storeId);
+        storeIndexerService.renewStoreIndex(storeId, message.eventType());
       } else {
         log.warn("이벤트 메시지에 storeId가 존재하지 않습니다. eventId={}", message.eventId());
       }

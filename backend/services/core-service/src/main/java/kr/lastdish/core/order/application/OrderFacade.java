@@ -54,7 +54,7 @@ public class OrderFacade {
     CartOrderSnapshot cartItem =
         cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, dishPriceVersion);
 
-    // 영업 여부와 픽업 마감을 같은 기준 시각으로 판단한다. 각자 now()를 부르면 자정 근처에서 두 판정이 갈린다.
+    // 서버 현재 시각을 한 번만 구해 자정 경계를 포함한 픽업 마감 일시를 계산한다.
     LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
     LocalDateTime pickupDeadline = validateBeforeOrder(cartItem, now);
 
@@ -80,7 +80,9 @@ public class OrderFacade {
   }
 
   private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem, LocalDateTime now) {
-    storeFacade.validateOpen(cartItem.storeId(), now);
+    storeFacade.validateOpen(cartItem.storeId());
+    dishFacade.validateAvailable(cartItem.dishId());
+
     return orderService.validatePickupDeadline(cartItem, now);
   }
 
