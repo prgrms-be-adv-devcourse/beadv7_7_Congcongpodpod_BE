@@ -72,7 +72,7 @@ public class SettlementTransactionalManager {
    * Failed 처리 전 새 트랜잭션에서 현재 정산 상태를 다시 조회한다. PROCESSING 전환 이전에 실패한 경우에는 ACCUMULATING 상태를 유지해 다음
    * 스케줄에서 다시 시도
    */
-  @Transactional(transactionManager = "transactionManager", propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void failIfProcessing(Long settlementId, String failureReason) {
     Settlement settlement = findSettlement(settlementId);
 
@@ -83,7 +83,7 @@ public class SettlementTransactionalManager {
     settlement.fail(normalizeFailureReason(failureReason));
   }
 
-  @Transactional(transactionManager = "transactionManager", propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public Settlement restart(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
     settlement.restart();
@@ -91,7 +91,7 @@ public class SettlementTransactionalManager {
     return settlement;
   }
 
-  @Transactional(transactionManager = "transactionManager", propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void startAccumulatedSettlement(Long settlementId, SettlementAccountData account) {
     Settlement settlement = findSettlement(settlementId);
 
@@ -99,7 +99,7 @@ public class SettlementTransactionalManager {
         account.bankName(), account.accountNumber(), account.accountHolder());
   }
 
-  @Transactional(transactionManager = "transactionManager", propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void completeAccumulatedSettlement(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
 

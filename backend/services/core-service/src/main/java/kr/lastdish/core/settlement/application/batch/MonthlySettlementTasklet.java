@@ -1,11 +1,12 @@
 package kr.lastdish.core.settlement.application.batch;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.YearMonth;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.settlement.application.SettlementEventService;
-import kr.lastdish.core.settlement.application.SettlementService;
 import kr.lastdish.core.settlement.application.dto.SettlementProcessResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +20,9 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class MonthlySettlementTasklet implements Tasklet {
-  private final SettlementService settlementService;
   private final SettlementEventService settlementEventService;
+
+  @PersistenceContext private EntityManager entityManager;
 
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
@@ -71,6 +73,8 @@ public class MonthlySettlementTasklet implements Tasklet {
             storeId,
             settlementMonth,
             exception);
+      } finally {
+        entityManager.clear();
       }
     }
     var context = contribution.getStepExecution().getExecutionContext();
