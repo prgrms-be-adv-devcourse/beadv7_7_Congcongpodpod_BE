@@ -6,9 +6,11 @@ import java.util.List;
 import kr.lastdish.ai.elastic.application.StoreIndexerService;
 import kr.lastdish.ai.elastic.presentation.dto.TestStoreIndexRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Profile("local")
 @Tag(name = "AI Test Index API", description = "core-service 없이 ES에 테스트 데이터 색인")
 @RestController
 @RequestMapping("/api/v1/ai/index")
