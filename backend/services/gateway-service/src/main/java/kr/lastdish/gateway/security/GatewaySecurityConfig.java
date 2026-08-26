@@ -84,6 +84,8 @@ public class GatewaySecurityConfig {
                     // 상품 등록 중 음식 이미지 분류와 검색은 로그인한 회원과 판매자에게 허용한다.
                     .pathMatchers(POST, "/api/v1/ai/classify", "/api/v1/ai/search")
                     .hasAnyRole("MEMBER", "SELLER")
+                    .pathMatchers(GET, "/api/v1/ai/stores/nearby")
+                    .hasAnyRole("MEMBER", "SELLER")
                     // 매장 등록·수정용 주소 검색은 로그인한 회원과 판매자에게 허용한다.
                     .pathMatchers(GET, "/api/v1/locations/geocode")
                     .hasAnyRole("MEMBER", "SELLER")

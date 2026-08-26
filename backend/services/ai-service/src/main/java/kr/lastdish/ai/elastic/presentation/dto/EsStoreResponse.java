@@ -6,7 +6,7 @@ import java.time.LocalTime;
 import java.util.Comparator;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 
-public record StoreResponse(
+public record EsStoreResponse(
     Long storeId,
     Long memberId,
     String storeName,
@@ -35,7 +35,7 @@ public record StoreResponse(
       LocalTime pickupStartTime,
       LocalTime pickupEndTime) {}
 
-  public static StoreResponse from(StoreDocument doc) {
+  public static EsStoreResponse from(StoreDocument doc) {
     CheapestDishResponse cheapestDish = null;
 
     if (doc.getDishes() != null && !doc.getDishes().isEmpty()) {
@@ -61,7 +61,7 @@ public record StoreResponse(
               minDish.getPickupEndTime());
     }
 
-    return new StoreResponse(
+    return new EsStoreResponse(
         doc.getStoreId(),
         null,
         doc.getStoreName(),

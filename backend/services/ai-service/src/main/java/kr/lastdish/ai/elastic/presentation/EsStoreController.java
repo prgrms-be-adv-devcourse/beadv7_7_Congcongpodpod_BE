@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import kr.lastdish.ai.elastic.application.StoreQueryService;
-import kr.lastdish.ai.elastic.presentation.dto.StoreResponse;
+import kr.lastdish.ai.elastic.presentation.dto.EsStoreResponse;
 import kr.lastdish.common.api.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +20,7 @@ public class EsStoreController {
 
   @Operation(summary = "반경 내 매장 목록 및 대표 메뉴 조회")
   @GetMapping("/nearby")
-  public ResponseEntity<ApiResponse<List<StoreResponse>>> getNearbyStores(
+  public ResponseEntity<ApiResponse<List<EsStoreResponse>>> getNearbyStores(
       @RequestParam Double latitude,
       @RequestParam Double longitude,
       @RequestParam(defaultValue = "3.0") Double radiusKm,
@@ -28,7 +28,7 @@ public class EsStoreController {
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
 
-    List<StoreResponse> stores =
+    List<EsStoreResponse> stores =
         storeQueryService.getStoresByLocation(
             latitude, longitude, radiusKm, hasAvailableDish, page, size);
 
