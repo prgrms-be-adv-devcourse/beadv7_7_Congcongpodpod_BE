@@ -167,9 +167,7 @@ public class StoreService {
         .findByStoreId(storeId)
         .map(PayoutAccountResult::from)
         .orElseThrow(
-            () ->
-                new BusinessException(
-                    CommonErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "등록된 정산 계좌를 찾을 수 없습니다."));
   }
 
   @Transactional

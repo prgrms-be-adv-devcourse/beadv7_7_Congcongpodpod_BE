@@ -261,8 +261,7 @@ class StoreServiceTest {
     Long storeId = 10L;
     Store store = createStore(LocalTime.now(), LocalTime.now());
     ReflectionTestUtils.setField(store, "id", storeId);
-    StorePayoutAccount account =
-        new StorePayoutAccount(storeId, "국민은행", "1234567890", "홍길동");
+    StorePayoutAccount account = new StorePayoutAccount(storeId, "국민은행", "1234567890", "홍길동");
     ReflectionTestUtils.setField(account, "id", 20L);
 
     when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
