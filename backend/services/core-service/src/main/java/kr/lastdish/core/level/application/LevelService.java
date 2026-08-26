@@ -1,12 +1,17 @@
 package kr.lastdish.core.level.application;
 
 import java.math.BigDecimal;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.common.api.exception.CommonErrorCode;
+import kr.lastdish.core.level.application.dto.LevelPurchaseResult;
 import kr.lastdish.core.level.application.dto.LevelResponse;
 import kr.lastdish.core.level.domain.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LevelService {
@@ -26,7 +31,17 @@ public class LevelService {
 
   // 픽업완료 시 구매 횟수 증가, 등급 재계산 및 승급 처리, 승급 시 이력 기록
   @Transactional
-  public void recordPurchase(Long memberId, BigDecimal discountAmount) {
+  public LevelPurchaseResult recordPurchase(
+      Long memberId, Long orderId, BigDecimal discountAmount) {
+    if (discountAmount == null || discountAmount.compareTo(BigDecimal.ZERO) < 0) {
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, "할인 금액은 0 이상이어야 합니다. discountAmount=" + discountAmount);
+    }
+    if (levelHistoryRepository.existsByOrderId(orderId)) {
+      log.info("이미 레벨 반영이 완료된 주문입니다. 스킵합니다. orderId={}", orderId);
+      Level existing = getOrDefaultLevel(memberId);
+      return new LevelPurchaseResult(false, existing.getDishLevel());
+    }
 
     levelRepository.createDefaultIfAbsent(memberId);
 
@@ -41,11 +56,11 @@ public class LevelService {
     DishLevel oldLevel = level.getDishLevel();
     boolean upgraded = level.upgradeLevel();
 
-    if (upgraded) {
-      levelHistoryRepository.save(
-          LevelHistory.recordUpgrade(
-              memberId, oldLevel, level.getDishLevel(), level.getPurchaseCount()));
-    }
+    levelHistoryRepository.save(
+        LevelHistory.recordPurchase(
+            memberId, orderId, oldLevel, level.getDishLevel(), level.getPurchaseCount()));
+
+    return new LevelPurchaseResult(upgraded, level.getDishLevel());
   }
 
   // 회원의 현재 등급에 해당하는 적립률 조회 (Point 도메인이 적립 계산 시 사용)

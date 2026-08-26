@@ -21,6 +21,9 @@ public class LevelHistory {
   @Column(name = "member_id", nullable = false, updatable = false)
   private Long memberId;
 
+  @Column(name = "order_id", nullable = false, updatable = false)
+  private Long orderId;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "old_level", nullable = false)
   private DishLevel oldLevel;
@@ -37,21 +40,35 @@ public class LevelHistory {
 
   @Builder(access = AccessLevel.PRIVATE)
   private LevelHistory(
-      Long memberId, DishLevel oldLevel, DishLevel newLevel, int purchaseCountAtChange) {
+      Long memberId,
+      Long orderId,
+      DishLevel oldLevel,
+      DishLevel newLevel,
+      int purchaseCountAtChange) {
     this.memberId = memberId;
+    this.orderId = orderId;
     this.oldLevel = oldLevel;
     this.newLevel = newLevel;
     this.purchaseCountAtChange = purchaseCountAtChange;
     this.createdAt = LocalDateTime.now();
   }
 
-  public static LevelHistory recordUpgrade(
-      Long memberId, DishLevel oldLevel, DishLevel newLevel, int purchaseCountAtChange) {
+  public static LevelHistory recordPurchase(
+      Long memberId,
+      Long orderId,
+      DishLevel oldLevel,
+      DishLevel newLevel,
+      int purchaseCountAtChange) {
     return LevelHistory.builder()
         .memberId(memberId)
+        .orderId(orderId)
         .oldLevel(oldLevel)
         .newLevel(newLevel)
         .purchaseCountAtChange(purchaseCountAtChange)
         .build();
+  }
+
+  public boolean isUpgrade() {
+    return oldLevel != newLevel;
   }
 }
