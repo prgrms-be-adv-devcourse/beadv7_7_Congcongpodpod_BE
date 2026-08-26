@@ -10,7 +10,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
-import kr.lastdish.ai.elastic.presentation.dto.EsStoreResponse;
+import kr.lastdish.ai.elastic.presentation.dto.StoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
@@ -26,7 +26,7 @@ public class StoreQueryService {
 
   private final ElasticsearchOperations elasticsearchOperations;
 
-  public List<EsStoreResponse> getStoresByLocation(
+  public List<StoreResponse> getStoresByLocation(
       Double latitude,
       Double longitude,
       Double radiusKm,
@@ -92,6 +92,6 @@ public class StoreQueryService {
     SearchHits<StoreDocument> searchHits =
         elasticsearchOperations.search(query, StoreDocument.class);
 
-    return searchHits.stream().map(SearchHit::getContent).map(EsStoreResponse::from).toList();
+    return searchHits.stream().map(SearchHit::getContent).map(StoreResponse::from).toList();
   }
 }

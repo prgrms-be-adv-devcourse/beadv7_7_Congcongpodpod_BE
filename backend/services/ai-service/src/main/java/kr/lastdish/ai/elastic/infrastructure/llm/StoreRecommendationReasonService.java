@@ -37,17 +37,17 @@ public class StoreRecommendationReasonService {
     Map<Long, String> generatedReasons = generateWithTimeout(topResults, rawIntent);
 
     for (StoreSearchResult result : topResults) {
-      Long storeId = result.getStore().getStoreId();
+      Long storeId = result.getStore().storeId();
       String reason = generatedReasons.get(storeId);
       result.setReason(reason != null ? reason : buildDefaultReason(result));
     }
   }
 
   private Map<Long, String> generateWithTimeout(
-      List<StoreSearchResult> topResults, String rawIntent) {
+          List<StoreSearchResult> topResults, String rawIntent) {
     CompletableFuture<Map<Long, String>> future =
-        CompletableFuture.supplyAsync(
-            () -> generateReasonsViaLlm(topResults, rawIntent), recommendationReasonExecutor);
+            CompletableFuture.supplyAsync(
+                    () -> generateReasonsViaLlm(topResults, rawIntent), recommendationReasonExecutor);
 
     try {
       return future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -62,9 +62,9 @@ public class StoreRecommendationReasonService {
   }
 
   private Map<Long, String> generateReasonsViaLlm(
-      List<StoreSearchResult> topResults, String rawIntent) {
+          List<StoreSearchResult> topResults, String rawIntent) {
     BeanOutputConverter<RecommendationReasonResponse> converter =
-        new BeanOutputConverter<>(RecommendationReasonResponse.class);
+            new BeanOutputConverter<>(RecommendationReasonResponse.class);
 
     List<StoreReasonPromptItem> items = topResults.stream().map(this::toPromptItem).toList();
 
@@ -77,58 +77,55 @@ public class StoreRecommendationReasonService {
     }
 
     return parsed.reasons().stream()
-        .collect(
-            Collectors.toMap(
-                RecommendationReasonResponse.StoreReason::storeId,
-                RecommendationReasonResponse.StoreReason::reason,
-                (a, b) -> a));
+            .collect(
+                    Collectors.toMap(
+                            RecommendationReasonResponse.StoreReason::storeId,
+                            RecommendationReasonResponse.StoreReason::reason,
+                            (a, b) -> a));
   }
 
   private StoreReasonPromptItem toPromptItem(StoreSearchResult result) {
     var store = result.getStore();
-    String dishName =
-        (store.getDishes() != null && !store.getDishes().isEmpty())
-            ? store.getDishes().get(0).getDishName()
-            : null;
+    String dishName = store.cheapestDish() != null ? store.cheapestDish().dishName() : null;
 
     return new StoreReasonPromptItem(
-        store.getStoreId(),
-        store.getStoreName(),
-        dishName,
-        result.getScoreBreakdown() != null ? result.getScoreBreakdown().getDistanceScore() : null,
-        result.getScoreBreakdown() != null
-            ? result.getScoreBreakdown().getDiscountRateScore()
-            : null,
-        result.getBadges());
+            store.storeId(),
+            store.storeName(),
+            dishName,
+            result.getScoreBreakdown() != null ? result.getScoreBreakdown().getDistanceScore() : null,
+            result.getScoreBreakdown() != null
+                    ? result.getScoreBreakdown().getDiscountRateScore()
+                    : null,
+            result.getBadges());
   }
 
   private Prompt createPrompt(
-      String rawIntent,
-      List<StoreReasonPromptItem> items,
-      BeanOutputConverter<RecommendationReasonResponse> converter) {
+          String rawIntent,
+          List<StoreReasonPromptItem> items,
+          BeanOutputConverter<RecommendationReasonResponse> converter) {
     String templateText =
-        """
-                당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
-                사용자가 "{rawIntent}"라는 의도로 검색했고, 아래는 이미 순위가 정해진 상위 매장 목록입니다.
-
-                각 매장에 대해, 왜 이 매장이 추천 목록에 올랐는지 한국어로 한 문장씩 자연스럽게 설명해주세요.
-
-                규칙:
-                1. 반드시 주어진 정보(배지, 거리, 할인율)에 근거해서만 작성합니다. 없는 사실을 지어내지 마세요.
-                2. 각 문장은 20자 내외로 짧고 친근하게 작성합니다.
-                3. storeId는 입력값을 그대로 사용합니다.
-
-                매장 목록: {items}
-
-                {format}
-                """;
+            """
+                    당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
+                    사용자가 "{rawIntent}"라는 의도로 검색했고, 아래는 이미 순위가 정해진 상위 매장 목록입니다.
+    
+                    각 매장에 대해, 왜 이 매장이 추천 목록에 올랐는지 한국어로 한 문장씩 자연스럽게 설명해주세요.
+    
+                    규칙:
+                    1. 반드시 주어진 정보(배지, 거리, 할인율)에 근거해서만 작성합니다. 없는 사실을 지어내지 마세요.
+                    2. 각 문장은 20자 내외로 짧고 친근하게 작성합니다.
+                    3. storeId는 입력값을 그대로 사용합니다.
+    
+                    매장 목록: {items}
+    
+                    {format}
+                    """;
 
     PromptTemplate promptTemplate = new PromptTemplate(templateText);
     return promptTemplate.create(
-        java.util.Map.of(
-            "rawIntent", rawIntent == null ? "" : rawIntent,
-            "items", items.toString(),
-            "format", converter.getFormat()));
+            java.util.Map.of(
+                    "rawIntent", rawIntent == null ? "" : rawIntent,
+                    "items", items.toString(),
+                    "format", converter.getFormat()));
   }
 
   private String buildDefaultReason(StoreSearchResult result) {

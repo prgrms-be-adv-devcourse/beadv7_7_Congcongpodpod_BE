@@ -1,7 +1,6 @@
 package kr.lastdish.ai.elastic.presentation.dto;
 
 import java.util.List;
-import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Builder
 public class StoreSearchResult {
-  private StoreDocument store;
+  private StoreResponse store;
   private double totalScore;
   private ScoreBreakdown scoreBreakdown;
   private List<String> badges;

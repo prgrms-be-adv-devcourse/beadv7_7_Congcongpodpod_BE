@@ -8,6 +8,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,33 +33,33 @@ public class SearchService {
   private final ElasticsearchOperations elasticsearchOperations;
 
   public List<SearchHit<StoreDocument>> searchStoresAndDishes(
-      ParsedSearchCondition cond, GeoPoint userLocation, List<Float> queryVector) {
+          ParsedSearchCondition cond, GeoPoint userLocation, List<Float> queryVector) {
     NativeQuery query = buildQuery(cond, userLocation, queryVector);
     SearchHits<StoreDocument> searchHits =
-        elasticsearchOperations.search(query, StoreDocument.class);
+            elasticsearchOperations.search(query, StoreDocument.class);
     return searchHits.getSearchHits();
   }
 
   private NativeQuery buildQuery(
-      ParsedSearchCondition cond, GeoPoint userLocation, List<Float> queryVector) {
+          ParsedSearchCondition cond, GeoPoint userLocation, List<Float> queryVector) {
     BoolQuery mainBool = buildMainBoolQuery(cond, userLocation);
 
     NativeQueryBuilder builder =
-        new NativeQueryBuilder()
-            .withQuery(Query.of(q -> q.bool(mainBool)))
-            .withPageable(PageRequest.of(0, 10));
+            new NativeQueryBuilder()
+                    .withQuery(Query.of(q -> q.bool(mainBool)))
+                    .withPageable(PageRequest.of(0, 10));
 
     if (queryVector != null && !queryVector.isEmpty()) {
       List<Float> floatVector = new ArrayList<>(queryVector);
 
       KnnSearch knnSearch =
-          KnnSearch.of(
-              k ->
-                  k.field("vector")
-                      .queryVector(floatVector)
-                      .k(10)
-                      .numCandidates(100)
-                      .filter(Query.of(fq -> fq.bool(mainBool))));
+              KnnSearch.of(
+                      k ->
+                              k.field("vector")
+                                      .queryVector(floatVector)
+                                      .k(10)
+                                      .numCandidates(100)
+                                      .filter(Query.of(fq -> fq.bool(mainBool))));
 
       builder.withKnnSearches(knnSearch);
     }
@@ -75,37 +76,43 @@ public class SearchService {
     // 2. 위치 기반 반경 거리 필터
     if (cond.maxDistanceKm() != null && userLocation != null) {
       GeoLocation location =
-          GeoLocation.of(
-              l -> l.latlon(ll -> ll.lat(userLocation.getLat()).lon(userLocation.getLon())));
+              GeoLocation.of(
+                      l -> l.latlon(ll -> ll.lat(userLocation.getLat()).lon(userLocation.getLon())));
       mainBool.filter(
-          Query.of(
-              q ->
-                  q.geoDistance(
-                      g ->
-                          g.field("location")
-                              .distance(cond.maxDistanceKm() + "km")
-                              .distanceType(GeoDistanceType.Arc)
-                              .location(location))));
+              Query.of(
+                      q ->
+                              q.geoDistance(
+                                      g ->
+                                              g.field("location")
+                                                      .distance(cond.maxDistanceKm() + "km")
+                                                      .distanceType(GeoDistanceType.Arc)
+                                                      .location(location))));
     }
 
-    // 3. Dish 기본 필터 조건 (재고 > 0 & 판매중 & 가격, 마감 지난 상품 제외)
-    BoolQuery.Builder dishFilterBool = new BoolQuery.Builder();
-    dishFilterBool.filter(
-        Query.of(q -> q.range(r -> r.number(n -> n.field("dishes.stockQuantity").gt(0.0)))));
-    dishFilterBool.filter(
-        Query.of(q -> q.term(t -> t.field("dishes.dishStatus").value("ON_SALE"))));
-    dishFilterBool.filter(
-        Query.of(q -> q.range(r -> r.date(d -> d.field("dishes.pickupEndTime").gte("now")))));
+    // 3. Dish 판매 가능 조건 (재고 > 0 & 판매중 & 가격, 마감 지난 상품 제외)
+    //    검색어 유무와 관계없이 항상 filter로 적용 - should로 두면 매장명만 일치해도 우회될 수 있음
+    BoolQuery.Builder availableDishBool = new BoolQuery.Builder();
+    availableDishBool.filter(
+            Query.of(q -> q.range(r -> r.number(n -> n.field("dishes.stockQuantity").gt(0.0)))));
+    availableDishBool.filter(
+            Query.of(q -> q.term(t -> t.field("dishes.dishStatus").value("ON_SALE"))));
+
+    // pickupEndTime은 날짜 없는 LocalTime(HH:mm:ss)이라 ES의 "now"(날짜 포함)와 직접 비교 불가.
+    // 같은 포맷(HH:mm:ss)의 현재 시각 문자열로 변환해서 비교한다.
+    String nowTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+    availableDishBool.filter(
+            Query.of(q -> q.range(r -> r.date(d -> d.field("dishes.pickupEndTime").gte(nowTime)))));
+
     if (cond.maxPrice() != null) {
-      dishFilterBool.filter(
-          Query.of(
-              q ->
-                  q.range(
-                      r ->
-                          r.number(
-                              n ->
-                                  n.field("dishes.discountPrice")
-                                      .lte(cond.maxPrice().doubleValue())))));
+      availableDishBool.filter(
+              Query.of(
+                      q ->
+                              q.range(
+                                      r ->
+                                              r.number(
+                                                      n ->
+                                                              n.field("dishes.discountPrice")
+                                                                      .lte(cond.maxPrice().doubleValue())))));
     }
 
     // 희망 픽업 시각(pickupDeadline): "이 시각 이전에 픽업하고 싶다"는 의도이므로
@@ -114,51 +121,54 @@ public class SearchService {
     // "픽업 가능 구간이 [now, pickupDeadline]과 겹친다"를 표현
     if (cond.pickupDeadline() != null) {
       String deadline = cond.pickupDeadline().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-      dishFilterBool.filter(
-          Query.of(
-              q -> q.range(r -> r.date(d -> d.field("dishes.pickupStartTime").lte(deadline)))));
+      availableDishBool.filter(
+              Query.of(
+                      q -> q.range(r -> r.date(d -> d.field("dishes.pickupStartTime").lte(deadline)))));
     }
 
     // 카테고리 필터. dishes.category가 Keyword로 매핑되어 있어야 term 매칭이 정상 동작한다.
     if (cond.category() != null && !cond.category().isBlank()) {
-      dishFilterBool.filter(
-          Query.of(q -> q.term(t -> t.field("dishes.category").value(cond.category()))));
+      availableDishBool.filter(
+              Query.of(q -> q.term(t -> t.field("dishes.category").value(cond.category()))));
     }
 
-    // 4. 키워드가 존재할 때만 should 검색 적용
+    NestedQuery availableDishFilter =
+            NestedQuery.of(
+                    n ->
+                            n.path("dishes")
+                                    .query(Query.of(dq -> dq.bool(availableDishBool.build())))
+                                    .scoreMode(ChildScoreMode.Max));
+
+    // 판매 가능 상품 조건은 검색어 유무와 무관하게 항상 필수
+    mainBool.filter(Query.of(q -> q.nested(availableDishFilter)));
+
+    // 4. 키워드가 존재할 때만 매장명/메뉴 텍스트 should 검색 적용
     boolean hasQuery = cond.rawIntent() != null && !cond.rawIntent().isBlank();
 
     if (hasQuery) {
       // 4-1. 가게 이름 검색 (Should)
       MultiMatchQuery storeMatch =
-          MultiMatchQuery.of(m -> m.fields("storeName^1.5").query(cond.rawIntent()));
+              MultiMatchQuery.of(m -> m.fields("storeName^1.5").query(cond.rawIntent()));
       mainBool.should(Query.of(q -> q.multiMatch(storeMatch)));
 
-      // 4-2. 메뉴 이름 및 설명 검색 (Should)
-      dishFilterBool.should(
-          Query.of(
-              q ->
-                  q.multiMatch(
-                      m ->
-                          m.fields("dishes.dishName^2.0", "dishes.description")
-                              .query(cond.rawIntent()))));
+      // 4-2. 메뉴 이름/설명 텍스트 검색 (Should) - 판매 가능 조건(availableDishFilter)과는
+      //      완전히 분리된 별도 nested 쿼리. 매장명만 일치해도 재고/판매상태 필터를 우회할 수 없다.
+      NestedQuery dishTextQuery =
+              NestedQuery.of(
+                      n ->
+                              n.path("dishes")
+                                      .query(
+                                              Query.of(
+                                                      dq ->
+                                                              dq.multiMatch(
+                                                                      m ->
+                                                                              m.fields("dishes.dishName^2.0", "dishes.description")
+                                                                                      .query(cond.rawIntent()))))
+                                      .scoreMode(ChildScoreMode.Max));
+      mainBool.should(Query.of(q -> q.nested(dishTextQuery)));
 
-      // 검색어가 있을 때는 should 중 1개 이상 매칭 필수
+      // 검색어가 있을 때는 should(매장명 또는 메뉴 텍스트) 중 1개 이상 매칭 필수
       mainBool.minimumShouldMatch("1");
-    }
-
-    // Dish Nested 필터를 mainBool의 filter절에 포함
-    NestedQuery nestedQuery =
-        NestedQuery.of(
-            n ->
-                n.path("dishes")
-                    .query(Query.of(dq -> dq.bool(dishFilterBool.build())))
-                    .scoreMode(ChildScoreMode.Max));
-
-    if (hasQuery) {
-      mainBool.should(Query.of(q -> q.nested(nestedQuery)));
-    } else {
-      mainBool.filter(Query.of(q -> q.nested(nestedQuery)));
     }
 
     return mainBool.build();
