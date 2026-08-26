@@ -25,6 +25,14 @@ spring:
                 allowed-headers: [Authorization, Content-Type]
                 max-age: 3600
           routes:
+            - id: member-notification-stream
+              uri: ${MEMBER_SERVICE_URL}
+              predicates:
+                - Path=/api/v1/notifications/stream
+              metadata:
+                # SSE는 응답이 끝나지 않는 연결이다. 전역 10초 제한을 적용하면
+                # Gateway가 정상 연결을 G504로 종료한다.
+                response-timeout: -1
             - id: core-service
               uri: ${CORE_SERVICE_URL}
               predicates:
