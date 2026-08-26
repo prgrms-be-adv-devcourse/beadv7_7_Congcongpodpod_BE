@@ -24,11 +24,13 @@ public class EsStoreController {
       @RequestParam Double latitude,
       @RequestParam Double longitude,
       @RequestParam(defaultValue = "3.0") Double radiusKm,
+      @RequestParam(defaultValue = "false") Boolean hasAvailableDish,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
 
     List<StoreResponse> stores =
-        storeQueryService.getStoresByLocation(latitude, longitude, radiusKm, page, size);
+        storeQueryService.getStoresByLocation(
+            latitude, longitude, radiusKm, hasAvailableDish, page, size);
 
     return ResponseEntity.ok(ApiResponse.ok(stores));
   }
