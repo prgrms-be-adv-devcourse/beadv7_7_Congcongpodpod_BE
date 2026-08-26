@@ -81,8 +81,13 @@ public class OrderRepositoryImpl implements OrderRepository {
   }
 
   @Override
-  public List<Order> findPickupExpirationTargets(Long storeId, LocalDateTime now) {
-    return orderJpaRepository.findPickupExpirationTargets(storeId, now);
+  public List<Order> findPickupExpirationTargets(LocalDateTime now, Pageable pageable) {
+    return orderJpaRepository.findPickupExpirationTargets(now, pageable);
+  }
+
+  @Override
+  public boolean existsActiveOrderByDishId(Long dishId) {
+    return orderJpaRepository.existsActiveOrderByDishId(dishId);
   }
 
   @Override

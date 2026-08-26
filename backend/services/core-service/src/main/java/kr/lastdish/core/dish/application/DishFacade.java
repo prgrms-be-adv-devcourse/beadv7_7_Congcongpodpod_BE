@@ -2,6 +2,7 @@ package kr.lastdish.core.dish.application;
 
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.dish.application.dto.DishSnapshot;
 import kr.lastdish.core.dish.domain.Dish;
 import kr.lastdish.core.dish.domain.DishRepository;
@@ -10,6 +11,7 @@ import kr.lastdish.core.dish.presentation.dto.DishCreateRequest;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
 import kr.lastdish.core.dish.presentation.dto.DishStatusRequest;
 import kr.lastdish.core.dish.presentation.dto.DishUpdateRequest;
+import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class DishFacade {
   private final DishService dishService;
   private final StoreService storeService;
   private final DishImageService dishImageService;
+  private final OrderService orderService;
 
   public DishResponse createDish(Long memberId, DishCreateRequest request) {
     storeService.validateSeller(request.storeId(), memberId);
@@ -64,9 +67,11 @@ public class DishFacade {
   @Transactional
   public DishResponse updateDish(Long memberId, Long dishId, DishUpdateRequest request) {
     Dish dish = dishRepository.findByIdAndIsDeletedFalse(dishId);
-    storeService.validateSeller(dish.getStoreId(), memberId);
-    storeService.validateDishPickupTime(
-        dish.getStoreId(), request.pickupStartTime(), request.pickupEndTime());
+    storeService.validateDishUpdate(
+        dish.getStoreId(), memberId, request.pickupStartTime(), request.pickupEndTime());
+    if (orderService.hasActiveOrdersForDish(dishId)) {
+      throw new BusinessException(ErrorCode.DISH_HAS_ACTIVE_ORDERS);
+    }
     return dishService.updateDish(dishId, request);
   }
 
@@ -109,9 +114,11 @@ public class DishFacade {
         .map(DishFacade::toSnapshot);
   }
 
-  /** Dish가 soft delete되었거나 존재하지 않으면 true를 반환합니다. */
-  public boolean isDishDeleted(Long dishId) {
-    return dishRepository.findByIdIncludingDeleted(dishId).map(Dish::getIsDeleted).orElse(true);
+  public void validateAvailable(Long dishId) {
+    dishRepository
+        .findAvailableById(dishId)
+        .filter(Dish::isAvailable)
+        .orElseThrow(() -> new BusinessException(ErrorCode.DISH_NOT_ON_SALE));
   }
 
   // 마감할인 서비스 특성상 스냅샷 단가는 discountPrice로 잡는다.
