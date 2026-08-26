@@ -21,11 +21,12 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { getStoreCategoryVisual, STORE_CATEGORY_KEYS } from '@/lib/store-category';
 import { getStoreProfileImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
-import { formatCheapestDishOffer, getCheapestDish } from '@/lib/store-pricing';
+import { formatCheapestDishOffer, getCheapestDish, hasAvailableDish } from '@/lib/store-pricing';
 import { searchStores as searchAllStores } from '@/lib/stores';
 import { radiusForBounds } from '@/lib/map-viewport';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
+import { useStoreAvailability } from '@/providers/store-availability-provider';
 import type { Store } from '@/types/store';
 
 const homeCategories = STORE_CATEGORY_KEYS;
@@ -43,6 +44,7 @@ export default function HomeScreen() {
   const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(5);
   const { member } = useAuth();
   const { item: cartItem } = useCart();
+  const { onlyAvailable, setOnlyAvailable } = useStoreAvailability();
   const { contentWidth, gutter, isCompact, isDesktopWeb } = useResponsiveLayout();
   const reducedMotion = useReducedMotion();
   const { top, bottom } = useSafeAreaInsets();
@@ -92,10 +94,11 @@ export default function HomeScreen() {
   }));
 
   const filteredStores = useMemo(() => stores.filter((store) => {
+    const availabilityMatches = !onlyAvailable || hasAvailableDish(store);
     const categoryMatches = !selectedCategory || store.category === selectedCategory;
     const priceMatches = !underTen || store.dishes.some((dish) => dish.discountPrice <= 10_000);
-    return categoryMatches && priceMatches;
-  }), [selectedCategory, stores, underTen]);
+    return availabilityMatches && categoryMatches && priceMatches;
+  }), [onlyAvailable, selectedCategory, stores, underTen]);
   const markerStores = useMemo(() => {
     if (mapCamera.zoom < 13.5) return [];
     // 지도 SDK가 실제 화면 밖 마커를 클리핑합니다. 카메라 중심의 임의 원형 범위나
@@ -271,6 +274,17 @@ export default function HomeScreen() {
           </Pressable>
           <View style={styles.mapControls}><Pressable accessibilityLabel={`지도 확대, 현재 줌 ${mapCamera.zoom.toFixed(1)}`} style={({ pressed }) => [styles.control, pressed && styles.controlPressed]} onPress={() => issueCameraCommand({ id: Date.now(), type: 'zoomIn' })}><Ionicons name="add" size={21} color={colors.ink900} /></Pressable><View style={styles.controlLine}/><Pressable accessibilityLabel={`지도 축소, 현재 줌 ${mapCamera.zoom.toFixed(1)}`} style={({ pressed }) => [styles.control, pressed && styles.controlPressed]} onPress={() => issueCameraCommand({ id: Date.now(), type: 'zoomOut' })}><Ionicons name="remove" size={21} color={colors.ink900} /></Pressable></View>
           <Pressable accessibilityRole="button" accessibilityLabel="내 위치로 이동" style={({ pressed }) => [styles.recenter, pressed && styles.controlPressed]} onPress={() => { setSelected(null); setPendingCenter(null); loadedCenter.current = location; loadedViewport.current = { ...mapCamera, ...location, zoom: 15 }; issueCameraCommand({ id: Date.now(), type: 'location' }); }}><Ionicons name="locate" size={19} color={colors.green500} /></Pressable>
+        </Animated.View>
+
+        <Animated.View
+          pointerEvents={!isDesktopWeb && mapControlsHidden ? 'none' : 'auto'}
+          style={[
+            styles.availabilityAction,
+            { bottom: floatingBarClearance + 18, opacity: mapControlsOpacity },
+            !isDesktopWeb && { transform: [{ translateY: Animated.multiply(sheetVisibleHeight, -1) }] },
+          ]}
+        >
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: onlyAvailable }} accessibilityLabel={onlyAvailable ? '픽업 가능 매장만 보는 중, 전체 매장 보기' : '전체 매장 보는 중, 픽업 가능 매장만 보기'} onPress={() => { setOnlyAvailable(!onlyAvailable); setSelected(null); void Haptics.selectionAsync(); }} style={({ pressed }) => [styles.availabilityButton, onlyAvailable && styles.availabilityButtonActive, pressed && styles.controlPressed]}><Ionicons name={onlyAvailable ? 'bag-check-outline' : 'storefront-outline'} size={17} color={onlyAvailable ? colors.white : colors.ink900}/><Text style={[styles.availabilityText, onlyAvailable && styles.availabilityTextActive]}>{onlyAvailable ? '픽업 가능만' : '전체 매장'}</Text></Pressable>
         </Animated.View>
 
         {(loading || error) && !pendingCenter && <View style={[styles.notice, { top: top + 111, width: Math.min(contentWidth - gutter * 2, 360) }]}> 
@@ -458,6 +472,11 @@ const styles = StyleSheet.create({
   areaRefresh: { position: 'absolute', alignSelf: 'center', minHeight: 38, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.green300, ...shadow.control },
   areaRefreshText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   mapActionStack: { position: 'absolute', right: 14, alignItems: 'center', gap: 9, zIndex: 12 },
+  availabilityAction: { position: 'absolute', left: 14, zIndex: 12 },
+  availabilityButton: { minHeight: 42, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  availabilityButtonActive: { backgroundColor: colors.green500, borderColor: colors.green500 },
+  availabilityText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
+  availabilityTextActive: { color: colors.white },
   mapControls: { width: 42, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compass: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compassRose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },

@@ -25,6 +25,7 @@ type ApiStore = {
   openTime?: string;
   closeTime?: string;
   status?: string;
+  hasAvailableDish?: boolean;
   latitude?: number;
   longitude?: number;
   category?: string;
@@ -83,6 +84,7 @@ const mapStore = (store: ApiStore): Store => ({
   openTime: store.openTime,
   closeTime: store.closeTime,
   status: store.status,
+  hasAvailableDish: store.hasAvailableDish,
   latitude: Number(store.latitude ?? 0),
   longitude: Number(store.longitude ?? 0),
   coverImageUrl: store.coverImageUrl ?? store.imageUrl ?? store.thumbnailUrl ?? undefined,
