@@ -26,8 +26,6 @@ import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.store.application.StoreService;
-import kr.lastdish.core.store.application.dto.StoreResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -234,15 +232,9 @@ class OrderServiceTest {
   void cancelOrder_success() {
     Long memberId = 1L;
     Long orderId = 2L;
-    Long storeId = 3L;
-    Long sellerMemberId = 4L;
     Order order = mock(Order.class);
-    StoreResult store = mock(StoreResult.class);
 
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
-    when(order.getStoreId()).thenReturn(storeId);
-    when(storeService.getStore(storeId)).thenReturn(store);
-    when(store.memberId()).thenReturn(sellerMemberId);
 
     Order result = orderService.cancelOrder(memberId, orderId);
 
@@ -250,7 +242,7 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId);
     verify(orderStatusChangedEventWriter).append(order);
-    verify(orderNotificationEventWriter).appendCancelled(order, sellerMemberId);
+    verify(orderNotificationEventWriter, never()).appendCancelled(any(), anyLong());
   }
 
   @Test

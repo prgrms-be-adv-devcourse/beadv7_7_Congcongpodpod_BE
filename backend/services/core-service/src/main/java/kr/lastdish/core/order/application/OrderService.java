@@ -107,8 +107,6 @@ public class OrderService {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
     orderStatusChangedEventWriter.append(order);
-    Long sellerMemberId = storeService.getStore(order.getStoreId()).memberId();
-    orderNotificationEventWriter.appendCancelled(order, sellerMemberId);
     return order;
   }
 

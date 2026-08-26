@@ -98,6 +98,9 @@ public class OrderFacade {
     // 결제 환불
     depositFacade.refund(memberId, orderId, order.getTotalPrice());
 
+    Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
+    orderNotificationEventWriter.appendCancelled(order, sellerMemberId);
+
     return OrderResult.from(order);
   }
 
