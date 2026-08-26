@@ -162,11 +162,6 @@ public class Dish {
     }
   }
 
-  public void closeSale() {
-    this.stockQuantity = 0L;
-    this.dishStatus = DishStatus.SOLD_OUT;
-  }
-
   private void validateOnSale() {
     if (this.dishStatus != DishStatus.ON_SALE) {
       throw new BusinessException(ErrorCode.DISH_NOT_ON_SALE);

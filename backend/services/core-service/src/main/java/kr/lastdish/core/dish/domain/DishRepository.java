@@ -14,8 +14,6 @@ public interface DishRepository {
 
   Optional<Dish> findAvailableById(Long dishId);
 
-  Optional<Dish> findByIdIncludingDeleted(Long dishId);
-
   boolean existsByStoreIdAndIsDeletedFalse(Long storeId);
 
   List<Dish> findOnSaleByStoreId(Long storeId);

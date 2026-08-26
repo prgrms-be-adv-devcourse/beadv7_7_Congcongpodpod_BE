@@ -34,7 +34,7 @@ class CartServiceTest {
   @InjectMocks private CartService cartService;
 
   @Test
-  void 장바구니_조회시_Dish가_soft_delete되었으면_주문_불가능으로_응답한다() {
+  void 장바구니_조회시_Dish가_삭제되었거나_판매중이_아니면_주문_불가능으로_응답한다() {
     Long memberId = 1L;
     Long cartId = 2L;
     Long dishId = 10L;
@@ -56,7 +56,7 @@ class CartServiceTest {
     when(cart.getMemberId()).thenReturn(memberId);
     when(cartRepository.findByMemberId(memberId)).thenReturn(Optional.of(cart));
     when(cartItemRepository.findByCartId(cartId)).thenReturn(Optional.of(cartItem));
-    when(dishFacade.isDishDeleted(dishId)).thenReturn(true);
+    when(dishFacade.findDishSnapshot(dishId)).thenReturn(Optional.empty());
 
     CartResponse response = cartService.getCartByMemberId(memberId);
 
