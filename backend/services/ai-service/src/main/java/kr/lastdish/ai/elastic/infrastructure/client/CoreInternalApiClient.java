@@ -84,7 +84,7 @@ public class CoreInternalApiClient {
           from,
           to,
           e.getStatusCode());
-      return List.of();
+      throw new BusinessException(AiErrorCode.CORE_API_COMMUNICATION_ERROR);
 
     } catch (HttpServerErrorException | ResourceAccessException e) {
       // 5xx 서버 에러 또는 타임아웃, 통신 장애 -> 예외를 던져서 watermark가 전진하지 않도록 함
