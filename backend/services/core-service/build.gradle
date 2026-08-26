@@ -46,6 +46,8 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-webmvc-test'
+    // @DataJpaTest는 Boot 4에서 별도 모듈로 분리됐다. 저장소 슬라이스 테스트에 필요하다.
+    testImplementation 'org.springframework.boot:spring-boot-data-jpa-test'
     testRuntimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 

@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,15 +43,19 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
   private static final int FIRST_FAILURE_STATUS = 400;
 
   private final boolean skipSuccessfulActuatorCalls;
+  private final boolean countSqlStatements;
 
   /**
    * @param skipSuccessfulActuatorCalls 정상 {@code /actuator} 요청의 완료 로그를 생략할지. 이 로그에 기대는 대시보드나 알림이
    *     드러나면 재배포 없이 설정만 바꿔 되돌릴 수 있도록 열어둔다.
+   * @param countSqlStatements 요청이 실행한 SQL 문의 수를 함께 남길지. 계측 오버헤드가 있으므로 기본은 끔이고, 측정할 때만 켠다.
    */
   public RequestCompletionLoggingFilter(
       @Value("${request-log.skip-successful-actuator-calls:true}")
-          boolean skipSuccessfulActuatorCalls) {
+          boolean skipSuccessfulActuatorCalls,
+      @Value("${request-log.count-sql-statements:false}") boolean countSqlStatements) {
     this.skipSuccessfulActuatorCalls = skipSuccessfulActuatorCalls;
+    this.countSqlStatements = countSqlStatements;
   }
 
   @Override
@@ -64,23 +69,39 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
       throws ServletException, IOException {
     long startedAt = System.nanoTime();
 
-    filterChain.doFilter(request, response);
-
-    // 이 줄에 도달했다는 것은 응답이 정상적으로 만들어졌다는 뜻이다.
-    // 예외가 빠져나가면 최종 상태를 알 수 없으므로 완료 로그를 남기지 않고 그대로 전파한다.
-    String pathPattern = resolvePathPattern(request);
-
-    if (isRoutineInfrastructureCall(pathPattern, response.getStatus())) {
-      return;
+    if (countSqlStatements) {
+      SqlStatementCounter.start();
     }
 
-    // requestId는 RequestIdFilter가 올린 MDC를 통해 로그 필드로 붙으므로 메시지에 넣지 않는다.
-    log.info(
-        "요청 처리가 완료되었습니다. method={}, pathPattern={}, status={}, durationMs={}",
-        request.getMethod(),
-        pathPattern,
-        response.getStatus(),
-        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+    try {
+      filterChain.doFilter(request, response);
+
+      // 이 줄에 도달했다는 것은 응답이 정상적으로 만들어졌다는 뜻이다.
+      // 예외가 빠져나가면 최종 상태를 알 수 없으므로 완료 로그를 남기지 않고 그대로 전파한다.
+      String pathPattern = resolvePathPattern(request);
+
+      if (isRoutineInfrastructureCall(pathPattern, response.getStatus())) {
+        return;
+      }
+
+      // requestId는 RequestIdFilter가 올린 MDC를 통해 로그 필드로 붙으므로 메시지에 넣지 않는다.
+      log.info(
+          "요청 처리가 완료되었습니다. method={}, pathPattern={}, status={}, durationMs={}{}",
+          request.getMethod(),
+          pathPattern,
+          response.getStatus(),
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt),
+          queryCountSuffix());
+    } finally {
+      // 스레드 풀이 이 스레드를 다음 요청에 재사용하므로, 어떤 경로로 빠져나가든 반드시 비운다.
+      SqlStatementCounter.clear();
+    }
+  }
+
+  /** 계측 중일 때만 실행한 SQL 수를 메시지 끝에 덧붙인다. 꺼져 있으면 기존 로그 형식 그대로 남는다. */
+  private String queryCountSuffix() {
+    OptionalInt count = SqlStatementCounter.count();
+    return count.isPresent() ? ", queryCount=" + count.getAsInt() : "";
   }
 
   /** 인프라가 주기적으로 부르는 경로이면서 정상 응답이면 기록할 가치가 없다고 본다. */
