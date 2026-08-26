@@ -2,6 +2,7 @@ package kr.lastdish.core.deposit.application.event;
 
 import kr.lastdish.common.event.EventMessage;
 import kr.lastdish.common.inbox.domain.InboxEventHandler;
+import kr.lastdish.common.inbox.domain.InboxExhaustionHandler;
 import kr.lastdish.common.inbox.domain.InboxProcessingPolicy;
 import kr.lastdish.core.deposit.application.DepositFacade;
 import kr.lastdish.core.deposit.domain.DepositChargeFailure;
@@ -15,7 +16,7 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ChargeRequestedMessageHandler implements InboxEventHandler {
+public class ChargeRequestedMessageHandler implements InboxEventHandler, InboxExhaustionHandler {
 
   private final ObjectMapper objectMapper;
   private final DepositFacade depositFacade;
