@@ -97,9 +97,7 @@ public class StoreService {
   }
 
   @Transactional
-  public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
-    Store store = getOwnedStoreWithLock(storeId, memberId);
-
+  public StoreResult changeStatus(Store store, StoreStatus status) {
     store.changeStatus(status);
 
     //    TODO : 리스너 구현 시 이벤트 발행 활성화
@@ -122,7 +120,7 @@ public class StoreService {
   }
 
   // 이벤트를 발행하는 변경 메서드용 — 행 잠금으로 eventVersion 경합을 막고 소유권을 검증한다.
-  private Store getOwnedStoreWithLock(Long storeId, Long memberId) {
+  public Store getOwnedStoreWithLock(Long storeId, Long memberId) {
     Store store =
         storeRepository
             .findWithLockById(storeId)

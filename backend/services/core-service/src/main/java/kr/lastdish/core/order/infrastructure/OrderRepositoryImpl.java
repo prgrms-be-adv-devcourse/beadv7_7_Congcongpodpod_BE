@@ -84,4 +84,10 @@ public class OrderRepositoryImpl implements OrderRepository {
   public List<Order> findPickupExpirationTargets(Long storeId, LocalDateTime now) {
     return orderJpaRepository.findPickupExpirationTargets(storeId, now);
   }
+
+  @Override
+  public boolean existsNotCompletedOrder(Long storeId) {
+    return orderJpaRepository.existsNotCompletedOrder(
+        storeId, List.of(OrderStatus.RESERVED, OrderStatus.PICKUP_READY));
+  }
 }
