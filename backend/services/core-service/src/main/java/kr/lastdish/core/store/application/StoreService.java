@@ -116,7 +116,7 @@ public class StoreService {
   }
 
   // 이벤트를 발행하는 변경 메서드용 — 행 잠금으로 eventVersion 경합을 막고 소유권을 검증한다.
-  private Store getOwnedStoreWithLock(Long storeId, Long memberId) {
+  Store getOwnedStoreWithLock(Long storeId, Long memberId) {
     Store store = findStoreWithLock(storeId);
 
     if (!store.isOwnedBy(memberId)) {
