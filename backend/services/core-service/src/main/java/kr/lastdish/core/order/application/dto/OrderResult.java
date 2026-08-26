@@ -20,6 +20,7 @@ public record OrderResult(
     Long quantity,
     BigDecimal unitPrice,
     BigDecimal totalPrice,
+    BigDecimal usedPoint,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
   public static OrderResult from(Order order) {
@@ -37,6 +38,7 @@ public record OrderResult(
         order.getQuantity(),
         order.getUnitPrice(),
         order.getTotalPrice(),
+        order.getUsedPoint(),
         order.getPickupStartAt(),
         order.getPickupEndAt());
   }
