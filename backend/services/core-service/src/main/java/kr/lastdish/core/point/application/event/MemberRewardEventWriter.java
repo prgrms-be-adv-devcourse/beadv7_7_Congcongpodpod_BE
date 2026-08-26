@@ -39,17 +39,16 @@ public class MemberRewardEventWriter {
     outboxEventWriter.append(event);
   }
 
-
   public void appendDishReportCompleted(Long memberId) {
     MemberRewardEvent event =
-            new MemberRewardEvent(
-                    UUID.randomUUID(),
-                    MemberRewardEvent.SCHEMA_VERSION,
-                    memberId,
-                    NOT_APPLICABLE_VERSION,
-                    new MemberRewardPayload(
-                            memberId, "DISH_REPORT_COMPLETED", null, null, null, "DISH_REPORT", null),
-                    Instant.now());
+        new MemberRewardEvent(
+            UUID.randomUUID(),
+            MemberRewardEvent.SCHEMA_VERSION,
+            memberId,
+            NOT_APPLICABLE_VERSION,
+            new MemberRewardPayload(
+                memberId, "DISH_REPORT_COMPLETED", null, null, null, "DISH_REPORT", null),
+            Instant.now());
 
     outboxEventWriter.append(event);
   }
