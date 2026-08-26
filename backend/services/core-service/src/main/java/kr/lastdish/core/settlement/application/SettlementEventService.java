@@ -85,9 +85,10 @@ public class SettlementEventService {
     } catch (Exception exception) {
       String failureReason = extractFailureReason(exception);
 
-      // Accumulating -> Processing 전환 중 오류 시 Accumulating 상태로 남음, 상태 변경 시 오류 발생 해소 (누적 중 상태는 failed
-      // 처리 불가)
-      saveFailureIfProcessing(settlement.getId(), failureReason);
+      // Accumulating -> Processing 전환 중 오류 시 Accumulating 상태로 남음
+      // 누적 중 상태는 failed처리 불가, 상태 변경 시 오류 발생 해소 필요
+      // -> 별도 트랜잭션에서 최신 상태를 다시 조회한 뒤 PROCESSING인 경우에만 FAILED로 변경한다.
+      settlementTransactionalManager.failIfProcessing(settlement.getId(), failureReason);
 
       return SettlementProcessResult.failed(storeId, settlement.getId(), failureReason);
     }
@@ -107,17 +108,5 @@ public class SettlementEventService {
     }
 
     return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
-  }
-
-  private void saveFailureIfProcessing(Long settlementId, String failureReason) {
-    SettlementStatus currentStatus =
-        settlementRepository
-            .findById(settlementId)
-            .map(Settlement::getSettlementStatus)
-            .orElse(null);
-
-    if (currentStatus == SettlementStatus.PROCESSING) {
-      settlementTransactionalManager.fail(settlementId, failureReason);
-    }
   }
 }
