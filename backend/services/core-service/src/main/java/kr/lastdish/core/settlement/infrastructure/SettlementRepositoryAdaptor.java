@@ -1,5 +1,7 @@
 package kr.lastdish.core.settlement.infrastructure;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.*;
 import kr.lastdish.core.settlement.domain.Settlement;
@@ -62,6 +64,22 @@ public class SettlementRepositoryAdaptor implements SettlementRepository {
     return new HashSet<>(
         jpaSettlementRepository.findSettledStoreIds(
             storeIds, settlementMonth, SettlementStatus.COMPLETED));
+  }
+
+  @Override
+  public void insertAccumulatingIfAbsent(
+      Long storeId,
+      YearMonth settlementMonth,
+      LocalDateTime periodStart,
+      LocalDateTime periodEnd,
+      BigDecimal feeRate) {
+    jpaSettlementRepository.insertAccumulatingIfAbsent(
+        storeId, settlementMonth.toString(), periodStart, periodEnd, feeRate);
+  }
+
+  @Override
+  public List<Long> findTargetStoreIds(YearMonth settlementMonth, Set<SettlementStatus> statuses) {
+    return jpaSettlementRepository.findTargetStoreIds(settlementMonth, statuses);
   }
 
   @Override

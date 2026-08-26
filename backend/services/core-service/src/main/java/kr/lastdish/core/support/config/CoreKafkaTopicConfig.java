@@ -1,6 +1,8 @@
 package kr.lastdish.core.support.config;
 
 import kr.lastdish.core.dish.domain.event.*;
+import kr.lastdish.core.order.domain.event.OrderNoShowEvent;
+import kr.lastdish.core.order.domain.event.OrderPickedUpEvent;
 import kr.lastdish.core.order.domain.event.OrderStatusChangedEvent;
 import kr.lastdish.core.store.domain.event.StoreRegisteredEvent;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -14,6 +16,16 @@ public class CoreKafkaTopicConfig {
   @Bean
   NewTopic orderStatusChangedTopic() {
     return TopicBuilder.name(OrderStatusChangedEvent.EVENT_TYPE).partitions(3).replicas(1).build();
+  }
+
+  @Bean
+  NewTopic orderPickedUpTopic() {
+    return TopicBuilder.name(OrderPickedUpEvent.EVENT_TYPE).partitions(3).replicas(1).build();
+  }
+
+  @Bean
+  NewTopic orderNoShowTopic() {
+    return TopicBuilder.name(OrderNoShowEvent.EVENT_TYPE).partitions(3).replicas(1).build();
   }
 
   @Bean

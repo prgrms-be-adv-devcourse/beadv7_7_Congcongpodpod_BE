@@ -4,10 +4,8 @@ import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.settlement.application.dto.OrderSettlementAmount;
-import kr.lastdish.core.settlement.domain.Settlement;
-import kr.lastdish.core.settlement.domain.SettlementDetail;
-import kr.lastdish.core.settlement.domain.SettlementDetailRepository;
-import kr.lastdish.core.settlement.domain.SettlementRepository;
+import kr.lastdish.core.settlement.application.dto.SettlementAccountData;
+import kr.lastdish.core.settlement.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -76,6 +74,34 @@ public class SettlementTransactionalManager {
     settlement.restart();
 
     return settlement;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void startAccumulatedSettlement(Long settlementId, SettlementAccountData account) {
+    Settlement settlement = findSettlement(settlementId);
+
+    settlement.startProcessing(
+        account.bankName(), account.accountNumber(), account.accountHolder());
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void completeAccumulatedSettlement(Long settlementId) {
+    Settlement settlement = findSettlement(settlementId);
+
+    SettlementDetailSummary summary =
+        settlementDetailRepository.summarizeBySettlementId(settlementId);
+
+    if (summary.totalOrderCount() == 0) {
+      throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "누적된 정산 상세 내역이 없습니다.");
+    }
+
+    settlement.updateCalculation(
+        Math.toIntExact(summary.totalOrderCount()),
+        summary.grossAmount(),
+        summary.feeAmount(),
+        summary.settlementAmount());
+
+    settlement.complete();
   }
 
   private Settlement findSettlement(Long settlementId) {

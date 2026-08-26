@@ -16,7 +16,7 @@ public record DishCreateRequest(
     @NotNull LocalDateTime registeredAt,
     @NotBlank String description,
     @Size(max = 100) String category,
-    @NotBlank String imageKey,
+    String imageKey,
     @NotNull @Positive Long stockQuantity,
     @NotNull @Positive BigDecimal dishPrice,
     @NotNull @PositiveOrZero BigDecimal discountPrice,

@@ -101,4 +101,15 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       """)
   List<Order> findPickupExpirationTargets(
       @Param("storeId") Long storeId, @Param("now") LocalDateTime now);
+
+  @Query(
+      """
+          SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END
+          FROM Order o
+          WHERE o.storeId = :storeId
+            AND o.isDeleted = false
+            AND o.status IN :orderStatuses
+          """)
+  boolean existsNotCompletedOrder(
+      @Param("storeId") Long storeId, @Param("orderStatuses") List<OrderStatus> orderStatuses);
 }
