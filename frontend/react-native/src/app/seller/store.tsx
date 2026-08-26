@@ -11,7 +11,7 @@ import { colors, fonts, radius } from '@/constants/theme';
 import { getStoreCoverImageSource, getStoreProfileImageSource } from '@/lib/food-image';
 import { type GeocodingAddress, searchStoreAddresses } from '@/lib/geocoding';
 import { showAppAlert } from '@/lib/app-overlay';
-import { getMyStores, registerStore, updateStore } from '@/lib/seller';
+import { getMyStores, getStorePayoutAccount, registerStore, registerStorePayoutAccount, updateStore, updateStorePayoutAccount, type StorePayoutAccount } from '@/lib/seller';
 import { getStoreCategoryVisual, STORE_CATEGORY_KEYS, type StoreCategoryKey } from '@/lib/store-category';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -66,6 +66,11 @@ export default function SellerStore() {
   const [addressMessage, setAddressMessage] = useState('');
   const [loading, setLoading] = useState(editing);
   const [submitting, setSubmitting] = useState(false);
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [accountSubmitting, setAccountSubmitting] = useState(false);
+  const [registeredAccount, setRegisteredAccount] = useState<StorePayoutAccount>();
 
   useEffect(() => {
     if (!editing) return;
@@ -84,6 +89,12 @@ export default function SellerStore() {
         setCoverImageUrl(store.coverImageUrl);
         setProfileImageUrl(store.profileImageUrl);
         setCoordinates({ latitude: store.latitude, longitude: store.longitude });
+        return getStorePayoutAccount(store.storeId).then((account) => {
+          if (!account) return;
+          setRegisteredAccount(account);
+          setBankName(account.bankName);
+          setAccountHolder(account.accountHolder);
+        });
       })
       .catch(() => showAppAlert('매장 정보를 불러오지 못했어요'))
       .finally(() => setLoading(false));
@@ -171,6 +182,31 @@ export default function SellerStore() {
     }
   };
 
+  const submitPayoutAccount = async () => {
+    if (!storeId || !bankName.trim() || !accountNumber.trim() || !accountHolder.trim()) {
+      showAppAlert('계좌 정보를 확인해주세요', '은행명, 계좌번호와 예금주를 모두 입력해주세요.');
+      return;
+    }
+    try {
+      setAccountSubmitting(true);
+      const payload = {
+        bankName: bankName.trim(),
+        accountNumber: accountNumber.replace(/\D/g, ''),
+        accountHolder: accountHolder.trim(),
+      };
+      const account = registeredAccount
+        ? await updateStorePayoutAccount(storeId, payload)
+        : await registerStorePayoutAccount(storeId, payload);
+      setRegisteredAccount(account);
+      setAccountNumber('');
+      showAppAlert(registeredAccount ? '정산 계좌를 수정했어요' : '정산 계좌를 등록했어요', `${account.bankName} ${account.accountNumber}\n예금주 ${account.accountHolder}`);
+    } catch (error) {
+      showAppAlert(registeredAccount ? '정산 계좌를 수정하지 못했어요' : '정산 계좌를 등록하지 못했어요', error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.');
+    } finally {
+      setAccountSubmitting(false);
+    }
+  };
+
   if (loading) return <SellerShell back title="매장 정보" description="등록된 정보를 확인하고 있어요."><LoadingState compact label="매장 정보를 불러오고 있어요"/></SellerShell>;
 
   return (
@@ -209,6 +245,16 @@ export default function SellerStore() {
         <View accessibilityRole="radiogroup" style={styles.categories}>{STORE_CATEGORY_KEYS.map((key) => { const visual = getStoreCategoryVisual(key); const selected = category === key; return <Pressable key={key} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setCategory(key)} style={({ pressed }) => [styles.category, selected && styles.categoryActive, pressed && styles.pressed]}><Text style={[styles.categoryText, selected && styles.categoryTextActive]}>{visual.label}</Text></Pressable>; })}</View>
       </View>
 
+      {editing && storeId ? <View style={styles.formSection}>
+        <SectionHeader title="정산 계좌" description="판매 대금 정산에 사용할 본인 명의 계좌를 등록해주세요."/>
+        {registeredAccount ? <View style={styles.accountConfirmed}><View style={styles.accountConfirmedCopy}><Text style={styles.accountConfirmedLabel}>현재 정산 계좌</Text><Text style={styles.accountConfirmedValue}>{registeredAccount.bankName} · {registeredAccount.accountNumber}</Text><Text style={styles.accountConfirmedHolder}>예금주 {registeredAccount.accountHolder}</Text></View><Ionicons name="checkmark-circle-outline" size={22} color={colors.green700}/></View> : null}
+          <LabeledField label="은행명" value={bankName} onChangeText={setBankName} placeholder="예: 국민은행" maxLength={20}/>
+          <LabeledField label={registeredAccount ? '새 계좌번호' : '계좌번호'} value={accountNumber} onChangeText={(value) => setAccountNumber(value.replace(/\D/g, '').slice(0, 20))} placeholder={registeredAccount ? '변경할 계좌번호를 입력해주세요' : '숫자만 입력해주세요'} keyboardType="number-pad" maxLength={20}/>
+          <LabeledField label="예금주" value={accountHolder} onChangeText={setAccountHolder} placeholder="예: 홍길동" maxLength={30}/>
+          <View style={styles.accountNotice}><Ionicons name="information-circle-outline" size={16} color={colors.ink500}/><Text style={styles.accountNoticeText}>등록한 계좌는 정산 처리에 사용되며 계좌번호는 이후 마스킹되어 표시됩니다.</Text></View>
+          <Pressable accessibilityRole="button" disabled={accountSubmitting} onPress={() => void submitPayoutAccount()} style={({ pressed }) => [styles.accountButton, (pressed || accountSubmitting) && styles.pressed]}><Text style={styles.accountButtonText}>{accountSubmitting ? (registeredAccount ? '수정하는 중…' : '등록하는 중…') : (registeredAccount ? '정산 계좌 수정하기' : '정산 계좌 등록하기')}</Text></Pressable>
+      </View> : null}
+
       <PrimaryButton disabled={submitting} label={submitting ? (editing ? '저장하는 중…' : '등록하는 중…') : (editing ? '매장 정보 저장하기' : '상점 등록하고 판매 시작하기')} onPress={() => void submit()}/>
     </SellerShell>
   );
@@ -235,4 +281,5 @@ const styles = StyleSheet.create({
   addressMessage: { minHeight: 40, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: radius.control, backgroundColor: colors.canvas }, addressMessageText: { flex: 1, color: colors.ink700, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 }, addressResults: { overflow: 'hidden', borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.input }, addressCandidate: { minHeight: 68, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line }, candidatePressed: { backgroundColor: colors.green50 }, candidateCopy: { flex: 1, minWidth: 0 }, roadAddress: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '800' }, jibunAddress: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 },
   fieldRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 9 }, flexField: { flex: 1, minWidth: 0 }, timeArrow: { width: 22, height: 50, alignItems: 'center', justifyContent: 'center' }, quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, quickButton: { minHeight: 36, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, backgroundColor: colors.canvasWarm }, quickButtonActive: { borderColor: colors.ink900, backgroundColor: colors.ink900 }, quickText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' }, quickTextActive: { color: colors.white },
   categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, category: { minHeight: 40, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: radius.control, backgroundColor: colors.canvasWarm, borderWidth: 1, borderColor: colors.line }, categoryActive: { borderColor: colors.ink900, backgroundColor: colors.ink900 }, categoryText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' }, categoryTextActive: { color: colors.white }, pressed: { opacity: 0.66, transform: [{ scale: 0.99 }] },
+  accountNotice: { minHeight: 42, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: radius.control, backgroundColor: colors.canvas }, accountNoticeText: { flex: 1, color: colors.ink700, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 }, accountButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.ink900 }, accountButtonText: { color: colors.white, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' }, accountConfirmed: { minHeight: 78, padding: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: radius.input, backgroundColor: colors.green50, borderWidth: 1, borderColor: colors.green200 }, accountConfirmedCopy: { flex: 1, minWidth: 0 }, accountConfirmedLabel: { color: colors.green700, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' }, accountConfirmedValue: { marginTop: 4, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '900', fontVariant: ['tabular-nums'] }, accountConfirmedHolder: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 },
 });

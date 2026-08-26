@@ -12,10 +12,10 @@ import { LoadingState } from '@/components/loading-state';
 import { RefreshStatus } from '@/components/refresh-status';
 import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useMemberBenefits } from '@/hooks/use-member-benefits';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { getDepositBalance } from '@/lib/account';
 import { getMyOrderCount } from '@/lib/orders';
-import { temporaryMemberStats as memberStats } from '@/lib/member-stats';
 import { useAuth } from '@/providers/auth-provider';
 
 type MenuRowProps = {
@@ -45,6 +45,7 @@ export default function MyScreen() {
   const { contentWidth, gutter, isCompact } = useResponsiveLayout();
   const [depositBalance, setDepositBalance] = useState<number | null>(null);
   const [orderCount, setOrderCount] = useState<number | null>(null);
+  const { level, points, refresh: refreshBenefits } = useMemberBenefits(Boolean(member));
 
   const openSeller = () => router.push(member?.role === 'SELLER' ? '/seller/home' : '/seller/store');
 
@@ -66,8 +67,8 @@ export default function MyScreen() {
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   const refreshAll = useCallback(async () => {
     if (member) await refreshProfile();
-    await load();
-  }, [load, member, refreshProfile]);
+    await Promise.all([load(), refreshBenefits()]);
+  }, [load, member, refreshBenefits, refreshProfile]);
   const { refreshing, onRefresh } = usePullToRefresh(refreshAll);
 
   if (initializing) return <SafeAreaView style={styles.center}><LoadingState label="내 정보를 불러오고 있어요"/></SafeAreaView>;
@@ -85,14 +86,14 @@ export default function MyScreen() {
       <View style={[styles.fixedHeader, { width: contentWidth, paddingHorizontal: gutter }]}><Text accessibilityRole="header" style={[styles.title, isCompact && styles.titleCompact]}>마이페이지</Text>{!member ? <Text style={styles.headerDescription}>내 주문과 혜택을 한곳에서 관리하세요.</Text> : null}</View><RefreshStatus visible={refreshing}/>
       <View style={styles.body}><ScrollView alwaysBounceVertical style={styles.scrollView} contentContainerStyle={[styles.scroll, { paddingBottom: FLOATING_TAB_CONTENT_INSET }]} refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>} showsVerticalScrollIndicator={false}>
         <View style={[styles.content, { width: contentWidth, paddingHorizontal: gutter }]}> 
-          <SignedInContent memberName={member.name} role={member.role} depositBalance={depositBalance} orderCount={orderCount} openSeller={openSeller} signOut={signOut}/>
+          <SignedInContent memberName={member.name} role={member.role} grade={level?.grade ?? null} points={points} depositBalance={depositBalance} orderCount={orderCount} openSeller={openSeller} signOut={signOut}/>
         </View>
       </ScrollView></View>
     </SafeAreaView>
   );
 }
 
-function SignedInContent({ memberName, role, depositBalance, orderCount, openSeller, signOut }: { memberName: string; role: string; depositBalance: number | null; orderCount: number | null; openSeller: () => void; signOut: () => Promise<void> }) {
+function SignedInContent({ memberName, role, grade, points, depositBalance, orderCount, openSeller, signOut }: { memberName: string; role: string; grade: string | null; points: number | null; depositBalance: number | null; orderCount: number | null; openSeller: () => void; signOut: () => Promise<void> }) {
   const [signOutConfirming, setSignOutConfirming] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const confirmSignOut = async () => {
@@ -107,7 +108,7 @@ function SignedInContent({ memberName, role, depositBalance, orderCount, openSel
 
   return <>
     <View style={styles.profileCard}>
-      <Pressable accessibilityRole="button" onPress={() => router.push('/profile')} style={styles.profilePress}><View style={styles.profileTop}><View style={styles.avatar}><BrandLogo size={54}/></View><View style={styles.profileCopy}><View style={styles.nameRow}><Text style={styles.memberName}>{memberName}님</Text><View style={styles.roleBadge}><Text style={styles.roleText}>{role === 'SELLER' ? '사장님' : '고객'}</Text></View></View><Text style={styles.profileLink}>내 정보와 활동 자세히 보기</Text></View><Ionicons name="chevron-forward" size={18} color={colors.ink400}/></View><View style={styles.memberStats}><ProfileStat label="등급" value={memberStats.grade}/><ProfileStat label="포인트" value={`${memberStats.points.toLocaleString()}P`}/></View></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/profile')} style={styles.profilePress}><View style={styles.profileTop}><View style={styles.avatar}><BrandLogo size={54}/></View><View style={styles.profileCopy}><View style={styles.nameRow}><Text style={styles.memberName}>{memberName}님</Text><View style={styles.roleBadge}><Text style={styles.roleText}>{role === 'SELLER' ? '사장님' : '고객'}</Text></View></View><Text style={styles.profileLink}>내 정보와 활동 자세히 보기</Text></View><Ionicons name="chevron-forward" size={18} color={colors.ink400}/></View><View style={styles.memberStats}><ProfileStat label="등급" value={grade ?? '—'}/><ProfileStat label="포인트" value={points === null ? '—' : `${points.toLocaleString()}P`}/></View></Pressable>
     </View>
 
     <View style={styles.wallet}>
