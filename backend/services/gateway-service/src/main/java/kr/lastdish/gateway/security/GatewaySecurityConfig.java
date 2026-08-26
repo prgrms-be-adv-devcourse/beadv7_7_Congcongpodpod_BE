@@ -74,6 +74,9 @@ public class GatewaySecurityConfig {
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()
+                    // 매장 검색은 로그인 없이 사용할 수 있는 공개 검색 API다.
+                    .pathMatchers(POST, "/api/v1/ai/search")
+                    .permitAll()
                     // 일반 회원이 최초 매장을 등록해 SELLER로 전환할 수 있도록 허용한다.
                     .pathMatchers(POST, "/api/v1/stores")
                     .hasAnyRole("MEMBER", "SELLER")

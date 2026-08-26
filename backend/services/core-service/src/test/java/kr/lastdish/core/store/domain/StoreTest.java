@@ -1,11 +1,14 @@
 package kr.lastdish.core.store.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 class StoreTest {
@@ -30,43 +33,13 @@ class StoreTest {
   }
 
   @Test
-  void calculatesPickupDeadlineFromBusinessDate() {
-    Store store = store(LocalTime.of(22, 0), LocalTime.of(2, 0));
-
-    assertThat(
-            store.calculatePickupDeadline(LocalDateTime.of(2026, 8, 20, 3, 0), LocalTime.of(2, 0)))
-        .isEqualTo(LocalDateTime.of(2026, 8, 20, 2, 0));
-    assertThat(
-            store.calculatePickupDeadline(LocalDateTime.of(2026, 8, 20, 1, 0), LocalTime.of(2, 0)))
-        .isEqualTo(LocalDateTime.of(2026, 8, 20, 2, 0));
-  }
-
-  @Test
-  void isOpenAtReflectsBusinessHours() {
+  void 픽업_시작과_종료_시간이_같으면_거절한다() {
     Store store = store(LocalTime.of(9, 0), LocalTime.of(22, 0));
 
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 9, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 12, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 8, 0))).isFalse();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 22, 30))).isFalse();
-  }
-
-  @Test
-  void isOpenAtHandlesBusinessHoursCrossingMidnight() {
-    Store store = store(LocalTime.of(18, 0), LocalTime.of(2, 0));
-
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 20, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 1, 0))).isTrue();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 17, 0))).isFalse();
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 3, 0))).isFalse();
-  }
-
-  @Test
-  void isOpenAtIsFalseWhenStatusIsNotOpen() {
-    Store store = store(LocalTime.of(9, 0), LocalTime.of(22, 0));
-    store.changeStatus(StoreStatus.CLOSED);
-
-    assertThat(store.isOpenAt(LocalDateTime.of(2026, 8, 20, 12, 0))).isFalse();
+    assertThatThrownBy(() -> store.validatePickupTime(LocalTime.of(18, 0), LocalTime.of(18, 0)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS);
   }
 
   private Store store(LocalTime openTime, LocalTime closeTime) {

@@ -142,6 +142,18 @@ public class Order {
     return order;
   }
 
+  /** 서버 기준 현재 날짜와 주문의 픽업 시간으로 픽업 마감 일시를 계산한다. */
+  public static LocalDateTime calculatePickupDeadline(
+      LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
+    LocalDateTime pickupDeadline = now.toLocalDate().atTime(pickupEndAt);
+
+    if (now.isAfter(pickupDeadline)) {
+      return pickupDeadline.plusDays(1);
+    }
+
+    return pickupDeadline;
+  }
+
   public long nextEventVersion() {
     return ++eventVersion;
   }

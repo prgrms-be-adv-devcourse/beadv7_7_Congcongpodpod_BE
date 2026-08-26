@@ -163,10 +163,25 @@ class OrderConcurrencyIntegrationTest {
     Long orderId =
         transactionTemplate.execute(
             status -> {
+              Store store =
+                  storeJpaRepository.save(
+                      new Store(
+                          99L,
+                          "동시 취소 테스트 매장",
+                          "123-45-67890",
+                          "서울시 강남구",
+                          "명정빌딩",
+                          "02-1234-5678",
+                          LocalTime.of(18, 0),
+                          LocalTime.of(19, 0),
+                          BigDecimal.valueOf(37.5),
+                          BigDecimal.valueOf(127.0),
+                          Category.KOREAN,
+                          LocalDateTime.now()));
               Dish dish =
                   dishJpaRepository.save(
                       Dish.create(
-                          10L,
+                          store.getId(),
                           "테스트 메뉴",
                           LocalDateTime.now(),
                           "테스트",

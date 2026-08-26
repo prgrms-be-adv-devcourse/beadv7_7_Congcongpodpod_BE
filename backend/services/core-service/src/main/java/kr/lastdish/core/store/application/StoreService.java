@@ -61,7 +61,6 @@ public class StoreService {
     appendRegisteredEvent(savedStore);
 
     // 매장 생성 후 검색 문서 갱신을 위한 이벤트 발행
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendCreatedEvent(savedStore);
 
     return StoreResult.from(savedStore);
@@ -90,7 +89,6 @@ public class StoreService {
     store.replaceHolidays(command.holidays());
     store.rescheduleNextClosingAt(LocalDateTime.now(BUSINESS_ZONE));
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendChangedEvent(store);
 
     return StoreResult.from(store);
@@ -100,7 +98,6 @@ public class StoreService {
   public StoreResult changeStatus(Store store, StoreStatus status) {
     store.changeStatus(status);
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendStatusChangedEvent(store);
 
     return StoreResult.from(store);
@@ -115,17 +112,12 @@ public class StoreService {
     store.delete();
     payoutAccountRepository.deleteByStoreId(storeId);
 
-    //    TODO : 리스너 구현 시 이벤트 발행 활성화
     appendDeletedEvent(store);
   }
 
   // 이벤트를 발행하는 변경 메서드용 — 행 잠금으로 eventVersion 경합을 막고 소유권을 검증한다.
-  public Store getOwnedStoreWithLock(Long storeId, Long memberId) {
-    Store store =
-        storeRepository
-            .findWithLockById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+  Store getOwnedStoreWithLock(Long storeId, Long memberId) {
+    Store store = findStoreWithLock(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
@@ -135,11 +127,7 @@ public class StoreService {
   }
 
   public Store getOwnedStore(Long storeId, Long memberId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store = findStore(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
@@ -148,14 +136,11 @@ public class StoreService {
     return store;
   }
 
-  /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. 영업 상태 플래그와 영업시간을 함께 본다. */
-  public void validateOpen(Long storeId, LocalDateTime now) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_STORE_CLOSED));
+  /** 주문 직전 매장이 주문을 받을 수 있는 영업 상태인지 확인한다. */
+  public void validateOpen(Long storeId) {
+    Store store = findStore(storeId);
 
-    if (!store.isOpenAt(now)) {
+    if (!store.isOpen()) {
       throw new BusinessException(ErrorCode.ORDER_STORE_CLOSED);
     }
   }
@@ -172,13 +157,7 @@ public class StoreService {
 
   // 매장 상세 조회
   public StoreResult getStore(Long storeId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
-
-    return StoreResult.from(store);
+    return StoreResult.from(findStore(storeId));
   }
 
   // 매장 정산 계좌
@@ -219,11 +198,7 @@ public class StoreService {
 
   // StoreFacade 검증 메서드
   public void validateSeller(Long storeId, Long memberId) {
-    Store store =
-        storeRepository
-            .findById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+    Store store = findStore(storeId);
 
     if (!store.isOwnedBy(memberId)) {
       throw new BusinessException(ErrorCode.ORDER_NOT_SELLER);
@@ -240,20 +215,30 @@ public class StoreService {
     findStore(storeId).validatePickupTime(pickupStartTime, pickupEndTime);
   }
 
-  /**
-   * 매장 영업일 기준으로 픽업 마감 일시를 확정한다.
-   *
-   * <p>픽업 창이 영업시간 안에 있는지는 다시 보지 않는다 — 그 불변식은 Dish 등록·수정 시점에 이미 검증되며, 주문 시점에 다시 던지면 구매자가 상품 등록용
-   * 에러(DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS)를 받게 된다.
-   */
-  public LocalDateTime calculatePickupDeadline(
-      Long storeId, LocalTime pickupEndTime, LocalDateTime now) {
-    return findStore(storeId).calculatePickupDeadline(now, pickupEndTime);
+  public void validateDishUpdate(
+      Long storeId, Long memberId, LocalTime pickupStartTime, LocalTime pickupEndTime) {
+    Store store = findStoreWithLock(storeId);
+
+    if (!store.isOwnedBy(memberId)) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT, "해당 매장을 수정할 권한이 없습니다.");
+    }
+    if (store.getStatus() != StoreStatus.CLOSED) {
+      throw new BusinessException(ErrorCode.STORE_MUST_BE_CLOSED_FOR_DISH_UPDATE);
+    }
+
+    store.validatePickupTime(pickupStartTime, pickupEndTime);
   }
 
   private Store findStore(Long storeId) {
     return storeRepository
         .findById(storeId)
+        .orElseThrow(
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+  }
+
+  private Store findStoreWithLock(Long storeId) {
+    return storeRepository
+        .findWithLockById(storeId)
         .orElseThrow(
             () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
   }

@@ -33,5 +33,6 @@ public class PointFacade {
 
     memberRewardEventWriter.append(
         memberId, earnResult.amount(), levelResult.upgraded(), levelResult.currentLevel());
+    memberRewardEventWriter.appendDishReportCompleted(memberId);
   }
 }

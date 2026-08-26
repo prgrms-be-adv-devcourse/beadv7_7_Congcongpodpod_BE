@@ -2,6 +2,7 @@ package kr.lastdish.core.order.infrastructure;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.order.domain.Order;
@@ -30,6 +31,16 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       """)
   boolean existsActivePickupCode(
       @Param("storeId") Long storeId, @Param("pickupCode") String pickupCode);
+
+  @Query(
+      """
+      select count(o) > 0
+      from Order o
+      where o.dishId = :dishId
+        and o.isDeleted = false
+        and o.status in ("RESERVED", "PICKUP_READY")
+      """)
+  boolean existsActiveOrderByDishId(@Param("dishId") Long dishId);
 
   @Query(
       """
@@ -95,12 +106,42 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       from Order o
       where o.isDeleted = false
         and o.status = "PICKUP_READY"
-        and o.storeId = :storeId
         and o.pickupDeadline <= :now
-      order by o.createdAt asc, o.id asc
+      order by o.pickupDeadline asc, o.id asc
       """)
-  List<Order> findPickupExpirationTargets(
-      @Param("storeId") Long storeId, @Param("now") LocalDateTime now);
+  List<Order> findPickupExpirationTargets(@Param("now") LocalDateTime now, Pageable pageable);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select o
+      from Order o
+      where o.isDeleted = false
+        and o.status = "PICKUP_READY"
+        and o.pickupStartAt = :pickupStartTime
+        and o.pickupDeadline >= :deadlineFrom
+        and o.pickupDeadline < :deadlineTo
+      order by o.pickupDeadline asc, o.id asc
+      """)
+  List<Order> findPickupStartNotificationTargets(
+      @Param("pickupStartTime") LocalTime pickupStartTime,
+      @Param("deadlineFrom") LocalDateTime deadlineFrom,
+      @Param("deadlineTo") LocalDateTime deadlineTo);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select o
+      from Order o
+      where o.isDeleted = false
+        and o.status = "PICKUP_READY"
+        and o.pickupDeadline >= :deadlineFrom
+        and o.pickupDeadline < :deadlineTo
+      order by o.pickupDeadline asc, o.id asc
+      """)
+  List<Order> findPickupDeadlineSoonNotificationTargets(
+      @Param("deadlineFrom") LocalDateTime deadlineFrom,
+      @Param("deadlineTo") LocalDateTime deadlineTo);
 
   @Query(
       """
