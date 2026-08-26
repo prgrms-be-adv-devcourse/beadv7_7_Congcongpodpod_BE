@@ -368,6 +368,26 @@ class GatewaySecurityConfigTests {
         .isOk();
   }
 
+  @Test
+  void notificationRouteRejectsRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/notifications").exchange().expectStatus().isUnauthorized();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLE_MEMBER", "ROLE_SELLER"})
+  void authenticatedUserCanAccessNotifications(String authority) {
+    webTestClient
+        .mutateWith(
+            mockJwt()
+                .jwt(jwt -> jwt.subject("1"))
+                .authorities(new SimpleGrantedAuthority(authority)))
+        .get()
+        .uri("/api/v1/notifications")
+        .exchange()
+        .expectStatus()
+        .isOk();
+  }
+
   @TestConfiguration(proxyBeanMethods = false)
   static class TestRoutes {
 
@@ -385,6 +405,7 @@ class GatewaySecurityConfigTests {
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(POST("/api/v1/ai/classify"), request -> ok().build())
           .andRoute(GET("/api/v1/locations/geocode"), request -> ok().build())
+          .andRoute(GET("/api/v1/notifications"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());
     }
   }
