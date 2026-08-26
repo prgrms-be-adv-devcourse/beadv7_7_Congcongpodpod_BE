@@ -55,6 +55,32 @@ public class OrderNotificationEventWriter {
             order.getId()));
   }
 
+  public void appendPickupStarted(Order order) {
+    append(
+        order,
+        new OrderNotificationPayload(
+            order.getMemberId(),
+            "PICKUP_STARTED",
+            "픽업 시간이 시작됐어요",
+            order.getDishName() + " 상품을 지금부터 픽업할 수 있어요.",
+            null,
+            "ORDER",
+            order.getId()));
+  }
+
+  public void appendPickupDeadlineSoon(Order order) {
+    append(
+        order,
+        new OrderNotificationPayload(
+            order.getMemberId(),
+            "PICKUP_DEADLINE_SOON",
+            "픽업 마감까지 15분 남았어요",
+            order.getPickupEndAt() + "까지 매장에서 상품을 픽업해주세요.",
+            null,
+            "ORDER",
+            order.getId()));
+  }
+
   private void append(Order order, OrderNotificationPayload payload) {
     OrderNotificationEvent event =
         new OrderNotificationEvent(

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalTime;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
 import kr.lastdish.core.order.domain.Order;
@@ -66,6 +67,40 @@ class OrderNotificationEventWriterTest {
     assertEvent(
         new OrderNotificationPayload(
             1L, "ORDER_REJECTED", "주문이 반려됐어요", reason.getMessage(), null, "ORDER", 10L));
+  }
+
+  @Test
+  void appendPickupStarted_createsNotificationForCustomer() {
+    when(order.getDishName()).thenReturn("마감 할인 도시락");
+
+    writer.appendPickupStarted(order);
+
+    assertEvent(
+        new OrderNotificationPayload(
+            1L,
+            "PICKUP_STARTED",
+            "픽업 시간이 시작됐어요",
+            "마감 할인 도시락 상품을 지금부터 픽업할 수 있어요.",
+            null,
+            "ORDER",
+            10L));
+  }
+
+  @Test
+  void appendPickupDeadlineSoon_createsNotificationForCustomer() {
+    when(order.getPickupEndAt()).thenReturn(LocalTime.of(19, 0));
+
+    writer.appendPickupDeadlineSoon(order);
+
+    assertEvent(
+        new OrderNotificationPayload(
+            1L,
+            "PICKUP_DEADLINE_SOON",
+            "픽업 마감까지 15분 남았어요",
+            "19:00까지 매장에서 상품을 픽업해주세요.",
+            null,
+            "ORDER",
+            10L));
   }
 
   private void assertEvent(OrderNotificationPayload expectedPayload) {

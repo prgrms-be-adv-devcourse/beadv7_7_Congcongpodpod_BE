@@ -1,6 +1,7 @@
 package kr.lastdish.core.order.infrastructure;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
@@ -83,6 +84,19 @@ public class OrderRepositoryImpl implements OrderRepository {
   @Override
   public List<Order> findPickupExpirationTargets(Long storeId, LocalDateTime now) {
     return orderJpaRepository.findPickupExpirationTargets(storeId, now);
+  }
+
+  @Override
+  public List<Order> findPickupStartNotificationTargets(
+      LocalTime pickupStartTime, LocalDateTime deadlineFrom, LocalDateTime deadlineTo) {
+    return orderJpaRepository.findPickupStartNotificationTargets(
+        pickupStartTime, deadlineFrom, deadlineTo);
+  }
+
+  @Override
+  public List<Order> findPickupDeadlineSoonNotificationTargets(
+      LocalDateTime deadlineFrom, LocalDateTime deadlineTo) {
+    return orderJpaRepository.findPickupDeadlineSoonNotificationTargets(deadlineFrom, deadlineTo);
   }
 
   @Override
