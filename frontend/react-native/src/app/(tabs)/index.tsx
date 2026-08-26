@@ -372,7 +372,7 @@ function HomeStoreSheet({ bottomOffset, stores, location, selected, refreshing, 
     onPanResponderTerminate: () => settleAt(dragCurrent.current),
   }), [expandedHeight, settleAt, snapOffsets, translateY, updateControlsVisibility, visibleHeight]);
 
-  return <Animated.View style={[styles.storeSheet, { bottom: bottomOffset, height: expandedHeight, transform: [{ translateY }] }]}>
+  return <Animated.View style={[styles.storeSheet, { bottom: 0, height: expandedHeight + bottomOffset, transform: [{ translateY }] }]}>
     <View accessibilityLabel="주변 매장 목록 높이 조절" accessibilityRole="adjustable" style={styles.storeSheetHandleArea} {...panResponder.panHandlers}><View style={styles.storeSheetHandle}/></View>
     {selected ? <Pressable accessibilityHint="매장 상세 미리보기를 펼칩니다" onPress={() => snapTo(2)} style={({ pressed }) => [styles.selectedStore, pressed && styles.pressed]}>
       <Image accessibilityLabel={`${selected.storeName} 프로필 이미지`} source={getStoreProfileImageSource(selected)} style={styles.selectedStoreImage}/>
@@ -385,7 +385,7 @@ function HomeStoreSheet({ bottomOffset, stores, location, selected, refreshing, 
     {!selected ? <RefreshStatus visible={refreshing}/> : null}
     <Animated.ScrollView
       alwaysBounceVertical
-      contentContainerStyle={styles.storeSheetList}
+      contentContainerStyle={[styles.storeSheetList, { paddingBottom: bottomOffset + 28 }]}
       refreshControl={!selected ? <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/> : undefined}
       scrollEnabled={level === 2}
       showsVerticalScrollIndicator={false}>
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   areaRefreshText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   mapActionStack: { position: 'absolute', right: 14, alignItems: 'center', gap: 9, zIndex: 12 },
   availabilityAction: { position: 'absolute', left: 14, zIndex: 12 },
-  availabilityButton: { minHeight: 42, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  availabilityButton: { width: 112, height: 42, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   availabilityButtonActive: { backgroundColor: colors.green500, borderColor: colors.green500 },
   availabilityText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
   availabilityTextActive: { color: colors.white },

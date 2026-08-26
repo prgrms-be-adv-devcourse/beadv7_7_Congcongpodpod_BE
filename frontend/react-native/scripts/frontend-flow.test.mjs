@@ -53,3 +53,15 @@ test('SSE는 토큰 갱신·heartbeat·지수 백오프를 사용한다', () => 
   assert.match(stream, /HEARTBEAT_TIMEOUT_MS/);
   assert.match(stream, /onConnected\?\.\(\)/);
 });
+
+test('주문 불가 장바구니 상품은 유지하고 결제를 차단한다', () => {
+  const cart = source('src/app/cart.tsx');
+  const checkout = source('src/app/cart/checkout.tsx');
+  const cartApi = source('src/lib/cart.ts');
+  assert.match(cartApi, /INSUFFICIENT_STOCK/);
+  assert.match(cartApi, /OUT_OF_STOCK/);
+  assert.match(cartApi, /DISH_UNAVAILABLE/);
+  assert.match(cart, /disabled=\{!availability\?\.orderable\}/);
+  assert.match(checkout, /\['ORD007','D001','D003'\]/);
+  assert.match(checkout, /router\.replace\('\/cart'\)/);
+});

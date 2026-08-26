@@ -19,7 +19,7 @@ export type CartEntry = Dish & {
 type CartContextValue = {
   item: CartEntry | null;
   loading: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<CartEntry | null>;
   add: (dish: Dish, storeName: string, storeId?: number) => Promise<void>;
   changeQuantity: (amount: number) => Promise<void>;
   clear: () => Promise<void>;
@@ -29,7 +29,16 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 async function hydrateItem(cartId: number, serverItem: ApiCartItem): Promise<CartEntry> {
-  const dish = await getDish(serverItem.dishId);
+  const dish = await getDish(serverItem.dishId).catch((): Dish => ({
+    dishId: serverItem.dishId,
+    dishName: serverItem.dishName,
+    description: '현재 판매가 종료된 상품입니다.',
+    price: Number(serverItem.unitPrice),
+    discountPrice: Number(serverItem.unitPrice),
+    quantity: 0,
+    status: 'CLOSED',
+    storeId: serverItem.storeId,
+  }));
   const storeId = serverItem.storeId ?? dish.storeId;
   const store = storeId ? await getStore(storeId).catch(() => null) : null;
   return {
@@ -56,20 +65,22 @@ export function CartProvider({ children }: PropsWithChildren) {
     if (!member) {
       cartIdRef.current = undefined;
       setItem(null);
-      return;
+      return null;
     }
     setLoading(true);
     try {
       const cart = await getMemberCart();
       cartIdRef.current = cart.cartId;
       const serverItem = cart.items[0];
-      setItem(serverItem ? await hydrateItem(cart.cartId, serverItem) : null);
+      const nextItem = serverItem ? await hydrateItem(cart.cartId, serverItem) : null;
+      setItem(nextItem);
+      return nextItem;
     } finally {
       setLoading(false);
     }
   }, [member]);
 
-  useEffect(() => { void refresh().catch(() => setItem(null)); }, [refresh]);
+  useEffect(() => { void refresh().catch(() => undefined); }, [refresh]);
 
   const ensureCartId = useCallback(async () => {
     if (!member) throw new Error('로그인이 필요해요.');
