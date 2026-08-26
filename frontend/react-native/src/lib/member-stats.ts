@@ -16,6 +16,22 @@ const levelNames: Record<string, { level: number; name: string }> = {
   LEVEL_5: { level: 5, name: '가마솥' },
 };
 
+export const memberLevelSteps = [
+  { level: 1, name: '양념 종지', pickups: 0 },
+  { level: 2, name: '밥그릇', pickups: 5 },
+  { level: 3, name: '뚝배기', pickups: 10 },
+  { level: 4, name: '전골냄비', pickups: 15 },
+  { level: 5, name: '가마솥', pickups: 20 },
+] as const;
+
+export function getMemberLevelProgress(level?: MemberLevelStats | null) {
+  if (!level) return 0;
+  const currentStart = memberLevelSteps.find(step => step.level === level.level)?.pickups ?? 0;
+  const nextStart = memberLevelSteps.find(step => step.level === level.level + 1)?.pickups;
+  if (nextStart === undefined) return 1;
+  return Math.max(0, Math.min(1, (level.purchaseCount - currentStart) / (nextStart - currentStart)));
+}
+
 const unwrap = <T,>(value: T | Envelope<T>): T => value && typeof value === 'object' && 'data' in value && value.data !== undefined ? value.data : value as T;
 
 export type MemberLevelStats = {

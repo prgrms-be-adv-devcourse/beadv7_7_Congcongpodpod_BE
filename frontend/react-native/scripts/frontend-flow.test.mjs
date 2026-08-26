@@ -12,9 +12,12 @@ test('구매 핵심 화면이 모두 존재한다', () => {
 });
 
 test('지도 앱·웹이 동일한 화면 경계를 전달한다', () => {
-  assert.match(source('src/components/map-canvas.native.tsx'), /bounds:[\s\S]*southWest[\s\S]*northEast/);
+  const nativeMap = source('src/components/map-canvas.native.tsx');
+  assert.match(nativeMap, /southWest: \{ latitude: region\.latitude, longitude: region\.longitude \}/);
+  assert.match(nativeMap, /northEast: \{ latitude: region\.latitude \+ region\.latitudeDelta, longitude: region\.longitude \+ region\.longitudeDelta \}/);
   assert.match(source('src/components/map-canvas.web.tsx'), /getBounds\(\)[\s\S]*southWest[\s\S]*northEast/);
   assert.match(source('src/app/(tabs)/index.tsx'), /reload\(next, false, next\.bounds\)/);
+  assert.match(source('src/lib/stores.ts'), /page < totalPages/);
 });
 
 test('로그인 제한 탭은 로그인 화면으로 이동한다', () => {

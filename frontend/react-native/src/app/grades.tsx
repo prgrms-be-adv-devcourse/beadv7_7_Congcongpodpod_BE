@@ -6,22 +6,18 @@ import { Page } from '@/components/page';
 import { colors, fonts, radius } from '@/constants/theme';
 import { useMemberBenefits } from '@/hooks/use-member-benefits';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
-
-const gradeSteps = [{ level: 1, name: '양념 종지', pickups: 0 }, { level: 2, name: '밥그릇', pickups: 5 }, { level: 3, name: '뚝배기', pickups: 10 }, { level: 4, name: '전골냄비', pickups: 15 }, { level: 5, name: '가마솥', pickups: 20 }];
+import { getMemberLevelProgress, memberLevelSteps } from '@/lib/member-stats';
 
 export default function GradesScreen() {
   const { level, refresh } = useMemberBenefits();
   const { refreshing, onRefresh } = usePullToRefresh(refresh);
-  const currentStart = gradeSteps.find(step => step.level === level?.level)?.pickups ?? 0;
-  const nextStart = gradeSteps.find(step => step.level === (level?.level ?? 0) + 1)?.pickups;
-  const span = nextStart === undefined ? 1 : nextStart - currentStart;
-  const progress = level ? (nextStart === undefined ? 1 : Math.max(0, Math.min(1, (level.purchaseCount - currentStart) / span))) : 0;
+  const progress = getMemberLevelProgress(level);
   return <Page title="나의 등급" description="음식을 픽업할수록 라디 등급이 올라가요." refreshing={refreshing} onRefresh={onRefresh} onClose={() => router.replace('/profile')} closeLabel="등급 상세 닫기">
     <View style={styles.hero}><View style={styles.heroTop}><View style={styles.icon}><Ionicons name="leaf" size={23} color={colors.green700}/></View><View style={styles.heroCopy}><Text style={styles.grade}>{level?.grade ?? '등급 확인 중'}</Text><Text style={styles.level}>{level ? `LEVEL ${level.level}` : 'LEVEL —'}</Text></View><Text style={styles.count}>{level ? `${level.purchaseCount}회 픽업` : '—'}</Text></View><View style={styles.track}><View style={[styles.fill, { width: `${progress * 100}%` }]}/></View><View style={styles.progressMeta}><Text style={styles.meta}>다음 등급까지</Text><Text style={styles.metaStrong}>{level ? (level.remainToNextLevel > 0 ? `${level.remainToNextLevel}회 남음` : '최고 등급') : '확인 중'}</Text></View></View>
     <View style={styles.summary}><View><Text style={styles.summaryLabel}>완료한 픽업</Text><Text style={styles.summaryValue}>{level ? `${level.purchaseCount}회` : '—'}</Text></View><View style={styles.summaryDivider}/><View><Text style={styles.summaryLabel}>누적 절약</Text><Text style={styles.summaryValue}>{level ? `${level.savedAmount.toLocaleString()}원` : '—'}</Text></View></View>
     <View style={styles.reward}><View style={styles.rewardIcon}><Ionicons name="sparkles-outline" size={18} color={colors.green700}/></View><View style={styles.rewardCopy}><Text style={styles.rewardTitle}>등급별 포인트 적립 혜택</Text><Text style={styles.rewardBody}>등급이 높아질수록 주문 포인트 적립률이 높아져요.</Text></View><View style={styles.pendingBadge}><Text style={styles.pendingText}>적립률 확정 전</Text></View></View>
     <Text style={styles.heading}>등급 기준</Text>
-    <View style={styles.steps}>{gradeSteps.map((step, index) => { const achieved = Boolean(level && level.purchaseCount >= step.pickups); const current = step.level === level?.level; return <View key={step.name} style={[styles.step, index === gradeSteps.length - 1 && styles.last]}><View style={[styles.stepDot, achieved && styles.stepDotDone]}>{achieved ? <Ionicons name="checkmark" size={11} color={colors.white}/> : null}</View><View style={styles.stepCopy}><Text style={[styles.stepName, current && styles.stepNameCurrent]}>{step.name}</Text><Text style={styles.stepMeta}>{step.pickups}회 픽업부터</Text></View>{current ? <View style={styles.currentBadge}><Text style={styles.currentText}>현재 등급</Text></View> : null}</View>; })}</View>
+    <View style={styles.steps}>{memberLevelSteps.map((step, index) => { const achieved = Boolean(level && level.purchaseCount >= step.pickups); const current = step.level === level?.level; return <View key={step.name} style={[styles.step, index === memberLevelSteps.length - 1 && styles.last]}><View style={[styles.stepDot, achieved && styles.stepDotDone]}>{achieved ? <Ionicons name="checkmark" size={11} color={colors.white}/> : null}</View><View style={styles.stepCopy}><Text style={[styles.stepName, current && styles.stepNameCurrent]}>{step.name}</Text><Text style={styles.stepMeta}>{step.pickups}회 픽업부터</Text></View>{current ? <View style={styles.currentBadge}><Text style={styles.currentText}>현재 등급</Text></View> : null}</View>; })}</View>
     <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={colors.green700}/><Text style={styles.noticeText}>등급마다 포인트 적립률이 달라질 예정이에요. 정확한 적립률은 정책 확정 후 안내합니다. 취소·미수령 주문은 등급 산정 횟수에 포함되지 않아요.</Text></View>
   </Page>;
 }
