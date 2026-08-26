@@ -177,4 +177,9 @@ public class OrderService {
         .findAllByStoreIdAndStatus(storeId, status, pageable)
         .map(OrderResult::from);
   }
+
+  @Transactional(readOnly = true)
+  public boolean existsNotCompletedOrder(Long storeId) {
+    return orderRepository.existsNotCompletedOrder(storeId);
+  }
 }
