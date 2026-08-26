@@ -150,8 +150,10 @@ public class OrderService {
 
     if (command.status() == OrderStatus.PICKED_UP) {
       orderPickedUpEventWriter.append(order, aggregateVersion);
+      orderNotificationEventWriter.appendPickedUp(order);
     } else if (command.status() == OrderStatus.NO_SHOW) {
       orderNoShowEventWriter.append(order, aggregateVersion);
+      orderNotificationEventWriter.appendNoShow(order);
     }
 
     return PickupStatusResult.from(order);

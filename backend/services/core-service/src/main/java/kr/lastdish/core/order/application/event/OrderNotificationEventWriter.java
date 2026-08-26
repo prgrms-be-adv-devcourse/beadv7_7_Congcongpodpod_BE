@@ -81,6 +81,32 @@ public class OrderNotificationEventWriter {
             order.getId()));
   }
 
+  public void appendPickedUp(Order order) {
+    append(
+        order,
+        new OrderNotificationPayload(
+            order.getMemberId(),
+            "PICKED_UP",
+            "픽업이 완료됐어요",
+            "상품 픽업이 완료되었습니다. 이용해주셔서 감사합니다.",
+            null,
+            "ORDER",
+            order.getId()));
+  }
+
+  public void appendNoShow(Order order) {
+    append(
+        order,
+        new OrderNotificationPayload(
+            order.getMemberId(),
+            "ORDER_NO_SHOW",
+            "미수령 처리됐어요",
+            "픽업 시간이 지나 주문이 미수령 처리되었습니다.",
+            null,
+            "ORDER",
+            order.getId()));
+  }
+
   private void append(Order order, OrderNotificationPayload payload) {
     OrderNotificationEvent event =
         new OrderNotificationEvent(

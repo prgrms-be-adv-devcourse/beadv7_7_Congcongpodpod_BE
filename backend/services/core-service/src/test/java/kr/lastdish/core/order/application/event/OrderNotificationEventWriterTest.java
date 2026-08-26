@@ -103,6 +103,24 @@ class OrderNotificationEventWriterTest {
             10L));
   }
 
+  @Test
+  void appendPickedUp_createsNotificationForCustomer() {
+    writer.appendPickedUp(order);
+
+    assertEvent(
+        new OrderNotificationPayload(
+            1L, "PICKED_UP", "픽업이 완료됐어요", "상품 픽업이 완료되었습니다. 이용해주셔서 감사합니다.", null, "ORDER", 10L));
+  }
+
+  @Test
+  void appendNoShow_createsNotificationForCustomer() {
+    writer.appendNoShow(order);
+
+    assertEvent(
+        new OrderNotificationPayload(
+            1L, "ORDER_NO_SHOW", "미수령 처리됐어요", "픽업 시간이 지나 주문이 미수령 처리되었습니다.", null, "ORDER", 10L));
+  }
+
   private void assertEvent(OrderNotificationPayload expectedPayload) {
     ArgumentCaptor<DomainEvent<?>> captor = ArgumentCaptor.forClass(DomainEvent.class);
     verify(outboxEventWriter).append(captor.capture());

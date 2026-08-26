@@ -316,6 +316,7 @@ class OrderServiceTest {
     verify(order).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
+    verify(orderNotificationEventWriter).appendPickedUp(order);
   }
 
   @Test
@@ -336,6 +337,7 @@ class OrderServiceTest {
     verify(order, never()).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
+    verify(orderNotificationEventWriter).appendNoShow(order);
   }
 
   @Test
