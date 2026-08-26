@@ -12,9 +12,12 @@ import lombok.Setter;
 public class StoreSearchRequest {
   @NotBlank(message = "검색어는 필수 입력 값입니다.")
   private String query;
-  @NotNull(message = "위도는 필수 입력 값입니다.") // 추가
+
+  @NotNull(message = "위도는 필수 입력 값입니다.")
   private Double latitude;
-  @NotNull(message = "경도는 필수 입력 값입니다.") // 추가
+
+  @NotNull(message = "경도는 필수 입력 값입니다.")
   private Double longitude;
+
   private Double radiusKm = 3.0; // 기본 반경 설정
 }
