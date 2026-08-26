@@ -9,6 +9,7 @@ import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.*;
 import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
@@ -29,6 +30,7 @@ public class OrderService {
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderNotificationEventWriter orderNotificationEventWriter;
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
@@ -82,6 +84,8 @@ public class OrderService {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.cancel(memberId);
     orderStatusChangedEventWriter.append(order);
+    Long sellerMemberId = storeService.getStore(order.getStoreId()).memberId();
+    orderNotificationEventWriter.appendCancelled(order, sellerMemberId);
     return order;
   }
 
@@ -123,6 +127,7 @@ public class OrderService {
     String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
     orderStatusChangedEventWriter.append(order);
+    orderNotificationEventWriter.appendAccepted(order);
     return OrderReceptionResult.from(order);
   }
 

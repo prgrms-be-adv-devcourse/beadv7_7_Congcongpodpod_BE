@@ -18,6 +18,7 @@ import kr.lastdish.core.order.application.dto.OrderResult;
 import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.RejectOrderCommand;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.MemberSnapshot;
 import kr.lastdish.core.order.domain.MemberSnapshotRepository;
@@ -53,6 +54,8 @@ class OrderFacadeTest {
   @Mock private OrderRepository orderRepository;
 
   @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+
+  @Mock private OrderNotificationEventWriter orderNotificationEventWriter;
 
   @Mock private StoreFacade storeFacade;
 
@@ -321,6 +324,7 @@ class OrderFacadeTest {
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
     verify(order).rejectOrder(reason);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter).appendRejected(order, reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade).increaseStock(dishId, quantity);
   }
@@ -349,6 +353,7 @@ class OrderFacadeTest {
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
     verify(order).rejectOrder(reason);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter).appendRejected(order, reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }
