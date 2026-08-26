@@ -18,6 +18,7 @@ import kr.lastdish.core.order.application.dto.OrderResult;
 import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.RejectOrderCommand;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.MemberSnapshot;
 import kr.lastdish.core.order.domain.MemberSnapshotRepository;
@@ -54,6 +55,8 @@ class OrderFacadeTest {
 
   @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
 
+  @Mock private OrderNotificationEventWriter orderNotificationEventWriter;
+
   @Mock private StoreFacade storeFacade;
 
   @Mock private MemberSnapshotRepository memberSnapshotRepository;
@@ -73,6 +76,7 @@ class OrderFacadeTest {
 
     when(order.getId()).thenReturn(10L);
     when(order.getDishId()).thenReturn(100L);
+    when(order.getStoreId()).thenReturn(1L);
     when(order.getQuantity()).thenReturn(2L);
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
 
@@ -87,6 +91,7 @@ class OrderFacadeTest {
     OrderResult expectedResponse = mock(OrderResult.class);
 
     when(orderService.completePayment(10L)).thenReturn(expectedResponse);
+    when(storeFacade.getStoreOwnerMemberId(1L)).thenReturn(20L);
 
     // when
     OrderResult response = orderFacade.payAndCreateOrder(memberId, cartItemId, 3L);
@@ -101,7 +106,8 @@ class OrderFacadeTest {
             orderService,
             dishFacade,
             storeFacade,
-            depositFacade);
+            depositFacade,
+            orderNotificationEventWriter);
 
     inOrder.verify(memberSnapshotRepository).findActiveByMemberId(memberId);
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
@@ -116,6 +122,8 @@ class OrderFacadeTest {
 
     inOrder.verify(orderService).completePayment(10L);
     inOrder.verify(cartFacade).removeOrderedItem(memberId, cartItemId);
+    inOrder.verify(storeFacade).getStoreOwnerMemberId(1L);
+    inOrder.verify(orderNotificationEventWriter).appendCreated(order, 20L);
   }
 
   @Test
@@ -283,6 +291,7 @@ class OrderFacadeTest {
 
     verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(10_000));
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
+    verify(orderNotificationEventWriter, never()).appendCreated(any(), anyLong());
   }
 
   @Test
@@ -348,6 +357,7 @@ class OrderFacadeTest {
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
     verify(order).rejectOrder(reason);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter).appendRejected(order, reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade).increaseStock(dishId, quantity);
   }
@@ -376,6 +386,7 @@ class OrderFacadeTest {
     verify(storeFacade).validateStoreOwner(storeId, sellerId);
     verify(order).rejectOrder(reason);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter).appendRejected(order, reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }

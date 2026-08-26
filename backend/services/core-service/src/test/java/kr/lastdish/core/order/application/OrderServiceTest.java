@@ -20,6 +20,7 @@ import kr.lastdish.core.order.application.dto.OrderResult;
 import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
 import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
@@ -46,6 +47,8 @@ class OrderServiceTest {
 
   @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
 
+  @Mock private OrderNotificationEventWriter orderNotificationEventWriter;
+
   @Mock private OrderPickedUpEventWriter orderPickedUpEventWriter;
 
   @Mock private OrderNoShowEventWriter orderNoShowEventWriter;
@@ -62,6 +65,7 @@ class OrderServiceTest {
         new OrderService(
             orderRepository,
             orderStatusChangedEventWriter,
+            orderNotificationEventWriter,
             orderPickedUpEventWriter,
             orderNoShowEventWriter,
             pickupCodeGenerator);
@@ -238,6 +242,7 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter, never()).appendCancelled(any(), anyLong());
   }
 
   @Test
@@ -264,6 +269,7 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, pickupCode);
     verify(order, times(1)).issuePickupCode(pickupCode);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter).appendAccepted(order);
   }
 
   @Test
@@ -335,6 +341,7 @@ class OrderServiceTest {
     verify(order).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
+    verify(orderNotificationEventWriter).appendPickedUp(order);
   }
 
   @Test
@@ -355,6 +362,7 @@ class OrderServiceTest {
     verify(order, never()).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
+    verify(orderNotificationEventWriter).appendNoShow(order);
   }
 
   @Test

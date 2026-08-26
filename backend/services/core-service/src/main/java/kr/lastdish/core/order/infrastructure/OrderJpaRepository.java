@@ -2,6 +2,7 @@ package kr.lastdish.core.order.infrastructure;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import kr.lastdish.core.order.domain.Order;
@@ -109,6 +110,38 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       order by o.pickupDeadline asc, o.id asc
       """)
   List<Order> findPickupExpirationTargets(@Param("now") LocalDateTime now, Pageable pageable);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select o
+      from Order o
+      where o.isDeleted = false
+        and o.status = "PICKUP_READY"
+        and o.pickupStartAt = :pickupStartTime
+        and o.pickupDeadline >= :deadlineFrom
+        and o.pickupDeadline < :deadlineTo
+      order by o.pickupDeadline asc, o.id asc
+      """)
+  List<Order> findPickupStartNotificationTargets(
+      @Param("pickupStartTime") LocalTime pickupStartTime,
+      @Param("deadlineFrom") LocalDateTime deadlineFrom,
+      @Param("deadlineTo") LocalDateTime deadlineTo);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select o
+      from Order o
+      where o.isDeleted = false
+        and o.status = "PICKUP_READY"
+        and o.pickupDeadline >= :deadlineFrom
+        and o.pickupDeadline < :deadlineTo
+      order by o.pickupDeadline asc, o.id asc
+      """)
+  List<Order> findPickupDeadlineSoonNotificationTargets(
+      @Param("deadlineFrom") LocalDateTime deadlineFrom,
+      @Param("deadlineTo") LocalDateTime deadlineTo);
 
   @Query(
       """
