@@ -11,8 +11,6 @@ TRUNCATE TABLE
     public.carts,
     public.deposit_history,
     public.deposits,
-    public.payment_log,
-    public.payments,
     public.point_history,
     public.points,
     public.level_history,
@@ -793,22 +791,6 @@ SELECT
 FROM public.orders
 GROUP BY member_id;
 
-INSERT INTO public.payments (
-    payment_id, member_id, amount, pg_provider, created_at, approved_at,
-    approved_status, pg_transaction_id, merchant_order_id
-)
-SELECT
-    member_id,
-    member_id,
-    charge_amount,
-    'TOSS',
-    current_timestamp - interval '9 years',
-    current_timestamp - interval '9 years' + interval '1 minute',
-    'APPROVED',
-    'demo-payment-' || lpad(member_id::text, 3, '0'),
-    'DEMO-CHARGE-' || lpad(member_id::text, 3, '0')
-FROM demo_member_charge;
-
 INSERT INTO public.deposits (deposit_id, member_id, balance, updated_at)
 SELECT member_id, member_id, 1000000000000, current_timestamp
 FROM demo_member_charge;
@@ -1007,7 +989,6 @@ SELECT setval('store_payout_accounts_payout_account_id_seq', 300, true);
 SELECT setval('dishes_id_seq', 300, true);
 SELECT setval('carts_id_seq', 300, true);
 SELECT setval('orders_id_seq', 750000, true);
-SELECT setval('payments_payment_id_seq', 300, true);
 SELECT setval('deposits_deposit_id_seq', 300, true);
 
 -- 정산 실행 시 기존 더미 데이터와 PK가 충돌하지 않도록 조정

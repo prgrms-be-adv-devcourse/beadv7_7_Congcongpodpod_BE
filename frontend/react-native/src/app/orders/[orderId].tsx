@@ -8,6 +8,7 @@ import { showAppAlert } from '@/lib/app-overlay';
 import { Page } from '@/components/page';
 import { colors, fonts, radius } from '@/constants/theme';
 import { cancelOrder, getOrder, getPickupCode, type CustomerOrder } from '@/lib/orders';
+import { subscribeOrderStateChanged } from '@/lib/order-events';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 
 const steps=['주문 접수','픽업 대기','픽업 완료'];
@@ -19,6 +20,7 @@ export default function OrderDetail(){
   const closeToOrders=()=>router.replace('/orders');
   const load=useCallback(async()=>{setFailed(false);try{const row=await getOrder(id);setOrder(row);if(row.status==='PICKUP_READY'){try{setCode((await getPickupCode(id)).pickupCode);}catch{setCode('');}}else setCode('');}catch{setFailed(true)}},[id]);
   useEffect(()=>{void load()},[load]);
+  useEffect(()=>subscribeOrderStateChanged((event)=>{if(!event.orderId||event.orderId===id)void load()}),[id,load]);
   const {refreshing,onRefresh}=usePullToRefresh(load);
   if(failed&&!order)return <Page title="주문 상세" description="주문 정보를 불러오지 못했어요." refreshing={refreshing} onRefresh={onRefresh} onClose={closeToOrders} closeLabel="주문내역으로 닫기"/>;
   if(!order)return <Page title="주문 상세" onClose={closeToOrders} closeLabel="주문내역으로 닫기"><LoadingState label="주문 상태를 확인하고 있어요" compact/></Page>;

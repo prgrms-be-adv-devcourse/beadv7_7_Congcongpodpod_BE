@@ -1,5 +1,10 @@
 import type { Dish, Store } from '@/types/store';
 
+export function hasAvailableDish(store: Pick<Store, 'dishes' | 'hasAvailableDish'>) {
+  if (typeof store.hasAvailableDish === 'boolean') return store.hasAvailableDish;
+  return store.dishes.some(dish => dish.quantity > 0 && !['SOLD_OUT', 'CLOSED'].includes(dish.status ?? ''));
+}
+
 export function getCheapestDish(store: Pick<Store, 'dishes'>): Dish | undefined {
   return store.dishes.reduce<Dish | undefined>((cheapest, dish) => (
     !cheapest || dish.discountPrice < cheapest.discountPrice ? dish : cheapest

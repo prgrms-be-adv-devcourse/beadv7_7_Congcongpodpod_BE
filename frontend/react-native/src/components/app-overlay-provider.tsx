@@ -1,4 +1,5 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
+import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -6,16 +7,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/loading-state';
 import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
-import { type AppAlertRequest, type AppNotificationRequest, subscribeAppAlerts, subscribeGlobalLoading, subscribeInAppNotifications } from '@/lib/app-overlay';
+import { type AppAlertRequest, type AppDishReportRequest, type AppNotificationRequest, subscribeAppAlerts, subscribeDishReports, subscribeGlobalLoading, subscribeInAppNotifications } from '@/lib/app-overlay';
 
 const MIN_LOADING_VISIBLE_MS = 160;
 
 function notificationVisual(type?: string) {
+  if (type === 'ORDER_CREATED') return { icon: 'storefront-outline' as const, label: '새 주문' };
   if (type === 'ORDER_ACCEPTED') return { icon: 'receipt-outline' as const, label: '주문 접수' };
   if (type === 'PICKUP_READY') return { icon: 'bag-check-outline' as const, label: '픽업 준비 완료' };
+  if (type === 'PICKUP_STARTED') return { icon: 'time-outline' as const, label: '픽업 시작' };
+  if (type === 'PICKUP_DEADLINE_SOON') return { icon: 'alarm-outline' as const, label: '마감 임박' };
   if (type === 'PICKED_UP') return { icon: 'checkmark-circle-outline' as const, label: '픽업 완료' };
+  if (type === 'ORDER_NO_SHOW') return { icon: 'time-outline' as const, label: '미수령 처리' };
   if (type === 'ORDER_CANCELLED') return { icon: 'close-circle-outline' as const, label: '주문 취소' };
   if (type === 'ORDER_REJECTED') return { icon: 'alert-circle-outline' as const, label: '주문 거절' };
+  if (type === 'POINT_EARNED') return { icon: 'sparkles-outline' as const, label: '포인트 적립' };
   return { icon: 'notifications-outline' as const, label: '새 알림' };
 }
 
@@ -32,19 +38,56 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
   };
 
   return <Animated.View style={[styles.notificationAnimated, { opacity: motion, transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={notification.onPress} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={() => dismiss(notification.onPress)} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
       <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={22} color={colors.green700}/><View style={styles.notificationUnread}/></View>
       <View style={styles.notificationCopy}>
         <View style={styles.notificationMeta}><Text style={styles.notificationLabel}>{visual.label}</Text><Text style={styles.notificationTime}>방금</Text></View>
         <Text numberOfLines={1} style={styles.notificationTitle}>{notification.title}</Text>
         <Text numberOfLines={3} style={styles.notificationMessage}>{notification.message}</Text>
       </View>
-      <View style={styles.notificationActions}>
-        <Pressable accessibilityLabel="알림 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); dismiss(); }} style={styles.notificationClose}><Ionicons name="close" size={18} color={colors.ink500}/></Pressable>
-        {notification.onPress ? <View style={styles.notificationOpen}><Text style={styles.notificationOpenText}>보기</Text><Ionicons name="chevron-forward" size={14} color={colors.ink900}/></View> : null}
-      </View>
+      <Pressable accessibilityLabel="알림 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); dismiss(); }} style={styles.notificationClose}><Ionicons name="close" size={15} color={colors.ink500}/></Pressable>
     </Pressable>
   </Animated.View>;
+}
+
+function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRequest; insets: { top: number; bottom: number }; onClose: () => void }) {
+  const entrance = useRef(new Animated.Value(0)).current;
+  const pointEmphasis = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!report) return;
+    entrance.setValue(0);
+    pointEmphasis.setValue(0);
+    Animated.sequence([
+      Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }),
+      Animated.spring(pointEmphasis, { toValue: 1, damping: 12, stiffness: 170, mass: 0.7, useNativeDriver: true }),
+    ]).start();
+  }, [entrance, pointEmphasis, report]);
+
+  const navigate = (path: '/grades' | '/points') => {
+    onClose();
+    requestAnimationFrame(() => router.push(path));
+  };
+
+  return <Modal animationType="fade" onRequestClose={onClose} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
+    <View style={[styles.reportRoot, { paddingTop: Math.max(24, insets.top), paddingBottom: Math.max(24, insets.bottom) }]}>
+      <Animated.View accessibilityRole="alert" accessibilityViewIsModal style={[styles.reportCard, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }] }]}>
+        <View style={styles.reportHeader}>
+          <View style={styles.reportMark}><Ionicons name="checkmark-circle-outline" size={25} color={colors.white}/></View>
+          <View style={styles.reportHeaderCopy}><Text style={styles.reportEyebrow}>픽업 완료 리포트</Text><Text style={styles.reportTitle}>오늘도 한 끼를 구조했어요</Text></View>
+          <Pressable accessibilityLabel="리포트 닫기" hitSlop={8} onPress={onClose} style={styles.reportClose}><Ionicons name="close" size={17} color={colors.ink500}/></Pressable>
+        </View>
+        <View style={styles.reportPurchase}><View><Text style={styles.reportLabel}>구매 정보</Text><Text style={styles.reportPurchaseTitle}>픽업 완료 · 구매 반영 완료</Text></View><Ionicons name="receipt-outline" size={21} color={colors.green700}/></View>
+        <Pressable accessibilityRole="button" onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportLevel, pressed && styles.reportPressed]}><View><Text style={styles.reportLabel}>현재 등급</Text><Text style={styles.reportLevelValue}>{report?.level ? `Lv.${report.level} · ${report.grade}` : '등급 확인 중'}</Text>{report?.remainToNextLevel !== undefined ? <Text style={styles.reportLevelHint}>{report.remainToNextLevel > 0 ? `다음 등급까지 픽업 ${report.remainToNextLevel}회` : '현재 최고 등급이에요'}</Text> : null}</View><Ionicons name="chevron-forward" size={19} color={colors.green700}/></Pressable>
+        <View style={styles.reportMetrics}>
+          <View style={styles.reportMetric}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text></View>
+          <Animated.View style={[styles.reportMetricAnimated, { transform: [{ scale: pointEmphasis.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] }]}><Pressable accessibilityRole="button" onPress={() => navigate('/points')} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>포인트 내역 보기</Text></Pressable></Animated.View>
+        </View>
+        <View style={styles.reportTotal}><Text style={styles.reportLabel}>총 구매 횟수</Text><Text style={styles.reportTotalValue}>{report?.purchaseCount === undefined ? '—' : `${report.purchaseCount.toLocaleString()}회`}</Text></View>
+        <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
+      </Animated.View>
+    </View>
+  </Modal>;
 }
 
 export function AppOverlayProvider({ children }: PropsWithChildren) {
@@ -54,6 +97,7 @@ export function AppOverlayProvider({ children }: PropsWithChildren) {
   const [loadingCount, setLoadingCount] = useState(0);
   const [showLoading, setShowLoading] = useState(false);
   const [notifications, setNotifications] = useState<AppNotificationRequest[]>([]);
+  const [dishReport, setDishReport] = useState<AppDishReportRequest>();
   const loadingVisible = useRef(false);
   const loadingShownAt = useRef(0);
   const hideLoadingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -61,6 +105,7 @@ export function AppOverlayProvider({ children }: PropsWithChildren) {
   const maxVisibleRef = useRef(maxVisibleNotifications);
 
   useEffect(() => subscribeAppAlerts(setAlert), []);
+  useEffect(() => subscribeDishReports(setDishReport), []);
   useEffect(() => subscribeGlobalLoading(setLoadingCount), []);
   useEffect(() => {
     maxVisibleRef.current = maxVisibleNotifications;
@@ -113,6 +158,7 @@ export function AppOverlayProvider({ children }: PropsWithChildren) {
         </View> : null}
       </View>
     </Modal>
+    <DishReportModal report={dishReport} insets={insets} onClose={() => setDishReport(undefined)}/>
     {showLoading ? <View accessibilityLabel="처리 중" accessibilityRole="progressbar" pointerEvents="none" style={styles.loadingRoot}><View style={styles.loadingCard}><LoadingState compact inline label="잠시만 기다려주세요"/></View></View> : null}
   </>;
 }
@@ -136,7 +182,7 @@ const styles = StyleSheet.create({
   loadingCard: { width: 148, minHeight: 104, alignItems: 'center', justifyContent: 'center' },
   notificationLayer: { position: 'absolute', left: 12, right: 12, zIndex: 1000, alignItems: 'center', gap: 8 },
   notificationAnimated: { width: '100%', maxWidth: 440 },
-  notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 10, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
+  notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 46, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
   notificationIcon: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.green50 },
   notificationUnread: { position: 'absolute', right: 5, top: 5, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.green500, borderWidth: 2, borderColor: colors.white },
   notificationCopy: { flex: 1, minWidth: 0 },
@@ -145,9 +191,38 @@ const styles = StyleSheet.create({
   notificationTime: { color: colors.ink400, fontFamily: fonts.body, fontSize: 10, lineHeight: 14 },
   notificationTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800', letterSpacing: -0.25 },
   notificationMessage: { marginTop: 3, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
-  notificationActions: { minHeight: 76, alignItems: 'center', justifyContent: 'space-between' },
-  notificationClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.canvas },
-  notificationOpen: { minHeight: 32, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 1, borderRadius: radius.control, backgroundColor: colors.canvas },
-  notificationOpenText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
+  notificationClose: { position: 'absolute', top: 10, right: 10, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.canvas },
   notificationPressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
+  reportRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(15,20,17,0.58)' },
+  reportCard: { width: '100%', maxWidth: 410, padding: 18, borderRadius: radius.sheet, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
+  reportHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  reportMark: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.green700 },
+  reportHeaderCopy: { flex: 1, minWidth: 0 },
+  reportEyebrow: { color: colors.green700, fontFamily: fonts.body, fontSize: 11, fontWeight: '900' },
+  reportTitle: { marginTop: 3, color: colors.ink900, fontFamily: fonts.body, fontSize: 19, lineHeight: 25, fontWeight: '900', letterSpacing: -0.5 },
+  reportClose: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: colors.canvas },
+  reportPurchase: { minHeight: 70, marginTop: 18, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, backgroundColor: colors.canvas },
+  reportLabel: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
+  reportPurchaseTitle: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
+  reportLevel: { minHeight: 76, marginTop: 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  reportLevelValue: { marginTop: 5, color: colors.ink900, fontFamily: fonts.body, fontSize: 18, fontWeight: '900', letterSpacing: -0.4 },
+  reportLevelHint: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
+  reportPressed: { backgroundColor: colors.green50, borderColor: colors.green300 },
+  reportMetrics: { marginTop: 8, flexDirection: 'row', gap: 8 },
+  reportMetricAnimated: { flex: 1 },
+  reportMetric: { minHeight: 112, flex: 1, padding: 14, justifyContent: 'space-between', borderRadius: radius.input, backgroundColor: colors.canvas },
+  reportMetricAccent: { backgroundColor: colors.green700 },
+  reportMetricLabel: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
+  reportMetricValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 19, fontWeight: '900', letterSpacing: -0.5 },
+  reportMetricAccentLabel: { color: colors.green100, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
+  reportMetricAccentValue: { color: colors.white, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  reportMetricLink: { color: colors.green100, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
+  reportMetricPressed: { opacity: 0.88 },
+  reportTotal: { minHeight: 62, marginTop: 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  reportTotalValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' },
+  reportActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
+  reportLater: { minHeight: 50, flex: 0.7, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white },
+  reportLaterText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
+  reportPrimary: { minHeight: 50, flex: 1.3, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green500 },
+  reportPrimaryText: { color: colors.white, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' },
 });

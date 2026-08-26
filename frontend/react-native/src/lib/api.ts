@@ -39,6 +39,13 @@ export class RequestCancelledError extends Error {
   }
 }
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly code?: string, public readonly status?: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function renewAccessToken() {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
@@ -108,10 +115,16 @@ export async function api<T>(path: string, init?: RequestInit, options: ApiOptio
 
     const body = await response.json().catch(() => null) as {
       message?: string;
-      error?: { message?: string };
+      errorCode?: string;
+      code?: string;
+      error?: { message?: string; code?: string; errorCode?: string };
     } | null;
     if (!response.ok) {
-      throw new Error(body?.error?.message ?? body?.message ?? `API ${response.status}`);
+      throw new ApiError(
+        body?.error?.message ?? body?.message ?? `API ${response.status}`,
+        body?.error?.code ?? body?.error?.errorCode ?? body?.errorCode ?? body?.code,
+        response.status,
+      );
     }
     return body as T;
   } finally {

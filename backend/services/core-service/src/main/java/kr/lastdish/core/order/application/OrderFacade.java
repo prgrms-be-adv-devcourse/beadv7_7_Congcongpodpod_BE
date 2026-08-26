@@ -10,6 +10,7 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.deposit.application.DepositFacade;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.application.dto.*;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.MemberSnapshot;
 import kr.lastdish.core.order.domain.MemberSnapshotRepository;
@@ -31,6 +32,7 @@ public class OrderFacade {
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderNotificationEventWriter orderNotificationEventWriter;
   private final OrderService orderService;
   private final CartFacade cartFacade;
   private final DishFacade dishFacade;
@@ -52,7 +54,7 @@ public class OrderFacade {
     CartOrderSnapshot cartItem =
         cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, dishPriceVersion);
 
-    // 영업 여부와 픽업 마감을 같은 기준 시각으로 판단한다. 각자 now()를 부르면 자정 근처에서 두 판정이 갈린다.
+    // 서버 현재 시각을 한 번만 구해 자정 경계를 포함한 픽업 마감 일시를 계산한다.
     LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
     LocalDateTime pickupDeadline = validateBeforeOrder(cartItem, now);
 
@@ -71,11 +73,16 @@ public class OrderFacade {
     // 주문이 완료된 상품을 장바구니에서 제거
     cartFacade.removeOrderedItem(memberId, cartItemId);
 
+    Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
+    orderNotificationEventWriter.appendCreated(order, sellerMemberId);
+
     return result;
   }
 
   private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem, LocalDateTime now) {
-    storeFacade.validateOpen(cartItem.storeId(), now);
+    storeFacade.validateOpen(cartItem.storeId());
+    dishFacade.validateAvailable(cartItem.dishId());
+
     return orderService.validatePickupDeadline(cartItem, now);
   }
 
@@ -90,6 +97,9 @@ public class OrderFacade {
 
     // 결제 환불
     depositFacade.refund(memberId, orderId, order.getTotalPrice());
+
+    Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
+    orderNotificationEventWriter.appendCancelled(order, sellerMemberId);
 
     return OrderResult.from(order);
   }
@@ -126,6 +136,7 @@ public class OrderFacade {
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     order.rejectOrder(reason);
     orderStatusChangedEventWriter.append(order);
+    orderNotificationEventWriter.appendRejected(order, reason);
     // 환불
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
     return OrderRejectResult.from(order);
@@ -136,6 +147,7 @@ public class OrderFacade {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.rejectOrder(reason);
     orderStatusChangedEventWriter.append(order);
+    orderNotificationEventWriter.appendRejected(order, reason);
     // 환불 - 재고 복구 안함
     depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
     return OrderRejectResult.from(order);

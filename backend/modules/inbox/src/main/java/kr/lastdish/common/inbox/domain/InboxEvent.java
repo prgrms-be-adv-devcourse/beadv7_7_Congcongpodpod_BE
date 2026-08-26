@@ -90,11 +90,13 @@ public class InboxEvent {
     lastError = truncate(reason, 1000);
   }
 
-  public void recordFailure(String error, int maxRetries) {
+  public boolean recordFailure(String error, int maxRetries) {
     retryCount++;
     lastError = truncate(error, 1000);
     lockedAt = null;
-    status = retryCount >= maxRetries ? InboxStatus.FAILED : InboxStatus.RECEIVED;
+    boolean exhausted = retryCount >= maxRetries;
+    status = exhausted ? InboxStatus.FAILED : InboxStatus.RECEIVED;
+    return exhausted;
   }
 
   public EventMessage toEventMessage() {

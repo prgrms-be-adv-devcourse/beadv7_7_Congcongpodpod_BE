@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   sectionDescription: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 },
   sectionLinkHit: { minHeight: 44, justifyContent: 'center' },
   sectionLink: { color: colors.green700, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
-  inventorySurface: { overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
+  inventorySurface: { marginTop: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   inventoryRow: { minHeight: 70, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   inventoryRowLast: { borderBottomWidth: 0 },
   inventoryPressed: { backgroundColor: colors.canvas },
