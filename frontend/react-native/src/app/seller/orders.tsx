@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmModal } from '@/components/confirm-modal';
@@ -9,6 +9,7 @@ import { SellerShell } from '@/components/seller-shell';
 import { colors, fonts, radius } from '@/constants/theme';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { showAppAlert } from '@/lib/app-overlay';
+import { subscribeOrderStateChanged } from '@/lib/order-events';
 import { acceptStoreOrder, getMyStores, getStoreOrders, rejectStoreOrder, updateStorePickup, type SellerOrder } from '@/lib/seller';
 
 const tabs = [['RESERVED', '접수 대기'], ['PICKUP_READY', '픽업 대기'], ['PICKED_UP', '완료'], ['CLOSED', '종료']] as const;
@@ -29,6 +30,9 @@ export default function SellerOrders() {
   const [rejecting, setRejecting] = useState<number>();
   const [pendingAction, setPendingAction] = useState<PendingAction>();
   const [codes, setCodes] = useState<Record<number, string>>({});
+  const actionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => { if (actionTimer.current) clearTimeout(actionTimer.current); }, []);
 
   useEffect(() => {
     if (isTab(params.tab)) setTab(params.tab);
@@ -62,6 +66,7 @@ export default function SellerOrders() {
   }, [storeId, tab]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useEffect(() => subscribeOrderStateChanged(() => { void load(); }), [load]);
   const { refreshing, onRefresh } = usePullToRefresh(load);
   const orders = ordersByTab[tab] ?? [];
   const hasLoaded = Object.prototype.hasOwnProperty.call(ordersByTab, tab);
@@ -109,8 +114,15 @@ export default function SellerOrders() {
   };
   const confirmAction = () => {
     if (!pendingAction) return;
-    if (pendingAction.status === 'ACCEPT') void accept(pendingAction.order);
-    else void pickup(pendingAction.order, pendingAction.status);
+    const action = pendingAction;
+    setProcessing(action.order.orderId);
+    setPendingAction(undefined);
+    // 네이티브 Modal의 fade-out이 끝난 뒤 결과 알림을 열어 두 Modal이
+    // 겹치거나 오류 알림이 확인창 아래에 쌓이지 않게 한다.
+    actionTimer.current = setTimeout(() => {
+      if (action.status === 'ACCEPT') void accept(action.order);
+      else void pickup(action.order, action.status);
+    }, 220);
   };
   const confirmCopy = pendingAction?.status === 'ACCEPT'
     ? { icon: 'receipt-outline' as const, title: '주문을 접수할까요?', description: `${pendingAction.order.dishName} ${pendingAction.order.quantity}개를 준비합니다.\n접수하면 고객에게 픽업 코드가 발급돼요.`, label: '주문 접수', busy: '접수 중…' }

@@ -36,13 +36,28 @@ type ApiStore = {
 };
 
 type Envelope<T> = { success?: boolean; data?: T };
-type Page<T> = { content?: T[]; stores?: T[] } | T[];
+type Page<T> = { content?: T[]; stores?: T[]; page?: number; totalPages?: number; totalElements?: number } | T[];
 
 const unwrapData = <T,>(value: T | Envelope<T>): T =>
   value && typeof value === 'object' && 'data' in value && value.data !== undefined ? value.data : value as T;
 
 const unwrapList = <T,>(value: Page<T>): T[] =>
   Array.isArray(value) ? value : value.stores ?? value.content ?? [];
+
+async function getAllNearbyStorePages(latitude: number, longitude: number, radiusKm: number, size: number, signal?: AbortSignal) {
+  const fetchPage = async (page: number) => {
+    const query = new URLSearchParams({
+      latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm), page: String(page), size: String(size),
+    });
+    return unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`, { signal }));
+  };
+  const first = await fetchPage(0);
+  if (Array.isArray(first)) return first;
+  const totalPages = Math.max(1, Number(first.totalPages ?? 1));
+  const stores = [...unwrapList(first)];
+  for (let page = 1; page < totalPages; page += 1) stores.push(...unwrapList(await fetchPage(page)));
+  return [...new Map(stores.map(store => [store.storeId, store])).values()];
+}
 
 const mapDish = (dish: ApiDish): Dish => ({
   dishId: dish.dishId,
@@ -77,23 +92,15 @@ const mapStore = (store: ApiStore): Store => ({
 });
 
 export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5, size = 60, signal?: AbortSignal) {
-  const query = new URLSearchParams({
-    latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm), page: '0', size: String(size),
-  });
-  const result = unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`, { signal }));
-  return unwrapList(result).map(mapStore);
+  return (await getAllNearbyStorePages(latitude, longitude, radiusKm, size, signal)).map(mapStore);
 }
 
 export async function searchStores(keyword: string, latitude: number, longitude: number) {
   const normalized = keyword.trim().toLocaleLowerCase('ko');
   if (!normalized) return [];
-  const query = new URLSearchParams({
-    latitude: String(latitude), longitude: String(longitude), radiusKm: '500', page: '0', size: '100',
-  });
-  const result = unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`));
-  return unwrapList(result)
+  return (await getAllNearbyStorePages(latitude, longitude, 500, 100))
     .map(mapStore)
-    .filter((store) => [store.storeName, store.category, store.address]
+    .filter((store) => [store.storeName, store.category, store.address, ...store.dishes.map(dish => dish.dishName)]
       .some((value) => value.toLocaleLowerCase('ko').includes(normalized)))
     .slice(0, 8);
 }

@@ -110,12 +110,16 @@ export function connectNotificationStream(
   };
 }
 
-export function notificationRoute(notification: Pick<ServerNotification, 'linkTarget' | 'linkId'>) {
+export function notificationRoute(notification: Pick<ServerNotification, 'type' | 'linkTarget' | 'linkId'>) {
   const id = notification.linkId;
+  const type = notification.type?.toUpperCase();
+  if (type === 'ORDER_CREATED') return '/seller/orders';
+  if (type === 'ORDER_CANCELLED' && !notification.linkTarget) return '/seller/orders';
   switch (notification.linkTarget?.toUpperCase()) {
     case 'ORDER': return id ? `/orders/${id}` : '/orders';
     case 'STORE': return id ? `/stores/${id}` : '/stores';
     case 'DEPOSIT': return '/deposits';
+    case 'DISH_REPORT': return '/grades';
     default: return '/notifications';
   }
 }
