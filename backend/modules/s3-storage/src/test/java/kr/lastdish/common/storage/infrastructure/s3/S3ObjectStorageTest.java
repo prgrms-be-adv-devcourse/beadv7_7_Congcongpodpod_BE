@@ -75,12 +75,11 @@ class S3ObjectStorageTest {
               mock(S3Client.class), presigner, properties, Clock.fixed(now, ZoneOffset.UTC));
 
       PresignedUploadUrl result =
-          storage.issuePutUrl("tmp/dish/3/test.jpg", "image/jpeg", Duration.ofMinutes(5));
+          storage.issuePutUrl("tmp/dish/3/test.jpg", Duration.ofMinutes(5));
 
       assertThat(result.objectKey()).isEqualTo("tmp/dish/3/test.jpg");
       assertThat(result.requiredHeaders())
-          .containsEntry("content-type", "image/jpeg")
-          .doesNotContainKeys("content-length", "host");
+          .doesNotContainKeys("content-type", "content-length", "host");
       assertThat(result.expiresAt()).isEqualTo(now.plus(Duration.ofMinutes(5)));
     }
   }
