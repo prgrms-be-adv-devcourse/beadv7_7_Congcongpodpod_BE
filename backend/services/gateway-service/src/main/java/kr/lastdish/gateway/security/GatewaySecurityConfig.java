@@ -74,8 +74,10 @@ public class GatewaySecurityConfig {
                     // 가게와 상품의 공개 조회는 인증 없이 허용한다.
                     .pathMatchers(GET, "/api/v1/stores/**", "/api/v1/dishes/**")
                     .permitAll()
-                    // 매장 검색은 로그인 없이 사용할 수 있는 공개 검색 API다.
+                    // 검색과 지도·목록의 ES 기반 매장 조회는 로그인 없이 사용한다.
                     .pathMatchers(POST, "/api/v1/ai/search")
+                    .permitAll()
+                    .pathMatchers(GET, "/api/v1/ai/stores/nearby")
                     .permitAll()
                     // 일반 회원이 최초 매장을 등록해 SELLER로 전환할 수 있도록 허용한다.
                     .pathMatchers(POST, "/api/v1/stores")
@@ -86,8 +88,6 @@ public class GatewaySecurityConfig {
                     .hasRole("SELLER")
                     // 상품 등록 중 음식 이미지 분류와 검색은 로그인한 회원과 판매자에게 허용한다.
                     .pathMatchers(POST, "/api/v1/ai/classify", "/api/v1/ai/search")
-                    .hasAnyRole("MEMBER", "SELLER")
-                    .pathMatchers(GET, "/api/v1/ai/stores/nearby")
                     .hasAnyRole("MEMBER", "SELLER")
                     // 매장 등록·수정용 주소 검색은 로그인한 회원과 판매자에게 허용한다.
                     .pathMatchers(GET, "/api/v1/locations/geocode")
