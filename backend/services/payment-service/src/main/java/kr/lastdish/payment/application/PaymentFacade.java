@@ -1,6 +1,7 @@
 package kr.lastdish.payment.application;
 
 import java.math.BigDecimal;
+import java.util.List;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.payment.application.dto.ApprovalClaim;
 import kr.lastdish.payment.application.dto.PaymentApproveResponse;
@@ -10,6 +11,7 @@ import kr.lastdish.payment.domain.Payment;
 import kr.lastdish.payment.domain.PaymentException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -19,6 +21,9 @@ public class PaymentFacade {
 
   private final PaymentService paymentService;
   private final PgPaymentGateway pgPaymentGateway;
+
+  @Value("${payment.processing-verify.delay-ms:200}")
+  private long verifyDelayMs;
 
   // Toss 통신은 트랜잭션 외부, DB 반영은 트랜잭션 내부에서 처리
   public PaymentApproveResponse approve(
@@ -77,5 +82,56 @@ public class PaymentFacade {
         }
       }
     };
+  }
+
+  public void verifyProcessingPayments() {
+    List<Payment> claimed = paymentService.claimStuckProcessingPayments();
+    if (claimed.isEmpty()) {
+      return;
+    }
+
+    log.info("PROCESSING 상태 확인 배치 대상 {}건을 선점했습니다.", claimed.size());
+
+    for (Payment payment : claimed) {
+      verifyPaymentStatus(payment);
+      sleepBetweenVerifications();
+    }
+  }
+
+  private void verifyPaymentStatus(Payment payment) {
+    PgApprovalResult pgResult = pgPaymentGateway.checkStatus(payment.getMerchantOrderId());
+
+    try {
+      switch (pgResult.status()) {
+        case SUCCESS -> {
+          paymentService.approvePayment(payment.getId(), pgResult);
+          log.info("결제 상태 확인 배치 : APPROVED로 확정. paymentId={}", payment.getId());
+        }
+        case FAILURE -> {
+          paymentService.failPayment(payment.getId(), pgResult);
+          log.info("결제 상태 확인 배치 : FAILED로 확정. paymentId={}", payment.getId());
+        }
+        case UNKNOWN ->
+            log.info(
+                "결제 상태 확인 배치 : 확정 보류, 다음 사이클로 넘김. paymentId={}, reason={}",
+                payment.getId(),
+                pgResult.failureMessage());
+      }
+    } catch (PaymentException e) {
+      log.info(
+          "결제 상태 확인 배치 : 이미 다른 경로에서 처리됨. paymentId={}, message={}",
+          payment.getId(),
+          e.getMessage());
+    } catch (Exception e) {
+      log.error("결제 상태 확인 배치 : 확정 처리 중 예외, 다음 후보로 넘어갑니다. paymentId={}", payment.getId(), e);
+    }
+  }
+
+  private void sleepBetweenVerifications() {
+    try {
+      Thread.sleep(verifyDelayMs);
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+    }
   }
 }

@@ -65,10 +65,25 @@ public class SettlementTransactionalManager {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void fail(Long settlementId, String failureReason) {
     Settlement settlement = findSettlement(settlementId);
-    settlement.fail(nomalizeFailureReason(failureReason));
+    settlement.fail(normalizeFailureReason(failureReason));
   }
 
+  /**
+   * Failed 처리 전 새 트랜잭션에서 현재 정산 상태를 다시 조회한다. PROCESSING 전환 이전에 실패한 경우에는 ACCUMULATING 상태를 유지해 다음
+   * 스케줄에서 다시 시도
+   */
   @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void failIfProcessing(Long settlementId, String failureReason) {
+    Settlement settlement = findSettlement(settlementId);
+
+    if (settlement.getSettlementStatus() != SettlementStatus.PROCESSING) {
+      return;
+    }
+
+    settlement.fail(normalizeFailureReason(failureReason));
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
   public Settlement restart(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
     settlement.restart();
@@ -76,7 +91,7 @@ public class SettlementTransactionalManager {
     return settlement;
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.MANDATORY)
   public void startAccumulatedSettlement(Long settlementId, SettlementAccountData account) {
     Settlement settlement = findSettlement(settlementId);
 
@@ -84,7 +99,7 @@ public class SettlementTransactionalManager {
         account.bankName(), account.accountNumber(), account.accountHolder());
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.MANDATORY)
   public void completeAccumulatedSettlement(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
 
@@ -111,7 +126,7 @@ public class SettlementTransactionalManager {
             () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "정산 정보를 찾을 수 없습니다."));
   }
 
-  private String nomalizeFailureReason(String failureReason) {
+  private String normalizeFailureReason(String failureReason) {
     String reason = failureReason == null ? "알 수 없는 정산 처리 오류" : failureReason;
 
     return reason.substring(0, Math.min(reason.length(), 300));
