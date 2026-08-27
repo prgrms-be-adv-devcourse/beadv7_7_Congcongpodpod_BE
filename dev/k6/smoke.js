@@ -1,6 +1,10 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
+import { buildSummaryHandler } from './lib/summary.js';
+
+export const handleSummary = buildSummaryHandler();
+
 const baseUrl = (__ENV.BASE_URL || '').replace(/\/$/, '');
 
 if (!baseUrl) {
