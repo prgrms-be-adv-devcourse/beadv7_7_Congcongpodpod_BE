@@ -9,7 +9,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@Import({GlobalExceptionHandler.class, RequestIdFilter.class, RequestCompletionLoggingFilter.class})
+@Import({
+  GlobalExceptionHandler.class,
+  RequestIdFilter.class,
+  RequestCompletionLoggingFilter.class,
+  // 등록 조건(JPA 존재 여부와 계측 속성)은 해당 설정 클래스가 직접 들고 있다.
+  SqlStatementCountingConfiguration.class
+})
 public class MvcCommonAutoConfiguration {
 
   /**

@@ -93,8 +93,6 @@ public class OrderFacade {
 
   private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem, LocalDateTime now) {
     storeFacade.validateOpen(cartItem.storeId());
-    dishFacade.validateAvailable(cartItem.dishId());
-
     return orderService.validatePickupDeadline(cartItem, now);
   }
 
