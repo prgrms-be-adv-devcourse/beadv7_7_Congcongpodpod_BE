@@ -84,6 +84,8 @@ function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value;
 
 function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRequest; insets: { top: number; bottom: number }; onClose: () => void }) {
   const entrance = useRef(new Animated.Value(0)).current;
+  const entranceStarted = useRef(false);
+  const entranceFallback = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedAmountReveal = useRef(new Animated.Value(0)).current;
   const earnedPointsReveal = useRef(new Animated.Value(0)).current;
   const [savedAmountVisible, setSavedAmountVisible] = useState(false);
@@ -96,22 +98,30 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     return () => subscription.remove();
   }, []);
 
+  const startEntrance = useCallback(() => {
+    if (!report || entranceStarted.current) return;
+    entranceStarted.current = true;
+    if (entranceFallback.current) clearTimeout(entranceFallback.current);
+    if (reduceMotion) return entrance.setValue(1);
+    entrance.stopAnimation();
+    entrance.setValue(0);
+    Animated.timing(entrance, { toValue: 1, duration: 400, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start();
+  }, [entrance, reduceMotion, report]);
+
   useEffect(() => {
     if (!report) return;
     setSavedAmountVisible(false);
     setEarnedPointsVisible(false);
     savedAmountReveal.setValue(0);
     earnedPointsReveal.setValue(0);
+    entranceStarted.current = false;
     entrance.stopAnimation();
     entrance.setValue(reduceMotion ? 1 : 0);
-  }, [earnedPointsReveal, entrance, reduceMotion, report, savedAmountReveal]);
-
-  const startEntrance = useCallback(() => {
-    if (!report || reduceMotion) return entrance.setValue(1);
-    entrance.stopAnimation();
-    entrance.setValue(0);
-    Animated.timing(entrance, { toValue: 1, duration: 600, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start();
-  }, [entrance, reduceMotion, report]);
+    entranceFallback.current = setTimeout(startEntrance, 120);
+    return () => {
+      if (entranceFallback.current) clearTimeout(entranceFallback.current);
+    };
+  }, [earnedPointsReveal, entrance, reduceMotion, report, savedAmountReveal, startEntrance]);
 
   const revealMetric = (motion: Animated.Value, setVisible: (visible: boolean) => void) => {
     if (reduceMotion) {
@@ -132,7 +142,10 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
 
   return <Modal animationType="none" onRequestClose={onClose} onShow={startEntrance} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
     <View style={[styles.reportRoot, { paddingTop: Math.max(24, insets.top), paddingBottom: Math.max(24, insets.bottom) }]}>
-      <Animated.View accessibilityRole="alert" accessibilityViewIsModal renderToHardwareTextureAndroid style={[styles.reportCard, { opacity: entrance, transform: [{ perspective: 1000 }, { translateY: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: [76, -4, 0] }) }, { rotateX: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: ['20deg', '-2deg', '0deg'] }) }, { rotateY: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: ['-8deg', '1deg', '0deg'] }) }, { scale: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: [0.84, 1.018, 1] }) }] }]}>
+      <Animated.View renderToHardwareTextureAndroid style={[styles.reportCardStage, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 0.74, 1], outputRange: [42, -3, 0] }) }, { rotateZ: entrance.interpolate({ inputRange: [0, 0.74, 1], outputRange: ['-1.4deg', '0.25deg', '0deg'] }) }, { scale: entrance.interpolate({ inputRange: [0, 0.74, 1], outputRange: [0.91, 1.012, 1] }) }] }]}>
+        <Animated.View pointerEvents="none" style={[styles.reportDepthBack, { opacity: entrance.interpolate({ inputRange: [0, 0.38, 1], outputRange: [0, 0.72, 0.42] }), transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 11] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.92, 0.96] }) }] }]}/>
+        <Animated.View pointerEvents="none" style={[styles.reportDepthMiddle, { opacity: entrance.interpolate({ inputRange: [0, 0.28, 1], outputRange: [0, 0.9, 0.62] }), transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [11, 6] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.95, 0.98] }) }] }]}/>
+        <View accessibilityRole="alert" accessibilityViewIsModal style={styles.reportCard}>
         <View style={styles.reportHeader}>
           <View style={styles.reportMark}><Ionicons name="checkmark-circle-outline" size={25} color={colors.white}/></View>
           <View style={styles.reportHeaderCopy}><Text style={styles.reportEyebrow}>픽업 완료 리포트</Text><Text style={styles.reportTitle}>오늘도 한 끼를 구조했어요</Text></View>
@@ -146,6 +159,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
         </View>
         <View style={styles.reportTotal}><Text style={styles.reportLabel}>총 구매 횟수</Text><Text style={styles.reportTotalValue}>{report?.purchaseCount === undefined ? '—' : `${report.purchaseCount.toLocaleString()}회`}</Text></View>
         <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
+        </View>
       </Animated.View>
     </View>
   </Modal>;
@@ -255,7 +269,10 @@ const styles = StyleSheet.create({
   notificationClose: { position: 'absolute', top: 10, right: 10, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.canvas },
   notificationPressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
   reportRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(15,20,17,0.58)' },
-  reportCard: { width: '100%', maxWidth: 410, padding: 18, borderRadius: radius.sheet, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
+  reportCardStage: { width: '100%', maxWidth: 410, position: 'relative' },
+  reportDepthBack: { ...StyleSheet.absoluteFillObject, borderRadius: radius.sheet, backgroundColor: colors.green700 },
+  reportDepthMiddle: { ...StyleSheet.absoluteFillObject, borderRadius: radius.sheet, backgroundColor: colors.green300 },
+  reportCard: { width: '100%', padding: 18, borderRadius: radius.sheet, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
   reportHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   reportMark: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.green700 },
   reportHeaderCopy: { flex: 1, minWidth: 0 },
