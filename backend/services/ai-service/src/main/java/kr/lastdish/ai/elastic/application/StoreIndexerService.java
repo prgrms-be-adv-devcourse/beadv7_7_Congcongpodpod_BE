@@ -69,7 +69,9 @@ public class StoreIndexerService {
           repository.save(document);
           stopWatch.stop();
 
-          log.info("Store 단건 색인 갱신 완료. storeId={}\n{}", storeId, stopWatch.prettyPrint());
+          //          log.info("Store 단건 색인 갱신 완료. storeId={}\n{}", storeId,
+          // stopWatch.prettyPrint());
+          log.info("Store 단건 색인 갱신 완료. storeId={}", storeId);
         },
         () -> {
           deleteStoreIndex(storeId);
@@ -195,7 +197,7 @@ public class StoreIndexerService {
         // 텍스트가 바뀌었거나, 이전에 임베딩이 비어있었던 경우 재시도
         vectorList = embeddingService.getEmbeddingList(embeddingText);
         if (existing == null) {
-          log.info("신규 가게 최초 임베딩 수행. storeId={}", res.storeId());
+          log.info("최초 색인(신규 매장 또는 부트스트랩 백필). storeId={}", res.storeId());
         } else if (!hasValidExistingVector) {
           log.info("이전 임베딩 실패 이력 감지 - 재시도 수행. storeId={}", res.storeId());
         } else {
@@ -310,5 +312,9 @@ public class StoreIndexerService {
     } else {
       log.info("stores 인덱스가 이미 존재합니다. 초기화를 건너뜁니다.");
     }
+  }
+
+  public long countIndexedStores() {
+    return repository.count();
   }
 }

@@ -25,11 +25,27 @@ public class StoreSyncScheduler {
   public void pollAndSyncStores() {
     Instant from = null;
     Instant to = null;
+    boolean isBootstrap = false;
+
     // getLastSyncedAt() 호출이 try 밖에 있다면 redis 장애 시 이 호출에서 던진 예외가 캐치 안 되고 스케줄러 메서드 자체가 예외로 죽을 수 있음
     try {
-      Instant lastSyncedAt = watermarkStore.getLastSyncedAt();
-      from = lastSyncedAt.minusSeconds(OVERLAP_SECONDS);
+      // 인덱스 자체가 없는 경우(최초 배포, 삭제됨) - 존재하면 아무 것도 안 하는 멱등 연산
+      storeIndexerService.ensureIndexExists();
+
+      // 부트스트랩 필요 조건: watermark가 없거나(최초/삭제됨), ES에 문서가 0건(인덱스만 비워짐)
+      isBootstrap =
+          watermarkStore.getStoredWatermark().isEmpty()
+              || storeIndexerService.countIndexedStores() == 0;
+
       to = Instant.now();
+      from =
+          isBootstrap
+              ? Instant.EPOCH
+              : watermarkStore.getStoredWatermark().orElseThrow().minusSeconds(OVERLAP_SECONDS);
+
+      if (isBootstrap) {
+        log.warn("색인 부트스트랩 조건 감지(watermark 없음 또는 ES 문서 0건) - 전체 백필 시작. to={}", to);
+      }
 
       // 최근 1분 + OVERLAP_SECONDS 내 변경된 데이터 동기화
       storeIndexerService.syncUpdatedStores(from, to);
