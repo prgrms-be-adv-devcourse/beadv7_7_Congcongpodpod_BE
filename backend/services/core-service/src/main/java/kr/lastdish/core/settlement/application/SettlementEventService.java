@@ -94,6 +94,16 @@ public class SettlementEventService {
     }
   }
 
+  public SettlementProcessResult processMonthlySettlement(Long settlementId) {
+    Settlement settlement = settlementRepository.findById(settlementId).orElse(null);
+
+    if (settlement == null) {
+      return SettlementProcessResult.skipped(null, settlementId, "정산 정보를 찾을 수 없습니다.");
+    }
+
+    return processMonthlySettlement(settlement.getStoreId(), settlement.getSettlementMonth());
+  }
+
   @Transactional(readOnly = true)
   public List<Long> findMonthlySettlementTargetStoreIds(YearMonth settlementMonth) {
     return settlementRepository.findTargetStoreIds(
