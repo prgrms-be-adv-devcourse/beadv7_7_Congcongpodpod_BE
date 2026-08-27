@@ -16,6 +16,7 @@
 #   DURATION_SECONDS   기본 900 (15분 — warm-up 5분 + 측정 10분 여유)
 #   INTERVAL_SECONDS   기본 1
 #   OUTPUT_FILE        기본 ./results/db-locks-<타임스탬프>.csv
+#   PGTZ               기본 Asia/Seoul — psql 세션 시간대. 아래 참고
 #
 # 실행기록 2026-08-25 §7.5의 실패 원인(호스트 셸이 컨테이너 환경변수를 먼저 빈 문자열로
 # 치환)을 피하려고, 컨테이너 셸에게 변수 해석을 맡기지 않는다. 접속 정보는 전부 호스트 쪽
@@ -30,6 +31,11 @@
 #
 # 운영 컨테이너 이름·DB명·자격증명은 환경마다 다를 수 있으니 첫 실행은 짧게(예:
 # DURATION_SECONDS=10) 돌려서 CSV가 채워지는지 먼저 확인한다.
+#
+# psql 컨테이너의 기본 시간대는 UTC라 sampled_at이 UTC로 찍힌다. 짝을 이루는
+# monitor-hikari.sh는 curl을 실행하는 로컬(대개 KST) 시각을 쓰므로, 그대로 두면 두 CSV를
+# 나란히 대조할 때 9시간이 어긋난다(실측: KST 19:05 vs 컨테이너 10:05). PGTZ로 세션
+# 시간대를 맞춘다.
 
 set -euo pipefail
 
@@ -38,6 +44,7 @@ DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-lastdish}"
 DURATION_SECONDS="${DURATION_SECONDS:-900}"
 INTERVAL_SECONDS="${INTERVAL_SECONDS:-1}"
+PGTZ="${PGTZ:-Asia/Seoul}"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 results_dir="$script_dir/results"
@@ -96,7 +103,7 @@ end_at=$(($(date +%s) + DURATION_SECONDS))
 while [ "$(date +%s)" -lt "$end_at" ]; do
   # -t: 헤더 생략. -A: 정렬 없이 필드 구분자만. 컨테이너 셸이 아니라 이 프로세스가
   # 접속 정보를 쥐고 있으므로 컨테이너 안에서 변수를 다시 해석할 필요가 없다.
-  docker exec -i "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -F'|' -c "$READ_ONLY_QUERY" \
+  docker exec -i -e PGTZ="$PGTZ" "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -F'|' -c "$READ_ONLY_QUERY" \
     >> "$OUTPUT_FILE" 2>>"$OUTPUT_FILE.err" || true
   sleep "$INTERVAL_SECONDS"
 done
