@@ -208,17 +208,31 @@ class RequestCompletionLoggingFilterTests {
 
     계측필터.doFilter(request, new MockHttpServletResponse(), 열두번_조회하는_체인);
 
-    assertThat(appender.list.getFirst().getFormattedMessage()).contains("queryCount=12");
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .containsEntry(RequestCompletionLoggingFilter.QUERY_COUNT_KEY, "12");
   }
 
   @Test
-  void 계측을_끄면_완료_로그에_SQL_수를_남기지_않는다() throws Exception {
+  void 실행한_SQL_수는_메시지가_아니라_로그_필드로_남긴다() throws Exception {
+    RequestCompletionLoggingFilter 계측필터 = new RequestCompletionLoggingFilter(true, true);
+    MockHttpServletRequest request = 요청("GET", "/api/v1/stores/nearby");
+    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/stores/nearby");
+
+    계측필터.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+    // 필드로 나가야 Loki에서 문자열을 파싱하지 않고 바로 거를 수 있다.
+    assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("queryCount");
+  }
+
+  @Test
+  void 계측을_끄면_로그_필드에_SQL_수를_남기지_않는다() throws Exception {
     MockHttpServletRequest request = 요청("GET", "/api/v1/stores/nearby");
     request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/stores/nearby");
 
     filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
-    assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("queryCount");
+    assertThat(appender.list.getFirst().getMDCPropertyMap())
+        .doesNotContainKey(RequestCompletionLoggingFilter.QUERY_COUNT_KEY);
   }
 
   @Test
@@ -230,6 +244,7 @@ class RequestCompletionLoggingFilterTests {
     계측필터.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
     assertThat(SqlStatementCounter.count()).isEmpty();
+    assertThat(MDC.get(RequestCompletionLoggingFilter.QUERY_COUNT_KEY)).isNull();
   }
 
   @Test
@@ -247,6 +262,26 @@ class RequestCompletionLoggingFilterTests {
         .isInstanceOf(IllegalStateException.class);
 
     assertThat(SqlStatementCounter.count()).isEmpty();
+    assertThat(MDC.get(RequestCompletionLoggingFilter.QUERY_COUNT_KEY)).isNull();
+  }
+
+  @Test
+  void 계측값은_다음_요청_로그로_새어나가지_않는다() throws Exception {
+    RequestCompletionLoggingFilter 계측필터 = new RequestCompletionLoggingFilter(true, true);
+
+    MockHttpServletRequest 계측된요청 = 요청("GET", "/api/v1/stores/nearby");
+    계측된요청.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/stores/nearby");
+    계측필터.doFilter(
+        계측된요청, new MockHttpServletResponse(), (req, res) -> SqlStatementCounter.increment());
+
+    // 같은 스레드를 재사용하는 다음 요청. 계측을 끈 필터라 값이 남아 있으면 안 된다.
+    MockHttpServletRequest 다음요청 = 요청("GET", "/api/v1/orders");
+    다음요청.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/orders");
+    filter.doFilter(다음요청, new MockHttpServletResponse(), new MockFilterChain());
+
+    assertThat(appender.list).hasSize(2);
+    assertThat(appender.list.get(1).getMDCPropertyMap())
+        .doesNotContainKey(RequestCompletionLoggingFilter.QUERY_COUNT_KEY);
   }
 
   @Test

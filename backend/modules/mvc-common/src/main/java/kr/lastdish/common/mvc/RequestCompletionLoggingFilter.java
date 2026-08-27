@@ -9,6 +9,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -41,6 +42,14 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
 
   /** 이 값 미만이면 정상 처리로 본다. */
   private static final int FIRST_FAILURE_STATUS = 400;
+
+  /**
+   * 요청이 실행한 SQL 수를 담는 로그 필드 이름.
+   *
+   * <p>메시지 문자열이 아니라 MDC에 담는다. 구조화 로그에서 독립 필드로 나가야 문자열을 파싱하지 않고 바로 거르고 집계할 수 있다. {@code requestId}가
+   * 이미 같은 방식으로 동작한다.
+   */
+  public static final String QUERY_COUNT_KEY = "queryCount";
 
   private final boolean skipSuccessfulActuatorCalls;
   private final boolean countSqlStatements;
@@ -84,24 +93,29 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter impleme
         return;
       }
 
-      // requestId는 RequestIdFilter가 올린 MDC를 통해 로그 필드로 붙으므로 메시지에 넣지 않는다.
+      putQueryCountIfMeasured();
+
+      // requestId와 queryCount는 MDC를 통해 로그 필드로 붙으므로 메시지에 넣지 않는다.
       log.info(
-          "요청 처리가 완료되었습니다. method={}, pathPattern={}, status={}, durationMs={}{}",
+          "요청 처리가 완료되었습니다. method={}, pathPattern={}, status={}, durationMs={}",
           request.getMethod(),
           pathPattern,
           response.getStatus(),
-          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt),
-          queryCountSuffix());
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
     } finally {
       // 스레드 풀이 이 스레드를 다음 요청에 재사용하므로, 어떤 경로로 빠져나가든 반드시 비운다.
+      // MDC를 남기면 다음 요청의 로그에 남의 값이 필드로 붙는다.
       SqlStatementCounter.clear();
+      MDC.remove(QUERY_COUNT_KEY);
     }
   }
 
-  /** 계측 중일 때만 실행한 SQL 수를 메시지 끝에 덧붙인다. 꺼져 있으면 기존 로그 형식 그대로 남는다. */
-  private String queryCountSuffix() {
+  /** 계측 중일 때만 실행한 SQL 수를 로그 필드로 올린다. 꺼져 있으면 필드 자체가 붙지 않는다. */
+  private void putQueryCountIfMeasured() {
     OptionalInt count = SqlStatementCounter.count();
-    return count.isPresent() ? ", queryCount=" + count.getAsInt() : "";
+    if (count.isPresent()) {
+      MDC.put(QUERY_COUNT_KEY, String.valueOf(count.getAsInt()));
+    }
   }
 
   /** 인프라가 주기적으로 부르는 경로이면서 정상 응답이면 기록할 가치가 없다고 본다. */
