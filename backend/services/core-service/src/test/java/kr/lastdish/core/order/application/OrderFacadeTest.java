@@ -351,9 +351,12 @@ class OrderFacadeTest {
     Order order = mock(Order.class);
 
     when(orderService.cancelOrder(memberId, orderId)).thenReturn(order);
+    when(order.getId()).thenReturn(orderId);
+    when(order.getMemberId()).thenReturn(memberId);
     when(order.getDishId()).thenReturn(200L);
     when(order.getQuantity()).thenReturn(2L);
     when(order.getUsedPoint()).thenReturn(BigDecimal.valueOf(3_000));
+    when(order.getUsedDeposit()).thenReturn(BigDecimal.valueOf(7_000));
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
     when(order.getStoreId()).thenReturn(storeId);
     when(storeFacade.getStoreOwnerMemberId(storeId)).thenReturn(20L);
@@ -361,6 +364,7 @@ class OrderFacadeTest {
     orderFacade.cancelOrder(memberId, orderId);
 
     verify(pointService).refund(memberId, orderId);
+    verify(depositFacade).refund(memberId, orderId, BigDecimal.valueOf(7_000));
   }
 
   @Test
@@ -372,9 +376,12 @@ class OrderFacadeTest {
     Order order = mock(Order.class);
 
     when(orderService.cancelOrder(memberId, orderId)).thenReturn(order);
+    when(order.getId()).thenReturn(orderId);
+    when(order.getMemberId()).thenReturn(memberId);
     when(order.getDishId()).thenReturn(200L);
     when(order.getQuantity()).thenReturn(2L);
     when(order.getUsedPoint()).thenReturn(BigDecimal.ZERO);
+    when(order.getUsedDeposit()).thenReturn(BigDecimal.valueOf(10_000));
     when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
     when(order.getStoreId()).thenReturn(storeId);
     when(storeFacade.getStoreOwnerMemberId(storeId)).thenReturn(20L);
@@ -382,6 +389,32 @@ class OrderFacadeTest {
     orderFacade.cancelOrder(memberId, orderId);
 
     verifyNoInteractions(pointService);
+    verify(depositFacade).refund(memberId, orderId, BigDecimal.valueOf(10_000));
+  }
+
+  @Test
+  @DisplayName("사용한 예치금이 0이면 주문 취소 시 예치금을 환불하지 않는다")
+  void cancelOrder_doesNotRefundZeroDeposit() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    Order order = mock(Order.class);
+
+    when(orderService.cancelOrder(memberId, orderId)).thenReturn(order);
+    when(order.getId()).thenReturn(orderId);
+    when(order.getMemberId()).thenReturn(memberId);
+    when(order.getDishId()).thenReturn(200L);
+    when(order.getQuantity()).thenReturn(2L);
+    when(order.getUsedPoint()).thenReturn(BigDecimal.valueOf(10_000));
+    when(order.getUsedDeposit()).thenReturn(BigDecimal.ZERO);
+    when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
+    when(order.getStoreId()).thenReturn(storeId);
+    when(storeFacade.getStoreOwnerMemberId(storeId)).thenReturn(20L);
+
+    orderFacade.cancelOrder(memberId, orderId);
+
+    verify(pointService).refund(memberId, orderId);
+    verifyNoInteractions(depositFacade);
   }
 
   @Test
@@ -436,11 +469,13 @@ class OrderFacadeTest {
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getId()).thenReturn(orderId);
     when(order.getStoreId()).thenReturn(storeId);
     when(order.getMemberId()).thenReturn(customerId);
     when(order.getDishId()).thenReturn(dishId);
     when(order.getQuantity()).thenReturn(quantity);
-    when(order.getTotalPrice()).thenReturn(totalPrice);
+    when(order.getUsedPoint()).thenReturn(BigDecimal.ZERO);
+    when(order.getUsedDeposit()).thenReturn(totalPrice);
 
     orderFacade.rejectOrder(sellerId, "SELLER", orderId, new RejectOrderCommand(reason));
 
@@ -449,6 +484,7 @@ class OrderFacadeTest {
     verify(orderStatusChangedEventWriter).append(order);
     verify(orderNotificationEventWriter).appendRejected(order, reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
+    verifyNoInteractions(pointService);
     verify(dishFacade).increaseStock(dishId, quantity);
   }
 
@@ -467,9 +503,11 @@ class OrderFacadeTest {
 
     when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
     when(orderRepository.findWithLockByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    when(order.getId()).thenReturn(orderId);
     when(order.getStoreId()).thenReturn(storeId);
     when(order.getMemberId()).thenReturn(customerId);
-    when(order.getTotalPrice()).thenReturn(totalPrice);
+    when(order.getUsedPoint()).thenReturn(BigDecimal.ZERO);
+    when(order.getUsedDeposit()).thenReturn(totalPrice);
 
     orderFacade.rejectOrder(sellerId, "SELLER", orderId, new RejectOrderCommand(reason));
 
@@ -478,6 +516,7 @@ class OrderFacadeTest {
     verify(orderStatusChangedEventWriter).append(order);
     verify(orderNotificationEventWriter).appendRejected(order, reason);
     verify(depositFacade).refund(customerId, orderId, totalPrice);
+    verifyNoInteractions(pointService);
     verify(dishFacade, never()).increaseStock(anyLong(), anyLong());
   }
 
