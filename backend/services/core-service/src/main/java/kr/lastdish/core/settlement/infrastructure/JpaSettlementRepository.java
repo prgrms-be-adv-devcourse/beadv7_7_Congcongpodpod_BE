@@ -95,14 +95,18 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
       @Param("settlementMonth") YearMonth settlementMonth,
       @Param("statuses") Set<SettlementStatus> statuses);
 
-  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
-      value =
-          """
-                  TRUNCATE TABLE
-                    settlement_details, settlements
-                  RESTART IDENTITY
-                  """,
-      nativeQuery = true)
-  void truncateAllSettlementData();
+      """
+              SELECT s.id
+              FROM Settlement s
+              WHERE s.settlementMonth = :settlementMonth
+                AND s.settlementStatus IN :statuses
+                AND s.id > :lastSettlementId
+              ORDER BY s.id ASC
+              """)
+  List<Long> findTargetSettlementIdsAfter(
+      @Param("settlementMonth") YearMonth settlementMonth,
+      @Param("statuses") Set<SettlementStatus> statuses,
+      @Param("lastSettlementId") Long lastSettlementId,
+      Pageable pageable);
 }

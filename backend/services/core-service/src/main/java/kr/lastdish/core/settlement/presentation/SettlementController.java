@@ -48,11 +48,4 @@ public class SettlementController {
       @RequestHeader("X-Authenticated-Role") String role) {
     return ApiResponse.ok(settlementService.getSettlement(memberId, role, settlementId));
   }
-
-  // 정산 성능 테스트 완료 후 제거
-  @DeleteMapping("/test/initialize")
-  public ApiResponse<Void> initializeSettlementData() {
-    settlementService.initializeSettlement();
-    return ApiResponse.ok();
-  }
 }
