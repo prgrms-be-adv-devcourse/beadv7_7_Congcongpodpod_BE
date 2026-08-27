@@ -12,6 +12,7 @@ import { colors, layout } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { CartProvider } from '@/providers/cart-provider';
 import { NotificationProvider } from '@/providers/notification-provider';
+import { StoreAvailabilityProvider } from '@/providers/store-availability-provider';
 
 const STARTUP_MIN_DURATION_MS = 1_500;
 
@@ -39,7 +40,7 @@ function AppBootstrap() {
 
   return (
     <AppOverlayProvider>
-      <NotificationProvider><CartProvider>
+      <NotificationProvider><CartProvider><StoreAvailabilityProvider>
         <View style={[styles.stage, Platform.OS === 'web' && styles.webStage]}>
           <Stack
             screenOptions={{
@@ -49,7 +50,7 @@ function AppBootstrap() {
           />
         </View>
         <LoginRequiredModal />
-      </CartProvider></NotificationProvider>
+      </StoreAvailabilityProvider></CartProvider></NotificationProvider>
     </AppOverlayProvider>
   );
 }

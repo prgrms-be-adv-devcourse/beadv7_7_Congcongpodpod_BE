@@ -1,6 +1,6 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Page, Panel } from '@/components/page';
 import { colors, fonts, radius } from '@/constants/theme';
@@ -34,7 +34,11 @@ export default function NotificationSettingsScreen() {
 }
 
 function SettingRow({ icon, title, description, value, disabled, last, onValueChange }: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string; value: boolean; disabled?: boolean; last?: boolean; onValueChange: (value: boolean) => void }) {
-  return <View style={[styles.row, !last && styles.rowBorder]}><View style={styles.icon}><Ionicons name={icon} size={19} color={disabled ? colors.ink400 : colors.ink700}/></View><View style={styles.copy}><Text style={styles.title}>{title}</Text><Text style={styles.description}>{description}</Text></View><Switch accessibilityLabel={title} disabled={disabled} ios_backgroundColor={colors.lineStrong} onValueChange={onValueChange} thumbColor={colors.white} trackColor={{ false: colors.lineStrong, true: colors.green500 }} value={value}/></View>;
+  return <View style={[styles.row, !last && styles.rowBorder]}><View style={styles.icon}><Ionicons name={icon} size={19} color={disabled ? colors.ink400 : colors.ink700}/></View><View style={styles.copy}><Text style={styles.title}>{title}</Text><Text style={styles.description}>{description}</Text></View><SettingSwitch label={title} disabled={disabled} value={value} onValueChange={onValueChange}/></View>;
+}
+
+function SettingSwitch({ label, disabled, value, onValueChange }: { label: string; disabled?: boolean; value: boolean; onValueChange: (value: boolean) => void }) {
+  return <Pressable accessibilityLabel={label} accessibilityRole="switch" accessibilityState={{ checked: value, disabled }} disabled={disabled} hitSlop={4} onPress={() => onValueChange(!value)} style={styles.switchTarget}><View style={[styles.switchTrack, value && styles.switchTrackActive]}><View style={[styles.switchThumb, value && styles.switchThumbActive]}/></View></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -47,6 +51,11 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   icon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.canvas },
   copy: { flex: 1, minWidth: 0 },
+  switchTarget: { width: 52, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  switchTrack: { width: 44, height: 26, padding: 3, justifyContent: 'center', borderRadius: 13, backgroundColor: colors.lineStrong },
+  switchTrackActive: { backgroundColor: colors.green500 },
+  switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.white },
+  switchThumbActive: { alignSelf: 'flex-end' },
   title: { color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' },
   description: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 11, lineHeight: 16 },
 });

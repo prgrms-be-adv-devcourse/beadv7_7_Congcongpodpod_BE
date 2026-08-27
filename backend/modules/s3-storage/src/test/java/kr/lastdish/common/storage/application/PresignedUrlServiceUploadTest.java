@@ -57,7 +57,7 @@ class PresignedUrlServiceUploadTest {
   void MIME에_맞는_key와_URL을_발급하고_이력을_저장한다() throws Exception {
     Instant expiresAt = Instant.parse("2026-08-14T00:05:00Z");
     when(s3ObjectStorage.issuePutUrl(
-            anyString(), eq("image/jpeg"), eq(1024L), eq(Duration.ofMinutes(5))))
+            anyString(), eq("image/jpeg"), eq(Duration.ofMinutes(5))))
         .thenAnswer(
             invocation ->
                 new PresignedUploadUrl(

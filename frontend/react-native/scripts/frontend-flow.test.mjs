@@ -12,9 +12,12 @@ test('구매 핵심 화면이 모두 존재한다', () => {
 });
 
 test('지도 앱·웹이 동일한 화면 경계를 전달한다', () => {
-  assert.match(source('src/components/map-canvas.native.tsx'), /bounds:[\s\S]*southWest[\s\S]*northEast/);
+  const nativeMap = source('src/components/map-canvas.native.tsx');
+  assert.match(nativeMap, /southWest: \{ latitude: region\.latitude, longitude: region\.longitude \}/);
+  assert.match(nativeMap, /northEast: \{ latitude: region\.latitude \+ region\.latitudeDelta, longitude: region\.longitude \+ region\.longitudeDelta \}/);
   assert.match(source('src/components/map-canvas.web.tsx'), /getBounds\(\)[\s\S]*southWest[\s\S]*northEast/);
   assert.match(source('src/app/(tabs)/index.tsx'), /reload\(next, false, next\.bounds\)/);
+  assert.match(source('src/lib/stores.ts'), /page < totalPages/);
 });
 
 test('로그인 제한 탭은 로그인 화면으로 이동한다', () => {
@@ -49,4 +52,16 @@ test('SSE는 토큰 갱신·heartbeat·지수 백오프를 사용한다', () => 
   assert.match(provider, /EXPO_PUBLIC_NOTIFICATION_DEMO === 'true'/);
   assert.match(stream, /HEARTBEAT_TIMEOUT_MS/);
   assert.match(stream, /onConnected\?\.\(\)/);
+});
+
+test('주문 불가 장바구니 상품은 유지하고 결제를 차단한다', () => {
+  const cart = source('src/app/cart.tsx');
+  const checkout = source('src/app/cart/checkout.tsx');
+  const cartApi = source('src/lib/cart.ts');
+  assert.match(cartApi, /INSUFFICIENT_STOCK/);
+  assert.match(cartApi, /OUT_OF_STOCK/);
+  assert.match(cartApi, /DISH_UNAVAILABLE/);
+  assert.match(cart, /disabled=\{!availability\?\.orderable\}/);
+  assert.match(checkout, /\['ORD007','D001','D003'\]/);
+  assert.match(checkout, /router\.replace\('\/cart'\)/);
 });

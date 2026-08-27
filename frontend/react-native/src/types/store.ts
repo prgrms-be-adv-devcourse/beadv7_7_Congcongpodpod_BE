@@ -25,6 +25,7 @@ export type Store = {
   openTime?: string;
   closeTime?: string;
   status?: string;
+  hasAvailableDish?: boolean;
   latitude: number;
   longitude: number;
   coverImageUrl?: string;
