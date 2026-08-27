@@ -1,5 +1,6 @@
 package kr.lastdish.core.order.application;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -41,6 +42,7 @@ public class OrderService {
       Long memberId,
       OrderMemberInfo memberInfo,
       CartOrderSnapshot cartItem,
+      BigDecimal usedPoint,
       LocalDateTime pickupDeadline) {
     Order order =
         Order.create(
@@ -53,6 +55,7 @@ public class OrderService {
             cartItem.quantity(),
             cartItem.dishPrice(),
             cartItem.unitPrice(),
+            usedPoint,
             cartItem.pickupStartAt(),
             cartItem.pickupEndAt(),
             pickupDeadline);

@@ -28,6 +28,7 @@ import kr.lastdish.core.order.domain.MemberSnapshotRepository;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.infrastructure.OrderJpaRepository;
+import kr.lastdish.core.point.application.PointService;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.infrastructure.StoreJpaRepository;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
@@ -50,6 +52,7 @@ class OrderConcurrencyIntegrationTest {
   @Autowired private StoreJpaRepository storeJpaRepository;
   @Autowired private TransactionTemplate transactionTemplate;
   @Autowired private MemberSnapshotRepository memberSnapshotRepository;
+  @MockitoBean private PointService pointService;
 
   @AfterEach
   void tearDown() {
@@ -206,6 +209,7 @@ class OrderConcurrencyIntegrationTest {
                       quantity,
                       unitPrice,
                       unitPrice,
+                      BigDecimal.ZERO,
                       LocalTime.of(18, 0),
                       LocalTime.of(19, 0),
                       LocalDateTime.of(2026, 8, 10, 19, 0));
@@ -253,7 +257,7 @@ class OrderConcurrencyIntegrationTest {
   private Throwable orderAfterSignal(CountDownLatch start, Long memberId, Long cartItemId) {
     try {
       start.await();
-      orderFacade.payAndCreateOrder(memberId, cartItemId, 0L);
+      orderFacade.payAndCreateOrder(memberId, cartItemId, 0L, BigDecimal.ZERO);
       return null;
     } catch (Throwable throwable) {
       return throwable;

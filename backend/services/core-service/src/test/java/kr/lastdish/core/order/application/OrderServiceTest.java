@@ -133,9 +133,10 @@ class OrderServiceTest {
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
+    LocalDateTime pickupDeadline = FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt());
     Order order =
         orderService.createOrder(
-            memberId, memberInfo, cartItem, FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt()));
+            memberId, memberInfo, cartItem, BigDecimal.valueOf(5_000), pickupDeadline);
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
@@ -147,6 +148,8 @@ class OrderServiceTest {
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
+    assertThat(order.getUsedPoint()).isEqualByComparingTo("5000");
+    assertThat(order.getUsedDeposit()).isEqualByComparingTo("15000");
     assertThat(order.getTotalSavedAmount()).isEqualByComparingTo("4000");
     assertThat(order.getPickupDeadline())
         .isEqualTo(FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt()));
