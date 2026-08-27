@@ -269,7 +269,21 @@ class DishServiceTest {
     DishResponse response = dishService.adjustStock(1L, 5L);
 
     assertThat(response.stockQuantity()).isEqualTo(15L);
-    then(outboxEventWriter).should().append(any());
+  }
+
+  @Test
+  void 판매자가_재고를_조정하면_Dish_수정_이벤트를_기록한다() {
+    Dish dish = createDish(10L);
+    ReflectionTestUtils.setField(dish, "id", 1L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    dishService.adjustStock(1L, 5L);
+
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishUpdatedEvent event = findEvent(events, DishUpdatedEvent.class);
+    assertThat(event.dishId()).isEqualTo(1L);
+    assertThat(event.payload().storeId()).isEqualTo(1L);
   }
 
   @Test
@@ -280,7 +294,6 @@ class DishServiceTest {
     DishResponse response = dishService.adjustStock(1L, -4L);
 
     assertThat(response.stockQuantity()).isEqualTo(6L);
-    then(outboxEventWriter).should().append(any());
   }
 
   @Test
