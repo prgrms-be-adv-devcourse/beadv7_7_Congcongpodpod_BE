@@ -8,7 +8,7 @@ CREATE TABLE public.orders (
     pickup_start_at time(0) without time zone NOT NULL,
     total_price numeric(38,2) NOT NULL,
     unit_price numeric(38,2) NOT NULL,
-    used_point numeric(38,2),
+    used_point numeric(38,2) DEFAULT 0 NOT NULL,
     used_deposit numeric(38,2) NOT NULL,
     total_saved_amount numeric(38,2) NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,

@@ -343,6 +343,48 @@ class OrderFacadeTest {
   }
 
   @Test
+  @DisplayName("사용한 포인트가 0보다 크면 주문 취소 시 포인트를 환불한다")
+  void cancelOrder_refundUsedPoint() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    Order order = mock(Order.class);
+
+    when(orderService.cancelOrder(memberId, orderId)).thenReturn(order);
+    when(order.getDishId()).thenReturn(200L);
+    when(order.getQuantity()).thenReturn(2L);
+    when(order.getUsedPoint()).thenReturn(BigDecimal.valueOf(3_000));
+    when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
+    when(order.getStoreId()).thenReturn(storeId);
+    when(storeFacade.getStoreOwnerMemberId(storeId)).thenReturn(20L);
+
+    orderFacade.cancelOrder(memberId, orderId);
+
+    verify(pointService).refund(memberId, orderId);
+  }
+
+  @Test
+  @DisplayName("사용한 포인트가 0이면 주문 취소 시 포인트를 환불하지 않는다")
+  void cancelOrder_doesNotRefundZeroPoint() {
+    Long memberId = 1L;
+    Long orderId = 10L;
+    Long storeId = 100L;
+    Order order = mock(Order.class);
+
+    when(orderService.cancelOrder(memberId, orderId)).thenReturn(order);
+    when(order.getDishId()).thenReturn(200L);
+    when(order.getQuantity()).thenReturn(2L);
+    when(order.getUsedPoint()).thenReturn(BigDecimal.ZERO);
+    when(order.getTotalPrice()).thenReturn(BigDecimal.valueOf(10_000));
+    when(order.getStoreId()).thenReturn(storeId);
+    when(storeFacade.getStoreOwnerMemberId(storeId)).thenReturn(20L);
+
+    orderFacade.cancelOrder(memberId, orderId);
+
+    verifyNoInteractions(pointService);
+  }
+
+  @Test
   @DisplayName("판매자가 주문을 접수하면 매장 소유자를 검증하고 픽업 코드를 발급한다")
   void acceptOrder_success() {
     Long memberId = 1L;
