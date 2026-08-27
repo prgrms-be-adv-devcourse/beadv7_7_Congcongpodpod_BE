@@ -1,5 +1,6 @@
 package kr.lastdish.ai.elastic.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -23,6 +24,7 @@ import kr.lastdish.ai.elastic.infrastructure.persistence.StoreElasticsearchRepos
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -61,6 +63,18 @@ class StoreIndexerServiceEmbeddingSkipTest {
 
   private InternalDishResponse dish(
       Long dishId, String name, String desc, Long stock, BigDecimal price, BigDecimal discount) {
+    return dish(dishId, name, desc, stock, price, discount, LocalTime.MIN, LocalTime.MAX);
+  }
+
+  private InternalDishResponse dish(
+      Long dishId,
+      String name,
+      String desc,
+      Long stock,
+      BigDecimal price,
+      BigDecimal discount,
+      LocalTime pickupStartTime,
+      LocalTime pickupEndTime) {
     return new InternalDishResponse(
         dishId,
         name,
@@ -71,8 +85,8 @@ class StoreIndexerServiceEmbeddingSkipTest {
         "ON_SALE",
         price,
         discount,
-        LocalTime.MIN,
-        LocalTime.MAX);
+        pickupStartTime,
+        pickupEndTime);
   }
 
   private InternalStoreResponse storeResponse(Long storeId, InternalDishResponse dish) {
@@ -136,6 +150,31 @@ class StoreIndexerServiceEmbeddingSkipTest {
     verify(repository).saveAll(ArgumentMatchers.any());
   }
 
+  @Test
+  @DisplayName("자정을 넘는 픽업 구간은 ES 문서에 별도 표시한다.")
+  void renewStoreIndex_overnightPickup_marksMidnightSpan() {
+    Long storeId = 30L;
+    InternalDishResponse overnightDish =
+        dish(
+            300L,
+            "야식",
+            "자정 넘김 픽업",
+            5L,
+            BigDecimal.valueOf(5000),
+            BigDecimal.valueOf(4000),
+            LocalTime.of(22, 0),
+            LocalTime.of(2, 0));
+    given(repository.findById(storeId)).willReturn(Optional.empty());
+    given(coreInternalApiClient.fetchStoreRenewalData(storeId))
+        .willReturn(Optional.of(storeResponse(storeId, overnightDish)));
+    given(embeddingService.getEmbeddingList(anyString())).willReturn(List.of(0.1f));
+
+    storeIndexerService.renewStoreIndex(storeId);
+
+    ArgumentCaptor<StoreDocument> documentCaptor = ArgumentCaptor.forClass(StoreDocument.class);
+    verify(repository).save(documentCaptor.capture());
+    assertThat(documentCaptor.getValue().getDishes().getFirst().isPickupSpansMidnight()).isTrue();
+  }
 
   @Test
   @DisplayName("Dish 수정으로 DISH_IS_CREATED가 재발행되더라도, 텍스트(메뉴명/설명)가 동일하면 OpenAI 임베딩 API를 호출하지 않는다.")

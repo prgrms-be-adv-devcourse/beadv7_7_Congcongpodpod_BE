@@ -6,8 +6,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import java.time.Clock;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import kr.lastdish.ai.elastic.presentation.dto.StoreResponse;
@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class StoreQueryService {
 
   private final ElasticsearchOperations elasticsearchOperations;
+  private final Clock clock;
 
   public List<StoreResponse> getStoresByLocation(
       Double latitude,
@@ -63,14 +64,8 @@ public class StoreQueryService {
       // 상품 상태 ON_SALE
       dishBool.filter(Query.of(q -> q.term(t -> t.field("dishes.dishStatus").value("ON_SALE"))));
 
-      // 현재 시각이 픽업 가능 시간 내 (pickupStartTime <= 현재시각 <= pickupEndTime)
-      String currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-      dishBool.filter(
-          Query.of(
-              q -> q.range(r -> r.date(d -> d.field("dishes.pickupStartTime").lte(currentTime)))));
-      dishBool.filter(
-          Query.of(
-              q -> q.range(r -> r.date(d -> d.field("dishes.pickupEndTime").gte(currentTime)))));
+      // 현재 시각이 픽업 가능 시간 내인지 일반 구간과 자정 넘김 구간으로 나눠 확인한다.
+      dishBool.filter(PickupTimeQueryFactory.currentlyAvailable(LocalTime.now(clock)));
 
       // Nested Query 생성 및 메인 쿼리에 추가
       NestedQuery nestedQuery =

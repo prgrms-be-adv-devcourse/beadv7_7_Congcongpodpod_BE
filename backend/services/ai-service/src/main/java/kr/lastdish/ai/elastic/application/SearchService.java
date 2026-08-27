@@ -8,8 +8,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import java.time.Clock;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 public class SearchService {
 
   private final ElasticsearchOperations elasticsearchOperations;
+  private final Clock clock;
 
   public List<SearchHit<StoreDocument>> searchStoresAndDishes(
       ParsedSearchCondition cond, GeoPoint userLocation, List<Float> queryVector) {
@@ -97,11 +98,9 @@ public class SearchService {
     availableDishBool.filter(
         Query.of(q -> q.term(t -> t.field("dishes.dishStatus").value("ON_SALE"))));
 
-    // pickupEndTime은 날짜 없는 LocalTime(HH:mm:ss)이라 ES의 "now"(날짜 포함)와 직접 비교 불가.
-    // 같은 포맷(HH:mm:ss)의 현재 시각 문자열로 변환해서 비교한다.
-    String nowTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-    availableDishBool.filter(
-        Query.of(q -> q.range(r -> r.date(d -> d.field("dishes.pickupEndTime").gte(nowTime)))));
+    // 날짜 없는 픽업 시간을 일반 구간과 자정 넘김 구간으로 나눠 현재 시각 이후까지 유효한 상품을 찾는다.
+    LocalTime now = LocalTime.now(clock);
+    availableDishBool.filter(PickupTimeQueryFactory.notExpired(now));
 
     if (cond.maxPrice() != null) {
       availableDishBool.filter(
@@ -120,10 +119,7 @@ public class SearchService {
     // 기존 pickupEndTime >= now 필터와 AND로 결합되어
     // "픽업 가능 구간이 [now, pickupDeadline]과 겹친다"를 표현
     if (cond.pickupDeadline() != null) {
-      String deadline = cond.pickupDeadline().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-      availableDishBool.filter(
-          Query.of(
-              q -> q.range(r -> r.date(d -> d.field("dishes.pickupStartTime").lte(deadline)))));
+      availableDishBool.filter(PickupTimeQueryFactory.startsByDeadline(now, cond.pickupDeadline()));
     }
 
     // 카테고리 필터. dishes.category가 Keyword로 매핑되어 있어야 term 매칭이 정상 동작한다.

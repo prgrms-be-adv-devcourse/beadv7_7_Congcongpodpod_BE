@@ -82,5 +82,7 @@ public class StoreDocument {
 
     @Field(type = FieldType.Date, format = DateFormat.hour_minute_second)
     private LocalTime pickupEndTime;
+
+    private boolean pickupSpansMidnight;
   }
 }

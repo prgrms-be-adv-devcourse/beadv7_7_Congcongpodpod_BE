@@ -146,6 +146,7 @@ public class StoreIndexerService {
         .discountPrice(d.discountPrice())
         .pickupStartTime(d.pickupStartTime())
         .pickupEndTime(d.pickupEndTime())
+        .pickupSpansMidnight(d.pickupStartTime().isAfter(d.pickupEndTime()))
         .build();
   }
 
@@ -164,6 +165,7 @@ public class StoreIndexerService {
         .discountPrice(d.discountPrice())
         .pickupStartTime(d.pickupStartTime())
         .pickupEndTime(d.pickupEndTime())
+        .pickupSpansMidnight(d.pickupStartTime().isAfter(d.pickupEndTime()))
         .build();
   }
 
