@@ -48,12 +48,12 @@ export default function StoresScreen() {
   const [radiusPickerOpen, setRadiusPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<(typeof categories)[number][0]>('ALL');
-  const { stores, loading, reload } = useNearbyStores(radiusKm);
+  const { onlyAvailable, setOnlyAvailable } = useStoreAvailability();
+  const { stores, loading, reload } = useNearbyStores(radiusKm, onlyAvailable);
   const { refreshing, onRefresh } = usePullToRefresh(reload);
   const { contentWidth, gutter, width } = useResponsiveLayout();
   const { member } = useAuth();
   const { item: cartItem } = useCart();
-  const { onlyAvailable, setOnlyAvailable } = useStoreAvailability();
   const productEntries = useMemo<ProductEntry[]>(() => {
     const keyword = query.trim().toLocaleLowerCase('ko');
     return stores.flatMap<ProductEntry>((store) => {

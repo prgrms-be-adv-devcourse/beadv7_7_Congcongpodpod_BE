@@ -10,7 +10,7 @@ import { distanceKm, isWithinBounds, radiusForBounds } from '@/lib/map-viewport'
 const defaultLocation = { latitude: 37.485026405, longitude: 127.016271761 };
 type Coordinate = typeof defaultLocation;
 
-export function useNearbyStores(radiusKm = 5) {
+export function useNearbyStores(radiusKm = 5, onlyAvailable = true) {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -34,7 +34,7 @@ export function useNearbyStores(radiusKm = 5) {
     if (!silent) setError(false);
     try {
       const queryRadius = radiusForBounds(searchLocation, bounds, radiusKm);
-      const nearby = await getNearbyStores(searchLocation.latitude, searchLocation.longitude, queryRadius, 80, controller.signal);
+      const nearby = await getNearbyStores(searchLocation.latitude, searchLocation.longitude, queryRadius, 80, onlyAvailable, controller.signal);
       if (requestId !== requestIdRef.current) return;
       lastStoreLocationRef.current = searchLocation;
       setStores(nearby
@@ -46,7 +46,7 @@ export function useNearbyStores(radiusKm = 5) {
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [radiusKm]);
+  }, [onlyAvailable, radiusKm]);
 
   loadStoresRef.current = loadStores;
   const reload = useCallback(async (target?: Coordinate, silent = false, bounds?: MapBounds) => loadStores(target ?? locationRef.current, silent, bounds), [loadStores]);

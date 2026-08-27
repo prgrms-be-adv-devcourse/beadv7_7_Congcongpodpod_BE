@@ -41,10 +41,10 @@ const distanceKm = (a: Coordinate, b: Coordinate) => {
 };
 
 export default function HomeScreen() {
-  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(5);
+  const { onlyAvailable, setOnlyAvailable } = useStoreAvailability();
+  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(5, onlyAvailable);
   const { member } = useAuth();
   const { item: cartItem } = useCart();
-  const { onlyAvailable, setOnlyAvailable } = useStoreAvailability();
   const { contentWidth, gutter, isCompact, isDesktopWeb } = useResponsiveLayout();
   const reducedMotion = useReducedMotion();
   const { top, bottom } = useSafeAreaInsets();
