@@ -66,14 +66,13 @@ public class S3ObjectStorage {
   }
 
   public PresignedUploadUrl issuePutUrl(
-      String objectKey, String contentType, long contentLength, Duration expiration) {
+      String objectKey, String contentType, Duration expiration) {
     try {
       PutObjectRequest putObjectRequest =
           PutObjectRequest.builder()
               .bucket(properties.bucket())
               .key(objectKey)
               .contentType(contentType)
-              .contentLength(contentLength)
               .build();
 
       PutObjectPresignRequest presignRequest =
