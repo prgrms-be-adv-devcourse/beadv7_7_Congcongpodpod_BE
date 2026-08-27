@@ -37,7 +37,7 @@ SELECT
     NULL,
     current_timestamp - interval '2 years',
     current_timestamp - interval '2 years'
-FROM generate_series(1, 300) AS members(member_no)
+FROM generate_series(1, 1000) AS members(member_no)
 CROSS JOIN name_parts;
 
-SELECT setval('members_member_id_seq', 300, true);
+SELECT setval('members_member_id_seq', 1000, true);
