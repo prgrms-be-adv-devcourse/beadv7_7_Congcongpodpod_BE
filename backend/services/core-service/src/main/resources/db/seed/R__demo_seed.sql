@@ -1662,7 +1662,7 @@ SELECT
 FROM months
     LEFT JOIN public.orders orders
 ON orders.store_id = months.store_id
-    AND orders.status = 'PICKED_UP'
+    AND orders.status IN ('PICKED_UP', 'NO_SHOW')
     AND orders.created_at >= months.period_start
     AND orders.created_at < months.period_start + interval '1 month'
 GROUP BY months.store_id, months.month_no, months.period_start
@@ -1678,11 +1678,11 @@ SELECT
     to_char(period_start, 'YYYY-MM'),
     period_start,
     period_end,
-    CASE WHEN month_no = 1 THEN 0 ELSE total_order_count END,
-    CASE WHEN month_no = 1 THEN 0 ELSE gross_amount END,
+    total_order_count,
+    gross_amount,
     0.0500,
-    CASE WHEN month_no = 1 THEN 0 ELSE floor(gross_amount * 0.05)::bigint END,
-    CASE WHEN month_no = 1 THEN 0 ELSE gross_amount - floor(gross_amount * 0.05)::bigint END,
+    floor(gross_amount * 0.05)::bigint,
+    gross_amount - floor(gross_amount * 0.05)::bigint,
     CASE
         WHEN month_no = 1 THEN 'ACCUMULATING'
         WHEN month_no <= 80 THEN 'COMPLETED'
