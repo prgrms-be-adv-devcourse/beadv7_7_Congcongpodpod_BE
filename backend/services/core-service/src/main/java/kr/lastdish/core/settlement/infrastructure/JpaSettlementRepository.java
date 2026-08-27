@@ -109,15 +109,4 @@ public interface JpaSettlementRepository extends JpaRepository<Settlement, Long>
       @Param("statuses") Set<SettlementStatus> statuses,
       @Param("lastSettlementId") Long lastSettlementId,
       Pageable pageable);
-
-  @Modifying(clearAutomatically = true, flushAutomatically = true)
-  @Query(
-      value =
-          """
-                  TRUNCATE TABLE
-                    settlement_details, settlements
-                  RESTART IDENTITY
-                  """,
-      nativeQuery = true)
-  void truncateAllSettlementData();
 }

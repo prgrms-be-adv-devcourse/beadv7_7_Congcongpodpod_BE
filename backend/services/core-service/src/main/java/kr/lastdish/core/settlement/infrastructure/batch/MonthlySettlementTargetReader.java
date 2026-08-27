@@ -39,7 +39,6 @@ public class MonthlySettlementTargetReader implements ItemStreamReader<Long> {
 
   @Override
   public void open(ExecutionContext executionContext) {
-    log.info("==================================reader open");
     if (settlementMonthValue == null || settlementMonthValue.isBlank()) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "settlementMonth는 필수입니다.");
     }
@@ -52,7 +51,6 @@ public class MonthlySettlementTargetReader implements ItemStreamReader<Long> {
     }
 
     lastSettlementId = executionContext.getLong(LAST_SETTLEMENT_ID_KEY, 0L);
-    log.info("==================================reader last settlement id: " + lastSettlementId);
   }
 
   @Override
@@ -66,19 +64,16 @@ public class MonthlySettlementTargetReader implements ItemStreamReader<Long> {
       lastSettlementId = settlementId;
     }
 
-    log.info("=============================reader read SettlementId : " + settlementId);
     return settlementId;
   }
 
   @Override
   public void update(ExecutionContext executionContext) {
-    log.info("=============================reader update SettlementId : " + lastSettlementId);
     executionContext.putLong(LAST_SETTLEMENT_ID_KEY, lastSettlementId);
   }
 
   @Override
   public void close() {
-    log.info("==========================reader close");
     buffer.clear();
   }
 
