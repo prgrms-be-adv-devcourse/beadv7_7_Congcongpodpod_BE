@@ -135,6 +135,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
   const { height } = useWindowDimensions();
   const entrance = useRef(new Animated.Value(0)).current;
   const leafFall = useRef(new Animated.Value(0)).current;
+  const leafFallLoop = useRef<Animated.CompositeAnimation | undefined>(undefined);
   const entranceStarted = useRef(false);
   const entranceFallback = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedAmountReveal = useRef(new Animated.Value(0)).current;
@@ -154,18 +155,19 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     entranceStarted.current = true;
     if (entranceFallback.current) clearTimeout(entranceFallback.current);
     if (reduceMotion) {
+      leafFallLoop.current?.stop();
       entrance.setValue(1);
       leafFall.setValue(1);
       return;
     }
+    leafFallLoop.current?.stop();
     entrance.stopAnimation();
     leafFall.stopAnimation();
     entrance.setValue(0);
     leafFall.setValue(0);
-    Animated.parallel([
-      Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }),
-      Animated.timing(leafFall, { toValue: 1, duration: 4500, easing: Easing.linear, isInteraction: false, useNativeDriver: true }),
-    ]).start();
+    Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start();
+    leafFallLoop.current = Animated.loop(Animated.timing(leafFall, { toValue: 1, duration: 7200, easing: Easing.linear, isInteraction: false, useNativeDriver: true }));
+    leafFallLoop.current.start();
   }, [entrance, leafFall, reduceMotion, report]);
 
   useEffect(() => {
@@ -175,6 +177,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     savedAmountReveal.setValue(0);
     earnedPointsReveal.setValue(0);
     entranceStarted.current = false;
+    leafFallLoop.current?.stop();
     entrance.stopAnimation();
     leafFall.stopAnimation();
     entrance.setValue(reduceMotion ? 1 : 0);
@@ -182,6 +185,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     entranceFallback.current = setTimeout(startEntrance, 120);
     return () => {
       if (entranceFallback.current) clearTimeout(entranceFallback.current);
+      leafFallLoop.current?.stop();
     };
   }, [earnedPointsReveal, entrance, leafFall, reduceMotion, report, savedAmountReveal, startEntrance]);
 
