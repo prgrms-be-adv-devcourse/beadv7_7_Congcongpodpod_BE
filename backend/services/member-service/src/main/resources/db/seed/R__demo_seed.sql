@@ -30,14 +30,14 @@ SELECT
     surnames[((((member_no * 137) % 800) / array_length(given_names, 1))::integer % array_length(surnames, 1)) + 1]
         || given_names[(((member_no * 137) % 800)::integer % array_length(given_names, 1)) + 1],
     '010-0000-' || lpad(member_no::text, 4, '0'),
-    'seller' || lpad(member_no::text, 3, '0'),
-    'seller' || lpad(member_no::text, 3, '0') || '@seed.lastdish.kr',
+    'seller' || lpad(member_no::text, 4, '0'),
+    'seller' || lpad(member_no::text, 4, '0') || '@seed.lastdish.kr',
     '$2y$10$Sy2yex48gzH5Ov71GjjSb.W4UvRBhrBCcAnLzkX5Y41ziWzuRVGvm',
     false,
     NULL,
     current_timestamp - interval '2 years',
     current_timestamp - interval '2 years'
-FROM generate_series(1, 300) AS members(member_no)
+FROM generate_series(1, 1000) AS members(member_no)
 CROSS JOIN name_parts;
 
-SELECT setval('members_member_id_seq', 300, true);
+SELECT setval('members_member_id_seq', 1000, true);
