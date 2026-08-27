@@ -85,6 +85,7 @@ public class Order {
   @Column(nullable = false)
   private BigDecimal unitPrice;
 
+  @Column(nullable = false)
   private BigDecimal usedPoint;
 
   @Column(nullable = false)
