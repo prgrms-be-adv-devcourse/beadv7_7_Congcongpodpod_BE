@@ -3,6 +3,7 @@ package kr.lastdish.payment.application;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.payment.application.dto.ApprovalClaim;
@@ -34,6 +35,15 @@ public class PaymentService {
 
   @Value("${payment.ready-expire.batch-size:500}")
   private int readyExpireBatchSize;
+
+  @Value("${payment.processing-verify.threshold-minutes:40}")
+  private int processingVerifyThresholdMinutes;
+
+  @Value("${payment.processing-verify.lock-timeout-minutes:10}")
+  private int processingVerifyLockTimeoutMinutes;
+
+  @Value("${payment.processing-verify.batch-size:50}")
+  private int processingVerifyBatchSize;
 
   // 결제 준비: Payment를 READY 상태로 생성하고, 프론트가 결제위젯을 띄우는 데 필요한 정보를 반환
   @Transactional
@@ -133,5 +143,20 @@ public class PaymentService {
     LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
     LocalDateTime threshold = now.minusMinutes(readyExpireThresholdMinutes);
     return paymentRepository.expireReadyStatePayments(now, threshold, readyExpireBatchSize);
+  }
+
+  @Transactional
+  public List<Payment> claimStuckProcessingPayments() {
+    LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
+    LocalDateTime threshold = now.minusMinutes(processingVerifyThresholdMinutes);
+    LocalDateTime lockTimeout = now.minusMinutes(processingVerifyLockTimeoutMinutes);
+
+    int claimed =
+            paymentRepository.claimProcessingPayments(
+                    now, threshold, lockTimeout, processingVerifyBatchSize);
+    if (claimed == 0) {
+      return List.of();
+    }
+    return paymentRepository.findClaimedProcessingPayments(now);
   }
 }

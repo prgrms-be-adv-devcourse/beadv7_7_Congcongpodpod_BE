@@ -8,8 +8,4 @@ public class PaymentException extends BusinessException {
   public PaymentException(ErrorCodeSpec errorCode, String message) { // ErrorCode -> ErrorCodeSpec
     super(errorCode, message);
   }
-
-  public PaymentException(ErrorCodeSpec errorCode) {
-    super(errorCode);
-  }
 }

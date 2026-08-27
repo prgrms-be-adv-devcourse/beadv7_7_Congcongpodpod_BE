@@ -62,3 +62,5 @@ ALTER TABLE ONLY public.payments
 
 CREATE INDEX idx_payments_status_updated_at
     ON public.payments (approved_status, updated_at);
+
+ALTER TABLE public.payments ADD COLUMN locked_at timestamp(6) without time zone;

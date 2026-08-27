@@ -3,6 +3,7 @@ package kr.lastdish.payment.infrastructure;
 import jakarta.persistence.LockModeType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.payment.domain.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,4 +39,32 @@ public interface PaymentJpaRepository extends JpaRepository<Payment, Long> {
           @Param("now") LocalDateTime now,
           @Param("threshold") LocalDateTime threshold,
           @Param("batchSize") int batchSize);
+
+
+  @Modifying
+  @Query(
+          value = """
+        UPDATE payments
+        SET locked_at = :now
+        WHERE id IN (
+            SELECT id FROM payments
+            WHERE approved_status = 'PROCESSING'
+              AND updated_at < :threshold
+              AND (locked_at IS NULL OR locked_at < :lockTimeout)
+            ORDER BY updated_at
+            LIMIT :batchSize
+            FOR UPDATE SKIP LOCKED
+        )
+        """,
+          nativeQuery = true)
+  int claimProcessingPayments(
+          @Param("now") LocalDateTime now,
+          @Param("threshold") LocalDateTime threshold,
+          @Param("lockTimeout") LocalDateTime lockTimeout,
+          @Param("batchSize") int batchSize);
+
+  @Query(
+          value = "SELECT * FROM payments WHERE approved_status = 'PROCESSING' AND locked_at = :now",
+          nativeQuery = true)
+  List<Payment> findClaimedProcessingPayments(@Param("now") LocalDateTime now);
   }
