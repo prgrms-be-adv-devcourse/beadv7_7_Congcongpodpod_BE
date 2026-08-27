@@ -74,8 +74,7 @@ class S3ObjectStorageTest {
           new S3ObjectStorage(
               mock(S3Client.class), presigner, properties, Clock.fixed(now, ZoneOffset.UTC));
 
-      PresignedUploadUrl result =
-          storage.issuePutUrl("tmp/dish/3/test.jpg", Duration.ofMinutes(5));
+      PresignedUploadUrl result = storage.issuePutUrl("tmp/dish/3/test.jpg", Duration.ofMinutes(5));
 
       assertThat(result.objectKey()).isEqualTo("tmp/dish/3/test.jpg");
       assertThat(result.requiredHeaders())

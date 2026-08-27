@@ -51,11 +51,7 @@ public class PresignedUrlService {
 
     PresignedUploadUrl result;
     try {
-      result =
-          getStorage()
-              .issuePutUrl(
-                  objectKey,
-                  properties.presignedUrlExpiration());
+      result = getStorage().issuePutUrl(objectKey, properties.presignedUrlExpiration());
     } catch (S3StorageException exception) {
       throw new PresignedUrlException(PresignedUrlException.Reason.STORAGE_ERROR, exception);
     }
