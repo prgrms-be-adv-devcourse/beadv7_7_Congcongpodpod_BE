@@ -22,7 +22,7 @@ public class StoreSearchResult {
     private double esScore;
     private double distanceScore;
     private double deadlineScore;
-    private double discountRateScore;
+    private double priceScore;
     private double personalizationScore;
   }
 }

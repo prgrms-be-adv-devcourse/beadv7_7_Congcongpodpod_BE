@@ -93,9 +93,7 @@ public class StoreRecommendationReasonService {
         store.storeName(),
         dishName,
         result.getScoreBreakdown() != null ? result.getScoreBreakdown().getDistanceScore() : null,
-        result.getScoreBreakdown() != null
-            ? result.getScoreBreakdown().getDiscountRateScore()
-            : null,
+        result.getScoreBreakdown() != null ? result.getScoreBreakdown().getPriceScore() : null,
         result.getBadges());
   }
 
@@ -105,20 +103,20 @@ public class StoreRecommendationReasonService {
       BeanOutputConverter<RecommendationReasonResponse> converter) {
     String templateText =
         """
-                    당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
-                    사용자가 "{rawIntent}"라는 의도로 검색했고, 아래는 이미 순위가 정해진 상위 매장 목록입니다.
+                        당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
+                        사용자가 "{rawIntent}"라는 의도로 검색했고, 아래는 이미 순위가 정해진 상위 매장 목록입니다.
 
-                    각 매장에 대해, 왜 이 매장이 추천 목록에 올랐는지 한국어로 한 문장씩 자연스럽게 설명해주세요.
+                        각 매장에 대해, 왜 이 매장이 추천 목록에 올랐는지 한국어로 한 문장씩 자연스럽게 설명해주세요.
 
-                    규칙:
-                    1. 반드시 주어진 정보(배지, 거리, 할인율)에 근거해서만 작성합니다. 없는 사실을 지어내지 마세요.
-                    2. 각 문장은 20자 내외로 짧고 친근하게 작성합니다.
-                    3. storeId는 입력값을 그대로 사용합니다.
+                        규칙:
+                        1. 반드시 주어진 정보(배지, 거리, 가격)에 근거해서만 작성합니다. 없는 사실을 지어내지 마세요.
+                        2. 각 문장은 20자 내외로 짧고 친근하게 작성합니다.
+                        3. storeId는 입력값을 그대로 사용합니다.
 
-                    매장 목록: {items}
+                        매장 목록: {items}
 
-                    {format}
-                    """;
+                        {format}
+                        """;
 
     PromptTemplate promptTemplate = new PromptTemplate(templateText);
     return promptTemplate.create(
@@ -135,9 +133,8 @@ public class StoreRecommendationReasonService {
     }
     return switch (badges.get(0)) {
       case "가장 가까움" -> "가장 가까운 위치에 있는 매장이에요.";
-      case "할인율 최고" -> "할인율이 가장 높은 매장이에요.";
-      case "취향 맞음" -> "이전에 이용하신 취향과 잘 맞아요.";
-      case "뜻으로 찾음" -> "검색하신 의도와 의미적으로 잘 맞아요.";
+      case "최저가" -> "가장 저렴하게 구매할 수 있는 매장이에요.";
+      case "마감임박" -> "말씀하신 시간 안에 마감이 임박한 매장이에요.";
       default -> "조건에 맞는 매장이에요.";
     };
   }

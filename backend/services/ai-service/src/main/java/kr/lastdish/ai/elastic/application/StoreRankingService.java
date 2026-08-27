@@ -1,12 +1,10 @@
 package kr.lastdish.ai.elastic.application;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import kr.lastdish.ai.elastic.presentation.dto.StoreResponse;
 import kr.lastdish.ai.elastic.presentation.dto.StoreSearchResult;
@@ -23,18 +21,20 @@ import org.springframework.stereotype.Service;
 public class StoreRankingService {
 
   // 가중치 고정 상수
-  private static final double WEIGHT_ES = 0.45;
-  private static final double WEIGHT_DISTANCE = 0.20;
-  private static final double WEIGHT_DISCOUNT = 0.10;
-  private static final double WEIGHT_PERSONALIZATION = 0.15;
+  private static final double WEIGHT_ES = 0.40;
+  private static final double WEIGHT_DISTANCE = 0.25;
+  private static final double WEIGHT_PRICE = 0.25;
+  private static final double WEIGHT_DEADLINE = 0.10;
 
   private static final double MAXIMUM_DISTANCE_KM = 5.0;
-  private static final double MEANING_SEARCH_ES_THRESHOLD = 1.0;
+
+  // 최저가 정규화 상한선(원) - 이 가격 이상이면 가격 점수 0점. 실제 메뉴 가격 분포 보고 튜닝 필요.
+  private static final double MAX_PRICE_KRW = 20000.0;
+  // 2시간 이내만 임박도 점수 부여
+  private static final double MAX_URGENCY_WINDOW_MINUTES = 120.0;
 
   public List<StoreSearchResult> rankAndAssignBadges(
-      List<SearchHit<StoreDocument>> searchHits,
-      GeoPoint userLocation,
-      Set<Long> completedPickupStoreIds) {
+      List<SearchHit<StoreDocument>> searchHits, GeoPoint userLocation, boolean deadlineRequested) {
 
     if (searchHits == null || searchHits.isEmpty()) {
       return Collections.emptyList();
@@ -42,12 +42,12 @@ public class StoreRankingService {
 
     List<StoreSearchResultDtoHolder> holders =
         searchHits.stream()
-            .map(hit -> calculateScore(hit, userLocation, completedPickupStoreIds))
+            .map(hit -> calculateScore(hit, userLocation))
             .sorted(
                 Comparator.comparingDouble(StoreSearchResultDtoHolder::getTotalScore).reversed())
             .toList();
 
-    assignBadges(holders);
+    assignBadges(holders, deadlineRequested);
 
     return holders.stream()
         .map(
@@ -62,48 +62,52 @@ public class StoreRankingService {
   }
 
   private StoreSearchResultDtoHolder calculateScore(
-      SearchHit<StoreDocument> hit, GeoPoint userLocation, Set<Long> completedPickupStoreIds) {
+      SearchHit<StoreDocument> hit, GeoPoint userLocation) {
 
     StoreDocument store = hit.getContent();
     double rawEsScore = hit.getScore();
 
     double distanceKm = calculateDistanceKm(userLocation, store.getLocation());
-    double maxDiscountRate = extractMaxDiscountRate(store.getDishes());
+    double minPrice = extractMinPrice(store.getDishes());
 
     double normEs = Math.min(rawEsScore / 10.0, 1.0);
     double normDistance = Math.max(0.0, 1.0 - (distanceKm / MAXIMUM_DISTANCE_KM));
-    double normDiscount = maxDiscountRate;
+    double normPrice =
+        minPrice == Double.MAX_VALUE ? 0.0 : Math.max(0.0, 1.0 - (minPrice / MAX_PRICE_KRW));
+    double minutesUntilClose = extractMinutesUntilEarliestPickupEnd(store.getDishes());
+    double normDeadline =
+        minutesUntilClose == Double.MAX_VALUE
+            ? 0.0
+            : Math.max(0.0, 1.0 - (minutesUntilClose / MAX_URGENCY_WINDOW_MINUTES));
 
-    boolean hasPickupHistory =
-        completedPickupStoreIds != null && completedPickupStoreIds.contains(store.getStoreId());
-    double normPersonalization = hasPickupHistory ? 1.0 : 0.0;
-
-    // 마감시간 요소를 제외한 4가지 요소 기반 점수 산출
+    // 개인화 요소를 제외한 4가지 요소 기반 점수 산출
     double totalScore =
         (normEs * WEIGHT_ES)
             + (normDistance * WEIGHT_DISTANCE)
-            + (normDiscount * WEIGHT_DISCOUNT)
-            + (normPersonalization * WEIGHT_PERSONALIZATION);
+            + (normPrice * WEIGHT_PRICE)
+            + (normDeadline * WEIGHT_DEADLINE);
 
     ScoreBreakdown breakdown =
         ScoreBreakdown.builder()
             .esScore(normEs)
             .distanceScore(normDistance)
-            .deadlineScore(0.0) // 마감시간 점수 제거
-            .discountRateScore(normDiscount)
-            .personalizationScore(normPersonalization)
+            .deadlineScore(normDeadline)
+            .priceScore(normPrice)
+            .personalizationScore(0.0) // 개인화 미사용 - 항상 0
             .build();
-
     return new StoreSearchResultDtoHolder(
-        hit, totalScore, breakdown, distanceKm, maxDiscountRate, hasPickupHistory, rawEsScore);
+        hit, totalScore, breakdown, distanceKm, minPrice, minutesUntilClose);
   }
 
-  private void assignBadges(List<StoreSearchResultDtoHolder> holders) {
+  private void assignBadges(List<StoreSearchResultDtoHolder> holders, boolean deadlineRequested) {
     if (holders.isEmpty()) return;
 
     double minDistance =
         holders.stream().mapToDouble(h -> h.distanceKm).min().orElse(Double.MAX_VALUE);
-    double maxDiscount = holders.stream().mapToDouble(h -> h.maxDiscountRate).max().orElse(0.0);
+    double minPriceOverall =
+        holders.stream().mapToDouble(h -> h.minPrice).min().orElse(Double.MAX_VALUE);
+    double minMinutesUntilCloseOverall =
+        holders.stream().mapToDouble(h -> h.minutesUntilClose).min().orElse(Double.MAX_VALUE);
 
     for (StoreSearchResultDtoHolder holder : holders) {
       // 1. '가장 가까움' 배지
@@ -111,20 +115,15 @@ public class StoreRankingService {
         holder.badges.add("가장 가까움");
       }
 
-      // 2. '할인율 최고' 배지
-      if (holder.maxDiscountRate >= maxDiscount && holder.maxDiscountRate > 0.0) {
-        holder.badges.add("할인율 최고");
+      // 2. '최저가' 배지
+      if (holder.minPrice <= minPriceOverall && holder.minPrice < Double.MAX_VALUE) {
+        holder.badges.add("최저가");
       }
-
-      // 3. '취향 맞음' 배지
-      if (holder.hasPickupHistory) {
-        holder.badges.add("취향 맞음");
-      }
-
-      // 4. '뜻으로 찾음' 배지
-      if (holder.rawEsScore < MEANING_SEARCH_ES_THRESHOLD
-          && holder.scoreBreakdown.getEsScore() > 0.3) {
-        holder.badges.add("뜻으로 찾음");
+      // 3. 마감임박 배지
+      if (deadlineRequested
+          && holder.minutesUntilClose <= minMinutesUntilCloseOverall
+          && holder.minutesUntilClose < Double.MAX_VALUE) {
+        holder.badges.add("마감임박");
       }
     }
   }
@@ -147,23 +146,37 @@ public class StoreRankingService {
     return 6371.0 * c;
   }
 
-  private double extractMaxDiscountRate(List<StoreDocument.DishItem> dishes) {
-    if (dishes == null || dishes.isEmpty()) return 0.0;
+  /** 매장 내 판매 중인 메뉴들 중 실구매가(할인가 우선, 없으면 정가) 최저값을 반환한다. 메뉴가 없거나 가격 정보가 전혀 없으면 MAX_VALUE. */
+  private double extractMinPrice(List<StoreDocument.DishItem> dishes) {
+    if (dishes == null || dishes.isEmpty()) return Double.MAX_VALUE;
 
     return dishes.stream()
         .map(
             dish -> {
               BigDecimal price = dish.getDishPrice();
               BigDecimal discountPrice = dish.getDiscountPrice();
-              if (price == null || discountPrice == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-                return 0.0;
-              }
-              BigDecimal discount = price.subtract(discountPrice);
-              return discount.divide(price, 4, RoundingMode.HALF_UP).doubleValue();
+              BigDecimal effectivePrice = discountPrice != null ? discountPrice : price;
+              return effectivePrice != null ? effectivePrice.doubleValue() : Double.MAX_VALUE;
             })
         .mapToDouble(Double::doubleValue)
-        .max()
-        .orElse(0.0);
+        .min()
+        .orElse(Double.MAX_VALUE);
+  }
+
+  /** 판매중/재고>0인 메뉴 중 가장 이른 pickupEndTime까지 남은 분(分)을 반환한다. 해당 메뉴가 없으면 MAX_VALUE. */
+  private double extractMinutesUntilEarliestPickupEnd(List<StoreDocument.DishItem> dishes) {
+    if (dishes == null || dishes.isEmpty()) return Double.MAX_VALUE;
+    java.time.LocalTime now = java.time.LocalTime.now();
+
+    return dishes.stream()
+        .filter(d -> "ON_SALE".equals(d.getDishStatus()))
+        .filter(d -> d.getStockQuantity() != null && d.getStockQuantity() > 0)
+        .map(StoreDocument.DishItem::getPickupEndTime)
+        .filter(java.util.Objects::nonNull)
+        .mapToDouble(end -> java.time.Duration.between(now, end).toMinutes())
+        .filter(minutes -> minutes >= 0)
+        .min()
+        .orElse(Double.MAX_VALUE);
   }
 
   private static class StoreSearchResultDtoHolder {
@@ -171,9 +184,8 @@ public class StoreRankingService {
     private final double totalScore;
     private final ScoreBreakdown scoreBreakdown;
     private final double distanceKm;
-    private final double maxDiscountRate;
-    private final boolean hasPickupHistory;
-    private final double rawEsScore;
+    private final double minPrice;
+    private final double minutesUntilClose;
     private final List<String> badges = new ArrayList<>();
 
     public StoreSearchResultDtoHolder(
@@ -181,16 +193,14 @@ public class StoreRankingService {
         double totalScore,
         ScoreBreakdown scoreBreakdown,
         double distanceKm,
-        double maxDiscountRate,
-        boolean hasPickupHistory,
-        double rawEsScore) {
+        double minPrice,
+        double minutesUntilClose) {
       this.hit = hit;
       this.totalScore = totalScore;
       this.scoreBreakdown = scoreBreakdown;
       this.distanceKm = distanceKm;
-      this.maxDiscountRate = maxDiscountRate;
-      this.hasPickupHistory = hasPickupHistory;
-      this.rawEsScore = rawEsScore;
+      this.minPrice = minPrice;
+      this.minutesUntilClose = minutesUntilClose;
     }
 
     public double getTotalScore() {
