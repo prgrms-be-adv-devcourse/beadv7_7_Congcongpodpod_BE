@@ -60,7 +60,15 @@ ALTER TABLE ONLY public.payments
 ALTER TABLE ONLY public.payments
     ADD CONSTRAINT payments_pkey PRIMARY KEY (payment_id);
 
+ALTER TABLE public.payments
+    ADD COLUMN updated_at timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP;
+
+UPDATE public.payments SET updated_at = created_at WHERE updated_at IS NULL;
+
+ALTER TABLE public.payments ALTER COLUMN updated_at SET NOT NULL;
+
 CREATE INDEX idx_payments_status_updated_at
     ON public.payments (approved_status, updated_at);
 
 ALTER TABLE public.payments ADD COLUMN locked_at timestamp(6) without time zone;
+
