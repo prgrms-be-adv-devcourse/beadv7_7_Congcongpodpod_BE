@@ -2,6 +2,7 @@ package kr.lastdish.core.point.domain;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -11,6 +12,8 @@ public interface PointHistoryRepository {
   List<PointHistory> findUsableEarnHistories(Long memberId); // 만료 안 됐고 remainingAmount 남은 EARN건
 
   boolean existsByOrderIdAndType(Long orderId, PointType type);
+
+  Optional<PointHistory> findByOrderIdAndType(Long orderId, PointType type);
 
   List<Long> findMembersWithExpiringPoints();
 

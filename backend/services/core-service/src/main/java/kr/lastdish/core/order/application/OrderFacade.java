@@ -70,10 +70,14 @@ public class OrderFacade {
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
 
     // 포인트 사용
-    pointService.use(memberId, order.getId(), usedPoint);
+    if (usedPoint.compareTo(BigDecimal.ZERO) > 0) {
+      pointService.use(memberId, order.getId(), usedPoint);
+    }
 
     // 예치금 사용
-    depositFacade.use(memberId, order.getId(), order.getUsedDeposit());
+    if (order.getUsedDeposit().compareTo(BigDecimal.ZERO) > 0) {
+      depositFacade.use(memberId, order.getId(), order.getUsedDeposit());
+    }
 
     // 결제 완료 처리
     OrderResult result = orderService.completePayment(order.getId());
@@ -101,10 +105,8 @@ public class OrderFacade {
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
 
-    // 포인트 환불
-
-    // 결제 환불
-    depositFacade.refund(memberId, orderId, order.getTotalPrice());
+    // 환불
+    refundPointAndDeposit(order);
 
     Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
     orderNotificationEventWriter.appendCancelled(order, sellerMemberId);
@@ -146,8 +148,7 @@ public class OrderFacade {
     orderStatusChangedEventWriter.append(order);
     orderNotificationEventWriter.appendRejected(order, reason);
     // 환불
-    // 포인트 환불
-    depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    refundPointAndDeposit(order);
     return OrderRejectResult.from(order);
   }
 
@@ -158,9 +159,18 @@ public class OrderFacade {
     orderStatusChangedEventWriter.append(order);
     orderNotificationEventWriter.appendRejected(order, reason);
     // 환불 - 재고 복구 안함
-    // 포인트 환불
-    depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    refundPointAndDeposit(order);
     return OrderRejectResult.from(order);
+  }
+
+  private void refundPointAndDeposit(Order order) {
+    if (order.getUsedPoint().compareTo(BigDecimal.ZERO) > 0) {
+      pointService.refund(order.getMemberId(), order.getId());
+    }
+
+    if (order.getUsedDeposit().compareTo(BigDecimal.ZERO) > 0) {
+      depositFacade.refund(order.getMemberId(), order.getId(), order.getUsedDeposit());
+    }
   }
 
   @Transactional

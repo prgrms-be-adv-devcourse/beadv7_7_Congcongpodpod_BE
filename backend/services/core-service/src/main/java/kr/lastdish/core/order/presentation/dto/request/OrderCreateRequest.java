@@ -6,4 +6,11 @@ import java.math.BigDecimal;
 
 /** 주문 화면에서 조회한 Dish 가격 버전을 전달하는 요청입니다. */
 public record OrderCreateRequest(
-    @NotNull @PositiveOrZero Long dishPriceVersion, BigDecimal usedPoint) {}
+    @NotNull @PositiveOrZero Long dishPriceVersion, @PositiveOrZero BigDecimal usedPoint) {
+
+  public OrderCreateRequest {
+    if (usedPoint == null) {
+      usedPoint = BigDecimal.ZERO;
+    }
+  }
+}
