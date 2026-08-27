@@ -30,7 +30,8 @@ public class OrderController {
       @RequestBody @Valid OrderCreateRequest request) {
     return ApiResponse.ok(
         OrderResponse.from(
-            orderFacade.payAndCreateOrder(memberId, cartItemId, request.dishPriceVersion())));
+            orderFacade.payAndCreateOrder(
+                memberId, cartItemId, request.dishPriceVersion(), request.usedPoint())));
   }
 
   @PatchMapping("/{orderId}/cancel")
