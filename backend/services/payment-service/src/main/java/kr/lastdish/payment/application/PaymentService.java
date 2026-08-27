@@ -1,6 +1,8 @@
 package kr.lastdish.payment.application;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.payment.application.dto.ApprovalClaim;
@@ -18,12 +20,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PaymentService {
 
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
+
   private final PaymentRepository paymentRepository;
   private final PaymentLogRepository paymentLogRepository;
   private final ChargeRequestedEventWriter chargeRequestedEventWriter;
 
   @Value("${toss.client-key}")
   private String tossClientKey;
+
+  @Value("${payment.ready-expire.threshold-minutes:30}")
+  private int readyExpireThresholdMinutes;
+
+  @Value("${payment.ready-expire.batch-size:500}")
+  private int readyExpireBatchSize;
 
   // 결제 준비: Payment를 READY 상태로 생성하고, 프론트가 결제위젯을 띄우는 데 필요한 정보를 반환
   @Transactional
@@ -116,5 +126,12 @@ public class PaymentService {
                 ? "DONE"
                 : pgResult.failureCode()));
     return payment;
+  }
+
+  @Transactional
+  public int expireReadyStatePayments() {
+    LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
+    LocalDateTime threshold = now.minusMinutes(readyExpireThresholdMinutes);
+    return paymentRepository.expireReadyStatePayments(now, threshold, readyExpireBatchSize);
   }
 }

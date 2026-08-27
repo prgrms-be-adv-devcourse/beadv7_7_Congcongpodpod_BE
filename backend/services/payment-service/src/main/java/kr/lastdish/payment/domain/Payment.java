@@ -31,6 +31,9 @@ public class Payment {
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
+  @Column(name = "updated_at", nullable = false)
+  private LocalDateTime updatedAt;
+
   @Column(name = "approved_at")
   private LocalDateTime approvedAt;
 
@@ -56,6 +59,7 @@ public class Payment {
     this.merchantOrderId = merchantOrderId;
     this.approvedStatus = ApprovedStatus.READY;
     this.createdAt = LocalDateTime.now();
+    this.updatedAt = this.createdAt;
     this.aggregateVersion = 0L;
   }
 
@@ -67,7 +71,7 @@ public class Payment {
 
   // 결제 준비(READY) 상태를 확인하고 처리 중(CONFIRMING) 상태로 전환
   public ApprovalClaimResult claimApproval() {
-    return switch (this.approvedStatus) {
+    ApprovalClaimResult result = switch (this.approvedStatus)  {
       case READY -> {
         this.approvedStatus = ApprovedStatus.PROCESSING;
         yield ApprovalClaimResult.STARTED;
@@ -79,6 +83,10 @@ public class Payment {
           throw new PaymentException(
               ErrorCode.INVALID_PAYMENT_STATUS, "만료된 결제입니다. 처음부터 다시 시도해주세요. paymentId=" + this.id);
     };
+    if (result == ApprovalClaimResult.STARTED) {
+      this.updatedAt = LocalDateTime.now();
+    }
+    return result;
   }
 
   // 결제 최종 승인 처리
@@ -90,6 +98,7 @@ public class Payment {
     this.approvedStatus = ApprovedStatus.APPROVED;
     this.pgTransactionId = pgTransactionId;
     this.approvedAt = LocalDateTime.now();
+    this.updatedAt = this.approvedAt;
   }
 
   // 결제 실패 처리
@@ -99,6 +108,7 @@ public class Payment {
           ErrorCode.INVALID_PAYMENT_STATUS, "승인 처리 중인 결제만 실패 처리할 수 있습니다. paymentId=" + this.id);
     }
     this.approvedStatus = ApprovedStatus.FAILED;
+    this.updatedAt = LocalDateTime.now();
   }
 
   // Outbox 이벤트 발행 시 사용할 Aggregate 버전 증가

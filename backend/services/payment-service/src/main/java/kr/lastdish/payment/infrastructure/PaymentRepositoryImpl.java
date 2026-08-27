@@ -1,5 +1,6 @@
 package kr.lastdish.payment.infrastructure;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import kr.lastdish.payment.domain.Payment;
 import kr.lastdish.payment.domain.PaymentRepository;
@@ -25,5 +26,10 @@ public class PaymentRepositoryImpl implements PaymentRepository {
   @Override
   public Optional<Payment> findWithLockById(Long id) {
     return paymentJpaRepository.findWithLockById(id);
+  }
+
+  @Override
+  public int expireReadyStatePayments(LocalDateTime now, LocalDateTime threshold, int batchSize) {
+    return paymentJpaRepository.expireReadyStatePayments(now, threshold, batchSize);
   }
 }

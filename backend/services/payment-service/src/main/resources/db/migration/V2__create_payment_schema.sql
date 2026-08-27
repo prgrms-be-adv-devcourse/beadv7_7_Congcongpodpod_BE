@@ -59,3 +59,6 @@ ALTER TABLE ONLY public.payments
 
 ALTER TABLE ONLY public.payments
     ADD CONSTRAINT payments_pkey PRIMARY KEY (payment_id);
+
+CREATE INDEX idx_payments_status_updated_at
+    ON public.payments (approved_status, updated_at);
