@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import Reanimated, { Easing as ReanimatedEasing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Reanimated, { Easing as ReanimatedEasing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand-logo';
@@ -73,6 +73,7 @@ export default function HomeScreen() {
   const sheetVisibleHeight = useRef(new Animated.Value(130)).current;
   const mapControlsOpacity = useRef(new Animated.Value(1)).current;
   const searchExpansion = useSharedValue(0);
+  const availabilityProgress = useSharedValue(onlyAvailable ? 1 : 0);
 
   useEffect(() => {
     Animated.timing(mapControlsOpacity, { toValue: mapControlsHidden ? 0 : 1, duration: 140, useNativeDriver: true }).start();
@@ -83,6 +84,12 @@ export default function HomeScreen() {
       easing: ReanimatedEasing.bezier(0.22, 1, 0.36, 1),
     });
   }, [reducedMotion, searchExpansion, searchFocused]);
+  useEffect(() => {
+    availabilityProgress.value = withTiming(onlyAvailable ? 1 : 0, {
+      duration: reducedMotion ? 0 : motion.base,
+      easing: ReanimatedEasing.bezier(0.22, 1, 0.36, 1),
+    });
+  }, [availabilityProgress, onlyAvailable, reducedMotion]);
   const headerActionsAnimatedStyle = useAnimatedStyle(() => ({
     width: 91 * (1 - searchExpansion.value),
     opacity: 1 - searchExpansion.value,
@@ -91,6 +98,18 @@ export default function HomeScreen() {
   const searchResultsAnimatedStyle = useAnimatedStyle(() => ({
     opacity: searchExpansion.value,
     transform: [{ translateY: -4 * (1 - searchExpansion.value) }],
+  }));
+  const availabilityButtonAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(availabilityProgress.value, [0, 1], [colors.white, colors.green500]),
+    borderColor: interpolateColor(availabilityProgress.value, [0, 1], [colors.line, colors.green500]),
+  }));
+  const availableContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: availabilityProgress.value,
+    transform: [{ translateY: 3 * (1 - availabilityProgress.value) }],
+  }));
+  const allContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: 1 - availabilityProgress.value,
+    transform: [{ translateY: -3 * availabilityProgress.value }],
   }));
 
   const filteredStores = useMemo(() => stores.filter((store) => {
@@ -284,7 +303,12 @@ export default function HomeScreen() {
             !isDesktopWeb && { transform: [{ translateY: Animated.multiply(sheetVisibleHeight, -1) }] },
           ]}
         >
-          <Pressable accessibilityRole="button" accessibilityState={{ selected: onlyAvailable }} accessibilityLabel={onlyAvailable ? '픽업 가능 매장만 보는 중, 전체 매장 보기' : '전체 매장 보는 중, 픽업 가능 매장만 보기'} onPress={() => { setOnlyAvailable(!onlyAvailable); setSelected(null); void Haptics.selectionAsync(); }} style={({ pressed }) => [styles.availabilityButton, onlyAvailable && styles.availabilityButtonActive, pressed && styles.controlPressed]}><Ionicons name={onlyAvailable ? 'bag-check-outline' : 'storefront-outline'} size={17} color={onlyAvailable ? colors.white : colors.ink900}/><Text style={[styles.availabilityText, onlyAvailable && styles.availabilityTextActive]}>{onlyAvailable ? '픽업 가능만' : '전체 매장'}</Text></Pressable>
+          <Reanimated.View style={[styles.availabilityButton, availabilityButtonAnimatedStyle]}>
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: onlyAvailable }} accessibilityLabel={onlyAvailable ? '픽업 가능 매장만 보는 중, 전체 매장 보기' : '전체 매장 보는 중, 픽업 가능 매장만 보기'} onPress={() => { setOnlyAvailable(!onlyAvailable); setSelected(null); void Haptics.selectionAsync(); }} style={({ pressed }) => [styles.availabilityPressable, pressed && styles.availabilityPressed]}>
+              <Reanimated.View style={[styles.availabilityContent, availableContentAnimatedStyle]}><Ionicons name="bag-check-outline" size={17} color={colors.white}/><Text style={styles.availabilityTextActive}>픽업 가능만</Text></Reanimated.View>
+              <Reanimated.View style={[styles.availabilityContent, allContentAnimatedStyle]}><Ionicons name="storefront-outline" size={17} color={colors.ink900}/><Text style={styles.availabilityText}>전체 매장</Text></Reanimated.View>
+            </Pressable>
+          </Reanimated.View>
         </Animated.View>
 
         {(loading || error) && !pendingCenter && <View style={[styles.notice, { top: top + 111, width: Math.min(contentWidth - gutter * 2, 360) }]}> 
@@ -473,10 +497,12 @@ const styles = StyleSheet.create({
   areaRefreshText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   mapActionStack: { position: 'absolute', right: 14, alignItems: 'center', gap: 9, zIndex: 12 },
   availabilityAction: { position: 'absolute', left: 14, zIndex: 12 },
-  availabilityButton: { width: 112, height: 42, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
-  availabilityButtonActive: { backgroundColor: colors.green500, borderColor: colors.green500 },
+  availabilityButton: { width: 112, height: 42, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  availabilityPressable: { flex: 1 },
+  availabilityContent: { ...StyleSheet.absoluteFillObject, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  availabilityPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
   availabilityText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
-  availabilityTextActive: { color: colors.white },
+  availabilityTextActive: { color: colors.white, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
   mapControls: { width: 42, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compass: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compassRose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
