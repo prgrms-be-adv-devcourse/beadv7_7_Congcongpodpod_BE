@@ -116,4 +116,33 @@ public class PointService {
       throw new IllegalStateException("포인트 잔액과 적립 내역 합계가 일치하지 않습니다. memberId=" + memberId);
     }
   }
+
+  @Transactional
+  public PointTransactionResult refund(Long memberId, Long orderId) {
+    Point point =
+            pointRepository
+                    .findWithLockByMemberId(memberId)
+                    .orElseThrow(() -> new PointNotFoundException(memberId));
+
+    if (pointHistoryRepository.existsByOrderIdAndType(orderId, PointType.REFUND)) {
+      throw new BusinessException(CommonErrorCode.INVALID_STATE, "이미 환불 처리된 주문입니다. orderId=" + orderId);
+    }
+
+    PointHistory useHistory =
+            pointHistoryRepository
+                    .findByOrderIdAndType(orderId, PointType.USE)
+                    .orElseThrow(
+                            () ->
+                                    new BusinessException(
+                                            CommonErrorCode.INVALID_STATE, "환불할 포인트 사용 내역이 없습니다. orderId=" + orderId));
+
+    BigDecimal refundAmount = useHistory.getAmount();
+    point.earn(refundAmount);
+
+    PointHistory history =
+            pointHistoryRepository.save(
+                    PointHistory.recordRefund(memberId, orderId, refundAmount, point.getBalance()));
+
+    return PointTransactionResult.from(history);
+  }
 }

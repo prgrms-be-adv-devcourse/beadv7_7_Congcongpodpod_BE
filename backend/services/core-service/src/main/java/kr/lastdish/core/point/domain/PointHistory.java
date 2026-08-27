@@ -118,6 +118,20 @@ public class PointHistory {
         .build();
   }
 
+  public static PointHistory recordRefund(
+      Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+    validatePositiveAmount(amount);
+    return PointHistory.builder()
+        .memberId(memberId)
+        .orderId(orderId)
+        .type(PointType.REFUND)
+        .amount(amount)
+        .remainingAmount(amount)
+        .expiresAt(LocalDateTime.now().plusMonths(3).with(LocalTime.MAX))
+        .balanceAfter(balanceAfter)
+        .build();
+  }
+
   private static void validatePositiveAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(
