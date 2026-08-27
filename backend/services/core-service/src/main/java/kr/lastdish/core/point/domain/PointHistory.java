@@ -84,7 +84,7 @@ public class PointHistory {
 
   public static PointHistory recordUse(
       Long memberId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
-    validatePositiveAmount(amount);
+    validateNonNegativeAmount(amount);
     return PointHistory.builder()
         .memberId(memberId)
         .orderId(orderId)
@@ -136,6 +136,13 @@ public class PointHistory {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(
           CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
+    }
+  }
+
+  private static void validateNonNegativeAmount(BigDecimal amount) {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, "금액은 0 이상이어야 합니다. amount=" + amount);
     }
   }
 }

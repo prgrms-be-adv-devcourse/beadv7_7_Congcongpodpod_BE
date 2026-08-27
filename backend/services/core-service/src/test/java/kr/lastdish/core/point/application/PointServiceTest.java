@@ -265,39 +265,33 @@ class PointServiceTest {
   }
 
   @Test
-  void refund_해당_주문의_사용_내역이_없으면_예외가_발생하고_잔액_조회조차_하지_않는다() {
+  void refund_해당_주문의_사용_내역이_없으면_예외가_발생하고_저장되지_않는다() {
+    Point point = Point.createDefault(1L);
+
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.REFUND)).willReturn(false);
     given(pointHistoryRepository.findByOrderIdAndType(200L, PointType.USE))
         .willReturn(Optional.empty());
 
     assertThatThrownBy(() -> pointService.refund(1L, 200L)).isInstanceOf(BusinessException.class);
 
-    verify(pointRepository, never()).findWithLockByMemberId(any());
     verify(pointHistoryRepository, never()).save(any());
   }
 
   @Test
   void refund_이미_환불_처리된_주문이면_예외가_발생하고_중복_저장되지_않는다() {
-    PointHistory useHistory =
-        PointHistory.recordUse(1L, 200L, new BigDecimal("2000"), new BigDecimal("3000"));
+    Point point = Point.createDefault(1L);
 
-    given(pointHistoryRepository.findByOrderIdAndType(200L, PointType.USE))
-        .willReturn(Optional.of(useHistory));
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
     given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.REFUND)).willReturn(true);
 
     assertThatThrownBy(() -> pointService.refund(1L, 200L)).isInstanceOf(BusinessException.class);
 
-    verify(pointRepository, never()).findWithLockByMemberId(any());
     verify(pointHistoryRepository, never()).save(any());
   }
 
   @Test
   void refund_Point_자체가_존재하지_않으면_예외가_발생한다() {
-    PointHistory useHistory =
-        PointHistory.recordUse(1L, 200L, new BigDecimal("2000"), new BigDecimal("3000"));
-
-    given(pointHistoryRepository.findByOrderIdAndType(200L, PointType.USE))
-        .willReturn(Optional.of(useHistory));
-    given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.REFUND)).willReturn(false);
     given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> pointService.refund(1L, 200L))
