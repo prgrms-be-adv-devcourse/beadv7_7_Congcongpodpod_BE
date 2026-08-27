@@ -121,6 +121,7 @@ public class DishService {
     }
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
 
     return DishResponse.from(dish);
   }

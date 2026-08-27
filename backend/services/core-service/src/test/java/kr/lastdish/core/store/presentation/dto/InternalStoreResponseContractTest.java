@@ -24,6 +24,14 @@ class InternalStoreResponseContractTest {
   }
 
   @Test
+  void renewal_response_contains_deleted() {
+    assertThat(
+            Arrays.stream(InternalStoreResponse.class.getRecordComponents())
+                .map(RecordComponent::getName))
+        .contains("deleted");
+  }
+
+  @Test
   void renewal_response_maps_next_closing_at() {
     LocalDateTime nextClosingAt = LocalDateTime.of(2026, 8, 20, 22, 0);
     InternalStoreResult result =
@@ -41,10 +49,36 @@ class InternalStoreResponseContractTest {
             BigDecimal.valueOf(127.0),
             Category.KOREAN,
             List.of(),
-            null);
+            null,
+            false);
 
     InternalStoreResponse response = InternalStoreResponse.from(result);
 
     assertThat(response.nextClosingAt()).isEqualTo(nextClosingAt);
+  }
+
+  @Test
+  void renewal_response_maps_deleted() {
+    InternalStoreResult result =
+        new InternalStoreResult(
+            1L,
+            2L,
+            "테스트 매장",
+            "서울시 테스트 주소",
+            "명정빌딩",
+            LocalTime.of(9, 0),
+            LocalTime.of(22, 0),
+            LocalDateTime.of(2026, 8, 20, 22, 0),
+            StoreStatus.STOPPED,
+            BigDecimal.valueOf(37.5),
+            BigDecimal.valueOf(127.0),
+            Category.KOREAN,
+            List.of(),
+            null,
+            true);
+
+    InternalStoreResponse response = InternalStoreResponse.from(result);
+
+    assertThat(response.deleted()).isTrue();
   }
 }

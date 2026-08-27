@@ -109,6 +109,24 @@ class StoreFacadeTest {
     verify(storeRepository).findRenewalTargets(localFrom, localTo);
   }
 
+  @Test
+  void 소프트_삭제된_매장은_검색_갱신_응답에_삭제_표시한다() {
+    Instant from = Instant.parse("2026-08-22T13:00:00Z");
+    Instant to = Instant.parse("2026-08-22T13:01:00Z");
+    LocalDateTime localFrom = LocalDateTime.of(2026, 8, 22, 22, 0);
+    LocalDateTime localTo = LocalDateTime.of(2026, 8, 22, 22, 1);
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    ReflectionTestUtils.setField(store, "id", 10L);
+    store.delete();
+
+    when(storeRepository.findRenewalTargets(localFrom, localTo)).thenReturn(List.of(store));
+    when(dishService.getDishByStoreIdForRenewal(10L)).thenReturn(Optional.empty());
+
+    List<InternalStoreResult> result = storeFacade.getDishAndStoresForRenewal(from, to);
+
+    assertThat(result).singleElement().extracting(InternalStoreResult::deleted).isEqualTo(true);
+  }
+
   private StoreResult createStoreResult(Long storeId) {
     Store store = createStore(LocalTime.now(), LocalTime.now());
     ReflectionTestUtils.setField(store, "id", storeId);

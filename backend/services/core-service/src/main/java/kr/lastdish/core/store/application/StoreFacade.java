@@ -102,7 +102,7 @@ public class StoreFacade {
 
   private InternalStoreResult toInternalStoreResult(Store store) {
     InternalDishResult dish = dishService.getDishByStoreIdForRenewal(store.getId()).orElse(null);
-    return InternalStoreResult.from(StoreResult.from(store), dish);
+    return InternalStoreResult.from(StoreResult.from(store), dish, store.isDeleted());
   }
 
   public StorePageResult getNearbyStores(

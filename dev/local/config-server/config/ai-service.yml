@@ -89,4 +89,4 @@ services:
 store:
   sync:
     scheduler:
-      enabled: false #core에서 dish update 작업 후 활성화
+      enabled: true
