@@ -56,7 +56,6 @@ public class PresignedUrlService {
               .issuePutUrl(
                   objectKey,
                   imageContentType.mediaType(),
-                  contentLength,
                   properties.presignedUrlExpiration());
     } catch (S3StorageException exception) {
       throw new PresignedUrlException(PresignedUrlException.Reason.STORAGE_ERROR, exception);
