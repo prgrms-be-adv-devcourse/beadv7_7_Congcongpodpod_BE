@@ -2,7 +2,7 @@ import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +11,14 @@ import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
 import { type AppAlertRequest, type AppDishReportRequest, type AppNotificationRequest, subscribeAppAlerts, subscribeDishReports, subscribeGlobalLoading, subscribeInAppNotifications } from '@/lib/app-overlay';
 
 const MIN_LOADING_VISIBLE_MS = 160;
+const REPORT_PARTICLES = [
+  { left: 15, top: 17, size: 3, drift: -10 }, { left: 38, top: 29, size: 2, drift: 8 },
+  { left: 66, top: 13, size: 4, drift: -6 }, { left: 94, top: 38, size: 2, drift: 11 },
+  { left: 122, top: 20, size: 3, drift: -9 }, { left: 145, top: 52, size: 2, drift: 7 },
+  { left: 27, top: 70, size: 2, drift: 10 }, { left: 56, top: 89, size: 4, drift: -8 },
+  { left: 86, top: 66, size: 3, drift: 9 }, { left: 114, top: 91, size: 2, drift: -11 },
+  { left: 139, top: 78, size: 4, drift: 6 }, { left: 8, top: 99, size: 3, drift: -7 },
+] as const;
 
 function notificationVisual(type?: string) {
   if (type === 'ORDER_CREATED') return { icon: 'storefront-outline' as const, label: '새 주문' };
@@ -51,11 +59,33 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
   </Animated.View>;
 }
 
+function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value; accent?: boolean }) {
+  return <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, {
+    opacity: motion.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.72, 0] }),
+    transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, 12] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] }) }],
+  }]}>
+    <BlurView intensity={accent ? 30 : 22} style={[styles.reportMetricBlur, accent && styles.reportMetricAccentBlur]} tint={accent ? 'dark' : 'light'}>
+      <View style={styles.reportMetricBlurPrompt}><Ionicons name="eye-outline" size={17} color={accent ? colors.white : colors.ink700}/><Text style={[styles.reportMetricBlurPromptText, accent && styles.reportMetricBlurPromptTextAccent]}>눌러서 확인</Text></View>
+    </BlurView>
+    {REPORT_PARTICLES.map((particle, index) => {
+      const start = 0.04 + index * 0.018;
+      return <Animated.View key={`${particle.left}-${particle.top}`} style={[styles.reportParticle, accent && styles.reportParticleAccent, {
+        left: particle.left,
+        top: particle.top,
+        width: particle.size,
+        height: particle.size,
+        borderRadius: particle.size / 2,
+        opacity: motion.interpolate({ inputRange: [0, start, start + 0.24, Math.min(0.96, start + 0.58), 1], outputRange: [0, 0, 0.9, 0.35, 0] }),
+        transform: [{ translateX: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.drift] }) }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, 18 + index % 3 * 4] }) }],
+      }]}/>;
+    })}
+  </Animated.View>;
+}
+
 function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRequest; insets: { top: number; bottom: number }; onClose: () => void }) {
   const entrance = useRef(new Animated.Value(0)).current;
   const savedAmountReveal = useRef(new Animated.Value(0)).current;
   const earnedPointsReveal = useRef(new Animated.Value(0)).current;
-  const entranceFrame = useRef<number | undefined>(undefined);
   const [savedAmountVisible, setSavedAmountVisible] = useState(false);
   const [earnedPointsVisible, setEarnedPointsVisible] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -74,15 +104,14 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     earnedPointsReveal.setValue(0);
     entrance.stopAnimation();
     entrance.setValue(reduceMotion ? 1 : 0);
-    if (!reduceMotion) entranceFrame.current = requestAnimationFrame(() => {
-      entranceFrame.current = requestAnimationFrame(() => {
-        Animated.timing(entrance, { toValue: 1, duration: 400, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start();
-      });
-    });
-    return () => {
-      if (entranceFrame.current !== undefined) cancelAnimationFrame(entranceFrame.current);
-    };
   }, [earnedPointsReveal, entrance, reduceMotion, report, savedAmountReveal]);
+
+  const startEntrance = useCallback(() => {
+    if (!report || reduceMotion) return entrance.setValue(1);
+    entrance.stopAnimation();
+    entrance.setValue(0);
+    Animated.timing(entrance, { toValue: 1, duration: 600, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start();
+  }, [entrance, reduceMotion, report]);
 
   const revealMetric = (motion: Animated.Value, setVisible: (visible: boolean) => void) => {
     if (reduceMotion) {
@@ -91,7 +120,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
       return;
     }
     motion.stopAnimation();
-    Animated.timing(motion, { toValue: 1, duration: 200, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
+    Animated.timing(motion, { toValue: 1, duration: 400, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
       if (finished) setVisible(true);
     });
   };
@@ -101,9 +130,9 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     requestAnimationFrame(() => router.push(path));
   };
 
-  return <Modal animationType="none" onRequestClose={onClose} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
+  return <Modal animationType="none" onRequestClose={onClose} onShow={startEntrance} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
     <View style={[styles.reportRoot, { paddingTop: Math.max(24, insets.top), paddingBottom: Math.max(24, insets.bottom) }]}>
-      <Animated.View accessibilityRole="alert" accessibilityViewIsModal renderToHardwareTextureAndroid shouldRasterizeIOS style={[styles.reportCard, { opacity: entrance, transform: [{ perspective: 1200 }, { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [44, 0] }) }, { rotateX: entrance.interpolate({ inputRange: [0, 0.7, 1], outputRange: ['13deg', '-1.5deg', '0deg'] }) }, { scale: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: [0.92, 1.012, 1] }) }] }]}>
+      <Animated.View accessibilityRole="alert" accessibilityViewIsModal renderToHardwareTextureAndroid style={[styles.reportCard, { opacity: entrance, transform: [{ perspective: 1000 }, { translateY: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: [76, -4, 0] }) }, { rotateX: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: ['20deg', '-2deg', '0deg'] }) }, { rotateY: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: ['-8deg', '1deg', '0deg'] }) }, { scale: entrance.interpolate({ inputRange: [0, 0.72, 1], outputRange: [0.84, 1.018, 1] }) }] }]}>
         <View style={styles.reportHeader}>
           <View style={styles.reportMark}><Ionicons name="checkmark-circle-outline" size={25} color={colors.white}/></View>
           <View style={styles.reportHeaderCopy}><Text style={styles.reportEyebrow}>픽업 완료 리포트</Text><Text style={styles.reportTitle}>오늘도 한 끼를 구조했어요</Text></View>
@@ -112,8 +141,8 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
         <View style={styles.reportPurchase}><View><Text style={styles.reportLabel}>구매 정보</Text><Text style={styles.reportPurchaseTitle}>픽업 완료 · 구매 반영 완료</Text></View><Ionicons name="receipt-outline" size={21} color={colors.green700}/></View>
         <Pressable accessibilityRole="button" onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportLevel, pressed && styles.reportPressed]}><View><Text style={styles.reportLabel}>현재 등급</Text><Text style={styles.reportLevelValue}>{report?.level ? `Lv.${report.level} · ${report.grade}` : '등급 확인 중'}</Text>{report?.remainToNextLevel !== undefined ? <Text style={styles.reportLevelHint}>{report.remainToNextLevel > 0 ? `다음 등급까지 픽업 ${report.remainToNextLevel}회` : '현재 최고 등급이에요'}</Text> : null}</View><Ionicons name="chevron-forward" size={19} color={colors.green700}/></Pressable>
         <View style={styles.reportMetrics}>
-          <Pressable accessibilityRole="button" accessibilityLabel={savedAmountVisible ? `누적 절약 금액 ${report?.savedAmount?.toLocaleString() ?? '확인 불가'}원` : '누적 절약 금액, 눌러서 확인'} onPress={() => !savedAmountVisible && revealMetric(savedAmountReveal, setSavedAmountVisible)} style={({ pressed }) => [styles.reportMetric, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><View style={styles.reportMetricValueWrap}><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text>{!savedAmountVisible ? <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, { opacity: savedAmountReveal.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateX: savedAmountReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }) }, { scale: savedAmountReveal.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }] }]}><BlurView intensity={24} style={styles.reportMetricBlur} tint="light"><Ionicons name="eye-outline" size={16} color={colors.ink700}/></BlurView></Animated.View> : null}</View><Text style={styles.reportMetricReveal}>{savedAmountVisible ? '공개됨' : '눌러서 확인'}</Text></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={earnedPointsVisible ? `지금 적립된 포인트 ${report?.earnedPoints?.toLocaleString() ?? '확인 불가'}포인트` : '지금 적립된 포인트, 눌러서 확인'} onPress={() => !earnedPointsVisible && revealMetric(earnedPointsReveal, setEarnedPointsVisible)} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><View style={styles.reportMetricValueWrap}><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text>{!earnedPointsVisible ? <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, { opacity: earnedPointsReveal.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateX: earnedPointsReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }) }, { scale: earnedPointsReveal.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }] }]}><BlurView intensity={32} style={[styles.reportMetricBlur, styles.reportMetricAccentBlur]} tint="dark"><Ionicons name="eye-outline" size={16} color={colors.white}/></BlurView></Animated.View> : null}</View><Text style={styles.reportMetricLink}>{earnedPointsVisible ? '공개됨' : '눌러서 확인'}</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={savedAmountVisible ? `누적 절약 금액 ${report?.savedAmount?.toLocaleString() ?? '확인 불가'}원` : '누적 절약 금액, 눌러서 확인'} onPress={() => !savedAmountVisible && revealMetric(savedAmountReveal, setSavedAmountVisible)} style={({ pressed }) => [styles.reportMetric, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text><Text style={styles.reportMetricReveal}>{savedAmountVisible ? '공개됨' : '금액 확인 완료'}</Text>{!savedAmountVisible ? <MetricBlurCurtain motion={savedAmountReveal}/> : null}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={earnedPointsVisible ? `지금 적립된 포인트 ${report?.earnedPoints?.toLocaleString() ?? '확인 불가'}포인트` : '지금 적립된 포인트, 눌러서 확인'} onPress={() => !earnedPointsVisible && revealMetric(earnedPointsReveal, setEarnedPointsVisible)} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>{earnedPointsVisible ? '공개됨' : '포인트 확인 완료'}</Text>{!earnedPointsVisible ? <MetricBlurCurtain accent motion={earnedPointsReveal}/> : null}</Pressable>
         </View>
         <View style={styles.reportTotal}><Text style={styles.reportLabel}>총 구매 횟수</Text><Text style={styles.reportTotalValue}>{report?.purchaseCount === undefined ? '—' : `${report.purchaseCount.toLocaleString()}회`}</Text></View>
         <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
@@ -249,10 +278,14 @@ const styles = StyleSheet.create({
   reportMetricAccentValue: { color: colors.white, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   reportMetricLink: { color: colors.green100, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
   reportMetricReveal: { color: colors.ink500, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
-  reportMetricValueWrap: { minHeight: 34, justifyContent: 'center', overflow: 'hidden', borderRadius: 8 },
-  reportMetricBlurLayer: { ...StyleSheet.absoluteFillObject },
-  reportMetricBlur: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(247,248,246,0.34)' },
-  reportMetricAccentBlur: { backgroundColor: 'rgba(0,93,45,0.28)' },
+  reportMetricBlurLayer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', borderRadius: radius.input },
+  reportMetricBlur: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(247,248,246,0.48)' },
+  reportMetricAccentBlur: { backgroundColor: 'rgba(0,93,45,0.44)' },
+  reportMetricBlurPrompt: { alignItems: 'center', gap: 5 },
+  reportMetricBlurPromptText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' },
+  reportMetricBlurPromptTextAccent: { color: colors.white },
+  reportParticle: { position: 'absolute', backgroundColor: 'rgba(77,83,79,0.7)' },
+  reportParticleAccent: { backgroundColor: 'rgba(221,249,233,0.9)' },
   reportMetricPressed: { opacity: 0.88 },
   reportTotal: { minHeight: 62, marginTop: 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   reportTotalValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' },
