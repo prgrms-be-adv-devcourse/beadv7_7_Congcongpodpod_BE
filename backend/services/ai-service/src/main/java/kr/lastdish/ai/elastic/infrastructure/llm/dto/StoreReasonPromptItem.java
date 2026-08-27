@@ -8,4 +8,7 @@ public record StoreReasonPromptItem(
     String dishName,
     Double distanceKm,
     Double discountRate,
+    Double storeNameSimScore,
+    Double dishNameSimScore,
+    Double descriptionSimScore,
     List<String> badges) {}

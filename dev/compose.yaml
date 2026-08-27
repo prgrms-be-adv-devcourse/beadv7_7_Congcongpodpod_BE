@@ -357,7 +357,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in dev/.env}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
-
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx640m"
 
     depends_on:
       config-server:
@@ -376,7 +376,7 @@ services:
         condition: service_healthy
     ports:
       - "8084:8080"
-    mem_limit: 512m
+    mem_limit: 1024m
 
   gateway-service:
     build:

@@ -117,6 +117,7 @@ public class StoreRankingService {
         ScoreBreakdown.builder()
             .esScore(normEs)
             .distanceScore(normDistance)
+            .rawDistanceKm(distanceKm)
             .deadlineScore(normDeadline)
             .priceScore(normPrice)
             .personalizationScore(0.0) // 개인화 미사용 - 항상 0

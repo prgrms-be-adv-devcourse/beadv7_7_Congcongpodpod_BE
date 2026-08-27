@@ -289,54 +289,6 @@ public class StoreIndexerService {
     }
   }
 
-  public void indexTestStoresBulk(List<TestStoreIndexRequest> requests) {
-    if (requests == null || requests.isEmpty()) {
-      return;
-    }
-    for (TestStoreIndexRequest request : requests) {
-      indexTestStore(request);
-    }
-  }
-
-  public void indexTestStore(TestStoreIndexRequest req) {
-    StopWatch stopWatch = new StopWatch("TestStoreSingleIndexing-" + req.storeId());
-    stopWatch.start("1. 텍스트 조립 및 필드별 임베딩 (배치 1회 호출)");
-
-    TestStoreIndexRequest.DishRequest dish =
-        (req.dishes() != null && !req.dishes().isEmpty()) ? req.dishes().get(0) : null;
-    String[] texts = buildFieldTexts(req.storeName(), dish);
-
-    List<StoreDocument.DishItem> dishItems =
-        dish == null ? Collections.emptyList() : List.of(mapToDishItem(dish));
-
-    List<List<Float>> vectors = embeddingService.getEmbeddingBatch(List.of(texts));
-    stopWatch.stop();
-
-    stopWatch.start("2. ES Document 생성 및 Save");
-    StoreDocument document =
-        StoreDocument.builder()
-            .storeId(req.storeId())
-            .storeName(req.storeName())
-            .storeAddress(req.storeAddress())
-            .openTime(req.openTime())
-            .closeTime(req.closeTime())
-            .status(req.status())
-            .location(new GeoPoint(req.latitude(), req.longitude()))
-            .category(req.category())
-            .dishes(dishItems)
-            .storeNameVector(vectors.get(IDX_STORE_NAME))
-            .storeNameHash(hashText(texts[IDX_STORE_NAME]))
-            .dishNameVector(vectors.get(IDX_DISH_NAME))
-            .dishNameHash(hashText(texts[IDX_DISH_NAME]))
-            .descriptionVector(vectors.get(IDX_DESCRIPTION))
-            .descriptionHash(hashText(texts[IDX_DESCRIPTION]))
-            .build();
-
-    repository.save(document);
-    stopWatch.stop();
-    log.info("[TEST] Store 색인 완료. storeId={}\n{}", req.storeId(), stopWatch.prettyPrint());
-  }
-
   /** 가게명/메뉴명/설명 3개 벡터 필드 중 하나라도 없는 문서를 찾아 재시도한다 (기존 polling 구조 확장). */
   public void retryFailedEmbeddings() {
     NativeQuery query =
