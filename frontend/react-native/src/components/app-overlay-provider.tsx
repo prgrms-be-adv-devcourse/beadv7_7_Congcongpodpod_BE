@@ -7,7 +7,6 @@ import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, { Easing as ReanimatedEasing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
 
 import { LoadingState } from '@/components/loading-state';
 import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
@@ -20,6 +19,15 @@ const REPORT_PARTICLES = Array.from({ length: 36 }, (_, index) => ({
   size: 2 + (index % 3),
   drift: (index % 2 === 0 ? -1 : 1) * (5 + (index % 5) * 3),
   fall: 24 + (index % 6) * 7,
+}));
+const REPORT_LEAVES = Array.from({ length: 24 }, (_, index) => ({
+  left: `${3 + ((index * 37) % 94)}%` as `${number}%`,
+  start: 0.03 + (index % 8) * 0.028,
+  end: 0.7 + (index % 5) * 0.055,
+  size: 9 + (index % 4) * 2,
+  drift: (index % 2 === 0 ? -1 : 1) * (20 + (index % 6) * 7),
+  rotation: (index % 2 === 0 ? 1 : -1) * (150 + (index % 5) * 45),
+  color: [colors.green100, colors.green300, colors.green500, colors.green700][index % 4],
 }));
 
 function notificationVisual(type?: string) {
@@ -104,43 +112,24 @@ function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value;
   </Animated.View>;
 }
 
-function ReportTreeBackdrop({ motion }: { motion: Animated.Value }) {
-  const trunkGrowth = motion.interpolate({ inputRange: [0, 0.08, 0.38, 1], outputRange: [0, 0, 1, 1] });
-  const crownGrowth = motion.interpolate({ inputRange: [0, 0.24, 0.62, 1], outputRange: [0, 0, 1.04, 1] });
-  const detailGrowth = motion.interpolate({ inputRange: [0, 0.42, 0.72, 1], outputRange: [0, 0, 1, 1] });
-
-  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.reportTreeScene}>
-    <Animated.View style={[styles.reportTreeTrunkArt, { opacity: trunkGrowth, transform: [{ translateY: trunkGrowth.interpolate({ inputRange: [0, 1], outputRange: [72, 0] }) }, { scaleY: trunkGrowth }] }]}>
-      <Svg height="190" viewBox="0 0 180 190" width="180">
-        <Path d="M76 188c7-33 8-57 7-79-1-29-9-49-22-67 12 8 23 21 31 37 4-28 13-50 27-67-8 22-12 46-11 72 12-16 27-28 44-34-19 16-32 35-40 57-8 24-9 51-2 81H76Z" fill="#6D4C31"/>
-        <Path d="M91 187c5-38 5-71 0-99" fill="none" stroke="#9B6B43" strokeLinecap="round" strokeWidth="7"/>
-      </Svg>
-    </Animated.View>
-    <Animated.View style={[styles.reportTreeCrownArt, { opacity: crownGrowth, transform: [{ translateY: crownGrowth.interpolate({ inputRange: [0, 1], outputRange: [54, 0] }) }, { scale: crownGrowth }] }]}>
-      <Svg height="220" viewBox="0 0 330 220" width="330">
-        <Ellipse cx="165" cy="190" fill="rgba(0,93,45,0.16)" rx="132" ry="19"/>
-        <Circle cx="86" cy="122" fill="#008F42" r="54"/>
-        <Circle cx="132" cy="75" fill="#03A94F" r="66"/>
-        <Circle cx="199" cy="66" fill="#03C75A" r="72"/>
-        <Circle cx="251" cy="112" fill="#008F42" r="58"/>
-        <Circle cx="177" cy="133" fill="#00A94D" r="75"/>
-        <Path d="M71 128c35 20 65 17 91-11M178 69c14 28 38 44 72 49M119 76c22 11 39 29 48 53" fill="none" opacity=".2" stroke="#F0FFF6" strokeLinecap="round" strokeWidth="7"/>
-      </Svg>
-    </Animated.View>
-    <Animated.View style={[styles.reportTreeLightArt, { opacity: detailGrowth, transform: [{ scale: detailGrowth }] }]}>
-      <Svg height="174" viewBox="0 0 300 174" width="300">
-        <Circle cx="72" cy="101" fill="#62DD91" r="13"/>
-        <Circle cx="119" cy="47" fill="#B4F0CC" r="10"/>
-        <Circle cx="181" cy="34" fill="#DDF9E9" r="12"/>
-        <Circle cx="235" cy="83" fill="#62DD91" r="11"/>
-        <Circle cx="156" cy="113" fill="#B4F0CC" r="9"/>
-      </Svg>
-    </Animated.View>
+function ReportLeafFall({ motion, height }: { motion: Animated.Value; height: number }) {
+  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.reportLeafField}>
+    {REPORT_LEAVES.map((leaf, index) => <Animated.View key={`${leaf.left}-${index}`} style={[styles.reportFallingLeaf, {
+      left: leaf.left,
+      opacity: motion.interpolate({ inputRange: [leaf.start, leaf.start + 0.05, leaf.end - 0.08, leaf.end], outputRange: [0, 0.86, 0.72, 0], extrapolate: 'clamp' }),
+      transform: [
+        { translateY: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: [-40, height + 44], extrapolate: 'clamp' }) },
+        { translateX: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: [0, leaf.drift], extrapolate: 'clamp' }) },
+        { rotate: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: ['0deg', `${leaf.rotation}deg`], extrapolate: 'clamp' }) },
+      ],
+    }]}><Ionicons name="leaf-outline" size={leaf.size} color={leaf.color}/></Animated.View>)}
   </View>;
 }
 
 function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRequest; insets: { top: number; bottom: number }; onClose: () => void }) {
+  const { height } = useWindowDimensions();
   const entrance = useRef(new Animated.Value(0)).current;
+  const leafFall = useRef(new Animated.Value(0)).current;
   const entranceStarted = useRef(false);
   const entranceFallback = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedAmountReveal = useRef(new Animated.Value(0)).current;
@@ -159,11 +148,20 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     if (!report || entranceStarted.current) return;
     entranceStarted.current = true;
     if (entranceFallback.current) clearTimeout(entranceFallback.current);
-    if (reduceMotion) return entrance.setValue(1);
+    if (reduceMotion) {
+      entrance.setValue(1);
+      leafFall.setValue(1);
+      return;
+    }
     entrance.stopAnimation();
+    leafFall.stopAnimation();
     entrance.setValue(0);
-    Animated.timing(entrance, { toValue: 1, duration: 900, easing: Easing.bezier(0.2, 0, 0, 1), isInteraction: false, useNativeDriver: true }).start();
-  }, [entrance, reduceMotion, report]);
+    leafFall.setValue(0);
+    Animated.parallel([
+      Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }),
+      Animated.timing(leafFall, { toValue: 1, duration: 1800, easing: Easing.in(Easing.quad), isInteraction: false, useNativeDriver: true }),
+    ]).start();
+  }, [entrance, leafFall, reduceMotion, report]);
 
   useEffect(() => {
     if (!report) return;
@@ -173,12 +171,14 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     earnedPointsReveal.setValue(0);
     entranceStarted.current = false;
     entrance.stopAnimation();
+    leafFall.stopAnimation();
     entrance.setValue(reduceMotion ? 1 : 0);
+    leafFall.setValue(reduceMotion ? 1 : 0);
     entranceFallback.current = setTimeout(startEntrance, 120);
     return () => {
       if (entranceFallback.current) clearTimeout(entranceFallback.current);
     };
-  }, [earnedPointsReveal, entrance, reduceMotion, report, savedAmountReveal, startEntrance]);
+  }, [earnedPointsReveal, entrance, leafFall, reduceMotion, report, savedAmountReveal, startEntrance]);
 
   const revealMetric = (motion: Animated.Value, setVisible: (visible: boolean) => void) => {
     if (reduceMotion) {
@@ -199,11 +199,10 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
 
   return <Modal animationType="none" onRequestClose={onClose} onShow={startEntrance} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
     <View style={[styles.reportRoot, { paddingTop: Math.max(24, insets.top), paddingBottom: Math.max(24, insets.bottom) }]}>
-      <View style={styles.reportScene}>
-      <ReportTreeBackdrop motion={entrance}/>
-      <Animated.View renderToHardwareTextureAndroid style={[styles.reportCardStage, { opacity: entrance.interpolate({ inputRange: [0, 0.56, 0.78, 1], outputRange: [0, 0, 1, 1] }), transform: [{ translateY: entrance.interpolate({ inputRange: [0, 0.56, 0.82, 1], outputRange: [34, 34, -2, 0] }) }, { scale: entrance.interpolate({ inputRange: [0, 0.56, 0.82, 1], outputRange: [0.96, 0.96, 1.008, 1] }) }] }]}>
-        <Animated.View pointerEvents="none" style={[styles.reportDepthBack, { opacity: entrance.interpolate({ inputRange: [0, 0.38, 1], outputRange: [0, 0.72, 0.42] }), transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 11] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.92, 0.96] }) }] }]}/>
-        <Animated.View pointerEvents="none" style={[styles.reportDepthMiddle, { opacity: entrance.interpolate({ inputRange: [0, 0.28, 1], outputRange: [0, 0.9, 0.62] }), transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [11, 6] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.95, 0.98] }) }] }]}/>
+      <ReportLeafFall height={height} motion={leafFall}/>
+      <Animated.View renderToHardwareTextureAndroid style={[styles.reportCardStage, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
+        <Animated.View pointerEvents="none" style={[styles.reportDepthBack, { opacity: entrance.interpolate({ inputRange: [0, 1], outputRange: [0, 0.42] }), transform: [{ translateY: 11 }, { scale: 0.96 }] }]}/>
+        <Animated.View pointerEvents="none" style={[styles.reportDepthMiddle, { opacity: entrance.interpolate({ inputRange: [0, 1], outputRange: [0, 0.62] }), transform: [{ translateY: 6 }, { scale: 0.98 }] }]}/>
         <View accessibilityRole="alert" accessibilityViewIsModal style={styles.reportCard}>
         <View style={styles.reportHeader}>
           <View style={styles.reportMark}><Ionicons name="leaf-outline" size={22} color={colors.white}/></View>
@@ -220,7 +219,6 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
         <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
         </View>
       </Animated.View>
-      </View>
     </View>
   </Modal>;
 }
@@ -329,12 +327,9 @@ const styles = StyleSheet.create({
   notificationClose: { position: 'absolute', top: 9, right: 9, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.white },
   notificationPressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
   reportRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(15,20,17,0.58)' },
-  reportScene: { width: '100%', maxWidth: 410, position: 'relative', alignItems: 'center' },
-  reportTreeScene: { position: 'absolute', top: -172, width: 350, height: 300, alignItems: 'center', justifyContent: 'flex-end' },
-  reportTreeTrunkArt: { position: 'absolute', bottom: 8, zIndex: 1, transformOrigin: 'bottom' },
-  reportTreeCrownArt: { position: 'absolute', top: 0, zIndex: 2 },
-  reportTreeLightArt: { position: 'absolute', top: 20, zIndex: 3 },
-  reportCardStage: { width: '100%', position: 'relative', zIndex: 4 },
+  reportLeafField: { ...StyleSheet.absoluteFillObject, zIndex: 1, overflow: 'hidden' },
+  reportFallingLeaf: { position: 'absolute', top: 0 },
+  reportCardStage: { width: '100%', maxWidth: 410, position: 'relative', zIndex: 2 },
   reportDepthBack: { ...StyleSheet.absoluteFillObject, borderRadius: radius.sheet, backgroundColor: colors.green700 },
   reportDepthMiddle: { ...StyleSheet.absoluteFillObject, borderRadius: radius.sheet, backgroundColor: colors.ink700 },
   reportCard: { width: '100%', padding: 18, borderRadius: radius.sheet, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
