@@ -9,10 +9,11 @@ import { ConfirmModal } from '@/components/confirm-modal';
 import { LoadingState } from '@/components/loading-state';
 import { ScreenEntrance } from '@/components/motion';
 import { showAppAlert } from '@/lib/app-overlay';
+import { ApiError } from '@/lib/api';
 import { colors, fonts, radius } from '@/constants/theme';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { getDepositBalance } from '@/lib/account';
-import { createOrderFromCartItem, getMemberCart } from '@/lib/cart';
+import { createOrderFromCartItem, getCartAvailability, getMemberCart } from '@/lib/cart';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 
@@ -21,12 +22,13 @@ export default function Checkout() {
   const { contentWidth, gutter, isCompact } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
   const total = item ? item.discountPrice * item.cartQuantity : 0;
+  const availability = item ? getCartAvailability({ status: item.cartStatus, orderable: item.orderable, quantity: item.cartQuantity, stockQuantity: item.quantity }) : null;
   useEffect(()=>{if(!member)return;void getDepositBalance().then(setBalance).catch(()=>setBalance(null))},[member]);
   if (!member) return <Page title="로그인이 필요해요" description="주문과 결제는 로그인 후 이용할 수 있어요."><PrimaryButton label="로그인하기" onPress={() => router.push({ pathname: '/login', params: { redirect: '/cart/checkout' } })} /></Page>;
   if (loading && !item) return <Page title="주문 확인" description="장바구니와 결제 정보를 준비하고 있어요."><LoadingState label="결제 정보를 확인하고 있어요" /></Page>;
   if (!item) return <Page title="주문 확인" description="장바구니에 담긴 상품이 없어요."><PrimaryButton label="주변 상품 둘러보기" onPress={() => router.replace('/stores')} /></Page>;
-  const requestPayment=()=>{if(balance===null)return showAppAlert('잔액을 확인하지 못했어요','잠시 후 다시 시도해주세요.');if(balance<total)return showAppAlert('예치금이 부족해요',`${(total-balance).toLocaleString()}원을 더 충전해주세요.`,[{text:'취소',style:'cancel'},{text:'충전하기',onPress:()=>router.push('/deposits/charge')}]);setConfirming(true)};
-  const pay=async()=>{if(!member){router.push('/login');return}try{setPaying(true);const cart=await getMemberCart();const serverItem=cart.items.find((candidate)=>candidate.cartItemId===item.cartItemId);if(!serverItem)throw new Error('서버 장바구니에 상품이 없어요. 장바구니를 다시 확인해주세요.');if(serverItem.dishId!==item.dishId||Number(serverItem.quantity)!==item.cartQuantity){await refresh();throw new Error('장바구니 내용이 변경됐어요. 수량을 다시 확인해주세요.');}if(Number(serverItem.subtotalPrice)!==total){await refresh();throw new Error('상품 가격이 변경됐어요. 결제 금액을 다시 확인해주세요.');}if(!serverItem.orderable)throw new Error('현재 주문할 수 없는 상품이에요.');const dishPriceVersion=Number(serverItem.lastAppliedDishPriceVersion);if(!Number.isInteger(dishPriceVersion)||dishPriceVersion<0)throw new Error('상품 가격 정보를 확인하지 못했어요. 장바구니를 새로고침해주세요.');await createOrderFromCartItem(serverItem.cartItemId,dishPriceVersion);setConfirming(false);resetLocal();router.replace('/orders');void refresh().catch(()=>undefined)}catch(error){setConfirming(false);showAppAlert('주문하지 못했어요',error instanceof Error?error.message:'잠시 후 다시 시도해주세요.');void getDepositBalance().then(setBalance).catch(()=>undefined)}finally{setPaying(false)}};
+  const requestPayment=()=>{if(!availability?.orderable){void refresh().finally(()=>router.replace('/cart'));return showAppAlert('결제할 수 없는 상품이 있어요',availability?.description ?? '장바구니에서 상품 상태를 확인해주세요.')}if(balance===null)return showAppAlert('잔액을 확인하지 못했어요','잠시 후 다시 시도해주세요.');if(balance<total)return showAppAlert('예치금이 부족해요',`${(total-balance).toLocaleString()}원을 더 충전해주세요.`,[{text:'취소',style:'cancel'},{text:'충전하기',onPress:()=>router.push('/deposits/charge')}]);setConfirming(true)};
+  const pay=async()=>{if(!member){router.push('/login');return}try{setPaying(true);const cart=await getMemberCart();const serverItem=cart.items.find((candidate)=>candidate.cartItemId===item.cartItemId);if(!serverItem)throw new Error('서버 장바구니에 상품이 없어요. 장바구니를 다시 확인해주세요.');const latestAvailability=getCartAvailability(serverItem);if(!latestAvailability.orderable){await refresh();showAppAlert('결제할 수 없는 상품이 있어요',latestAvailability.description ?? '장바구니에서 상품 상태를 확인해주세요.');router.replace('/cart');return}if(serverItem.dishId!==item.dishId||Number(serverItem.quantity)!==item.cartQuantity){await refresh();showAppAlert('장바구니가 변경됐어요','수량을 다시 확인해주세요.');router.replace('/cart');return}if(Number(serverItem.subtotalPrice)!==total){await refresh();showAppAlert('상품 가격이 변경됐어요','결제 금액을 다시 확인해주세요.');router.replace('/cart');return}const dishPriceVersion=Number(serverItem.lastAppliedDishPriceVersion);if(!Number.isInteger(dishPriceVersion)||dishPriceVersion<0)throw new Error('상품 가격 정보를 확인하지 못했어요. 장바구니를 새로고침해주세요.');await createOrderFromCartItem(serverItem.cartItemId,dishPriceVersion);setConfirming(false);resetLocal();router.replace('/orders');void refresh().catch(()=>undefined)}catch(error){setConfirming(false);const inventoryError=error instanceof ApiError&&['ORD007','D001','D003'].includes(error.code??'');if(inventoryError){await refresh().catch(()=>undefined);showAppAlert('결제할 수 없는 상품이 있어요',error.message);router.replace('/cart')}else showAppAlert('주문하지 못했어요',error instanceof Error?error.message:'잠시 후 다시 시도해주세요.');void getDepositBalance().then(setBalance).catch(()=>undefined)}finally{setPaying(false)}};
   return <SafeAreaView edges={['top', 'left', 'right']} style={styles.safe}>
     <View style={styles.navigation}><Pressable accessibilityLabel="뒤로 가기" hitSlop={6} onPress={() => router.back()} style={styles.back}><Ionicons name="chevron-back" size={23} color={colors.ink900} /></Pressable></View>
     <View style={[styles.fixedHead, { width: contentWidth, paddingHorizontal: gutter }]}><Text accessibilityRole="header" style={[styles.title, isCompact && styles.titleCompact]}>주문 확인</Text><Text style={styles.description}>상품과 픽업 정보를 마지막으로 확인하세요.</Text></View>
@@ -39,7 +41,7 @@ export default function Checkout() {
           <View style={styles.receipt}><Text style={styles.sectionTitle}>결제 내역</Text><ReceiptRow label="상품 금액" value={`${total.toLocaleString()}원`} /><ReceiptRow label="할인" value="0원" /><ReceiptRow label="예치금 사용" value={`−${total.toLocaleString()}원`} /><View style={styles.total}><Text style={styles.totalLabel}>총 결제 금액</Text><Text style={styles.totalValue}>{total.toLocaleString()}원</Text></View><ReceiptRow label="결제 후 예치금" value={balance===null?'—':`${Math.max(0,balance-total).toLocaleString()}원`} /></View>
         </View>
       </ScrollView>
-      <View style={styles.footer}><View style={[styles.footerInner, { width: contentWidth, paddingHorizontal: gutter, paddingBottom: Math.max(12, insets.bottom) }]}><PrimaryButton disabled={paying||balance===null} label={paying?'주문 처리 중…':`${total.toLocaleString()}원 결제`} onPress={requestPayment} /></View></View>
+      <View style={styles.footer}><View style={[styles.footerInner, { width: contentWidth, paddingHorizontal: gutter, paddingBottom: Math.max(12, insets.bottom) }]}><PrimaryButton disabled={paying||balance===null||!availability?.orderable} label={paying?'주문 처리 중…':availability?.orderable?`${total.toLocaleString()}원 결제`:'장바구니에서 상품 상태 확인'} onPress={requestPayment} /></View></View>
     </ScreenEntrance>
     <ConfirmModal visible={confirming} icon="wallet-outline" title="결제를 진행할까요?" description={`${item.storeName} · ${item.dishName} ${item.cartQuantity}개\n예치금 ${total.toLocaleString()}원이 사용됩니다.`} confirmLabel={`${total.toLocaleString()}원 결제`} busy={paying} busyLabel="결제 처리 중…" onCancel={()=>setConfirming(false)} onConfirm={()=>void pay()}/>
   </SafeAreaView>;

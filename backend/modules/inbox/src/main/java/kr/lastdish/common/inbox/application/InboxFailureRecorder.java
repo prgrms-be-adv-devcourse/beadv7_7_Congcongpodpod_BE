@@ -2,10 +2,7 @@ package kr.lastdish.common.inbox.application;
 
 import kr.lastdish.common.event.EventHandler;
 import kr.lastdish.common.event.EventHandlerRegistry;
-import kr.lastdish.common.inbox.domain.InboxEvent;
-import kr.lastdish.common.inbox.domain.InboxEventHandler;
-import kr.lastdish.common.inbox.domain.InboxEventId;
-import kr.lastdish.common.inbox.domain.InboxEventRepository;
+import kr.lastdish.common.inbox.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,8 +48,8 @@ public class InboxFailureRecorder {
     try {
       EventHandler handler =
           handlerRegistry.get(inbox.getId().getConsumerId(), inbox.getEventType());
-      if (handler instanceof InboxEventHandler inboxHandler) {
-        inboxHandler.onExhausted(inbox.toEventMessage(), exception);
+      if (handler instanceof InboxExhaustionHandler exhaustionHandler) {
+        exhaustionHandler.onExhausted(inbox.toEventMessage(), exception);
       }
     } catch (Exception e) {
       // onExhausted 콜백이 실패해도 위의 recordFailure() 결과(FAILED 전환)는 그대로 유지

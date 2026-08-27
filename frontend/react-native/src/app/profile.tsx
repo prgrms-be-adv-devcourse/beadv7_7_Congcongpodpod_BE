@@ -6,8 +6,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Page } from '@/components/page';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { colors, fonts, radius, shadow } from '@/constants/theme';
+import { useMemberBenefits } from '@/hooks/use-member-benefits';
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { getDepositBalance } from '@/lib/account';
-import { temporaryMemberStats as stats } from '@/lib/member-stats';
+import { getMemberLevelProgress } from '@/lib/member-stats';
 import { useAuth } from '@/providers/auth-provider';
 
 export default function ProfileScreen() {
@@ -16,9 +18,12 @@ export default function ProfileScreen() {
   const [withdrawConfirming, setWithdrawConfirming] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string>();
-  useFocusEffect(useCallback(() => { void getDepositBalance().then(setDepositBalance).catch(() => setDepositBalance(null)); }, []));
-  const levelSpan = stats.nextLevelPickupCount - stats.currentLevelStartPickupCount;
-  const progress = Math.max(0, Math.min(1, (stats.completedPickupCount - stats.currentLevelStartPickupCount) / levelSpan));
+  const { level, points, refresh: refreshBenefits } = useMemberBenefits(Boolean(member));
+  const loadDeposit = useCallback(async () => { try { setDepositBalance(await getDepositBalance()); } catch { setDepositBalance(null); } }, []);
+  useFocusEffect(useCallback(() => { void loadDeposit(); }, [loadDeposit]));
+  const refreshAll = useCallback(async () => { await Promise.all([loadDeposit(), refreshBenefits()]); }, [loadDeposit, refreshBenefits]);
+  const { refreshing, onRefresh } = usePullToRefresh(refreshAll);
+  const progress = getMemberLevelProgress(level);
   const requestWithdrawal = async () => {
     try {
       setWithdrawing(true);
@@ -33,8 +38,8 @@ export default function ProfileScreen() {
     }
   };
 
-  return <Page title="내 정보" description="나의 등급과 라디 활동을 한눈에 확인하세요." onClose={() => router.replace('/my')} closeLabel="마이페이지로 닫기">
-    <View style={styles.levelCard}><Pressable accessibilityRole="button" accessibilityHint="등급 상세를 엽니다" onPress={() => router.push('/grades' as Href)} style={({ pressed }) => [styles.levelSummary, pressed && styles.pressed]}><View style={styles.levelTop}><View style={styles.levelIcon}><Ionicons name="leaf" size={20} color={colors.green700}/></View><View style={styles.levelCopy}><Text style={styles.grade}>{stats.grade}</Text><Text style={styles.level}>LEVEL {stats.level} · 픽업으로 성장해요</Text></View><View style={styles.pickupLink}><Text style={styles.pickupMetric}>{stats.completedPickupCount}회</Text><Ionicons name="chevron-forward" size={15} color={colors.ink400}/></View></View><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress * 100}%` }]}/></View><View style={styles.progressMeta}><Text style={styles.progressText}>다음 레벨까지</Text><Text style={styles.progressStrong}>{stats.nextLevelPickupCount - stats.completedPickupCount}회 픽업</Text></View></Pressable><View style={styles.memberMetrics}><View style={styles.memberMetric}><View style={styles.metricLabelRow}><Ionicons name="trending-down-outline" size={14} color={colors.green300}/><Text style={styles.metricLabel}>누적 절약</Text></View><Text style={styles.metricValue}>{stats.savedAmount.toLocaleString()}원</Text></View><View style={styles.metricDivider}/><Pressable accessibilityRole="button" accessibilityHint="포인트 상세를 엽니다" onPress={() => router.push('/points' as Href)} style={({ pressed }) => [styles.memberMetric, pressed && styles.metricPressed]}><View style={styles.metricLabelRow}><Ionicons name="sparkles-outline" size={14} color={colors.green300}/><Text style={styles.metricLabel}>현재 포인트</Text></View><View style={styles.metricValueRow}><Text style={styles.metricValue}>{stats.points.toLocaleString()}P</Text><Ionicons name="chevron-forward" size={14} color={colors.ink400}/></View></Pressable></View></View>
+  return <Page title="내 정보" description="나의 등급과 라디 활동을 한눈에 확인하세요." refreshing={refreshing} onRefresh={onRefresh} onClose={() => router.replace('/my')} closeLabel="마이페이지로 닫기">
+    <View style={styles.levelCard}><Pressable accessibilityRole="button" accessibilityHint="등급 상세를 엽니다" onPress={() => router.push('/grades' as Href)} style={({ pressed }) => [styles.levelSummary, pressed && styles.pressed]}><View style={styles.levelTop}><View style={styles.levelIcon}><Ionicons name="leaf" size={20} color={colors.green700}/></View><View style={styles.levelCopy}><Text style={styles.grade}>{level?.grade ?? '등급 확인 중'}</Text><Text style={styles.level}>{level ? `LEVEL ${level.level} · 픽업으로 성장해요` : 'LEVEL —'}</Text></View><View style={styles.pickupLink}><Text style={styles.pickupMetric}>{level ? `${level.purchaseCount}회` : '—'}</Text><Ionicons name="chevron-forward" size={15} color={colors.ink400}/></View></View><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress * 100}%` }]}/></View><View style={styles.progressMeta}><Text style={styles.progressText}>다음 레벨까지</Text><Text style={styles.progressStrong}>{level ? (level.remainToNextLevel > 0 ? `${level.remainToNextLevel}회 픽업` : '최고 등급') : '확인 중'}</Text></View></Pressable><View style={styles.memberMetrics}><View style={styles.memberMetric}><View style={styles.metricLabelRow}><Ionicons name="trending-down-outline" size={14} color={colors.green300}/><Text style={styles.metricLabel}>누적 절약</Text></View><Text style={styles.metricValue}>{level ? `${level.savedAmount.toLocaleString()}원` : '—'}</Text></View><View style={styles.metricDivider}/><Pressable accessibilityRole="button" accessibilityHint="포인트 상세를 엽니다" onPress={() => router.push('/points' as Href)} style={({ pressed }) => [styles.memberMetric, pressed && styles.metricPressed]}><View style={styles.metricLabelRow}><Ionicons name="sparkles-outline" size={14} color={colors.green300}/><Text style={styles.metricLabel}>현재 포인트</Text></View><View style={styles.metricValueRow}><Text style={styles.metricValue}>{points === null ? '—' : `${points.toLocaleString()}P`}</Text><Ionicons name="chevron-forward" size={14} color={colors.ink400}/></View></Pressable></View></View>
     <Pressable accessibilityRole="button" onPress={() => router.push('/deposits')} style={({ pressed }) => [styles.radiPay, pressed && styles.pressed]}><View style={styles.radiPayIcon}><Ionicons name="wallet-outline" size={19} color={colors.green300}/></View><View style={styles.radiPayCopy}><Text style={styles.radiPayLabel}>라디페이</Text><Text style={styles.radiPayValue}>{depositBalance === null ? '잔액 확인 중' : `${depositBalance.toLocaleString()}원`}</Text></View><View style={styles.link}><Text style={styles.linkText}>이용내역</Text><Ionicons name="chevron-forward" size={16} color={colors.ink400}/></View></Pressable>
     <View style={styles.sectionHead}><Text style={styles.sectionTitle}>기본 정보</Text><Pressable accessibilityRole="button" onPress={() => router.push('/profile/edit' as Href)} style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}><Ionicons name="pencil-outline" size={14} color={colors.ink900}/><Text style={styles.editText}>정보 수정</Text></Pressable></View>
     <View style={styles.account}><Info label="이름" value={member?.name ?? '—'}/><Info label="아이디" value={member?.userName ?? '—'}/><Info label="이메일" value={member?.email ?? '—'}/><Info label="전화번호" value={member?.phone ?? '—'} last/></View>

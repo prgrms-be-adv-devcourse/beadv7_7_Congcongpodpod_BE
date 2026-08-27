@@ -20,9 +20,20 @@ export type AppNotificationRequest = {
   onPress?: () => void;
 };
 
+export type AppDishReportRequest = {
+  id: number;
+  level?: number;
+  grade?: string;
+  purchaseCount?: number;
+  savedAmount?: number;
+  earnedPoints?: number;
+  remainToNextLevel?: number;
+};
+
 type AlertListener = (request: AppAlertRequest) => void;
 type LoadingListener = (count: number) => void;
 type NotificationListener = (request: AppNotificationRequest) => void;
+type DishReportListener = (request: AppDishReportRequest) => void;
 
 let alertId = 0;
 let alertListener: AlertListener | undefined;
@@ -30,6 +41,8 @@ let loadingCount = 0;
 let loadingListener: LoadingListener | undefined;
 let notificationId = 0;
 let notificationListener: NotificationListener | undefined;
+let dishReportId = 0;
+let dishReportListener: DishReportListener | undefined;
 
 export function showAppAlert(title: string, message?: string, buttons: AppAlertButton[] = [{ text: '확인' }]) {
   alertListener?.({ id: ++alertId, title, message, buttons: buttons.length ? buttons : [{ text: '확인' }] });
@@ -68,4 +81,13 @@ export function showInAppNotification(title: string, message: string, onPress?: 
 export function subscribeInAppNotifications(listener: NotificationListener) {
   notificationListener = listener;
   return () => { if (notificationListener === listener) notificationListener = undefined; };
+}
+
+export function showDishReport(report: Omit<AppDishReportRequest, 'id'> = {}) {
+  dishReportListener?.({ id: ++dishReportId, ...report });
+}
+
+export function subscribeDishReports(listener: DishReportListener) {
+  dishReportListener = listener;
+  return () => { if (dishReportListener === listener) dishReportListener = undefined; };
 }

@@ -28,6 +28,7 @@ import kr.lastdish.core.order.domain.MemberSnapshotRepository;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.infrastructure.OrderJpaRepository;
+import kr.lastdish.core.point.application.PointService;
 import kr.lastdish.core.store.domain.Category;
 import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.infrastructure.StoreJpaRepository;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
@@ -50,6 +52,7 @@ class OrderConcurrencyIntegrationTest {
   @Autowired private StoreJpaRepository storeJpaRepository;
   @Autowired private TransactionTemplate transactionTemplate;
   @Autowired private MemberSnapshotRepository memberSnapshotRepository;
+  @MockitoBean private PointService pointService;
 
   @AfterEach
   void tearDown() {
@@ -163,10 +166,25 @@ class OrderConcurrencyIntegrationTest {
     Long orderId =
         transactionTemplate.execute(
             status -> {
+              Store store =
+                  storeJpaRepository.save(
+                      new Store(
+                          99L,
+                          "동시 취소 테스트 매장",
+                          "123-45-67890",
+                          "서울시 강남구",
+                          "명정빌딩",
+                          "02-1234-5678",
+                          LocalTime.of(18, 0),
+                          LocalTime.of(19, 0),
+                          BigDecimal.valueOf(37.5),
+                          BigDecimal.valueOf(127.0),
+                          Category.KOREAN,
+                          LocalDateTime.now()));
               Dish dish =
                   dishJpaRepository.save(
                       Dish.create(
-                          10L,
+                          store.getId(),
                           "테스트 메뉴",
                           LocalDateTime.now(),
                           "테스트",
@@ -191,6 +209,7 @@ class OrderConcurrencyIntegrationTest {
                       quantity,
                       unitPrice,
                       unitPrice,
+                      BigDecimal.ZERO,
                       LocalTime.of(18, 0),
                       LocalTime.of(19, 0),
                       LocalDateTime.of(2026, 8, 10, 19, 0));
@@ -238,7 +257,7 @@ class OrderConcurrencyIntegrationTest {
   private Throwable orderAfterSignal(CountDownLatch start, Long memberId, Long cartItemId) {
     try {
       start.await();
-      orderFacade.payAndCreateOrder(memberId, cartItemId, 0L);
+      orderFacade.payAndCreateOrder(memberId, cartItemId, 0L, BigDecimal.ZERO);
       return null;
     } catch (Throwable throwable) {
       return throwable;

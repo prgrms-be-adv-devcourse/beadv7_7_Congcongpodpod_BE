@@ -43,7 +43,8 @@ public class SwaggerConfig {
   @Bean
   CorsFilter swaggerCorsConfigurer(@Value("${swagger.cors.allowed-origin}") String allowedOrigin) {
     CorsConfiguration config = new CorsConfiguration();
-    config.addAllowedOrigin(allowedOrigin);
+    //    config.addAllowedOrigin(allowedOrigin);
+    config.addAllowedOriginPattern("*");
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.addAllowedHeader("*");
 
@@ -51,6 +52,7 @@ public class SwaggerConfig {
     source.registerCorsConfiguration("/swagger-ui/**", config);
     source.registerCorsConfiguration("/swagger-ui.html", config);
     source.registerCorsConfiguration("/v3/api-docs/**", config);
+    source.registerCorsConfiguration("/api/v1/**", config);
 
     return new CorsFilter(source);
   }

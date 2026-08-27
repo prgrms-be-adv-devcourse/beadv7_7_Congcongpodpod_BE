@@ -17,6 +17,9 @@ public enum ErrorCode implements ErrorCodeSpec {
   DISH_PICKUP_TIME_OUTSIDE_STORE_HOURS(
       HttpStatus.BAD_REQUEST, "D007", "픽업 시간은 매장 영업시간 안에 있어야 합니다."),
   INVALID_STOCK_DELTA(HttpStatus.BAD_REQUEST, "D008", "재고 변경량은 0이 아니어야 합니다."),
+  STORE_MUST_BE_CLOSED_FOR_DISH_UPDATE(
+      HttpStatus.CONFLICT, "D009", "매장이 영업 종료 상태일 때만 상품을 수정할 수 있습니다."),
+  DISH_HAS_ACTIVE_ORDERS(HttpStatus.CONFLICT, "D010", "진행 중인 주문이 있는 상품은 수정할 수 없습니다."),
   INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다."),
   ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD001", "주문을 찾을 수 없습니다."),
   ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "주문을 취소할 권한이 없습니다."),

@@ -10,9 +10,16 @@ java {
     }
 }
 
+// 1. Spring AI 패키지 다운로드를 위한 Maven 저장소 추가
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+}
+
 dependencyManagement {
     imports {
         mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2025.1.2'
+        mavenBom 'org.springframework.ai:spring-ai-bom:2.0.0'
     }
 }
 
@@ -37,6 +44,7 @@ dependencies {
     implementation 'com.bucket4j:bucket4j-core:8.10.1'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'software.amazon.awssdk:s3:2.25.0'
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 
 
     compileOnly 'org.projectlombok:lombok'

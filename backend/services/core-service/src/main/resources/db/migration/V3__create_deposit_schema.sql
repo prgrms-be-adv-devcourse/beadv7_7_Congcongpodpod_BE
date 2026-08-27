@@ -75,7 +75,7 @@ ALTER TABLE ONLY public.deposits
 ALTER TABLE ONLY public.deposit_charge_failures
     ADD CONSTRAINT deposit_charge_failures_pkey PRIMARY KEY (deposit_charge_failure_id);
 
-CREATE INDEX CONCURRENTLY idx_deposit_history_member_created_at
+CREATE INDEX idx_deposit_history_member_created_at
     ON public.deposit_history (member_id, created_at DESC);
 
 CREATE INDEX idx_deposit_charge_failures_status
