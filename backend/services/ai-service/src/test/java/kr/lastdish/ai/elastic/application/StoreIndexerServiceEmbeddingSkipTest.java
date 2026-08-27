@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.HexFormat;
 import java.util.List;
@@ -75,6 +76,11 @@ class StoreIndexerServiceEmbeddingSkipTest {
   }
 
   private InternalStoreResponse storeResponse(Long storeId, InternalDishResponse dish) {
+    return storeResponse(storeId, dish, false);
+  }
+
+  private InternalStoreResponse storeResponse(
+      Long storeId, InternalDishResponse dish, boolean deleted) {
     return new InternalStoreResponse(
         storeId,
         "맛있는 가게",
@@ -85,8 +91,51 @@ class StoreIndexerServiceEmbeddingSkipTest {
         BigDecimal.valueOf(37.5),
         BigDecimal.valueOf(127.0),
         "KOREAN",
-        dish);
+        dish,
+        deleted);
   }
+
+  @Test
+  @DisplayName("폴링 응답이 삭제된 매장이면 기존 ES 문서를 삭제하고 다시 저장하지 않는다.")
+  void syncUpdatedStores_deletedStore_deletesIndexWithoutUpsert() {
+    Instant from = Instant.parse("2026-08-22T13:00:00Z");
+    Instant to = Instant.parse("2026-08-22T13:01:00Z");
+    Long storeId = 10L;
+    given(coreInternalApiClient.fetchStoresUpdatedWithin(from, to))
+        .willReturn(List.of(storeResponse(storeId, null, true)));
+    given(repository.existsById(storeId)).willReturn(true);
+
+    storeIndexerService.syncUpdatedStores(from, to);
+
+    verify(repository).deleteById(storeId);
+    verify(repository, never()).findAllById(ArgumentMatchers.any());
+    verify(repository, never()).saveAll(ArgumentMatchers.any());
+    verify(embeddingService, never()).getEmbeddingList(anyString());
+  }
+
+  @Test
+  @DisplayName("폴링 배치에 삭제 매장과 활성 매장이 섞이면 각각 삭제와 저장을 수행한다.")
+  void syncUpdatedStores_mixedStores_deletesAndUpsertsSeparately() {
+    Instant from = Instant.parse("2026-08-22T13:00:00Z");
+    Instant to = Instant.parse("2026-08-22T13:01:00Z");
+    Long deletedStoreId = 10L;
+    Long activeStoreId = 20L;
+    given(coreInternalApiClient.fetchStoresUpdatedWithin(from, to))
+        .willReturn(
+            List.of(
+                storeResponse(deletedStoreId, null, true),
+                storeResponse(activeStoreId, null, false)));
+    given(repository.existsById(deletedStoreId)).willReturn(true);
+    given(repository.findAllById(List.of(activeStoreId))).willReturn(List.of());
+    given(embeddingService.getEmbeddingList(anyString())).willReturn(List.of(0.1f));
+
+    storeIndexerService.syncUpdatedStores(from, to);
+
+    verify(repository).deleteById(deletedStoreId);
+    verify(repository).findAllById(List.of(activeStoreId));
+    verify(repository).saveAll(ArgumentMatchers.any());
+  }
+
 
   @Test
   @DisplayName("Dish 수정으로 DISH_IS_CREATED가 재발행되더라도, 텍스트(메뉴명/설명)가 동일하면 OpenAI 임베딩 API를 호출하지 않는다.")

@@ -13,4 +13,5 @@ public record InternalStoreResponse(
     BigDecimal latitude,
     BigDecimal longitude,
     String category,
-    InternalDishResponse dish) {}
+    InternalDishResponse dish,
+    boolean deleted) {}

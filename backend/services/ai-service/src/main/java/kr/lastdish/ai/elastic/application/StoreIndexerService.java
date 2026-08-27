@@ -98,22 +98,34 @@ public class StoreIndexerService {
       return;
     }
 
-    // 2. [from, to] 구간의 매장 전체를 대상으로 처리한다.
+    // 2. 삭제된 매장은 tombstone으로 처리해 기존 색인을 제거한다.
+    updatedStores.stream()
+        .filter(InternalStoreResponse::deleted)
+        .map(InternalStoreResponse::storeId)
+        .forEach(this::deleteStoreIndex);
+
+    List<InternalStoreResponse> activeStores =
+        updatedStores.stream().filter(store -> !store.deleted()).toList();
+    if (activeStores.isEmpty()) {
+      return;
+    }
+
+    // 3. [from, to] 구간의 활성 매장 전체를 대상으로 처리한다.
     //    일부만 선별하고 watermark가 to로 전진하면 나머지가 영영 누락되므로 limit을 두지 않는다.
-    List<Long> storeIds = updatedStores.stream().map(InternalStoreResponse::storeId).toList();
+    List<Long> storeIds = activeStores.stream().map(InternalStoreResponse::storeId).toList();
     Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
 
     Map<Long, StoreDocument> existingMap =
         StreamSupport.stream(existingDocs.spliterator(), false)
             .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
 
-    // 3. 폴링은 이벤트 타입 정보가 없으므로 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
+    // 4. 폴링은 이벤트 타입 정보가 없으므로 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
     List<StoreDocument> documents =
-        updatedStores.stream()
+        activeStores.stream()
             .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
             .toList();
 
-    // 4. Bulk 색인 저장
+    // 5. Bulk 색인 저장
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
