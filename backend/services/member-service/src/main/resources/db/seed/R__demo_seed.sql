@@ -30,8 +30,8 @@ SELECT
     surnames[((((member_no * 137) % 800) / array_length(given_names, 1))::integer % array_length(surnames, 1)) + 1]
         || given_names[(((member_no * 137) % 800)::integer % array_length(given_names, 1)) + 1],
     '010-0000-' || lpad(member_no::text, 4, '0'),
-    'seller' || lpad(member_no::text, 3, '0'),
-    'seller' || lpad(member_no::text, 3, '0') || '@seed.lastdish.kr',
+    'seller' || lpad(member_no::text, 4, '0'),
+    'seller' || lpad(member_no::text, 4, '0') || '@seed.lastdish.kr',
     '$2y$10$Sy2yex48gzH5Ov71GjjSb.W4UvRBhrBCcAnLzkX5Y41ziWzuRVGvm',
     false,
     NULL,
