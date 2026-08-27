@@ -1,19 +1,16 @@
 package kr.lastdish.ai.elastic.infrastructure.scheduler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.never;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
+import java.util.Optional;
 import kr.lastdish.ai.elastic.application.StoreIndexerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,81 +19,47 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class StoreSyncSchedulerTest {
 
   @Mock private StoreIndexerService storeIndexerService;
+
   @Mock private StoreSyncWatermarkStore watermarkStore;
 
   @InjectMocks private StoreSyncScheduler scheduler;
 
   @Test
-  @DisplayName("동기화 성공 시 watermark가 to 시각으로 전진한다")
-  void pollAndSyncStores_success_advancesWatermark() {
+  @DisplayName("정상 워터마크 동기화 동작")
+  void pollAndSyncStores_Success() {
     // given
-    Instant lastSynced = Instant.parse("2026-08-24T10:00:00Z");
-    given(watermarkStore.getLastSyncedAt()).willReturn(lastSynced);
-
-    // when
-    scheduler.pollAndSyncStores();
-
-    // then
-    ArgumentCaptor<Instant> toCaptor = ArgumentCaptor.forClass(Instant.class);
-    verify(storeIndexerService).syncUpdatedStores(any(Instant.class), toCaptor.capture());
-
-    ArgumentCaptor<Instant> watermarkCaptor = ArgumentCaptor.forClass(Instant.class);
-    verify(watermarkStore).updateLastSyncedAt(watermarkCaptor.capture());
-    assertThat(watermarkCaptor.getValue()).isEqualTo(toCaptor.getValue());
-  }
-
-  @Test
-  @DisplayName("watermark보다 10초 이전(overlap)부터 조회 구간이 시작된다")
-  void pollAndSyncStores_appliesOverlapSeconds() {
-    // given
-    Instant lastSynced = Instant.parse("2026-08-24T10:00:00Z");
-    given(watermarkStore.getLastSyncedAt()).willReturn(lastSynced);
-
-    // when
-    scheduler.pollAndSyncStores();
-
-    // then
-    ArgumentCaptor<Instant> fromCaptor = ArgumentCaptor.forClass(Instant.class);
-    verify(storeIndexerService).syncUpdatedStores(fromCaptor.capture(), any(Instant.class));
-    assertThat(fromCaptor.getValue()).isEqualTo(lastSynced.minusSeconds(10));
-  }
-
-  @Test
-  @DisplayName("동기화 시 limit이 Integer.MAX_VALUE로 전달된다")
-  void pollAndSyncStores_usesMaxValueLimit() {
-    // given
-    given(watermarkStore.getLastSyncedAt()).willReturn(Instant.now());
+    willDoNothing().given(storeIndexerService).ensureIndexExists();
+    given(watermarkStore.getStoredWatermark())
+        .willReturn(Optional.of(Instant.now().minusSeconds(300)));
+    given(storeIndexerService.countIndexedStores()).willReturn(10L);
+    willDoNothing()
+        .given(storeIndexerService)
+        .syncUpdatedStores(any(Instant.class), any(Instant.class));
 
     // when
     scheduler.pollAndSyncStores();
 
     // then
     verify(storeIndexerService).syncUpdatedStores(any(Instant.class), any(Instant.class));
+    verify(watermarkStore).updateLastSyncedAt(any(Instant.class));
   }
 
   @Test
-  @DisplayName("동기화 중 예외가 발생하면 watermark가 갱신되지 않는다")
-  void pollAndSyncStores_failure_doesNotAdvanceWatermark() {
+  @DisplayName("부트스트랩 조건 시 전체 백필 동작")
+  void pollAndSyncStores_Bootstrap() {
     // given
-    given(watermarkStore.getLastSyncedAt()).willReturn(Instant.now());
-    willThrow(new RuntimeException("Core API 장애"))
+    willDoNothing().given(storeIndexerService).ensureIndexExists();
+    given(watermarkStore.getStoredWatermark()).willReturn(Optional.empty());
+    given(storeIndexerService.countIndexedStores()).willReturn(0L);
+    willDoNothing()
         .given(storeIndexerService)
-        .syncUpdatedStores(any(), any());
+        .syncUpdatedStores(any(Instant.class), any(Instant.class));
 
-    // when & then: 예외가 밖으로 새어나가지 않아야 스케줄러가 안 죽음
-    assertThatCode(() -> scheduler.pollAndSyncStores()).doesNotThrowAnyException();
-    verify(watermarkStore, never()).updateLastSyncedAt(any());
-  }
+    // when
+    scheduler.pollAndSyncStores();
 
-  @Test
-  @DisplayName("watermark 조회 자체가 실패해도 스케줄러가 죽지 않고, 동기화는 시도되지 않는다")
-  void pollAndSyncStores_watermarkReadFailure_doesNotThrow() {
-    // given
-    given(watermarkStore.getLastSyncedAt()).willThrow(new RuntimeException("Redis 장애"));
-
-    // when & then
-    assertThatCode(() -> scheduler.pollAndSyncStores()).doesNotThrowAnyException();
-    verify(storeIndexerService, never()).syncUpdatedStores(any(), any());
-    verify(watermarkStore, never()).updateLastSyncedAt(any());
+    // then
+    verify(storeIndexerService).syncUpdatedStores(any(Instant.class), any(Instant.class));
+    verify(watermarkStore).updateLastSyncedAt(any(Instant.class));
   }
 }

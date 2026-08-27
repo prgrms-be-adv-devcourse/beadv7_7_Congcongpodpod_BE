@@ -2,9 +2,11 @@ package kr.lastdish.ai.elastic.infrastructure.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,47 +25,47 @@ class StoreSyncWatermarkStoreTest {
   @InjectMocks private StoreSyncWatermarkStore watermarkStore;
 
   @Test
-  @DisplayName("Redis에 저장된 값이 없으면 60초 전 시각을 반환한다")
-  void getLastSyncedAt_noStoredValue_returnsSixtySecondsAgo() {
+  @DisplayName("Redis에 저장된 값이 없으면 Optional.empty()를 반환한다")
+  void getStoredWatermark_noStoredValue_returnsEmptyOptional() {
     // given
     given(redisTemplate.opsForValue()).willReturn(valueOperations);
     given(valueOperations.get("store-sync:last-synced-at")).willReturn(null);
 
     // when
-    Instant result = watermarkStore.getLastSyncedAt();
+    Optional<Instant> result = watermarkStore.getStoredWatermark();
 
     // then
-    assertThat(result).isBetween(Instant.now().minusSeconds(65), Instant.now().minusSeconds(55));
+    assertThat(result).isEmpty();
   }
 
   @Test
-  @DisplayName("Redis에 저장된 값이 있고 1시간 이내면 그 값을 그대로 반환한다")
-  void getLastSyncedAt_recentStoredValue_returnsStoredValue() {
+  @DisplayName("Redis에 저장된 값이 있으면 해당 시각이 포함된 Optional을 반환한다")
+  void getStoredWatermark_recentStoredValue_returnsStoredValue() {
     // given
     Instant stored = Instant.now().minus(Duration.ofMinutes(5));
     given(redisTemplate.opsForValue()).willReturn(valueOperations);
     given(valueOperations.get("store-sync:last-synced-at")).willReturn(stored.toString());
 
     // when
-    Instant result = watermarkStore.getLastSyncedAt();
+    Optional<Instant> result = watermarkStore.getStoredWatermark();
 
     // then
-    assertThat(result).isEqualTo(stored);
+    assertThat(result).isPresent().contains(stored);
   }
 
   @Test
-  @DisplayName("Redis에 저장된 값이 아무리 오래돼도 클램핑 없이 그대로 반환한다 (정합성 우선, 장애 시 전체 캐치업)")
-  void getLastSyncedAt_veryOldStoredValue_returnsAsIsWithoutClamping() {
+  @DisplayName("Redis에 저장된 값이 아무리 오래돼도 클램핑 없이 그대로 반환한다")
+  void getStoredWatermark_veryOldStoredValue_returnsAsIsWithoutClamping() {
     // given
     Instant stored = Instant.now().minus(Duration.ofDays(1));
     given(redisTemplate.opsForValue()).willReturn(valueOperations);
     given(valueOperations.get("store-sync:last-synced-at")).willReturn(stored.toString());
 
     // when
-    Instant result = watermarkStore.getLastSyncedAt();
+    Optional<Instant> result = watermarkStore.getStoredWatermark();
 
     // then
-    assertThat(result).isEqualTo(stored);
+    assertThat(result).isPresent().contains(stored);
   }
 
   @Test
@@ -77,7 +79,6 @@ class StoreSyncWatermarkStoreTest {
     watermarkStore.updateLastSyncedAt(now);
 
     // then
-    org.mockito.Mockito.verify(valueOperations)
-        .set("store-sync:last-synced-at", "2026-08-24T10:00:00Z");
+    verify(valueOperations).set("store-sync:last-synced-at", "2026-08-24T10:00:00Z");
   }
 }
