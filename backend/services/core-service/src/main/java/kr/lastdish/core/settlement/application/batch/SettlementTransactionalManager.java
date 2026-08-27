@@ -83,7 +83,7 @@ public class SettlementTransactionalManager {
     settlement.fail(normalizeFailureReason(failureReason));
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.MANDATORY)
   public Settlement restart(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
     settlement.restart();
@@ -91,7 +91,7 @@ public class SettlementTransactionalManager {
     return settlement;
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.MANDATORY)
   public void startAccumulatedSettlement(Long settlementId, SettlementAccountData account) {
     Settlement settlement = findSettlement(settlementId);
 
@@ -99,7 +99,7 @@ public class SettlementTransactionalManager {
         account.bankName(), account.accountNumber(), account.accountHolder());
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.MANDATORY)
   public void completeAccumulatedSettlement(Long settlementId) {
     Settlement settlement = findSettlement(settlementId);
 
