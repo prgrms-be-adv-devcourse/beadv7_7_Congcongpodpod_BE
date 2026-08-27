@@ -135,8 +135,8 @@ function findCartItem(email, accessToken) {
   return { cartItemId: item.cartItemId, dishPriceVersion: item.lastAppliedDishPriceVersion };
 }
 
-// 대상 dish의 현재 재고. 조회에 실패하면 null을 돌려 호출부가 판정 불가를 구분하게 한다.
-function fetchStockQuantity() {
+// 대상 dish의 현재 상태와 재고. 조회에 실패하면 null을 돌려 호출부가 판정 불가를 구분하게 한다.
+function fetchDishState() {
   const response = http.get(`${baseUrl}/api/v1/dishes/${dishId}`, {
     tags: { name: 'Get dish stock' },
   });
@@ -144,7 +144,10 @@ function fetchStockQuantity() {
     console.error(`dish 조회 실패: status=${response.status}, body=${bodyPreview(response)}`);
     return null;
   }
-  return response.json('data.stockQuantity');
+  return {
+    dishStatus: response.json('data.dishStatus'),
+    stockQuantity: response.json('data.stockQuantity'),
+  };
 }
 
 export function setup() {
@@ -155,8 +158,21 @@ export function setup() {
     return { accessToken, cartItemId, dishPriceVersion };
   });
 
-  // 최초 재고를 측정 전에 잡아둬야 teardown에서 "성공 건수만큼 줄었는가"를 판정할 수 있다.
-  const initialStock = fetchStockQuantity();
+  // 최초 상태와 재고를 측정 전에 확인해 잘못된 조건에서 테스트가 통과하는 것을 막는다.
+  const initialDishState = fetchDishState();
+  if (initialDishState === null) {
+    throw new Error(`대상 dish(${dishId})의 최초 상태와 재고를 확인하지 못했습니다.`);
+  }
+
+  const { dishStatus, stockQuantity: initialStock } = initialDishState;
+  if (dishStatus !== 'ON_SALE') {
+    throw new Error(`대상 dish(${dishId})가 판매 중이 아닙니다: dishStatus=${dishStatus}`);
+  }
+  if (initialStock < 1) {
+    throw new Error(
+      `대상 dish(${dishId})의 최초 재고가 1 이상이어야 합니다: stock=${initialStock}`,
+    );
+  }
   console.log(`[order-stock-race] 최초 재고: ${initialStock}, 동시 주문 시도: ${vus}`);
 
   return { accounts: preparedAccounts, initialStock };
@@ -191,12 +207,13 @@ export default function (setupData) {
 }
 
 export function teardown(setupData) {
-  const finalStock = fetchStockQuantity();
-  if (finalStock === null || setupData.initialStock === null) {
+  const finalDishState = fetchDishState();
+  if (finalDishState === null || setupData.initialStock === null) {
     console.error('[order-stock-race] 재고를 확인하지 못해 오버셀 여부를 판정할 수 없습니다.');
     return;
   }
 
+  const finalStock = finalDishState.stockQuantity;
   const decreased = setupData.initialStock - finalStock;
   console.log(
     `[order-stock-race] 재고 ${setupData.initialStock} -> ${finalStock} (감소 ${decreased})`,
