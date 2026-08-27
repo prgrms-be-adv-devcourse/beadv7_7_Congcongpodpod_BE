@@ -8,4 +8,4 @@ export type PresignedUploadRequest = {
 
 export function uploadPresignedFile(
   request: PresignedUploadRequest,
-): Promise<{ ok: boolean; status: number }>;
+): Promise<{ ok: boolean; status: number; body: string }>;

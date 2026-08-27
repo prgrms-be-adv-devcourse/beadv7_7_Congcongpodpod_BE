@@ -43,7 +43,10 @@ export async function registerDish(payload: DishRegistration, image: ImagePicker
     contentType: prepared.contentType,
     requiredHeaders: upload.requiredHeaders,
   });
-  if (!uploaded.ok) throw new Error(`상품 이미지 업로드에 실패했어요. (HTTP ${uploaded.status})`);
+  if (!uploaded.ok) {
+    const storageCode = uploaded.body.match(/<Code>([^<]+)<\/Code>/)?.[1];
+    throw new Error(`상품 이미지 업로드에 실패했어요. (HTTP ${uploaded.status}${storageCode ? ` · ${storageCode}` : ''})`);
+  }
   const result = mapDish(unwrap(await api<RawDish | Envelope<RawDish>>('/dishes', {
     method: 'POST',
     body: JSON.stringify({ ...payload, imageKey: upload.key }),
