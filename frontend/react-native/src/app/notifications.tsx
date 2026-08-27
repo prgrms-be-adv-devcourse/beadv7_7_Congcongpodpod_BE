@@ -8,6 +8,8 @@ import { LoadingState } from '@/components/loading-state';
 import { Page } from '@/components/page';
 import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { getReadNotificationIds, saveReadNotificationIds, temporaryNotifications, type InAppNotification } from '@/lib/in-app-notifications';
+import { showDishReport } from '@/lib/app-overlay';
+import { getDishReportSnapshot } from '@/lib/dish-report';
 import { getNotifications, markAllNotificationsRead, markNotificationRead, notificationRoute, type ServerNotification } from '@/lib/notifications';
 
 type DisplayNotification = InAppNotification & { serverId?: number; route?: string; type?: string };
@@ -64,6 +66,10 @@ export default function NotificationsScreen() {
       setReadIds(next);
       if (serverBacked && notification.serverId) await markNotificationRead(notification.serverId).catch(() => setReadIds(previous));
       else await saveReadNotificationIds(next);
+    }
+    if (notification.type?.toUpperCase() === 'DISH_REPORT_COMPLETED') {
+      void getDishReportSnapshot().then(showDishReport).catch(() => showDishReport());
+      return;
     }
     if (notification.route) router.push(notification.route as never);
   }, [readIds, serverBacked]);
