@@ -6,7 +6,7 @@ import { ConfirmModal } from '@/components/confirm-modal';
 import { EmptyState } from '@/components/empty-state';
 import { LoadingState } from '@/components/loading-state';
 import { SellerShell } from '@/components/seller-shell';
-import { colors, fonts, radius } from '@/constants/theme';
+import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { showAppAlert } from '@/lib/app-overlay';
 import { subscribeOrderStateChanged } from '@/lib/order-events';
@@ -135,16 +135,16 @@ export default function SellerOrders() {
       <View accessibilityRole="tablist" style={styles.tabs}>{tabs.map(([key, label]) => <Pressable accessibilityRole="tab" accessibilityState={{ selected: tab === key }} key={key} onPress={() => setTab(key)} style={styles.tab}><Text style={[styles.tabText, tab === key && styles.active]}>{label}</Text>{tab === key ? <View style={styles.tabLine}/> : null}</Pressable>)}</View>
       {storeFailed ? <EmptyState title="매장 정보를 불러오지 못했어요" description="네트워크 상태를 확인한 뒤 다시 들어와주세요."/> : loading && !hasLoaded ? <LoadingState label="매장 주문을 확인하고 있어요" compact/> : failed && !orders.length ? <EmptyState title="주문을 불러오지 못했어요" description="기존 주문은 유지되며 다시 불러올 수 있어요." actionLabel="다시 불러오기" onAction={() => void load()}/> : <>
         {failed ? <Pressable accessibilityRole="button" onPress={() => void load()} style={({ pressed }) => [styles.errorNotice, pressed && styles.pressed]}><Text style={styles.errorNoticeText}>최신 주문을 갱신하지 못했어요.</Text><Text style={styles.errorRetry}>재시도</Text></Pressable> : null}
-        {orders.length ? <View style={styles.orderList}>{orders.map((order, index) => <OrderRow busy={processing === order.orderId} code={codes[order.orderId]} key={order.orderId} last={index === orders.length - 1} onAccept={() => setPendingAction({ order, status: 'ACCEPT' })} onPickup={(status) => setPendingAction({ order, status })} onReject={(reason) => void reject(order, reason)} onRejectOpen={() => setRejecting((current) => current === order.orderId ? undefined : order.orderId)} order={order} rejecting={rejecting === order.orderId}/>)}</View> : <EmptyState title="이 상태의 주문이 없어요" description="새 주문이 들어오면 픽업 시간 순으로 표시됩니다."/>}
+        {orders.length ? <View style={styles.orderList}>{orders.map((order) => <OrderRow busy={processing === order.orderId} code={codes[order.orderId]} key={order.orderId} onAccept={() => setPendingAction({ order, status: 'ACCEPT' })} onPickup={(status) => setPendingAction({ order, status })} onReject={(reason) => void reject(order, reason)} onRejectOpen={() => setRejecting((current) => current === order.orderId ? undefined : order.orderId)} order={order} rejecting={rejecting === order.orderId}/>)}</View> : <EmptyState title="이 상태의 주문이 없어요" description="새 주문이 들어오면 픽업 시간 순으로 표시됩니다."/>}
       </>}
     </SellerShell>
     <ConfirmModal visible={Boolean(pendingAction)} icon={confirmCopy.icon} title={confirmCopy.title} description={confirmCopy.description} confirmLabel={confirmCopy.label} busy={Boolean(processing)} busyLabel={confirmCopy.busy} onCancel={() => { if (!processing) setPendingAction(undefined); }} onConfirm={confirmAction}/>
   </>;
 }
 
-function OrderRow({ order, code, busy, rejecting, last, onAccept, onRejectOpen, onReject, onPickup }: { order: SellerOrder; code?: string; busy: boolean; rejecting: boolean; last: boolean; onAccept: () => void; onRejectOpen: () => void; onReject: (reason: (typeof reasons)[number][0]) => void; onPickup: (status: 'PICKED_UP' | 'NO_SHOW') => void }) {
+function OrderRow({ order, code, busy, rejecting, onAccept, onRejectOpen, onReject, onPickup }: { order: SellerOrder; code?: string; busy: boolean; rejecting: boolean; onAccept: () => void; onRejectOpen: () => void; onReject: (reason: (typeof reasons)[number][0]) => void; onPickup: (status: 'PICKED_UP' | 'NO_SHOW') => void }) {
   const status = statusVisual(order.status);
-  return <View style={[styles.order, last && styles.orderLast]}>
+  return <View style={styles.order}>
     <View style={styles.orderTop}>
       <View style={styles.statusRow}><View style={[styles.stateDot, { backgroundColor: status.color }]}/><Text style={[styles.state, { color: status.color }]}>{status.label}</Text><Text style={styles.orderId}>#{order.orderId}</Text></View>
       <View style={styles.pickupBlock}><Text style={styles.pickup}>{formatPickupTime(order.pickupStartAt)}–{formatPickupTime(order.pickupEndAt)}</Text><Text style={styles.pickupLabel}>픽업</Text></View>
@@ -182,9 +182,8 @@ const styles = StyleSheet.create({
   errorNotice: { minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.control, backgroundColor: colors.apricot50, borderWidth: 1, borderColor: colors.apricot300 },
   errorNoticeText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' },
   errorRetry: { color: colors.ink900, fontFamily: fonts.body, fontSize: 11, fontWeight: '900' },
-  orderList: { overflow: 'hidden', borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
-  order: { padding: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  orderLast: { borderBottomWidth: 0 },
+  orderList: { gap: 10 },
+  order: { padding: 15, borderRadius: radius.card, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white, ...shadow.card },
   orderTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   statusRow: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 6 },
   stateDot: { width: 6, height: 6, borderRadius: 3 },
@@ -198,7 +197,7 @@ const styles = StyleSheet.create({
   menu: { color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' },
   customer: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 11 },
   priceLine: { color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  codeBox: { marginTop: 11, minHeight: 60, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: radius.control, backgroundColor: colors.blue50, borderWidth: 1, borderColor: colors.blue300 },
+  codeBox: { marginTop: 12, minHeight: 62, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: radius.control, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
   codeLabel: { color: colors.ink700, fontFamily: fonts.body, fontSize: 9 },
   code: { marginTop: 3, color: colors.ink900, fontFamily: fonts.body, fontSize: 18, fontWeight: '900', letterSpacing: 0.8, fontVariant: ['tabular-nums'] },
   codeHint: { color: colors.ink500, fontFamily: fonts.body, fontSize: 9 },

@@ -60,14 +60,15 @@ export default function NotificationsScreen() {
   useEffect(() => { void load(); }, [load]);
 
   const markRead = useCallback(async (notification: DisplayNotification) => {
+    const isDishReport = notification.type?.toUpperCase() === 'DISH_REPORT_COMPLETED';
     if (!readIds.has(notification.id)) {
       const previous = readIds;
       const next = new Set(readIds).add(notification.id);
       setReadIds(next);
-      if (serverBacked && notification.serverId) await markNotificationRead(notification.serverId).catch(() => setReadIds(previous));
+      if (serverBacked && notification.serverId) await markNotificationRead(notification.serverId).catch(() => { if (!isDishReport) setReadIds(previous); });
       else await saveReadNotificationIds(next);
     }
-    if (notification.type?.toUpperCase() === 'DISH_REPORT_COMPLETED') {
+    if (isDishReport) {
       void getDishReportSnapshot().then(showDishReport).catch(() => showDishReport());
       return;
     }
