@@ -2,7 +2,11 @@ import type { Dish, Store } from '@/types/store';
 
 export function hasAvailableDish(store: Pick<Store, 'dishes' | 'hasAvailableDish'>) {
   if (typeof store.hasAvailableDish === 'boolean') return store.hasAvailableDish;
-  return store.dishes.some(dish => dish.quantity > 0 && !['SOLD_OUT', 'CLOSED'].includes(dish.status ?? ''));
+  return store.dishes.some(isDishAvailable);
+}
+
+export function isDishAvailable(dish: Pick<Dish, 'quantity' | 'status'>) {
+  return dish.quantity > 0 && !['SOLD_OUT', 'CLOSED'].includes(dish.status ?? '');
 }
 
 export function getCheapestDish(store: Pick<Store, 'dishes'>): Dish | undefined {

@@ -8,6 +8,8 @@ export type Dish = {
   status?: string;
   imageUrl?: string;
   registeredAt?: string;
+  pickupStartTime?: string;
+  pickupEndTime?: string;
   storeId?: number;
   storeName?: string;
   storeCategory?: string;

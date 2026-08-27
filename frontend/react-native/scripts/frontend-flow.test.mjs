@@ -11,6 +11,14 @@ test('구매 핵심 화면이 모두 존재한다', () => {
     .forEach((path) => assert.equal(existsSync(join(root, path)), true, path));
 });
 
+test('목록 탭은 상품을 중심으로 상품 상세에 연결한다', () => {
+  const stores = source('src/app/(tabs)/stores.tsx');
+  assert.match(stores, /ProductStoreCard/);
+  assert.match(stores, /pathname: '\/dishes\/\[dishId\]'/);
+  assert.match(stores, /stores\.flatMap<ProductEntry>/);
+  assert.match(source('src/components/product-store-card.tsx'), /dish\.discountPrice\.toLocaleString/);
+});
+
 test('지도 앱·웹이 동일한 화면 경계를 전달한다', () => {
   const nativeMap = source('src/components/map-canvas.native.tsx');
   assert.match(nativeMap, /southWest: \{ latitude: region\.latitude, longitude: region\.longitude \}/);

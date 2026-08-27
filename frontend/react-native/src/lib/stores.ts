@@ -12,6 +12,8 @@ type ApiDish = {
   dishStatus?: string;
   thumbnailUrl?: string | null;
   registeredAt?: string;
+  pickupStartTime?: string;
+  pickupEndTime?: string;
   storeId?: number;
   storeName?: string;
 };
@@ -70,6 +72,8 @@ const mapDish = (dish: ApiDish): Dish => ({
   status: dish.dishStatus,
   imageUrl: dish.thumbnailUrl ?? undefined,
   registeredAt: dish.registeredAt,
+  pickupStartTime: dish.pickupStartTime,
+  pickupEndTime: dish.pickupEndTime,
   storeId: dish.storeId,
   storeName: dish.storeName,
 });
