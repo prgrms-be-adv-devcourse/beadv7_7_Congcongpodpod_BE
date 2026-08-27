@@ -3,7 +3,7 @@ import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Modal, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/loading-state';
@@ -11,14 +11,13 @@ import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
 import { type AppAlertRequest, type AppDishReportRequest, type AppNotificationRequest, subscribeAppAlerts, subscribeDishReports, subscribeGlobalLoading, subscribeInAppNotifications } from '@/lib/app-overlay';
 
 const MIN_LOADING_VISIBLE_MS = 160;
-const REPORT_PARTICLES = [
-  { left: 15, top: 17, size: 3, drift: -10 }, { left: 38, top: 29, size: 2, drift: 8 },
-  { left: 66, top: 13, size: 4, drift: -6 }, { left: 94, top: 38, size: 2, drift: 11 },
-  { left: 122, top: 20, size: 3, drift: -9 }, { left: 145, top: 52, size: 2, drift: 7 },
-  { left: 27, top: 70, size: 2, drift: 10 }, { left: 56, top: 89, size: 4, drift: -8 },
-  { left: 86, top: 66, size: 3, drift: 9 }, { left: 114, top: 91, size: 2, drift: -11 },
-  { left: 139, top: 78, size: 4, drift: 6 }, { left: 8, top: 99, size: 3, drift: -7 },
-] as const;
+const REPORT_PARTICLES = Array.from({ length: 36 }, (_, index) => ({
+  left: `${4 + ((index * 23) % 92)}%` as `${number}%`,
+  top: 6 + ((index * 31) % 94),
+  size: 2 + (index % 3),
+  drift: (index % 2 === 0 ? -1 : 1) * (5 + (index % 5) * 3),
+  fall: 24 + (index % 6) * 7,
+}));
 
 function notificationVisual(type?: string) {
   if (type === 'ORDER_CREATED') return { icon: 'storefront-outline' as const, label: '새 주문' };
@@ -36,19 +35,33 @@ function notificationVisual(type?: string) {
 
 function NotificationToast({ notification, onDismiss }: { notification: AppNotificationRequest; onDismiss: (id: number, onDismissed?: () => void) => void }) {
   const motion = useRef(new Animated.Value(0)).current;
+  const swipeX = useRef(new Animated.Value(0)).current;
   const visual = notificationVisual(notification.type);
 
   useEffect(() => {
     Animated.timing(motion, { toValue: 1, duration: 260, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }).start();
   }, [motion]);
 
-  const dismiss = (after?: () => void) => {
-    Animated.timing(motion, { toValue: 0, duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => onDismiss(notification.id, after));
+  const dismiss = (after?: () => void, direction = 0) => {
+    Animated.parallel([
+      Animated.timing(motion, { toValue: 0, duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(swipeX, { toValue: direction * 520, duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start(() => onDismiss(notification.id, after));
   };
 
-  return <Animated.View style={[styles.notificationAnimated, { opacity: motion, transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+    onPanResponderMove: (_, gesture) => swipeX.setValue(gesture.dx),
+    onPanResponderRelease: (_, gesture) => {
+      if (Math.abs(gesture.dx) >= 72 || Math.abs(gesture.vx) >= 0.55) dismiss(undefined, gesture.dx < 0 ? -1 : 1);
+      else Animated.timing(swipeX, { toValue: 0, duration: 200, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }).start();
+    },
+    onPanResponderTerminate: () => Animated.timing(swipeX, { toValue: 0, duration: 200, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }).start(),
+  });
+
+  return <Animated.View {...panResponder.panHandlers} style={[styles.notificationAnimated, { opacity: motion, transform: [{ translateX: swipeX }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
     <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={() => dismiss(notification.onPress)} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
-      <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={22} color={colors.green700}/><View style={styles.notificationUnread}/></View>
+      <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={21} color={colors.white}/><View style={styles.notificationUnread}/></View>
       <View style={styles.notificationCopy}>
         <View style={styles.notificationMeta}><Text style={styles.notificationLabel}>{visual.label}</Text><Text style={styles.notificationTime}>방금</Text></View>
         <Text numberOfLines={1} style={styles.notificationTitle}>{notification.title}</Text>
@@ -61,22 +74,22 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
 
 function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value; accent?: boolean }) {
   return <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, {
-    opacity: motion.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.72, 0] }),
-    transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, 12] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] }) }],
+    opacity: motion.interpolate({ inputRange: [0, 0.18, 0.78, 1], outputRange: [1, 1, 0.34, 0] }),
+    transform: [{ translateY: motion.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0, 18] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) }],
   }]}>
     <BlurView intensity={accent ? 30 : 22} style={[styles.reportMetricBlur, accent && styles.reportMetricAccentBlur]} tint={accent ? 'dark' : 'light'}>
       <View style={styles.reportMetricBlurPrompt}><Ionicons name="eye-outline" size={17} color={accent ? colors.white : colors.ink700}/><Text style={[styles.reportMetricBlurPromptText, accent && styles.reportMetricBlurPromptTextAccent]}>눌러서 확인</Text></View>
     </BlurView>
     {REPORT_PARTICLES.map((particle, index) => {
-      const start = 0.04 + index * 0.018;
+      const start = 0.08 + (index % 8) * 0.035;
       return <Animated.View key={`${particle.left}-${particle.top}`} style={[styles.reportParticle, accent && styles.reportParticleAccent, {
         left: particle.left,
         top: particle.top,
         width: particle.size,
         height: particle.size,
         borderRadius: particle.size / 2,
-        opacity: motion.interpolate({ inputRange: [0, start, start + 0.24, Math.min(0.96, start + 0.58), 1], outputRange: [0, 0, 0.9, 0.35, 0] }),
-        transform: [{ translateX: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.drift] }) }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, 18 + index % 3 * 4] }) }],
+        opacity: motion.interpolate({ inputRange: [0, start, Math.min(0.72, start + 0.16), 0.9, 1], outputRange: [0, 0, 0.95, 0.48, 0] }),
+        transform: [{ translateX: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.drift] }) }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.fall] }) }, { scale: motion.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0.55, 1, 0.35] }) }],
       }]}/>;
     })}
   </Animated.View>;
@@ -130,7 +143,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
       return;
     }
     motion.stopAnimation();
-    Animated.timing(motion, { toValue: 1, duration: 400, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
+    Animated.timing(motion, { toValue: 1, duration: 600, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
       if (finished) setVisible(true);
     });
   };
@@ -257,16 +270,16 @@ const styles = StyleSheet.create({
   loadingCard: { width: 148, minHeight: 104, alignItems: 'center', justifyContent: 'center' },
   notificationLayer: { position: 'absolute', left: 12, right: 12, zIndex: 1000, alignItems: 'center', gap: 8 },
   notificationAnimated: { width: '100%', maxWidth: 440 },
-  notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 46, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
-  notificationIcon: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.green50 },
-  notificationUnread: { position: 'absolute', right: 5, top: 5, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.green500, borderWidth: 2, borderColor: colors.white },
+  notificationCard: { width: '100%', minHeight: 96, paddingLeft: 12, paddingRight: 46, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
+  notificationIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.green900 },
+  notificationUnread: { position: 'absolute', right: 4, top: 4, width: 7, height: 7, borderRadius: 4, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.green900 },
   notificationCopy: { flex: 1, minWidth: 0 },
   notificationMeta: { marginBottom: 3, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  notificationLabel: { color: colors.green700, fontFamily: fonts.body, fontSize: 11, lineHeight: 15, fontWeight: '800' },
+  notificationLabel: { color: colors.green900, fontFamily: fonts.body, fontSize: 11, lineHeight: 15, fontWeight: '800' },
   notificationTime: { color: colors.ink400, fontFamily: fonts.body, fontSize: 10, lineHeight: 14 },
   notificationTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800', letterSpacing: -0.25 },
   notificationMessage: { marginTop: 3, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
-  notificationClose: { position: 'absolute', top: 10, right: 10, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.canvas },
+  notificationClose: { position: 'absolute', top: 9, right: 9, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.white },
   notificationPressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
   reportRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(15,20,17,0.58)' },
   reportCardStage: { width: '100%', maxWidth: 410, position: 'relative' },
