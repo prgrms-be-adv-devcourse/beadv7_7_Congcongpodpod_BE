@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   loadingCard: { width: 148, minHeight: 104, alignItems: 'center', justifyContent: 'center' },
   notificationLayer: { position: 'absolute', left: 12, right: 12, zIndex: 1000, alignItems: 'center', gap: 8 },
   notificationAnimated: { width: '100%', maxWidth: 440 },
-  notificationCard: { width: '100%', minHeight: 96, paddingLeft: 12, paddingRight: 46, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
+  notificationCard: { width: '100%', minHeight: 96, paddingLeft: 12, paddingRight: 46, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.notification },
   notificationIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.green900 },
   notificationUnread: { position: 'absolute', right: 4, top: 4, width: 7, height: 7, borderRadius: 4, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.green900 },
   notificationCopy: { flex: 1, minWidth: 0 },

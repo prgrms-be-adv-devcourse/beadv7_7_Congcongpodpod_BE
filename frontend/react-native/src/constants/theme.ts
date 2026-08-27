@@ -48,6 +48,7 @@ export const motion = { fast: 120, base: 200, screen: 280, emphasis: 400 } as co
 export const shadow = {
   card: { shadowColor: '#151A16', shadowOpacity: 0.04, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   control: { shadowColor: '#111512', shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  notification: { shadowColor: '#005D2D', shadowOpacity: 0.09, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 7 },
   nav: { shadowColor: '#111512', shadowOpacity: 0.11, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   sheet: { shadowColor: '#111512', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 9 },
   float: { shadowColor: '#111512', shadowOpacity: 0.15, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 8 },
