@@ -12,7 +12,7 @@
  *
  * 결과 판정은 k6 기본 지표가 아니라 아래 커스텀 카운터로 한다.
  *   - order_success      주문 성공(200)
- *   - order_out_of_stock 재고 부족(409 + D003) — 정상적인 탈락
+ *   - order_out_of_stock 품절 경쟁 탈락(409 + D001 또는 D003) — 정상적인 탈락
  *   - order_unexpected   그 외 전부 — 1건이라도 있으면 결함 신호
  *
  * 주의: k6는 409를 http_req_failed로 집계한다. 재고 5에 VU 30이면
@@ -83,13 +83,24 @@ function bodyPreview(response) {
   return response.body ? response.body.slice(0, 500) : '(응답 본문 없음)';
 }
 
-// 에러 코드를 못 읽어도 분류가 멈추면 안 된다. 파싱 실패는 D003이 아닌 것으로 취급한다.
+// 에러 코드를 못 읽어도 분류가 멈추면 안 된다. 파싱 실패는 정상 품절 응답이 아닌 것으로 취급한다.
 function errorCodeOf(response) {
   try {
     return response.json('error.code');
   } catch (_) {
     return null;
   }
+}
+
+// 마지막 재고를 차감하면 상품 상태도 SOLD_OUT으로 바뀐다. 이후 요청은 재고 비교 전에
+// 판매 상태 검증에서 D001을 받을 수 있으므로 D001과 D003을 모두 정상적인 경쟁 탈락으로 본다.
+function isExpectedStockRejection(response) {
+  if (response.status !== 409) {
+    return false;
+  }
+
+  const errorCode = errorCodeOf(response);
+  return errorCode === 'D001' || errorCode === 'D003';
 }
 
 function login(email, password) {
@@ -124,8 +135,8 @@ function findCartItem(email, accessToken) {
   return { cartItemId: item.cartItemId, dishPriceVersion: item.lastAppliedDishPriceVersion };
 }
 
-// 대상 dish의 현재 재고. 조회에 실패하면 null을 돌려 호출부가 판정 불가를 구분하게 한다.
-function fetchStockQuantity() {
+// 대상 dish의 현재 상태와 재고. 조회에 실패하면 null을 돌려 호출부가 판정 불가를 구분하게 한다.
+function fetchDishState() {
   const response = http.get(`${baseUrl}/api/v1/dishes/${dishId}`, {
     tags: { name: 'Get dish stock' },
   });
@@ -133,7 +144,10 @@ function fetchStockQuantity() {
     console.error(`dish 조회 실패: status=${response.status}, body=${bodyPreview(response)}`);
     return null;
   }
-  return response.json('data.stockQuantity');
+  return {
+    dishStatus: response.json('data.dishStatus'),
+    stockQuantity: response.json('data.stockQuantity'),
+  };
 }
 
 export function setup() {
@@ -144,8 +158,21 @@ export function setup() {
     return { accessToken, cartItemId, dishPriceVersion };
   });
 
-  // 최초 재고를 측정 전에 잡아둬야 teardown에서 "성공 건수만큼 줄었는가"를 판정할 수 있다.
-  const initialStock = fetchStockQuantity();
+  // 최초 상태와 재고를 측정 전에 확인해 잘못된 조건에서 테스트가 통과하는 것을 막는다.
+  const initialDishState = fetchDishState();
+  if (initialDishState === null) {
+    throw new Error(`대상 dish(${dishId})의 최초 상태와 재고를 확인하지 못했습니다.`);
+  }
+
+  const { dishStatus, stockQuantity: initialStock } = initialDishState;
+  if (dishStatus !== 'ON_SALE') {
+    throw new Error(`대상 dish(${dishId})가 판매 중이 아닙니다: dishStatus=${dishStatus}`);
+  }
+  if (initialStock < 1) {
+    throw new Error(
+      `대상 dish(${dishId})의 최초 재고가 1 이상이어야 합니다: stock=${initialStock}`,
+    );
+  }
   console.log(`[order-stock-race] 최초 재고: ${initialStock}, 동시 주문 시도: ${vus}`);
 
   return { accounts: preparedAccounts, initialStock };
@@ -169,7 +196,7 @@ export default function (setupData) {
   if (response.status === 200) {
     orderSuccess.add(1);
     check(response, { '주문 성공 응답이 success:true다': (r) => r.json('success') === true });
-  } else if (response.status === 409 && errorCodeOf(response) === 'D003') {
+  } else if (isExpectedStockRejection(response)) {
     orderOutOfStock.add(1);
   } else {
     orderUnexpected.add(1);
@@ -180,12 +207,13 @@ export default function (setupData) {
 }
 
 export function teardown(setupData) {
-  const finalStock = fetchStockQuantity();
-  if (finalStock === null || setupData.initialStock === null) {
+  const finalDishState = fetchDishState();
+  if (finalDishState === null || setupData.initialStock === null) {
     console.error('[order-stock-race] 재고를 확인하지 못해 오버셀 여부를 판정할 수 없습니다.');
     return;
   }
 
+  const finalStock = finalDishState.stockQuantity;
   const decreased = setupData.initialStock - finalStock;
   console.log(
     `[order-stock-race] 재고 ${setupData.initialStock} -> ${finalStock} (감소 ${decreased})`,

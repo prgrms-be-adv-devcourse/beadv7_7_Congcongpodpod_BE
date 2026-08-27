@@ -101,7 +101,7 @@ for key in '$path'.split('.'):
     node = node[key]
 print(node)
 " 2>/dev/null) || {
-    echo "[실패] $label — 응답에서 $path를 찾지 못했습니다." >&2
+    echo "[실패] ${label} — 응답에서 ${path}를 찾지 못했습니다." >&2
     echo "  응답: ${body:0:400}" >&2
     exit 1
   }
