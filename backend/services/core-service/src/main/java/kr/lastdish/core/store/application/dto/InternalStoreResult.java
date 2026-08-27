@@ -23,9 +23,15 @@ public record InternalStoreResult(
     BigDecimal longitude,
     Category category,
     List<DayOfWeek> holidays,
-    InternalDishResult dish) {
+    InternalDishResult dish,
+    boolean deleted) {
 
   public static InternalStoreResult from(StoreResult store, InternalDishResult dish) {
+    return from(store, dish, false);
+  }
+
+  public static InternalStoreResult from(
+      StoreResult store, InternalDishResult dish, boolean deleted) {
     return new InternalStoreResult(
         store.storeId(),
         store.memberId(),
@@ -40,6 +46,7 @@ public record InternalStoreResult(
         store.longitude(),
         store.category(),
         store.holidays(),
-        dish);
+        dish,
+        deleted);
   }
 }

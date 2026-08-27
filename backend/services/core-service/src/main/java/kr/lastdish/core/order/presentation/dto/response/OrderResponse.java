@@ -20,6 +20,8 @@ public record OrderResponse(
     Long quantity,
     BigDecimal unitPrice,
     BigDecimal totalPrice,
+    BigDecimal usedPoint,
+    BigDecimal usedDeposit,
     LocalTime pickupStartAt,
     LocalTime pickupEndAt) {
 
@@ -38,6 +40,8 @@ public record OrderResponse(
         result.quantity(),
         result.unitPrice(),
         result.totalPrice(),
+        result.usedPoint(),
+        result.usedDeposit(),
         result.pickupStartAt(),
         result.pickupEndAt());
   }

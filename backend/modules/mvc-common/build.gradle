@@ -27,6 +27,10 @@ dependencies {
     // 없는 서비스에서는 해당 핸들러만 등록되지 않도록 조건을 걸어 두었다.
     compileOnly 'org.springframework:spring-tx'
 
+    // 요청당 SQL 실행 수 계측용. spring-tx와 같은 이유로 compileOnly다.
+    compileOnly 'org.hibernate.orm:hibernate-core'
+    compileOnly 'org.springframework.boot:spring-boot-hibernate'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-jackson'
@@ -35,6 +39,8 @@ dependencies {
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
     testImplementation 'jakarta.servlet:jakarta.servlet-api'
     testImplementation 'org.springframework:spring-tx'
+    testImplementation 'org.hibernate.orm:hibernate-core'
+    testImplementation 'org.springframework.boot:spring-boot-hibernate'
 }
 
 tasks.named('test') {

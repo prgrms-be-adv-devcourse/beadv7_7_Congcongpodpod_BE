@@ -1,6 +1,6 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OptimizedImage as Image } from '@/components/optimized-image';
@@ -15,6 +15,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { getDishImageSource } from '@/lib/food-image';
 import { getMyOrders, getPickupCode, type CustomerOrder, type OrderStatus } from '@/lib/orders';
+import { subscribeOrderStateChanged } from '@/lib/order-events';
 import { showLoginRequired } from '@/lib/login-required';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -72,6 +73,7 @@ export default function Orders() {
     }
     void load();
   }, [initializing, load, member]));
+  useEffect(() => subscribeOrderStateChanged(() => { if (member) void load(true); }), [load, member]);
   const { refreshing, onRefresh } = usePullToRefresh(() => load(true));
 
   const visibleOrders = useMemo(() => orders.filter((order) => {

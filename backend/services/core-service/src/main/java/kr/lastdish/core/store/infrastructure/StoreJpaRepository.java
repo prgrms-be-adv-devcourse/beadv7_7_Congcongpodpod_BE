@@ -93,7 +93,6 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
           FROM stores s
           LEFT JOIN dishes d
             ON d.store_id = s.store_id
-           AND d.is_deleted = false
           WHERE (s.updated_at >= :from AND s.updated_at < :to)
              OR (d.updated_at >= :from AND d.updated_at < :to)
           ORDER BY s.store_id
