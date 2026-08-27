@@ -64,7 +64,7 @@ class OrderFacadeTest {
   @InjectMocks private OrderFacade orderFacade;
 
   @Test
-  @DisplayName("주문 직전 검증을 순서대로 통과하면 주문 생성, 재고 차감과 결제를 진행한다")
+  @DisplayName("주문 직전 검증을 통과하면 잠금 재고 차감과 결제를 진행한다")
   void payAndCreateOrder_success() {
     // given
     Long memberId = 1L;
@@ -112,7 +112,6 @@ class OrderFacadeTest {
     inOrder.verify(memberSnapshotRepository).findActiveByMemberId(memberId);
     inOrder.verify(cartFacade).getValidatedOrderSnapshot(memberId, cartItemId, 3L);
     inOrder.verify(storeFacade).validateOpen(1L);
-    inOrder.verify(dishFacade).validateAvailable(100L);
     inOrder.verify(orderService).validatePickupDeadline(eq(cartItem), any());
     inOrder.verify(orderService).createOrder(memberId, memberInfo, cartItem, pickupDeadline);
 
@@ -127,7 +126,7 @@ class OrderFacadeTest {
   }
 
   @Test
-  @DisplayName("상품이 삭제됐거나 판매 중이 아니면 주문과 결제를 진행하지 않는다")
+  @DisplayName("잠금 재고 차감 시 상품이 판매 중이 아니면 결제를 진행하지 않는다")
   void payAndCreateOrder_dishNotAvailable() {
     Long memberId = 1L;
     Long cartItemId = 1L;
@@ -136,19 +135,29 @@ class OrderFacadeTest {
 
     stubMemberSnapshot(memberId, memberInfo);
     when(cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, 3L)).thenReturn(cartItem);
+    LocalDateTime pickupDeadline = LocalDateTime.of(2026, 8, 20, 19, 0);
+    when(orderService.validatePickupDeadline(eq(cartItem), any())).thenReturn(pickupDeadline);
+
+    Order order = mock(Order.class);
+    when(order.getDishId()).thenReturn(cartItem.dishId());
+    when(order.getQuantity()).thenReturn(cartItem.quantity());
+    when(orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline))
+        .thenReturn(order);
+
     doThrow(
             new kr.lastdish.common.api.exception.BusinessException(
                 kr.lastdish.core.common.exception.ErrorCode.DISH_NOT_ON_SALE))
         .when(dishFacade)
-        .validateAvailable(cartItem.dishId());
+        .decreaseStock(cartItem.dishId(), cartItem.quantity());
 
     assertThatThrownBy(() -> orderFacade.payAndCreateOrder(memberId, cartItemId, 3L))
         .isInstanceOf(kr.lastdish.common.api.exception.BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(kr.lastdish.core.common.exception.ErrorCode.DISH_NOT_ON_SALE);
 
-    verify(orderService, never()).validatePickupDeadline(any(), any());
-    verify(orderService, never()).createOrder(anyLong(), any(), any(), any());
+    verify(orderService).createOrder(memberId, memberInfo, cartItem, pickupDeadline);
+    verify(dishFacade).decreaseStock(cartItem.dishId(), cartItem.quantity());
+    verify(orderService, never()).completePayment(anyLong());
     verifyNoInteractions(depositFacade);
   }
 

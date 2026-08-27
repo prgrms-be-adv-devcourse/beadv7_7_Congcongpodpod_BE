@@ -12,7 +12,7 @@
  *
  * 결과 판정은 k6 기본 지표가 아니라 아래 커스텀 카운터로 한다.
  *   - order_success      주문 성공(200)
- *   - order_out_of_stock 재고 부족(409 + D003) — 정상적인 탈락
+ *   - order_out_of_stock 품절 경쟁 탈락(409 + D001 또는 D003) — 정상적인 탈락
  *   - order_unexpected   그 외 전부 — 1건이라도 있으면 결함 신호
  *
  * 주의: k6는 409를 http_req_failed로 집계한다. 재고 5에 VU 30이면
@@ -83,13 +83,24 @@ function bodyPreview(response) {
   return response.body ? response.body.slice(0, 500) : '(응답 본문 없음)';
 }
 
-// 에러 코드를 못 읽어도 분류가 멈추면 안 된다. 파싱 실패는 D003이 아닌 것으로 취급한다.
+// 에러 코드를 못 읽어도 분류가 멈추면 안 된다. 파싱 실패는 정상 품절 응답이 아닌 것으로 취급한다.
 function errorCodeOf(response) {
   try {
     return response.json('error.code');
   } catch (_) {
     return null;
   }
+}
+
+// 마지막 재고를 차감하면 상품 상태도 SOLD_OUT으로 바뀐다. 이후 요청은 재고 비교 전에
+// 판매 상태 검증에서 D001을 받을 수 있으므로 D001과 D003을 모두 정상적인 경쟁 탈락으로 본다.
+function isExpectedStockRejection(response) {
+  if (response.status !== 409) {
+    return false;
+  }
+
+  const errorCode = errorCodeOf(response);
+  return errorCode === 'D001' || errorCode === 'D003';
 }
 
 function login(email, password) {
@@ -169,7 +180,7 @@ export default function (setupData) {
   if (response.status === 200) {
     orderSuccess.add(1);
     check(response, { '주문 성공 응답이 success:true다': (r) => r.json('success') === true });
-  } else if (response.status === 409 && errorCodeOf(response) === 'D003') {
+  } else if (isExpectedStockRejection(response)) {
     orderOutOfStock.add(1);
   } else {
     orderUnexpected.add(1);
