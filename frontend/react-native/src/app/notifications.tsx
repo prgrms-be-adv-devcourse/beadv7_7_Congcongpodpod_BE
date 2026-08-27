@@ -6,12 +6,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmptyState } from '@/components/empty-state';
 import { LoadingState } from '@/components/loading-state';
 import { Page } from '@/components/page';
-import { colors, fonts, radius } from '@/constants/theme';
+import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { getReadNotificationIds, saveReadNotificationIds, temporaryNotifications, type InAppNotification } from '@/lib/in-app-notifications';
 import { getNotifications, markAllNotificationsRead, markNotificationRead, notificationRoute, type ServerNotification } from '@/lib/notifications';
 
-type DisplayNotification = InAppNotification & { serverId?: number; route?: string };
+type DisplayNotification = InAppNotification & { serverId?: number; route?: string; type?: string };
 const iconByKind: Record<InAppNotification['kind'], keyof typeof Ionicons.glyphMap> = { ORDER: 'receipt-outline', PICKUP: 'bag-check-outline', BENEFIT: 'leaf-outline' };
+const displayIcon = (notification: DisplayNotification) => notification.type?.toUpperCase() === 'DISH_REPORT_COMPLETED' ? 'checkmark-circle-outline' : iconByKind[notification.kind];
 const kindFromType = (type: string): InAppNotification['kind'] => type.includes('PICKUP') || type.includes('PICKED') ? 'PICKUP' : type.includes('ORDER') ? 'ORDER' : 'BENEFIT';
 const notificationCopy = (notification: ServerNotification) => {
   const type = notification.type?.toUpperCase();
@@ -31,7 +32,7 @@ const relativeTime = (value: string) => {
   if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}시간 전`;
   return `${Math.floor(elapsed / 86_400_000)}일 전`;
 };
-const toDisplay = (notification: ServerNotification): DisplayNotification => ({ id: String(notification.id), serverId: notification.id, ...notificationCopy(notification), createdAt: relativeTime(notification.createdAt), kind: kindFromType(notification.type), route: notificationRoute(notification) });
+const toDisplay = (notification: ServerNotification): DisplayNotification => ({ id: String(notification.id), serverId: notification.id, type: notification.type, ...notificationCopy(notification), createdAt: relativeTime(notification.createdAt), kind: kindFromType(notification.type), route: notificationRoute(notification) });
 
 export default function NotificationsScreen() {
   const [items, setItems] = useState<DisplayNotification[]>([]);
@@ -79,7 +80,7 @@ export default function NotificationsScreen() {
     {loading ? <LoadingState label="알림을 확인하고 있어요"/> : items.length ? <View style={styles.list}>{items.map(notification => {
       const read = readIds.has(notification.id);
       return <Pressable accessibilityRole="button" accessibilityState={{ selected: !read }} key={notification.id} onPress={() => void markRead(notification)} style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
-        <View style={styles.icon}><Ionicons name={iconByKind[notification.kind]} size={19} color={colors.ink700}/></View>
+        <View style={styles.icon}><Ionicons name={displayIcon(notification)} size={20} color={colors.white}/></View>
         <View style={styles.copy}><View style={styles.titleRow}><Text style={styles.itemTitle}>{notification.title}</Text>{!read ? <View accessibilityLabel="읽지 않음" style={styles.dot}/> : null}</View><Text style={styles.message}>{notification.message}</Text><Text style={styles.time}>{notification.createdAt}</Text></View>
       </Pressable>;
     })}</View> : <EmptyState title="아직 알림이 없어요" description="주문과 픽업 소식이 생기면 여기에 알려드릴게요."/>}
@@ -88,6 +89,6 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   readAll: { minHeight: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' }, readAllText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
-  list: { gap: 10 }, item: { minHeight: 104, paddingHorizontal: 16, paddingVertical: 15, flexDirection: 'row', gap: 13, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
-  icon: { width: 38, height: 38, borderRadius: radius.control, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.canvas }, copy: { flex: 1 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 }, itemTitle: { flex: 1, color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, fontWeight: '800', letterSpacing: -0.25 }, dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green500 }, message: { marginTop: 5, color: colors.ink700, fontFamily: fonts.body, fontSize: 13, lineHeight: 19 }, time: { marginTop: 8, color: colors.ink400, fontFamily: fonts.body, fontSize: 11, fontWeight: '600' }, pressed: { opacity: 0.7 },
+  list: { gap: 10 }, item: { minHeight: 96, paddingHorizontal: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.input, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white, ...shadow.card },
+  icon: { width: 42, height: 42, borderRadius: radius.control, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.green900 }, copy: { flex: 1 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, itemTitle: { flex: 1, color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800', letterSpacing: -0.25 }, dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green900 }, message: { marginTop: 4, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 }, time: { marginTop: 7, color: colors.ink400, fontFamily: fonts.body, fontSize: 10, lineHeight: 14, fontWeight: '600' }, pressed: { opacity: 0.82, transform: [{ scale: 0.995 }] },
 });

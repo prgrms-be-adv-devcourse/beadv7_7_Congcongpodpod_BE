@@ -74,7 +74,7 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
 
 function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value; accent?: boolean }) {
   return <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, {
-    opacity: motion.interpolate({ inputRange: [0, 0.18, 0.78, 1], outputRange: [1, 1, 0.34, 0] }),
+    opacity: motion.interpolate({ inputRange: [0, 0.2, 0.82, 1], outputRange: [1, 1, 0.48, 0] }),
     transform: [{ translateY: motion.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0, 18] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) }],
   }]}>
     <BlurView intensity={accent ? 30 : 22} style={[styles.reportMetricBlur, accent && styles.reportMetricAccentBlur]} tint={accent ? 'dark' : 'light'}>
@@ -88,7 +88,7 @@ function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value;
         width: particle.size,
         height: particle.size,
         borderRadius: particle.size / 2,
-        opacity: motion.interpolate({ inputRange: [0, start, Math.min(0.72, start + 0.16), 0.9, 1], outputRange: [0, 0, 0.95, 0.48, 0] }),
+        opacity: motion.interpolate({ inputRange: [0, start, Math.min(0.72, start + 0.16), 0.78, 1], outputRange: [0, 0, 0.95, 0.7, 0] }),
         transform: [{ translateX: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.drift] }) }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.fall] }) }, { scale: motion.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0.55, 1, 0.35] }) }],
       }]}/>;
     })}
@@ -143,7 +143,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
       return;
     }
     motion.stopAnimation();
-    Animated.timing(motion, { toValue: 1, duration: 600, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
+    Animated.timing(motion, { toValue: 1, duration: 800, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
       if (finished) setVisible(true);
     });
   };
