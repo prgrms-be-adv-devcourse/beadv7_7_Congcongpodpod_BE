@@ -3,7 +3,9 @@ import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Modal, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, { Easing as ReanimatedEasing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/loading-state';
@@ -35,7 +37,8 @@ function notificationVisual(type?: string) {
 
 function NotificationToast({ notification, onDismiss }: { notification: AppNotificationRequest; onDismiss: (id: number, onDismissed?: () => void) => void }) {
   const motion = useRef(new Animated.Value(0)).current;
-  const swipeX = useRef(new Animated.Value(0)).current;
+  const swipeX = useSharedValue(0);
+  const { width } = useWindowDimensions();
   const visual = notificationVisual(notification.type);
 
   useEffect(() => {
@@ -43,33 +46,38 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
   }, [motion]);
 
   const dismiss = (after?: () => void, direction = 0) => {
-    Animated.parallel([
-      Animated.timing(motion, { toValue: 0, duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(swipeX, { toValue: direction * 520, duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-    ]).start(() => onDismiss(notification.id, after));
+    if (direction) swipeX.value = withTiming(direction * Math.max(width + 48, 520), { duration: 140, easing: ReanimatedEasing.out(ReanimatedEasing.cubic) });
+    Animated.timing(motion, { toValue: 0, duration: 140, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => onDismiss(notification.id, after));
   };
 
-  const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
-    onPanResponderMove: (_, gesture) => swipeX.setValue(gesture.dx),
-    onPanResponderRelease: (_, gesture) => {
-      if (Math.abs(gesture.dx) >= 72 || Math.abs(gesture.vx) >= 0.55) dismiss(undefined, gesture.dx < 0 ? -1 : 1);
-      else Animated.timing(swipeX, { toValue: 0, duration: 200, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }).start();
-    },
-    onPanResponderTerminate: () => Animated.timing(swipeX, { toValue: 0, duration: 200, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }).start(),
-  });
+  const removeAfterSwipe = () => onDismiss(notification.id);
+  const swipeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: swipeX.value }] }));
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-12, 12])
+    .onUpdate((event) => { swipeX.value = event.translationX; })
+    .onEnd((event) => {
+      if (Math.abs(event.translationX) >= 72 || Math.abs(event.velocityX) >= 550) {
+        const direction = event.translationX < 0 ? -1 : 1;
+        swipeX.value = withTiming(direction * Math.max(width + 48, 520), { duration: 140, easing: ReanimatedEasing.out(ReanimatedEasing.cubic) }, (finished) => {
+          if (finished) runOnJS(removeAfterSwipe)();
+        });
+      } else {
+        swipeX.value = withTiming(0, { duration: 200, easing: ReanimatedEasing.bezier(0.22, 1, 0.36, 1) });
+      }
+    });
 
-  return <Animated.View {...panResponder.panHandlers} style={[styles.notificationAnimated, { opacity: motion, transform: [{ translateX: swipeX }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={() => dismiss(notification.onPress)} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
-      <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={21} color={colors.white}/><View style={styles.notificationUnread}/></View>
-      <View style={styles.notificationCopy}>
-        <View style={styles.notificationMeta}><Text style={styles.notificationLabel}>{visual.label}</Text><Text style={styles.notificationTime}>방금</Text></View>
-        <Text numberOfLines={1} style={styles.notificationTitle}>{notification.title}</Text>
-        <Text numberOfLines={3} style={styles.notificationMessage}>{notification.message}</Text>
-      </View>
-      <Pressable accessibilityLabel="알림 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); dismiss(); }} style={styles.notificationClose}><Ionicons name="close" size={15} color={colors.ink500}/></Pressable>
-    </Pressable>
-  </Animated.View>;
+  return <GestureDetector gesture={swipeGesture}><Reanimated.View style={[styles.notificationAnimated, swipeStyle]}><Animated.View style={{ opacity: motion, transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={() => dismiss(notification.onPress)} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
+        <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={21} color={colors.white}/><View style={styles.notificationUnread}/></View>
+        <View style={styles.notificationCopy}>
+          <View style={styles.notificationMeta}><Text style={styles.notificationLabel}>{visual.label}</Text><Text style={styles.notificationTime}>방금</Text></View>
+          <Text numberOfLines={1} style={styles.notificationTitle}>{notification.title}</Text>
+          <Text numberOfLines={3} style={styles.notificationMessage}>{notification.message}</Text>
+        </View>
+        <Pressable accessibilityLabel="알림 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); dismiss(); }} style={styles.notificationClose}><Ionicons name="close" size={15} color={colors.ink500}/></Pressable>
+      </Pressable>
+    </Animated.View></Reanimated.View></GestureDetector>;
 }
 
 function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value; accent?: boolean }) {
