@@ -1,5 +1,6 @@
 import { api, ApiError } from './api';
 import { prepareFoodImage } from './ai';
+import { uploadPresignedFile } from './presigned-upload';
 import { cachedQuery, invalidateQueries } from './query-cache';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import type { Dish, Store } from '@/types/store';
@@ -35,16 +36,14 @@ export async function registerDish(payload: DishRegistration, image: ImagePicker
     method: 'POST',
     body: JSON.stringify({ storeId: payload.storeId, contentType: prepared.contentType, fileSize: prepared.fileSize }),
   }));
-  const blob = prepared.blob ?? await fetch(prepared.uri).then((response) => {
-    if (!response.ok) throw new Error('상품 이미지를 준비하지 못했어요.');
-    return response.blob();
+  const uploaded = await uploadPresignedFile({
+    url: upload.uploadUrl,
+    uri: prepared.uri,
+    blob: prepared.blob,
+    contentType: prepared.contentType,
+    requiredHeaders: upload.requiredHeaders,
   });
-  const uploaded = await fetch(upload.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': prepared.contentType, ...upload.requiredHeaders },
-    body: blob,
-  });
-  if (!uploaded.ok) throw new Error('상품 이미지 업로드에 실패했어요.');
+  if (!uploaded.ok) throw new Error(`상품 이미지 업로드에 실패했어요. (HTTP ${uploaded.status})`);
   const result = mapDish(unwrap(await api<RawDish | Envelope<RawDish>>('/dishes', {
     method: 'POST',
     body: JSON.stringify({ ...payload, imageKey: upload.key }),
