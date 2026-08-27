@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import '@/global.css';
+
 import { StartupLoadingScreen } from '@/components/startup-loading-screen';
 import { AppOverlayProvider } from '@/components/app-overlay-provider';
 import { LoginRequiredModal } from '@/components/login-required-modal';
