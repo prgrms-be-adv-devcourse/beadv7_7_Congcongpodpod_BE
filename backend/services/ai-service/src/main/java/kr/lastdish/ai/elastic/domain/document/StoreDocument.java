@@ -39,10 +39,22 @@ public class StoreDocument {
 
   // 1536 차원 (OpenAI text-embedding-3-small 등) Vector 필드 추가
   @Field(type = FieldType.Dense_Vector, dims = 1536, index = true, similarity = "cosine")
-  private List<Float> vector;
+  private List<Float> storeNameVector;
 
   @Field(type = FieldType.Keyword)
-  private String embeddingSourceHash;
+  private String storeNameHash;
+
+  @Field(type = FieldType.Dense_Vector, dims = 1536, index = true, similarity = "cosine")
+  private List<Float> dishNameVector;
+
+  @Field(type = FieldType.Keyword)
+  private String dishNameHash;
+
+  @Field(type = FieldType.Dense_Vector, dims = 1536, index = true, similarity = "cosine")
+  private List<Float> descriptionVector;
+
+  @Field(type = FieldType.Keyword)
+  private String descriptionHash;
 
   private String category;
 

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
+import kr.lastdish.ai.elastic.infrastructure.embedding.VectorSimilarityUtils;
 import kr.lastdish.ai.elastic.presentation.dto.StoreResponse;
 import kr.lastdish.ai.elastic.presentation.dto.StoreSearchResult;
 import kr.lastdish.ai.elastic.presentation.dto.StoreSearchResult.ScoreBreakdown;
@@ -20,21 +21,26 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class StoreRankingService {
 
-  // 가중치 고정 상수
-  private static final double WEIGHT_ES = 0.40;
-  private static final double WEIGHT_DISTANCE = 0.25;
-  private static final double WEIGHT_PRICE = 0.25;
+  // 가중치
+  private static final double WEIGHT_ES = 0.25;
+  private static final double WEIGHT_DISTANCE = 0.10;
+  private static final double WEIGHT_PRICE = 0.15;
   private static final double WEIGHT_DEADLINE = 0.10;
+  private static final double WEIGHT_STORE_NAME_SIM = 0.10;
+  private static final double WEIGHT_DISH_NAME_SIM = 0.15;
+  private static final double WEIGHT_DESCRIPTION_SIM = 0.15;
 
+  // 임계치
   private static final double MAXIMUM_DISTANCE_KM = 5.0;
-
-  // 최저가 정규화 상한선(원) - 이 가격 이상이면 가격 점수 0점. 실제 메뉴 가격 분포 보고 튜닝 필요.
   private static final double MAX_PRICE_KRW = 20000.0;
-  // 2시간 이내만 임박도 점수 부여
   private static final double MAX_URGENCY_WINDOW_MINUTES = 120.0;
+  private static final double VECTOR_SIM_BADGE_THRESHOLD = 0.75;
 
   public List<StoreSearchResult> rankAndAssignBadges(
-      List<SearchHit<StoreDocument>> searchHits, GeoPoint userLocation, boolean deadlineRequested) {
+      List<SearchHit<StoreDocument>> searchHits,
+      GeoPoint userLocation,
+      boolean deadlineRequested,
+      List<Float> queryVector) {
 
     if (searchHits == null || searchHits.isEmpty()) {
       return Collections.emptyList();
@@ -42,7 +48,7 @@ public class StoreRankingService {
 
     List<StoreSearchResultDtoHolder> holders =
         searchHits.stream()
-            .map(hit -> calculateScore(hit, userLocation))
+            .map(hit -> calculateScore(hit, userLocation, queryVector))
             .sorted(
                 Comparator.comparingDouble(StoreSearchResultDtoHolder::getTotalScore).reversed())
             .toList();
@@ -62,7 +68,7 @@ public class StoreRankingService {
   }
 
   private StoreSearchResultDtoHolder calculateScore(
-      SearchHit<StoreDocument> hit, GeoPoint userLocation) {
+      SearchHit<StoreDocument> hit, GeoPoint userLocation, List<Float> queryVector) {
 
     StoreDocument store = hit.getContent();
     double rawEsScore = hit.getScore();
@@ -80,12 +86,32 @@ public class StoreRankingService {
             ? 0.0
             : Math.max(0.0, 1.0 - (minutesUntilClose / MAX_URGENCY_WINDOW_MINUTES));
 
+    // 벡터 필드별 유사도, 쿼리 벡터 없으면 0으로 처리
+    double rawStoreNameSim = 0.0;
+    double rawDishNameSim = 0.0;
+    double rawDescriptionSim = 0.0;
+
+    if (queryVector != null && !queryVector.isEmpty()) {
+      rawStoreNameSim =
+          VectorSimilarityUtils.cosineSimilarity(queryVector, store.getStoreNameVector());
+      rawDishNameSim =
+          VectorSimilarityUtils.cosineSimilarity(queryVector, store.getDishNameVector());
+      rawDescriptionSim =
+          VectorSimilarityUtils.cosineSimilarity(queryVector, store.getDescriptionVector());
+    }
+    double normStoreNameSim = normalizeCosine(rawStoreNameSim);
+    double normDishNameSim = normalizeCosine(rawDishNameSim);
+    double normDescriptionSim = normalizeCosine(rawDescriptionSim);
+
     // 개인화 요소를 제외한 4가지 요소 기반 점수 산출
     double totalScore =
         (normEs * WEIGHT_ES)
             + (normDistance * WEIGHT_DISTANCE)
             + (normPrice * WEIGHT_PRICE)
-            + (normDeadline * WEIGHT_DEADLINE);
+            + (normDeadline * WEIGHT_DEADLINE)
+            + (normStoreNameSim * WEIGHT_STORE_NAME_SIM)
+            + (normDishNameSim * WEIGHT_DISH_NAME_SIM)
+            + (normDescriptionSim * WEIGHT_DESCRIPTION_SIM);
 
     ScoreBreakdown breakdown =
         ScoreBreakdown.builder()
@@ -94,9 +120,25 @@ public class StoreRankingService {
             .deadlineScore(normDeadline)
             .priceScore(normPrice)
             .personalizationScore(0.0) // 개인화 미사용 - 항상 0
+            .storeNameSimScore(normStoreNameSim)
+            .dishNameSimScore(normDishNameSim)
+            .descriptionSimScore(normDescriptionSim)
             .build();
+
     return new StoreSearchResultDtoHolder(
-        hit, totalScore, breakdown, distanceKm, minPrice, minutesUntilClose);
+        hit,
+        totalScore,
+        breakdown,
+        distanceKm,
+        minPrice,
+        minutesUntilClose,
+        rawStoreNameSim,
+        rawDishNameSim,
+        rawDescriptionSim);
+  }
+
+  private double normalizeCosine(double cosine) {
+    return Math.max(0.0, Math.min(1.0, (cosine + 1.0) / 2.0));
   }
 
   private void assignBadges(List<StoreSearchResultDtoHolder> holders, boolean deadlineRequested) {
@@ -124,6 +166,15 @@ public class StoreRankingService {
           && holder.minutesUntilClose <= minMinutesUntilCloseOverall
           && holder.minutesUntilClose < Double.MAX_VALUE) {
         holder.badges.add("마감임박");
+      }
+      if (holder.rawStoreNameSim >= VECTOR_SIM_BADGE_THRESHOLD) {
+        holder.badges.add("가게명 일치도 높음");
+      }
+      if (holder.rawDishNameSim >= VECTOR_SIM_BADGE_THRESHOLD) {
+        holder.badges.add("찾으시는 메뉴와 유사해요");
+      }
+      if (holder.rawDescriptionSim >= VECTOR_SIM_BADGE_THRESHOLD) {
+        holder.badges.add("메뉴 설명과 잘 맞아요");
       }
     }
   }
@@ -163,7 +214,7 @@ public class StoreRankingService {
         .orElse(Double.MAX_VALUE);
   }
 
-  /** 판매중/재고>0인 메뉴 중 가장 이른 pickupEndTime까지 남은 분(分)을 반환한다. 해당 메뉴가 없으면 MAX_VALUE. */
+  /** 판매중/재고>0인 메뉴 중 가장 이른 pickupEndTime까지 남은 분을 반환한다. 해당 메뉴가 없으면 MAX_VALUE. */
   private double extractMinutesUntilEarliestPickupEnd(List<StoreDocument.DishItem> dishes) {
     if (dishes == null || dishes.isEmpty()) return Double.MAX_VALUE;
     java.time.LocalTime now = java.time.LocalTime.now();
@@ -186,6 +237,9 @@ public class StoreRankingService {
     private final double distanceKm;
     private final double minPrice;
     private final double minutesUntilClose;
+    private final double rawStoreNameSim;
+    private final double rawDishNameSim;
+    private final double rawDescriptionSim;
     private final List<String> badges = new ArrayList<>();
 
     public StoreSearchResultDtoHolder(
@@ -194,13 +248,19 @@ public class StoreRankingService {
         ScoreBreakdown scoreBreakdown,
         double distanceKm,
         double minPrice,
-        double minutesUntilClose) {
+        double minutesUntilClose,
+        double rawStoreNameSim,
+        double rawDishNameSim,
+        double rawDescriptionSim) {
       this.hit = hit;
       this.totalScore = totalScore;
       this.scoreBreakdown = scoreBreakdown;
       this.distanceKm = distanceKm;
       this.minPrice = minPrice;
       this.minutesUntilClose = minutesUntilClose;
+      this.rawStoreNameSim = rawStoreNameSim;
+      this.rawDishNameSim = rawDishNameSim;
+      this.rawDescriptionSim = rawDescriptionSim;
     }
 
     public double getTotalScore() {

@@ -30,6 +30,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SearchService {
 
+  private static final List<String> VECTOR_FIELDS =
+      List.of("storeNameVector", "dishNameVector", "descriptionVector");
+
   private final ElasticsearchOperations elasticsearchOperations;
   private final Clock clock;
 
@@ -53,16 +56,20 @@ public class SearchService {
     if (queryVector != null && !queryVector.isEmpty()) {
       List<Float> floatVector = new ArrayList<>(queryVector);
 
-      KnnSearch knnSearch =
-          KnnSearch.of(
-              k ->
-                  k.field("vector")
-                      .queryVector(floatVector)
-                      .k(10)
-                      .numCandidates(100)
-                      .filter(Query.of(fq -> fq.bool(mainBool))));
+      List<KnnSearch> knnSearches =
+          VECTOR_FIELDS.stream()
+              .map(
+                  field ->
+                      KnnSearch.of(
+                          k ->
+                              k.field(field)
+                                  .queryVector(floatVector)
+                                  .k(10)
+                                  .numCandidates(100)
+                                  .filter(Query.of(fq -> fq.bool(mainBool)))))
+              .toList();
 
-      builder.withKnnSearches(knnSearch);
+      builder.withKnnSearches(knnSearches);
     }
 
     return builder.build();

@@ -33,16 +33,18 @@ public class StoreSearchFacade {
   // ===== 투-패스(Two-Pass) 폴백 판단 기준 =====
   // BM25 Fast-Pass 결과가 아래 조건을 만족하지 못하면 LLM 파싱 + kNN 벡터 검색으로 폴백한다.
   // ES score는 필드 부스트(storeName^1.5, dishName^2.0)와 nested max score mode의 영향을 받으므로
-  // 절대값 기준은 운영 로그를 보며 튜닝이 필요하다. (아래 값은 초기 기준치)
+  // 절대값 기준은 운영 로그를 보며 튜닝이 필요
   private static final int FAST_PASS_MIN_RESULT_COUNT = 5;
   private static final double FAST_PASS_MIN_TOP_SCORE = 2.0;
 
-  // 단순 키워드 판별: 공백 기준 2단어 이하 & 가격/거리 등 필터성 표현이 없는 경우
+  // 단순 키워드 판별
   private static final Pattern FILTER_KEYWORD_PATTERN =
       Pattern.compile(".*(\\d+원|이하|이상|근처|주변|할인).*");
-  // "포함 여부" 판단용이므로 앞뒤 .*는 불필요 — find()로 부분 매칭 검사
   private static final Pattern WALLET_BALANCE_PATTERN =
       Pattern.compile("(내\\s*잔액|잔액으로|잔액\\s*내|예치금|포인트|지갑|가진\\s*돈|남은\\s*돈|보유\\s*금액|가진\\s*포인트)");
+  private static final Pattern PICKUP_DEADLINE_PATTERN =
+      Pattern.compile("(오전|오후|아침|저녁|밤)?\\s*(\\d{1,2})시\\s*(\\d{1,2}\\s*분)?\\s*(까지|전에|이내)");
+
   // Fast-Pass/단순 키워드 경로는 LLM을 타지 않으므로, LLM 없이도 판별 가능한 카테고리·픽업시간만
   // 정규식/문자열 매칭으로 미리 추출해서 채운다. 애매하면 null로 두고 그대로 텍스트 검색에 맡긴다.
   private static final List<Map.Entry<String, String>> CATEGORY_ALIASES =
@@ -62,10 +64,6 @@ public class StoreSearchFacade {
               Comparator.comparingInt((Map.Entry<String, String> e) -> e.getKey().length())
                   .reversed())
           .toList();
-
-  // "8시까지", "저녁 7시 전에", "20시 30분 이내" 등 마지노선 픽업 시각 표현을 잡는다.
-  private static final Pattern PICKUP_DEADLINE_PATTERN =
-      Pattern.compile("(오전|오후|아침|저녁|밤)?\\s*(\\d{1,2})시\\s*(\\d{1,2}\\s*분)?\\s*(까지|전에|이내)");
 
   private final LlmParsingService llmParsingService;
   private final EmbeddingService embeddingService;
@@ -103,7 +101,7 @@ public class StoreSearchFacade {
           "BM25 Fast-Pass 품질 충족(count={}, topScore={}) - LLM 폴백 없이 반환",
           fastHits.size(),
           fastHits.isEmpty() ? 0.0 : fastHits.get(0).getScore());
-      return finalizeResults(fastHits, userLocation, fastCond, stopWatch, true);
+      return finalizeResults(fastHits, userLocation, fastCond, stopWatch, true, null);
     }
 
     log.info("BM25 Fast-Pass 품질 미달(count={}) - LLM 파싱 + 벡터 검색으로 폴백", fastHits.size());
@@ -127,7 +125,7 @@ public class StoreSearchFacade {
     stopWatch.stop();
 
     // 단순 키워드 경로는 지연시간 최소화가 목적이므로 RAG 추천 이유 생성(LLM 호출)은 생략한다.
-    return finalizeResults(hits, userLocation, simpleCond, stopWatch, false);
+    return finalizeResults(hits, userLocation, simpleCond, stopWatch, false, null);
   }
 
   /** LLM 없이 카테고리/픽업시간을 로컬로 추출해서 채운 검색 조건을 만든다. */
@@ -247,7 +245,7 @@ public class StoreSearchFacade {
     List<SearchHit<StoreDocument>> hits =
         searchService.searchStoresAndDishes(finalCond, userLocation, queryVector);
     stopWatch.stop();
-    return finalizeResults(hits, userLocation, finalCond, stopWatch, true);
+    return finalizeResults(hits, userLocation, finalCond, stopWatch, true, queryVector);
   }
 
   /** 랭킹/배지 부여 후, 필요 시 상위 N개에 대해 RAG 추천 이유를 채워 반환한다. */
@@ -256,13 +254,14 @@ public class StoreSearchFacade {
       GeoPoint userLocation,
       ParsedSearchCondition cond,
       StopWatch stopWatch,
-      boolean generateReasons) {
+      boolean generateReasons,
+      List<Float> queryVector) {
 
     boolean deadlineRequested = cond.pickupDeadline() != null;
 
     stopWatch.start("랭킹/배지");
     List<StoreSearchResult> ranked =
-        storeRankingService.rankAndAssignBadges(hits, userLocation, deadlineRequested);
+        storeRankingService.rankAndAssignBadges(hits, userLocation, deadlineRequested, queryVector);
     List<StoreSearchResult> displayResults = ranked.stream().limit(DISPLAY_TOP_N).toList();
     stopWatch.stop();
 

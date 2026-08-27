@@ -24,5 +24,8 @@ public class StoreSearchResult {
     private double deadlineScore;
     private double priceScore;
     private double personalizationScore;
+    private double storeNameSimScore;
+    private double dishNameSimScore;
+    private double descriptionSimScore;
   }
 }
