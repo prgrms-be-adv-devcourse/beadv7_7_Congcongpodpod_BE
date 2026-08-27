@@ -70,10 +70,14 @@ public class OrderFacade {
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
 
     // 포인트 사용
-    pointService.use(memberId, order.getId(), usedPoint);
+    if (usedPoint.compareTo(BigDecimal.ZERO) > 0) {
+      pointService.use(memberId, order.getId(), usedPoint);
+    }
 
     // 예치금 사용
-    depositFacade.use(memberId, order.getId(), order.getUsedDeposit());
+    if (order.getUsedDeposit().compareTo(BigDecimal.ZERO) > 0) {
+      depositFacade.use(memberId, order.getId(), order.getUsedDeposit());
+    }
 
     // 결제 완료 처리
     OrderResult result = orderService.completePayment(order.getId());
