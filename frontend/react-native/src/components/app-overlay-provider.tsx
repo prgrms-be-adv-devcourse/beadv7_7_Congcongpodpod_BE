@@ -90,13 +90,13 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
     </Animated.View></Reanimated.View></GestureDetector>;
 }
 
-function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value; accent?: boolean }) {
+function MetricBlurCurtain({ motion, title, accent = false }: { motion: Animated.Value; title: string; accent?: boolean }) {
   return <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, {
     opacity: motion.interpolate({ inputRange: [0, 0.2, 0.82, 1], outputRange: [1, 1, 0.48, 0] }),
     transform: [{ translateY: motion.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0, 18] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) }],
   }]}>
     <BlurView intensity={accent ? 30 : 22} style={[styles.reportMetricBlur, accent && styles.reportMetricAccentBlur]} tint={accent ? 'dark' : 'light'}>
-      <View style={styles.reportMetricBlurPrompt}><Ionicons name="eye-outline" size={17} color={accent ? colors.white : colors.ink700}/><Text style={[styles.reportMetricBlurPromptText, accent && styles.reportMetricBlurPromptTextAccent]}>눌러서 확인</Text></View>
+      <View style={styles.reportMetricBlurPrompt}><Text style={[styles.reportMetricBlurTitle, accent && styles.reportMetricBlurTitleAccent]}>{title}</Text><View style={styles.reportMetricBlurAction}><Ionicons name="eye-outline" size={16} color={accent ? colors.white : colors.ink700}/><Text style={[styles.reportMetricBlurPromptText, accent && styles.reportMetricBlurPromptTextAccent]}>눌러서 확인</Text></View></View>
     </BlurView>
     {REPORT_PARTICLES.map((particle, index) => {
       const start = 0.08 + (index % 8) * 0.035;
@@ -221,8 +221,8 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
         <View style={styles.reportPurchase}><View><Text style={styles.reportLabel}>구매 정보</Text><Text style={styles.reportPurchaseTitle}>픽업 완료 · 구매 반영 완료</Text></View><Ionicons name="receipt-outline" size={21} color={colors.green700}/></View>
         <Pressable accessibilityRole="button" onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportLevel, pressed && styles.reportPressed]}><View><Text style={styles.reportLabel}>현재 등급</Text><Text style={styles.reportLevelValue}>{report?.level ? `Lv.${report.level} · ${report.grade}` : '등급 확인 중'}</Text>{report?.remainToNextLevel !== undefined ? <Text style={styles.reportLevelHint}>{report.remainToNextLevel > 0 ? `다음 등급까지 픽업 ${report.remainToNextLevel}회` : '현재 최고 등급이에요'}</Text> : null}</View><Ionicons name="chevron-forward" size={19} color={colors.green700}/></Pressable>
         <View style={styles.reportMetrics}>
-          <Pressable accessibilityRole="button" accessibilityLabel={savedAmountVisible ? `누적 절약 금액 ${report?.savedAmount?.toLocaleString() ?? '확인 불가'}원` : '누적 절약 금액, 눌러서 확인'} onPress={() => !savedAmountVisible && revealMetric(savedAmountReveal, setSavedAmountVisible)} style={({ pressed }) => [styles.reportMetric, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text><Text style={styles.reportMetricReveal}>{savedAmountVisible ? '공개됨' : '금액 확인 완료'}</Text>{!savedAmountVisible ? <MetricBlurCurtain motion={savedAmountReveal}/> : null}</Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={earnedPointsVisible ? `지금 적립된 포인트 ${report?.earnedPoints?.toLocaleString() ?? '확인 불가'}포인트` : '지금 적립된 포인트, 눌러서 확인'} onPress={() => !earnedPointsVisible && revealMetric(earnedPointsReveal, setEarnedPointsVisible)} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>{earnedPointsVisible ? '공개됨' : '포인트 확인 완료'}</Text>{!earnedPointsVisible ? <MetricBlurCurtain accent motion={earnedPointsReveal}/> : null}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={savedAmountVisible ? `누적 절약 금액 ${report?.savedAmount?.toLocaleString() ?? '확인 불가'}원` : '누적 절약 금액, 눌러서 확인'} onPress={() => !savedAmountVisible && revealMetric(savedAmountReveal, setSavedAmountVisible)} style={({ pressed }) => [styles.reportMetric, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text><Text style={styles.reportMetricReveal}>{savedAmountVisible ? '공개됨' : '금액 확인 완료'}</Text>{!savedAmountVisible ? <MetricBlurCurtain motion={savedAmountReveal} title="누적 절약 금액"/> : null}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={earnedPointsVisible ? `지금 적립된 포인트 ${report?.earnedPoints?.toLocaleString() ?? '확인 불가'}포인트` : '지금 적립된 포인트, 눌러서 확인'} onPress={() => !earnedPointsVisible && revealMetric(earnedPointsReveal, setEarnedPointsVisible)} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>{earnedPointsVisible ? '공개됨' : '포인트 확인 완료'}</Text>{!earnedPointsVisible ? <MetricBlurCurtain accent motion={earnedPointsReveal} title="이번에 적립된 포인트"/> : null}</Pressable>
         </View>
         <View style={styles.reportTotal}><Text style={styles.reportLabel}>총 구매 횟수</Text><Text style={styles.reportTotalValue}>{report?.purchaseCount === undefined ? '—' : `${report.purchaseCount.toLocaleString()}회`}</Text></View>
         <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
@@ -367,7 +367,10 @@ const styles = StyleSheet.create({
   reportMetricBlurLayer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', borderRadius: radius.input },
   reportMetricBlur: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(247,248,246,0.48)' },
   reportMetricAccentBlur: { backgroundColor: 'rgba(0,93,45,0.44)' },
-  reportMetricBlurPrompt: { alignItems: 'center', gap: 5 },
+  reportMetricBlurPrompt: { alignItems: 'center', gap: 8 },
+  reportMetricBlurTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 11, fontWeight: '900', textAlign: 'center' },
+  reportMetricBlurTitleAccent: { color: colors.white },
+  reportMetricBlurAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   reportMetricBlurPromptText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' },
   reportMetricBlurPromptTextAccent: { color: colors.white },
   reportParticle: { position: 'absolute', backgroundColor: 'rgba(77,83,79,0.7)' },
