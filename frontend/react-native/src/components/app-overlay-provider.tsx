@@ -1,8 +1,9 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
+import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/loading-state';
@@ -52,17 +53,23 @@ function NotificationToast({ notification, onDismiss }: { notification: AppNotif
 
 function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRequest; insets: { top: number; bottom: number }; onClose: () => void }) {
   const entrance = useRef(new Animated.Value(0)).current;
-  const pointEmphasis = useRef(new Animated.Value(0)).current;
+  const [savedAmountVisible, setSavedAmountVisible] = useState(false);
+  const [earnedPointsVisible, setEarnedPointsVisible] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!report) return;
-    entrance.setValue(0);
-    pointEmphasis.setValue(0);
-    Animated.sequence([
-      Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }),
-      Animated.spring(pointEmphasis, { toValue: 1, damping: 12, stiffness: 170, mass: 0.7, useNativeDriver: true }),
-    ]).start();
-  }, [entrance, pointEmphasis, report]);
+    setSavedAmountVisible(false);
+    setEarnedPointsVisible(false);
+    entrance.setValue(reduceMotion ? 1 : 0);
+    if (!reduceMotion) Animated.timing(entrance, { toValue: 1, duration: 400, easing: Easing.bezier(0.2, 0, 0, 1), useNativeDriver: true }).start();
+  }, [entrance, reduceMotion, report]);
 
   const navigate = (path: '/grades' | '/points') => {
     onClose();
@@ -71,7 +78,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
 
   return <Modal animationType="fade" onRequestClose={onClose} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
     <View style={[styles.reportRoot, { paddingTop: Math.max(24, insets.top), paddingBottom: Math.max(24, insets.bottom) }]}>
-      <Animated.View accessibilityRole="alert" accessibilityViewIsModal style={[styles.reportCard, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }] }]}>
+      <Animated.View accessibilityRole="alert" accessibilityViewIsModal style={[styles.reportCard, { opacity: entrance, transform: [{ perspective: 900 }, { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [34, 0] }) }, { rotateX: entrance.interpolate({ inputRange: [0, 1], outputRange: ['9deg', '0deg'] }) }, { rotateY: entrance.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '0deg'] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] }]}>
         <View style={styles.reportHeader}>
           <View style={styles.reportMark}><Ionicons name="checkmark-circle-outline" size={25} color={colors.white}/></View>
           <View style={styles.reportHeaderCopy}><Text style={styles.reportEyebrow}>픽업 완료 리포트</Text><Text style={styles.reportTitle}>오늘도 한 끼를 구조했어요</Text></View>
@@ -80,8 +87,8 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
         <View style={styles.reportPurchase}><View><Text style={styles.reportLabel}>구매 정보</Text><Text style={styles.reportPurchaseTitle}>픽업 완료 · 구매 반영 완료</Text></View><Ionicons name="receipt-outline" size={21} color={colors.green700}/></View>
         <Pressable accessibilityRole="button" onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportLevel, pressed && styles.reportPressed]}><View><Text style={styles.reportLabel}>현재 등급</Text><Text style={styles.reportLevelValue}>{report?.level ? `Lv.${report.level} · ${report.grade}` : '등급 확인 중'}</Text>{report?.remainToNextLevel !== undefined ? <Text style={styles.reportLevelHint}>{report.remainToNextLevel > 0 ? `다음 등급까지 픽업 ${report.remainToNextLevel}회` : '현재 최고 등급이에요'}</Text> : null}</View><Ionicons name="chevron-forward" size={19} color={colors.green700}/></Pressable>
         <View style={styles.reportMetrics}>
-          <View style={styles.reportMetric}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text></View>
-          <Animated.View style={[styles.reportMetricAnimated, { transform: [{ scale: pointEmphasis.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] }]}><Pressable accessibilityRole="button" onPress={() => navigate('/points')} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>포인트 내역 보기</Text></Pressable></Animated.View>
+          <Pressable accessibilityRole="button" accessibilityLabel={savedAmountVisible ? `누적 절약 금액 ${report?.savedAmount?.toLocaleString() ?? '확인 불가'}원` : '누적 절약 금액, 눌러서 확인'} onPress={() => setSavedAmountVisible(true)} style={({ pressed }) => [styles.reportMetric, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text><Text style={styles.reportMetricReveal}>{savedAmountVisible ? '공개됨' : '눌러서 확인'}</Text>{!savedAmountVisible ? <BlurView intensity={24} pointerEvents="none" style={styles.reportMetricBlur} tint="light"><Ionicons name="eye-outline" size={18} color={colors.ink700}/></BlurView> : null}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={earnedPointsVisible ? `지금 적립된 포인트 ${report?.earnedPoints?.toLocaleString() ?? '확인 불가'}포인트` : '지금 적립된 포인트, 눌러서 확인'} onPress={() => setEarnedPointsVisible(true)} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>{earnedPointsVisible ? '공개됨' : '눌러서 확인'}</Text>{!earnedPointsVisible ? <BlurView intensity={32} pointerEvents="none" style={[styles.reportMetricBlur, styles.reportMetricAccentBlur]} tint="dark"><Ionicons name="eye-outline" size={18} color={colors.white}/></BlurView> : null}</Pressable>
         </View>
         <View style={styles.reportTotal}><Text style={styles.reportLabel}>총 구매 횟수</Text><Text style={styles.reportTotalValue}>{report?.purchaseCount === undefined ? '—' : `${report.purchaseCount.toLocaleString()}회`}</Text></View>
         <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
@@ -209,20 +216,22 @@ const styles = StyleSheet.create({
   reportLevelHint: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
   reportPressed: { backgroundColor: colors.green50, borderColor: colors.green300 },
   reportMetrics: { marginTop: 8, flexDirection: 'row', gap: 8 },
-  reportMetricAnimated: { flex: 1 },
-  reportMetric: { minHeight: 112, flex: 1, padding: 14, justifyContent: 'space-between', borderRadius: radius.input, backgroundColor: colors.canvas },
+  reportMetric: { minHeight: 112, flex: 1, padding: 14, justifyContent: 'space-between', overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.canvas },
   reportMetricAccent: { backgroundColor: colors.green700 },
   reportMetricLabel: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   reportMetricValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 19, fontWeight: '900', letterSpacing: -0.5 },
   reportMetricAccentLabel: { color: colors.green100, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   reportMetricAccentValue: { color: colors.white, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   reportMetricLink: { color: colors.green100, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
+  reportMetricReveal: { color: colors.ink500, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
+  reportMetricBlur: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(247,248,246,0.34)' },
+  reportMetricAccentBlur: { backgroundColor: 'rgba(0,93,45,0.28)' },
   reportMetricPressed: { opacity: 0.88 },
   reportTotal: { minHeight: 62, marginTop: 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   reportTotalValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' },
   reportActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
   reportLater: { minHeight: 50, flex: 0.7, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white },
   reportLaterText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
-  reportPrimary: { minHeight: 50, flex: 1.3, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green500 },
+  reportPrimary: { minHeight: 50, flex: 1.3, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green700 },
   reportPrimaryText: { color: colors.white, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' },
 });
