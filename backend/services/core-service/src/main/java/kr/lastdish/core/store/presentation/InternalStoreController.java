@@ -1,5 +1,7 @@
 package kr.lastdish.core.store.presentation;
 
+import java.time.Instant;
+import java.util.List;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.store.application.StoreFacade;
 import kr.lastdish.core.store.presentation.dto.InternalStoreResponse;
@@ -7,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -20,5 +23,14 @@ public class InternalStoreController {
   public ApiResponse<InternalStoreResponse> getSearchDoc(@PathVariable Long storeId) {
     return ApiResponse.ok(
         InternalStoreResponse.from(storeFacade.getDishAndStoreByStoreIdForRenewal(storeId)));
+  }
+
+  @GetMapping("/renewal")
+  public ApiResponse<List<InternalStoreResponse>> getSearchDocs(
+      @RequestParam Instant from, @RequestParam Instant to) {
+    return ApiResponse.ok(
+        storeFacade.getDishAndStoresForRenewal(from, to).stream()
+            .map(InternalStoreResponse::from)
+            .toList());
   }
 }

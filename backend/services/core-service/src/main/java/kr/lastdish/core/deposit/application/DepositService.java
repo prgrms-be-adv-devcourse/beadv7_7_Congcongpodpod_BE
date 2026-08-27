@@ -19,18 +19,18 @@ public class DepositService {
   private final DepositRepository depositRepository;
   private final DepositHistoryRepository depositHistoryRepository;
 
-  // 회원의 현재 예치금 잔액 조회 로직
-  @Transactional
-  public DepositBalanceResponse getDepositBalance(Long memberId) {
-    return DepositBalanceResponse.from(getOrCreateDeposit(memberId));
-  }
-
-  // 회원의 예치금 조회 시점에 예치금 정보가 생성되지 않은 회원인 경우, NPE를 방지하기 위해 잔액이 0원인 지갑을 신규 생성하여 반환
-  @Transactional
-  public Deposit getOrCreateDeposit(Long memberId) {
+  // 회원의 예치금 조회 시점에 예치금 정보가 생성되지 않은 회원인 경우, 잔액이 0원인 지갑을 신규 생성하여 반환
+  @Transactional(readOnly = true)
+  public Deposit getOrDefaultDeposit(Long memberId) {
     return depositRepository
         .findByMemberId(memberId)
-        .orElseGet(() -> depositRepository.save(Deposit.createDefault(memberId)));
+        .orElseGet(() -> Deposit.createDefault(memberId));
+  }
+
+  // 회원의 현재 예치금 잔액 조회
+  @Transactional(readOnly = true)
+  public DepositBalanceResponse getDepositBalance(Long memberId) {
+    return DepositBalanceResponse.from(getOrDefaultDeposit(memberId));
   }
 
   // 회원 예치금 사용 시 차감 후 기록

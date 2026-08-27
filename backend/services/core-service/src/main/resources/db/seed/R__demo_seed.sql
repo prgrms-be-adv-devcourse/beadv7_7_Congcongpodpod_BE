@@ -11,8 +11,6 @@ TRUNCATE TABLE
     public.carts,
     public.deposit_history,
     public.deposits,
-    public.payment_log,
-    public.payments,
     public.point_history,
     public.points,
     public.level_history,
@@ -418,36 +416,308 @@ FROM demo_store_source;
 INSERT INTO public.dishes (
     id, store_id, dish_name, description, category, dish_price, discount_price,
     stock_quantity, dish_status, thumbnail_url, pickup_start_time, pickup_end_time,
-    registered_at, is_deleted, event_version
-)
-SELECT
-    seed_id,
-    seed_id,
-    CASE category
-        WHEN 'CAFE_DESSERT' THEN '오늘의 디저트 마감팩'
-        WHEN 'CHICKEN' THEN '치킨 마감팩'
-        WHEN 'CHINESE' THEN '중식 마감팩'
-        WHEN 'PIZZA' THEN '피자 마감팩'
-        WHEN 'CUTLET_SUSHI' THEN '돈까스·초밥 마감팩'
-        WHEN 'FAST_FOOD' THEN '패스트푸드 마감팩'
-        WHEN 'ASIAN' THEN '아시안 마감팩'
-        WHEN 'WESTERN' THEN '양식 마감팩'
-        WHEN 'MEAT' THEN '고기 마감팩'
-        ELSE '오늘의 한식 마감팩'
-    END,
-    '시연용 상품입니다.',
-    category,
-    20000,
-    10000 + (seed_id % 5) * 1000,
-    1000000,
-    'ON_SALE',
-    NULL,
-    time '18:00',
-    time '21:30',
-    current_timestamp - interval '120 days',
-    false,
-    0
-FROM demo_store_source;
+    registered_at, is_deleted, event_version, updated_at
+) VALUES
+  (1, 1, '천연발효종 올리브 치아바타 세트', '18시간 저온 숙성한 천연발효종 반죽에 스페인산 블랙 올리브와 롤치즈를 듬뿍 넣어 겉은 바삭하고 속은 촉촉 쫄깃한 식사빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (2, 2, '달콤 바삭 아몬드 크루아상', '바삭한 프랑스산 크루아상 사이에 진한 아몬드 크림을 채우고 고소한 슬라이스 아몬드를 듬뿍 얹어 구워냈습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (3, 3, '생딸기 듬뿍 순우유 케이크 조각', '신선한 국산 설향 딸기와 100% 동물성 생크림, 촉촉한 제누와즈 시트가 층층이 어우러진 시그니처 케이크입니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (4, 4, '프렌치 수제 마카롱 4구 세트', '바닐라, 솔티드 카라멜, 다크초코, 산딸기 4가지 맛으로 구성된 쫀득한 꼬끄와 풍성한 필링의 마카롱입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (5, 5, '수비드 닭가슴살 콥 샐러드', '저온 수비드로 조리해 촉촉한 닭가슴살과 삶은 달걀, 방울토마토, 블랙올리브, 체다치즈에 랜치 드레싱을 곁들였습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (6, 6, '클래식 BLT 샌드위치', '바삭하게 구운 베이컨과 신선한 양상추, 완숙 토마토를 갓 구운 호밀 식빵 사이에 특제 마요 소스와 함께 샌드했습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (7, 7, '생연어 아보카도 포케 볼', '신선한 노르웨이산 생연어 깍둑썰기와 부드러운 아보카도, 날치알, 해초 샐러드를 현미밥 위에 특제 스파이시 마요 소스와 얹었습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (8, 8, '시그니처 스페셜티 아메리카노 2잔', '에티오피아 예가체프와 콜롬비아 수프레모를 블렌딩하여 화사한 꽃향기와 다크초콜릿의 묵직한 바디감이 살아있는 아메리카노입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (9, 9, '제철 모둠 컷팅 과일 컵 (특대)', '당도 선별된 샤인머스캣, 애플수박, 파인애플, 방울토마토, 멜론을 한 입 크기로 깔끔하게 손질해 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (10, 10, '수제 그릭 요거트 플레인 대용량 (300g)', '국내산 1A등급 원유를 3배 농축하여 유청을 99% 제거해 크림치즈처럼 꾸덕하고 단백질이 풍부한 무가당 그릭 요거트입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (11, 11, '통밀 사워도우 깜빠뉴', '유기농 통밀과 호밀을 블렌딩하여 구워낸 담백하고 구수한 깜빠뉴로 샌드위치용이나 발사믹 오일에 곁들이기 제격입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (12, 12, '수제 팥앙금 통팥빵 2입', '국내산 팥을 뭉근하게 끓여 만든 달지 않은 통팥 앙금과 부드러운 반죽이 어우러진 정통 팥빵 세트입니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (13, 13, '바스크 치즈 케이크 조각', '고온에서 겉면을 그을려 스모키한 캐러멜 향을 내고 속은 크리미하고 진한 끼리 크림치즈의 풍미가 가득합니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (14, 14, '바닐라 커스터드 푸딩', '신선한 우유와 달걀 노른자, 천연 바닐라빈을 듬뿍 넣어 젤라틴 없이 오븐에서 부드럽게 쪄낸 정통 수제 푸딩입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (15, 15, '생연어 아보카도 샐러드 볼', '노르웨이산 신선한 생연어 큐브와 부드러운 숲속의 버터 아보카도, 믹스 채소에 오리엔탈 유자 드레싱이 조화롭습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (16, 16, '햄치즈 크루아상 샌드위치', '버터 결이 살아있는 바삭한 크루아상에 본레스 햄과 고소한 에멘탈 치즈, 루꼴라를 넣어 브런치로 제격입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (17, 17, '직화 소불고기 덮밥 도시락', '특제 간장 소스에 숙성한 소불고기를 직화로 구워 불향을 입히고 볶은 양파, 꽈리고추와 함께 갓 지은 쌀밥에 올렸습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (18, 18, '디카페인 콜드브루 보틀 (500ml)', '14시간 동안 차가운 정제수로 한 방울씩 천천히 추출하여 쓴맛 없이 깔끔하고 와인 같은 풍미의 프리미엄 디카페인 커피입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (19, 19, '설향 생딸기 한 팩 (500g)', '충남 논산에서 새벽 수확한 당도 12브릭스 이상의 새콤달콤하고 과즙 풍부한 특등급 설향 딸기입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (20, 20, '유기농 방목 우유 1L & 초지 버터 세트', '목초만 먹고 자란 젖소의 고소한 유기농 단일목장 우유와 풍미 깊은 전통 가염 버터 세트입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (21, 21, '버터 풍미 가득 소금빵 3종 팩', '프랑스산 고메 버터의 풍부한 풍미와 말돈 소금의 깔끔한 짠맛이 어우러져 한 입 베어 물면 버터 홀이 촉촉하게 퍼집니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (22, 22, '바닐라빈 듬뿍 슈크림빵', '마다가스카르산 천연 바닐라빈이 콕콕 박힌 부드럽고 진한 커스터드 크림이 빵 속에 꽉 차 있습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (23, 23, '발로나 다크 초콜릿 가나슈 케이크', '최고급 발로나 다크 초콜릿으로 만든 꾸덕한 가나슈와 부드러운 초코 시트가 깊고 진한 달콤함을 선사합니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (24, 24, '바삭 촉촉 에그타르트 2입', '버터 결이 살아있는 바삭한 포르투갈식 페이스트리 도우 속에 달콤하고 부드러운 에그 커스터드가 꽉 차 있습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (25, 25, '리코타 치즈 & 무화과 샐러드', '매일 아침 직접 끓여 만든 부드럽고 고소한 수제 리코타 치즈와 달콤한 무화과, 호두에 발사믹 글레이즈를 더했습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (26, 26, '바질 치킨 치아바타 샌드위치', '향긋한 수제 바질 페스토에 버무린 닭가슴살과 썬드라이 토마토, 모짜렐라 치즈를 쫄깃한 치아바타에 가득 채웠습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (27, 27, '생와사비 참치 포케 보울', '신선한 참치 횟감과 오이, 에다마메, 적양파, 크리스피 어니언을 얹고 감칠맛 나는 참깨 간장 소스를 곁들인 하와이안 포케입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (28, 28, '제주 말차 라떼 보틀 (350ml)', '제주 유기농 다원에서 차광 재배한 어린 찻잎으로 빻은 프리미엄 말차 가루와 신선한 1등급 원유가 어우러져 깊고 진합니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (29, 29, '샤인머스캣 & 프리미엄 머스크멜론 팩', '망고 향이 나는 고당도 샤인머스캣과 달콤하고 과즙이 줄줄 흐르는 머스크멜론 큐브 세트입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (30, 30, '수제 스트링 치즈 5개입 팩', '짜지 않고 담백하며 전자레인지에 살짝 데우면 결대로 찢어지는 쫄깃한 국내산 자연 모짜렐라 스트링 치즈입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (31, 31, '호두 크랜베리 바게트', '고소한 캘리포니아 호두와 달콤상큼한 건크랜베리를 가득 넣어 씹을수록 깊은 풍미가 느껴지는 정통 프랑스식 바게트입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (32, 32, '소보로 가득 모카번', '향긋한 원두 커피 향이 솔솔 풍기는 바삭한 모카 비스킷 토핑 속에 짭조름한 가염 버터가 녹아들어 단짠의 정석을 보여줍니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (33, 33, '제주 말차 갸또 쇼콜라', '진한 화이트 초콜릿 베이스의 갸또 시트 위에 쌉싸름하고 깊은 풍미의 제주 유기농 말차 가나슈 크림을 듬뿍 올렸습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (34, 34, '벨기에 리에주 와플 & 메이플 시럽', '펄슈가가 콕콕 박혀 겉은 바삭하고 속은 쫄깃한 벨기에 정통 와플에 캐나다산 순수 메이플 시럽을 곁들였습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (35, 35, '그릴드 쉬림프 시저 샐러드', '불향 가득하게 구워낸 탱글탱글한 통새우와 아삭한 로메인 상추, 바삭한 크루통에 진한 시저 드레싱을 곁들였습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (36, 36, '에그 마요 모닝 샌드위치 2입', '신선한 완숙란을 으깨어 고소한 마요네즈와 홀그레인 머스터드로 부드럽게 버무려 폭신한 모닝빵에 가득 채웠습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (37, 37, '수제 매콤 제육덮밥', '국내산 돼지 앞다리살을 매콤달콤한 고추장 양념에 불맛 나게 볶아내어 밥 한 공기를 뚝딱 비우게 만드는 든든한 한 끼입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (38, 38, '수제 생딸기 라떼 (500ml)', '당도 높은 국내산 생딸기를 직접 으깨어 만든 과육 가득 딸기청에 고소한 우유를 듬뿍 부어 달콤하게 씹히는 라떼입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (39, 39, '달콤한 페루산 애플망고 2과 컷팅팩', '진한 노란빛 과육과 꿀처럼 달콤한 과즙을 자랑하는 항공직송 프리미엄 애플망고를 먹기 좋게 잘라 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (40, 40, '트리플 베리 그릭 요거트 볼', '꾸덕한 무가당 그릭 요거트 위에 생블루베리, 라즈베리, 수제 그래놀라와 천연 아카시아 벌꿀 스틱을 얹었습니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (41, 41, '담백한 감자 치즈 치아바타', '국내산 포슬포슬한 감자와 체다 치즈를 반죽에 듬뿍 넣어 부드럽고 든든하게 식사 대용으로 즐기기 좋은 치아바타입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (42, 42, '겉바속촉 옥수수 멜론빵', '바삭달콤한 쿠키 도우를 씌운 일본식 멜론빵 속에 톡톡 터지는 옥수수 크림을 채워 풍미를 더했습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (43, 43, '클래식 이탈리안 티라미수 컵', '에스프레소에 적신 사보이아르디 쿠키와 부드럽고 녹진한 마스카포네 치즈 무스가 환상의 조화를 이룹니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (44, 44, '시나몬 슈가 츄러스 & 초코 디핑', '바삭하게 튀겨낸 스페인식 츄러스에 향긋한 시나몬 설탕을 입히고 찍어 먹을 수 있는 진한 다크초코 딥을 제공합니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (45, 45, '단호박 훈제오리 샐러드', '기름기를 쏙 뺀 담백한 훈제오리와 달콤한 찐 단호박, 신선한 어린잎 채소에 알싸한 허니 머스터드 드레싱이 어울립니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (46, 46, '루꼴라 잠봉뵈르 샌드위치', '바삭한 정통 바게트 사이에 무염 천연 발효버터를 두툼하게 썰어 넣고 국내산 수제 잠봉 햄과 향긋한 루꼴라를 더했습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (47, 47, '탱글 통새우 볶음밥', '고슬고슬한 쌀밥에 통통한 알새우와 계란, 대파, 당근을 고온의 웍에서 볶아내어 은은한 불향과 감칠맛이 가득합니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (48, 48, '로얄 밀크티 보틀 (500ml)', '스리랑카 우바 홍차와 아쌈 홍차 잎을 진하게 끓여 비정제 사탕수수당과 우유에 24시간 냉침 숙성한 수제 밀크티입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (49, 49, '칠레산 고당도 씨없는 청포도 팩', '껍질째 아삭하게 씹히며 톡 터지는 풍부한 청량감과 달콤한 과즙을 가진 신선한 청포도입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (50, 50, '프레시 부라타 치즈 2구 팩', '겉은 쫄깃한 모짜렐라 주머니 속에 부드러운 스트라치아텔라 생크림 치즈가 가득 차 반을 가르면 크림이 흘러나옵니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (51, 51, '무화과 호밀 브레드', '와인에 졸인 달콤한 건무화과와 고소한 호두가 듬뿍 들어있어 크림치즈와 함께 곁들이면 완벽한 조화를 이루는 건강 식사빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (52, 52, '시나몬 롤 페이스트리', '버터 풍미 가득한 결 고운 페이스트리에 알싸하고 달콤한 시나몬 슈가와 크림치즈 글레이즈를 듬뿍 얹었습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (53, 53, '얼그레이 자몽 쉬폰 케이크', '향긋한 트와이닝 얼그레이 티를 우려낸 폭신한 쉬폰 시트에 쌉싸름 달콤한 생자몽 과육을 얹었습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (54, 54, '르뱅 버터 르뱅쿠키 2종 세트', '칼리바우트 다크초콜릿과 호두가 가득 들어간 묵직하고 꾸덕한 뉴욕 스타일 수제 르뱅쿠키 세트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (55, 55, '지중해식 그릭 샐러드', '신선한 오이, 파프리카, 방울토마토에 그리스산 페타 치즈와 칼라마타 올리브, 엑스트라 버진 올리브유를 버무렸습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (56, 56, '베트남 정통 포크 반미 샌드위치', '쌀 바게트의 겉바속촉 식감 안에 매콤달콤한 돼지 불고기와 새콤한 무당근 피클, 신선한 고수를 듬뿍 넣었습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (57, 57, '부드러운 안심 돈카츠 덮밥 (가츠동)', '국내산 돼지 안심으로 바삭하게 튀겨낸 돈카츠를 달콤 짭조름한 쯔유 소스와 몽글몽글한 계란에 졸여 밥 위에 얹었습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (58, 58, '바닐라빈 에스프레소 라떼', '마다가스카르산 천연 바닐라빈 꼬투리를 통째로 넣어 끓인 수제 시럽과 진한 2샷 에스프레소, 스팀 밀크의 조화입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (59, 59, '제주 고당도 하우스 감귤 (1kg)', '껍질이 얇고 과즙이 꽉 차 있어 새콤달콤함의 밸런스가 뛰어난 당도 12브릭스 보증 제주 감귤입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (60, 60, '홈메이드 리코타 치즈 (250g)', '신선한 우유와 생크림, 레몬즙으로 매일 아침 정성껏 끓여내어 고소하고 부드러운 식감이 살아있는 순수 리코타입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (61, 61, '쫄깃한 플레인 베이글 & 바질 스프레드', '전통 방식으로 끓는 물에 데쳐 구워내 밀도 높은 쫄깃함을 자랑하는 플레인 베이글과 수제 바질 크림치즈 세트입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (62, 62, '얼그레이 퀸아망', '바삭하게 카라멜라이징된 페이스트리에 은은한 베르가못 향의 트와이닝 얼그레이 시럽을 입힌 달콤한 디저트 빵입니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (63, 63, '블루베리 요거트 생크림 케이크', '상큼한 수제 요거트 크림과 달콤한 야생 블루베리 콩포트를 촉촉한 바닐라 시트 사이에 듬뿍 샌드했습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (64, 64, '다크 초콜릿 퐁당 오 쇼콜라', '오븐에 살짝 데우면 가운데에서 따뜻하고 진한 다크 초콜릿 용암이 흘러나오는 프랑스 정통 디저트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (65, 65, '구운 버섯 & 두부 텐더 샐러드', '쫄깃하게 구운 새송이·양송이 버섯과 바삭 담백한 국산 콩 두부 텐더에 고소한 참깨 참깨 드레싱을 곁들인 비건 샐러드입니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (66, 66, '필리 치즈 스테이크 샌드위치', '얇게 썬 소고기와 양파, 피망을 철판에 볶아 진한 체다 치즈 소스를 듬뿍 부어 넣은 미국식 핫 샌드위치입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (67, 67, '훈제오리 부추 덮밥', '노릇하게 구운 담백한 훈제오리에 향긋한 부추 무침과 무쌈, 특제 간장 데리야끼 소스를 곁들인 영양 만점 덮밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (68, 68, '패션후르츠 망고 에이드', '새콤하게 톡톡 씹히는 패션후르츠 씨앗과 달콤한 애플망고 과육에 톡 쏘는 탄산수를 블렌딩한 트로피컬 에이드입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (69, 69, '캘리포니아 체리 & 블루베리 보울', '짙은 흑자색의 단단하고 달콤한 생체리와 탱글탱글한 생블루베리를 깨끗이 세척해 컵에 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (70, 70, '제주 목장 무가당 드링킹 요거트 (500ml)', '인공 첨가물 없이 살아있는 생유산균 1천억 마리와 제주 원유로 발효하여 진하고 목넘김이 부드러운 마시는 요거트입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (71, 71, '바질 토마토 치아바타', '향긋한 생바질 페스토와 달콤한 썬드라이 토마토, 모짜렐라 치즈가 어우러져 브런치 테이블을 풍성하게 만들어 줍니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (72, 72, '생크림 폭탄 단팥빵', '부드러운 동물성 우유 생크림과 달콤한 팥앙금이 1:1 황금비율로 듬뿍 들어가 입안 가득 행복을 전합니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (73, 73, '호두 당근 크림치즈 케이크', '고소한 호두와 당근, 시나몬 향이 풍성한 묵직한 시트 위에 새콤달콤한 레몬 크림치즈 프로스팅을 올렸습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (74, 74, '클래식 까눌레 2입 팩', '럼과 바닐라빈의 풍미가 가득하며, 동틀에서 고온에 구워내 겉은 바작하고 속은 촉촉 쫀득한 까눌레입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (75, 75, '비프 스테이크 & 아스파라거스 샐러드', '육즙 가득 구워낸 부채살 스테이크와 구운 아스파라거스, 방울토마토를 신선한 채소와 함께 발사믹 소스로 즐깁니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (76, 76, '생연어 크림치즈 베이글 샌드위치', '쫄깃한 어니언 베이글에 두툼한 필라델피아 크림치즈를 바르고 신선한 훈제연어와 케이퍼, 적양파를 올렸습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (77, 77, '간장 생연어장 덮밥 (사케동)', '짜지 않고 감칠맛 넘치는 비법 맛간장에 24시간 저온 숙성한 두툼한 생연어와 생와사비, 무순을 밥 위에 얹었습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (78, 78, '얼그레이 레몬 아이스티', '진하게 우려낸 베르가못 향의 트와이닝 얼그레이 티 베이스에 착즙 생레몬 즙을 더해 갈증을 시원하게 해소해 줍니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (79, 79, '태국산 골드 파인애플 컷팅 스틱', '산미를 줄이고 당도를 극대화한 골드 파인애플 심지를 제거하고 간편하게 집어 먹을 수 있게 손질했습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (80, 80, '망고 패션후르츠 그릭 요거트 볼', '꾸덕한 그릭 요거트에 달콤한 망고 과육과 상큼한 패션후르츠 청, 바삭한 코코넛 청크를 토핑한 디저트 보울입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (81, 81, '소프트 연유 모닝롤 6개입', '신선한 우유와 연유를 듬뿍 넣어 갓 구워낸 폭신폭신하고 부드러운 식감으로 온 가족 아침 식사에 어울립니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (82, 82, '헤이즐넛 초코 뺑오쇼콜라', '바삭한 결이 살아있는 크루아상 도우 안에 진한 발로나 다크 초콜릿 바와 헤이즐넛 프랄린을 품었습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (83, 83, '밀크 크레이프 케이크 조각', '얇게 구워낸 크레이프를 20겹 이상 쌓아 올리고 겹겹이 바닐라빈 커스터드 생크림을 발라 입안에서 녹아내립니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (84, 84, '헤이즐넛 버터 휘낭시에 3종', '태운 버터의 짙은 풍미와 아몬드 가루의 고소함이 돋보이는 겉바속촉 정통 프랑스 구움과자 휘낭시에 세트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (85, 85, '단호박 에그 마요 샐러드 볼', '달콤한 미니 단호박과 고소한 계란, 옥수수 콘을 버무린 샐러드 스쿱을 아삭한 양상추 베이스 위에 얹었습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (86, 86, '치킨 클럽 3단 샌드위치', '그릴에 구운 닭가슴살, 바삭한 베이컨, 계란 프라이, 치즈, 토마토를 3단 토스트 식빵에 꽉 채운 든든한 샌드위치입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (87, 87, '소고기 규동 덮밥', '얇게 썬 소고기와 달콤하게 캐러멜라이징된 양파를 일본 정통 가쓰오부시 육수에 자작하게 끓여 밥 위에 부드럽게 얹었습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (88, 88, '더블 샷 아인슈페너', '진한 롱블랙 에스프레소 위에 쫀쫀하고 묵직한 동물성 바닐라 생크림을 두툼하게 얹어 섞지 않고 마시는 커피입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (89, 89, '지리산 산청 지리산 꿀배 컷팅 컵', '아삭아삭한 식감과 시원하고 달콤한 천연 과즙이 풍부한 제철 나주 배를 껍질 벗겨 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (90, 90, '바질 마리네이드 보코치니 치즈 팩', '한 입 크기의 동글동글한 생 모짜렐라 치즈를 엑스트라 버진 올리브유와 생바질, 드라이 토마토에 재워 풍미를 더했습니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (91, 91, '호두 호밀 식빵', '통호밀의 거친 매력과 고소하게 씹히는 호두 알갱이가 매력적인 웰빙 식빵으로 토스트 시 바삭함이 극대화됩니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (92, 92, '클래식 카스테라 꽈배기', '쫄깃하게 튀겨낸 찹쌀 꽈배기에 부드러운 우유 생크림을 바르고 고운 카스테라 고물을 듬뿍 묻혔습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (93, 93, '망고 패션후르츠 무스 케이크', '달콤한 애플망고와 상큼한 패션후르츠 퓨레로 만든 열대과일 무스가 지친 일상에 산뜻한 활력을 불어넣습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (94, 94, '과일 듬뿍 파르페 컵', '바삭한 그래놀라와 부드러운 우유 푸딩 위에 제철 생과일과 생크림, 달콤한 딸기 시럽을 층층이 쌓았습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (95, 95, '생 모짜렐라 카프레제 샐러드', '이탈리아산 생 모짜렐라 보코치니 치즈와 완숙 방울토마토, 신선한 생바질에 수제 바질 페스토와 올리브유를 둘렀습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (96, 96, '단호박 에그 샌드위치', '부드럽고 달콤한 찐 단호박 무스와 계란 샐러드를 두툼하게 샌드하여 한 입 가득 담백하고 부드러운 맛을 냅니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (97, 97, '매콤 낙지 볶음 덮밥', '쫄깃하고 오동통한 낙지를 화끈한 불맛 고춧가루 양념에 미나리와 함께 볶아 콩나물, 김가루와 함께 비벼 먹는 덮밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (98, 98, '청포도 라임 모히또 에이드', '상큼한 라임 생과즙과 향긋한 생애플민트 잎을 빻아 달콤한 청포도 과육 탄산수와 함께 시원하게 담아냈습니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (99, 99, '경북 청송 꿀사과 조각 팩 (비타민 코팅)', '갈변 방지 천연 비타민 처리를 거쳐 아삭함과 꿀 박힌 달콤함이 그대로 유지되는 세척 사과 조각입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (100, 100, '단백질 듬뿍 코티지 치즈 (200g)', '지방은 낮추고 고단백 커드를 살려 샐러드나 통밀빵 토핑, 다이어트 식단에 가볍게 곁들이기 좋은 생치즈입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (101, 101, '버터 듬뿍 브리오슈 식빵', '달걀과 프랑스산 버터를 아낌없이 넣어 결대로 찢어지는 부드러움과 달콤한 풍미가 일품인 프리미엄 식빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (102, 102, '연유 버터 라우겐', '독일식 라우겐 빵의 짭짤하고 쫄깃한 식감 사이에 달콤한 연유와 고소한 앵커 버터를 두툼하게 샌드했습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (103, 103, '뉴욕 정통 치즈 케이크', '밀가루를 최소화하고 크림치즈 함량을 70% 이상 채워 묵직하고 녹진한 치즈 본연의 풍미를 자랑합니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (104, 104, '이탈리안 판나코타 & 베리 콩포트', '입안에서 사르르 녹아내리는 부드러운 우유 생크림 푸딩 위에 상큼한 수제 라즈베리 콩포트를 얹었습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (105, 105, '멕시칸 치킨 파히타 샐러드', '스파이시 시즈닝으로 구운 닭다리살과 구운 파프리카, 옥수수, 강낭콩, 나초칩에 매콤한 살사 드레싱을 제공합니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (106, 106, '핫 치킨 텐더 치아바타 샌드위치', '매콤한 스파이시 치킨 텐더와 아삭한 로메인, 할라피뇨 마요 소스가 어우러져 매콤 바삭하게 즐기는 샌드위치입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (107, 107, '치킨 가라아게 마요 덮밥', '바삭하게 튀겨낸 일본식 닭다리살 가라아게에 달콤한 데리야끼 소스와 고소한 마요네즈, 김가루를 듬뿍 올렸습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (108, 108, '생 자몽 과육 에이드', '쌉싸름하고 달콤한 생자몽을 한 알 한 알 정성껏 까서 만든 수제 자몽청과 톡 쏘는 탄산수의 청량한 만남입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (109, 109, '스테비아 대추방울토마토 (단마토 500g)', '설탕을 뿌린 듯 기분 좋은 달콤함을 자랑하는 스테비아 농법의 탱글탱글한 대추방울토마토입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (110, 110, '블루베리 수제 그릭 요거트 (150g 2입)', '유청을 꽉 짠 꾸덕한 그릭 요거트에 야생 블루베리 콩포트를 듬뿍 블렌딩하여 상큼달콤하고 든든합니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (111, 111, '마늘 버터 소프트 바게트', '바삭한 바게트 틈새마다 알싸하고 달콤한 국내산 의성 마늘 소스와 파슬리 버터를 듬뿍 채워 구워냈습니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (112, 112, '레몬 글레이즈 마들렌 세트', '생레몬 즙과 제스트를 듬뿍 넣어 상큼함을 극대화하고 겉면에 사각거리는 레몬 슈가 글레이즈를 입혔습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (113, 113, '보늬밤 몽블랑 케이크', '달콤하게 졸인 국내산 보늬밤을 통째로 넣고 부드러운 밤 크림을 섬세하게 짜 올린 가을 감성 케이크입니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (114, 114, '초코 츄러스 볼 6개입', '한 입 크기의 바삭한 츄러스 볼 안에 진한 누텔라 초코 크림이 듬뿍 들어있어 간편하고 달콤하게 즐길 수 있습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (115, 115, '생과일 리코타 샐러드 볼', '제철 딸기, 청포도, 블루베리 등 생과일과 부드러운 수제 리코타 치즈, 아몬드 슬라이스에 상큼한 레몬 드레싱을 곁들였습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (116, 116, '불고기 모짜렐라 파니니', '달콤한 소불고기와 버섯, 모짜렐라 치즈를 넣고 그릴 프레스에 따뜻하게 눌러 구워 겉은 바삭하고 치즈가 쭉 늘어납니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (117, 117, '그릴드 치킨 포케 보울', '허브에 마리네이드하여 그릴에 구운 닭가슴살과 아보카도, 병아리콩, 옥수수를 귀리 현미밥과 함께 산뜻하게 즐깁니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (118, 118, '오틀리 귀리 플랫 화이트', '스웨덴산 프리미엄 오트밀크(귀리유)와 리스트레또 더블 샷이 만나 유당불내증 걱정 없이 고소하고 진하게 즐깁니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (119, 119, '생 블루베리 2팩 세트 (200g)', '안토시아닌이 풍부하고 알이 굵고 탱탱하며 새콤달콤한 맛이 살아있는 국내산 유기농 생블루베리입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (120, 120, '프랑스산 에멘탈 & 그뤼에르 슬라이스 치즈 세트', '숙성 치즈 특유의 깊은 감칠맛과 견과류 향을 지닌 치즈로 샌드위치나 핑거푸드, 와인 페어링에 잘 어울립니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (121, 121, '통밀 100% 비건 깜빠뉴', '설탕, 버터, 달걀을 일절 넣지 않고 유기농 통밀가루와 물, 소금으로만 발효시켜 소화가 편안한 비건 식사빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (122, 122, '피스타치오 크림 크루아상', '고소하고 진한 이탈리아산 피스타치오 가나슈 크림을 가득 채우고 분태를 얹어 고급스러운 맛을 냅니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (123, 123, '체리 포레누아 초코 케이크', '진한 초콜릿 시트 사이에 키르쉬에 절인 다크 체리와 산뜻한 우유 생크림을 듬뿍 넣은 독일 전통 케이크입니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (124, 124, '말차 크림 까눌레 2입', '쌉싸름한 제주 말차의 깊은 풍미를 담아 겉은 카라멜라이징되어 바삭하고 속은 쫀득한 프리미엄 까눌레입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (125, 125, '바질 페스토 파스타 샐러드', '탱글한 푸실리 파스타를 향긋한 바질 페스토에 버무리고 방울토마토, 블랙 올리브, 모짜렐라 치즈와 함께 차갑게 즐깁니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (126, 126, '크랜베리 치킨 월넛 샌드위치', '상큼한 건크랜베리와 고소한 호두를 부드러운 닭가슴살과 함께 요거트 마요 드레싱에 버무려 통밀빵에 채웠습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (127, 127, '아보카도 명란 비빔밥', '잘 익은 부드러운 아보카도 슬라이스와 저염 백명란젓, 반숙 계란 후라이, 참기름 한 방울로 완성한 건강 비빔밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (128, 128, '솔티드 카라멜 마키아또', '프랑스 게랑드 천일염을 넣어 직접 끓인 수제 솔티드 카라멜 소스와 부드러운 우유 거품, 에스프레소의 단짠 매력입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (129, 129, '뉴질랜드 썬골드 키위 2과 컷팅팩', '비타민C가 풍부하고 신맛 없이 달콤하고 부드러운 과육을 자랑하는 제스프리 썬골드 키위입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (130, 130, '고소한 밤 호박 그릭 요거트 볼', '달콤한 찐 단호박 큐브와 꿀밤 다이스, 시나몬 파우더, 아몬드 슬라이스를 꾸덕한 그릭 요거트에 얹었습니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (131, 131, '블루베리 베이글 2입 팩', '상큼한 야생 블루베리 과육이 콕콕 박혀 있어 토스트 후 버터나 크림치즈만 발라도 훌륭한 한 끼 식사가 됩니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (132, 132, '마늘 퐁당 소프트 맘모스빵', '달콤한 딸기잼과 버터크림, 완두 앙금과 팥앙금의 맘모스 조합에 바삭한 소보로를 아낌없이 올렸습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (133, 133, '레몬 머랭 타르트 케이크', '바삭한 사브레 타르트지 위에 새콤한 레몬 커드와 겉면을 토치로 살짝 그을린 쫀득한 이탈리안 머랭을 올렸습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (134, 134, '크림브륄레 컵 디저트', '부드러운 바닐라 커스터드 크림 위에 설탕을 얹고 토치로 얇고 바삭하게 그을려 깨먹는 재미가 있는 프랑스 디저트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (135, 135, '통새우 아보카도 보울 샐러드', '매콤달콤 칠리 시즈닝 통새우와 부드러운 아보카도, 렌틸콩, 병아리콩을 가득 담아 단백질과 식이섬유를 채웠습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (136, 136, '아보카도 에그 오픈 샌드위치 2입', '구운 사워도우 빵 위에 으깬 아보카도 과육과 수란, 크러쉬드 레드페퍼를 얹어 비주얼과 건강을 모두 잡았습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (137, 137, '매콤 칠리 쉬림프 덮밥', '통통한 새우를 매콤달콤한 칠리 갈릭 소스에 볶아 마늘칩과 함께 따뜻한 밥 위에 얹어낸 이국적인 덮밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (138, 138, '착즙 제주 한라봉 주스', '물 한 방울 섞지 않고 당도 높은 제주 한라봉과 감귤을 100% 콜드프레스로 착즙하여 과일 본연의 비타민을 가득 담았습니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (139, 139, '생자몽 & 오렌지 시트러스 믹스 팩', '플로리다산 달콤한 오렌지와 쌉싸름한 레드 루비 자몽을 속껍질까지 정성껏 벗겨 알맹이만 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (140, 140, '제주 감귤 드링킹 요거트 (500ml)', '새콤달콤한 제주 무농약 감귤 즙을 듬뿍 넣어 비타민C와 유산균을 동시에 챙기는 상큼한 발효유입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (141, 141, '더블 치즈 깜빠뉴', '롤치즈와 에멘탈 치즈를 듬뿍 넣어 한 조각 자를 때마다 진한 치즈 향과 고소한 빵 껍질의 조화가 매력적입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (142, 142, '우유 앙버터 소금빵', '바삭 짭조름한 소금빵을 반으로 갈라 달콤한 국내산 통팥 앙금과 두툼한 프랑스산 엘르앤비르 버터를 넣었습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (143, 143, '피스타치오 라즈베리 케이크', '고소한 피스타치오 비스퀴 시트에 상큼한 산딸기 잼과 부드러운 피스타치오 크림이 어우러져 고급스럽습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (144, 144, '피칸 타르트 조각', '바삭한 타르트 시트 위에 메이플 시럽과 고소한 통피칸을 아낌없이 얹어 구워낸 달콤하고 고소한 타르트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (145, 145, '케이준 치킨 텐더 샐러드', '겉은 바삭하고 속은 부드러운 안심 텐더와 스위트콘, 슈레드 치즈에 달콤알싸한 허니 머스터드 드레싱이 찰떡궁합입니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (146, 146, '할라피뇨 비프 파니니', '매콤한 할라피뇨와 육즙 가득한 소고기, 녹아내린 체다 치즈가 조화를 이루는 매콤 고소한 핫 그릴 샌드위치입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (147, 147, '수제 카레라이스 & 치킨 가라아게', '양파를 4시간 동안 볶아 단맛을 낸 깊은 풍미의 일본식 숙성 카레에 바삭한 수제 치킨 가라아게 3조각을 토핑했습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (148, 148, '고소한 흑임자 크림 라떼', '국내산 볶은 검은깨로 만든 꾸덕하고 고소한 흑임자 크림을 카페라떼 위에 얹어 고소함이 입안을 가득 채웁니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (149, 149, '태국산 생 망고스틴 팩', '과일의 여왕이라 불리는 달콤하고 상큼한 생 망고스틴을 마늘 모양 하얀 과육 그대로 신선하게 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (150, 150, '수제 카이막 & 꿀스틱 세트', '터키 전통 방식으로 우유 지방을 켜켜이 모아 만든 천상의 맛 카이막과 바게트에 발라먹는 꿀 세트입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (151, 151, '할라피뇨 베이컨 치아바타', '매콤한 멕시칸 할라피뇨와 짭조름한 훈제 베이컨이 콕콕 박혀 있어 느끼하지 않고 깔끔하게 즐기는 식사빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (152, 152, '말차 크림 브리오슈 도넛', '버터 풍미 가득한 브리오슈 반죽을 튀겨 쌉싸름하고 달콤한 제주 유기농 말차 크림을 아낌없이 채웠습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (153, 153, '샤인머스캣 요거트 케이크', '탱글탱글 당도 높은 샤인머스캣 생과를 아낌없이 올리고 산뜻한 그릭 요거트 생크림으로 마무리했습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (154, 154, '상큼 레몬 바질 타르트', '산뜻한 생레몬 커드 위에 향긋한 생바질 잎을 올려 상큼함을 극대화한 청량한 여름 디저트 타르트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (155, 155, '훈제 연어 퀴노아 샐러드', '너티한 풍미의 슈퍼푸드 퀴노아와 부드러운 훈제 연어, 오이, 케이퍼에 산뜻한 딜 레몬 요거트 드레싱을 더했습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (156, 156, '바질 토마토 모짜렐라 파니니', '신선한 카프레제 조합을 따뜻한 그릴에 구워내어 바질의 향긋함과 모짜렐라의 쫄깃함을 극대화했습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (157, 157, '묵은지 삼겹살 볶음밥', '잘 익은 아삭한 묵은지와 고소한 삼겹살을 잘게 썰어 볶고 위에 바삭한 김가루와 반숙 계란을 얹은 마성의 볶음밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (158, 158, '수제 블루베리 레몬에이드', '직접 끓인 블루베리 콩포트와 상큼한 생레몬 슬라이스가 어우러져 매력적인 보랏빛 그라데이션을 뽐냅니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (159, 159, '고당도 수박 보틀 (1000ml)', '씨를 모두 발라내고 달콤한 수박 과육만 가득 채워 숟가락으로 떠먹거나 갈아 마시기 좋은 컷팅 수박입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (160, 160, '스모크 치즈 & 체다 큐브 치즈 팩', '참나무 훈연 향이 솔솔 나는 훈제 치즈와 고소하고 짭조름한 숙성 체다 치즈 큐브를 담은 안주 겸 간식 팩입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (161, 161, '고소한 옥수수 깜빠뉴', '달콤한 옥수수 알갱이와 옥수수가루를 넣어 구수한 맛을 살렸으며 겉은 바삭하고 속은 쫄깃한 식감을 자랑합니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (162, 162, '애플 시나몬 파이 페이스트리', '달콤하게 졸인 국산 사과 과육과 향긋한 시나몬이 바삭한 파이지와 만나 한 입 가득 풍성한 식감을 줍니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (163, 163, '헤이즐넛 프랄린 케이크', '직접 카라멜라이징한 헤이즐넛 프랄린 크림과 바삭한 크런치가 씹혀 다채로운 식감을 선사합니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (164, 164, '인절미 크로플 & 바닐라 아이스크림 팩', '바삭 쫄깃한 크로플 위에 고소한 콩고물과 연유, 쫀득한 인절미 떡을 토핑한 K-디저트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (165, 165, '불고기 구운 채소 샐러드', '달콤짭조름한 양념에 재운 소불고기와 구운 가지, 버섯, 양파를 듬뿍 올려 든든하게 즐기는 한식풍 웜 샐러드입니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (166, 166, '와사비 크래미 샌드위치', '게살 크래미를 알싸한 생와사비 마요 소스에 버무리고 아삭한 오이 슬라이스를 더해 깔끔하고 산뜻합니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (167, 167, '두부 버섯 웰빙 덮밥', '노릇하게 구운 두부 부침과 쫄깃한 표고·느타리버섯을 굴소스풍 비건 간장 소스에 윤기 나게 볶아 올렸습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (168, 168, '피스타치오 크림 콜드브루', '부드럽고 깔끔한 콜드브루 커피 위에 고소한 이탈리아산 피스타치오 넛티 크림을 얹은 스페셜티 음료입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (169, 169, '생 무화과 4과 팩', '전남 영암에서 수확한 부드럽고 잼처럼 달콤한 붉은 과육의 제철 클레오파트라 생무화과입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (170, 170, '딸기 청 그릭 요거트 볼', '직접 담근 딸기청과 생딸기 슬라이스, 고소한 수제 오트밀 그래놀라가 조화를 이루는 달콤한 요거트 보울입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (171, 171, '먹물 치즈 소금빵', '오징어 먹물로 반죽해 감칠맛을 더하고 속에 짭조름한 롤치즈를 채워 풍미를 끌어올린 이색 소금빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (172, 172, '바질 토마토 크림치즈 페이스트리', '바삭한 버터 페이스트리 위에 향긋한 바질과 새콤달콤한 방울토마토, 진한 크림치즈를 올려 구웠습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (173, 173, '카라멜 솔티드 롤케이크', '촉촉하고 푹신한 수플레 롤케이크 시트 속에 단짠의 조화가 매력적인 솔티드 카라멜 크림을 가득 말았습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (174, 174, '초코 브라우니 바이트 컵', '진한 벨기에산 다크 초콜릿을 듬뿍 넣어 겉은 바삭하고 속은 브라우니 특유의 쫀득꾸덕함이 살아있습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (175, 175, '구운 가지 토마토 샐러드', '올리브유에 노릇하게 구워 단맛을 끌어올린 가지와 썬드라이 토마토, 파마산 치즈에 발사믹 드레싱이 어우러집니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (176, 176, '트러플 머쉬룸 치아바타 샌드위치', '은은한 트러플 오일 향의 구운 모둠 버섯과 프로볼로네 치즈, 루꼴라를 담아 고급스러운 풍미를 자랑합니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (177, 177, '매콤 달콤 닭갈비 덮밥', '닭다리살을 춘천식 매콤한 양념에 깻잎, 양배추, 고구마와 함께 볶아 밥 위에 얹어 든든하게 즐길 수 있습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (178, 178, '초콜릿 퍼지 밀크 쉐이크', '진한 다크 초콜릿 젤라또와 신선한 우유를 부드럽게 갈아 넣고 초코 시럽을 둘러 극강의 달콤함을 선사합니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (179, 179, '당도 선별 거봉 포도 팩', '알이 굵고 씨가 없으며 달콤한 포도 향이 입안 가득 퍼지는 국내산 명품 거봉 포도입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (180, 180, '저지방 무첨가 수제 요거트 대용량 (500g)', '설탕, 안정제, 색소를 일절 넣지 않고 100% 원유와 유산균만으로 발효해 소화가 잘되고 산뜻합니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (181, 181, '크랜베리 월넛 사워도우', '천연 효모종의 은은한 산미와 크랜베리의 상큼함, 호두의 고소함이 균형을 이루는 아티장 사워도우 브레드입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (182, 182, '황치즈 뽀또 크림빵', '단짠의 대명사 황치즈 가나슈와 부드러운 우유 크림이 듬뿍 들어가 진한 치즈 풍미를 즐길 수 있습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (183, 183, '레드벨벳 크림치즈 케이크', '매혹적인 붉은빛 코코아 시트 사이에 부드럽고 묵직한 크림치즈 버터크림을 두툼하게 샌드했습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (184, 184, '솔티드 카라멜 버터바', '꾸덕하고 쫀득한 버터 필링에 프랑스 게랑드 소금과 수제 카라멜을 넣어 거부할 수 없는 단짠의 매력을 선사합니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (185, 185, '크래미 와사비 마요 샐러드', '결대로 찢은 게살 크래미와 톡 쏘는 와사비 마요네즈, 아삭한 양배추와 오이가 어우러진 산뜻한 샐러드입니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (186, 186, '그릴드 베지터블 샌드위치', '올리브유에 구운 가지, 애호박, 파프리카와 바질 페스토를 통밀빵에 넣어 비건도 맛있게 즐길 수 있습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (187, 187, '차돌박이 숙주 덮밥', '고소한 차돌박이와 아삭한 숙주나물을 굴소스와 센 불에 빠르게 볶아내어 불향과 아삭함이 살아있는 덮밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (188, 188, '문경 오미자 스파클링 티', '국내산 문경 5가지 맛 오미자 원액에 탄산수를 섞어 새콤달콤 청량한 붉은빛 웰빙 음료입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (189, 189, '골드키위 & 그린키위 반반 보울', '달콤한 골드키위와 새콤달콤한 그린키위를 큐브 모양으로 썰어 요거트나 샐러드에 곁들이기 좋습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (190, 190, '고다 치즈 블록 (200g)', '네덜란드 전통 방식으로 6개월 이상 숙성하여 고소한 버터 풍미와 부드러운 감칠맛이 일품인 천연 치즈입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (191, 191, '단호박 찰 브레드', '국내산 달콤한 찐 단호박과 쫄깃한 찰떡을 넣어 든든하고 씹는 맛이 살아있는 건강 식사빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (192, 192, '캐러멜 피칸 데니쉬', '달콤 쌉싸름한 수제 솔티드 캐러멜 소스와 바삭하게 구운 피칸을 듬뿍 토핑한 프리미엄 데니쉬입니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (193, 193, '순수 우유 롤케이크 조각', '신선한 100% 동물성 생크림만을 사용하여 한 입 가득 깔끔하고 고소한 우유 본연의 맛을 느낄 수 있습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (194, 194, '말차 테린느 조각', '밀가루 없이 화이트 초콜릿과 유기농 말차, 버터만을 낮은 온도에서 구워내 생초콜릿처럼 부드럽게 녹아내립니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (195, 195, '참치 에그 믹스 샐러드', '기름기를 쏙 뺀 담백한 참치와 삶은 계란, 블랙 올리브, 옥수수를 아삭한 양상추와 함께 어니언 드레싱으로 즐깁니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (196, 196, '잠봉 프로마쥬 바게트', '프랑스 정통 레시피 그대로 짭조름한 잠봉 햄과 깊은 풍미의 그뤼에르 치즈, 디종 머스터드만으로 완성했습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (197, 197, '돈코츠 차슈 덮밥 (부타동)', '비법 간장 소스에 장시간 푹 삶아 부드럽게 부서지는 특제 돼지고기 차슈를 밥 위에 푸짐하게 얹었습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (198, 198, '민트 초코 칩 프라푸치노', '상쾌한 천연 페퍼민트 향과 오독오독 씹히는 다크 초코칩, 우유를 얼음과 함께 시원하게 블렌딩했습니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (199, 199, '새콤달콤 석류 알맹이 컵', '껍질 까기 번거로운 석류의 붉은 보석 같은 알맹이만을 알알이 분리하여 간편하게 섭취할 수 있습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (200, 200, '애플 시나몬 그릭 요거트 볼', '버터와 시나몬에 졸인 사과 콩포트와 구운 호두 분태를 꾸덕한 그릭 요거트에 듬뿍 얹어 풍미가 뛰어납니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (201, 201, '시금치 롤치즈 치아바타', '신선한 시금치 즙과 롤치즈를 넣어 영양과 색감을 모두 잡은 건강하고 담백한 이탈리안 브레드입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (202, 202, '누텔라 바나나 크루아상', '악마의 잼 누텔라와 달콤한 생바나나 슬라이스를 바삭한 크루아상 속에 가득 채운 당충전 디저트 빵입니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (203, 203, '단호박 바스크 치즈 케이크', '부드러운 크림치즈에 달콤한 꿀단호박을 듬뿍 갈아 넣어 은은한 단맛과 부드러운 식감이 일품입니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (204, 204, '생초콜릿 파베 8구 세트', '프랑스산 다크 초콜릿과 동물성 생크림을 최적의 비율로 배합하여 입안에서 솜사탕처럼 녹아드는 파베 초콜릿입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (205, 205, '단호박 리코타 너츠 샐러드', '달콤한 단호박 무스와 고소한 수제 리코타 치즈, 피칸과 호두 크런치를 얹어 달콤 고소함을 극대화했습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (206, 206, '쉬림프 에그 마요 크루아상', '버터 풍미의 크루아상 속에 부드러운 에그 마요와 통통한 자숙 새우를 넣어 톡톡 터지는 식감을 더했습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (207, 207, '스팸 계란 김치 볶음밥', '짭조름한 스팸 큐브와 새콤한 배추김치를 고소한 버터에 볶아 남녀노소 누구나 사랑하는 든든한 식사입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (208, 208, '시나몬 카푸치노 & 초코 비스코티', '풍성하고 벨벳 같은 우유 거품 위에 향긋한 시나몬 파우더를 듬뿍 뿌리고 바삭한 비스코티 쿠키를 곁들였습니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (209, 209, '허니듀 멜론 컷팅 보울', '백록색 과육에서 은은하고 고급스러운 꿀 향기가 피어오르는 부드러운 허니듀 멜론 큐브입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (210, 210, '구워먹는 임실 치즈 바 (200g)', '팬에 기름 없이 노릇하게 구워 겉은 바삭하고 속은 쫄깃하게 늘어나는 100% 국산 원유 임실 모짜렐라 치즈입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (211, 211, '올리브 허브 포카치아', '엑스트라 버진 올리브유와 로즈마리, 블랙 올리브를 듬뿍 얹어 촉촉하고 향긋하게 구워낸 포카치아입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (212, 212, '블루베리 크림치즈 페이스트리', '진한 필라델피아 크림치즈와 상큼한 블루베리 콩포트가 겹겹이 바삭한 페이스트리 위에 풍성하게 얹혔습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (213, 213, '트리플 베리 치즈 타르트', '라즈베리, 블루베리, 블랙베리 3종 베리를 상큼하게 올린 고소하고 진한 크림치즈 타르트 케이크입니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (214, 214, '황치즈 꾸덕 버터바', '고소하고 짭조름한 체다 치즈의 진한 풍미가 쫀득한 크러스트와 만나 치즈 마니아들의 입맛을 사로잡습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (215, 215, '칠리 쉬림프 보울 샐러드', '스위트 칠리소스로 볶아낸 오동통한 새우와 파인애플, 토마토, 믹스 야채가 어우러져 이국적인 상큼함을 냅니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (216, 216, '더블 햄치즈 토스트 샌드위치', '스모크 햄 2장과 체다 치즈를 듬뿍 넣고 버터에 노릇하게 구워내어 남녀노소 누구나 좋아하는 클래식 토스트입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (217, 217, '장어 데리야끼 덮밥 (우나기동)', '부드럽게 쪄서 특제 장어 데리야끼 소스를 발라 숯불에 구워낸 보양식 장어구이와 생강채를 올렸습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (218, 218, '샤인머스캣 그린티 에이드', '달콤한 샤인머스캣 과즙과 깔끔한 유기농 녹차 우린 물, 탄산수가 어우러져 산뜻하게 즐길 수 있습니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (219, 219, '고당도 하우스 복숭아 컷팅 팩', '향긋한 복숭아 향과 말랑하고 달콤한 핑크빛 과즙이 풍부한 제철 백도 복숭아 컷팅 상품입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (220, 220, '복숭아 그릭 요거트 팩 (2입)', '달콤한 백도 복숭아 퓨레와 쫀득한 복숭아 다이스가 꾸덕한 그릭 요거트와 어우러진 프리미엄 과일 요거트입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (221, 221, '촉촉한 생크림 식빵', '동물성 생크림 100%를 넣어 반죽해 잼이나 버터 없이 빵 자체만 먹어도 촉촉하고 부드러운 우유 풍미가 가득합니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (222, 222, '딸기 생크림 몽블랑', '돌돌 말린 바삭한 페이스트리 결 사이에 부드러운 마스카포네 생크림과 상큼한 생딸기를 채웠습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (223, 223, '초코 바나나 멜팅 케이크', '진한 초코 브라우니 시트 위에 달콤한 생바나나와 부드러운 초콜릿 가나슈를 흘러내리듯 얹었습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (224, 224, '얼그레이 갸또 테린느', '트와이닝 얼그레이 찻잎을 듬뿍 우려내어 향긋함이 폭발하는 부드럽고 녹진한 식감의 고급 디저트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (225, 225, '바질 닭가슴살 퀴노아 볼', '향긋한 바질 페스토에 버무린 닭가슴살과 퀴노아, 병아리콩, 브로콜리를 풍성하게 담아낸 고단백 건강식 샐러드입니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (226, 226, '칠리 치킨 아보카도 랩', '부드러운 또띠아 랩 안에 매콤한 칠리 치킨과 아보카도, 옥수수, 파프리카를 돌돌 말아 간편하게 먹기 좋습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (227, 227, '우삼겹 된장 비빔밥', '고소하게 구운 우삼겹과 진하게 끓인 강된장, 신선한 상추, 콩나물, 어린잎을 밥과 함께 비벼 먹는 한식 메뉴입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (228, 228, '생강 대추 배도라지차 보틀', '국내산 도라지와 배, 대추, 생강을 은근한 불에 12시간 달여 환절기 목 건강에 좋은 따뜻한 한방 수제차입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (229, 229, '생 아보카도 2과 세트', '버터처럼 부드럽고 고소하게 잘 후숙된 프리미엄 멕시코산 생 아보카도를 바로 드실 수 있게 포장했습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (230, 230, '산양유 드링킹 요거트 (300ml)', '모유와 단백질 구조가 유사해 유당 소화가 편안하고 영양이 풍부한 무항생제 목장 산양유 발효유입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (231, 231, '어니언 크림치즈 베이글', '구운 양파를 듬뿍 넣어 반죽한 향긋한 어니언 베이글과 부드러운 필라델피아 크림치즈의 완벽한 궁합입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (232, 232, '초코 가나슈 큐브 식빵', '결이 살아있는 데니쉬 식빵 속에 진하고 꾸덕한 발로나 초콜릿 가나슈를 가득 채워 데워 먹으면 환상적입니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (233, 233, '인절미 쑥 갸또 쇼콜라', '향긋한 거문도 해풍쑥으로 구운 묵직한 갸또 시트 위에 고소한 인절미 콩고물 크림을 듬뿍 올렸습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (234, 234, '블루베리 크럼블 바', '고소하고 바삭한 아몬드 버터 크럼블 사이에 달콤상큼한 야생 블루베리 잼이 가득 샌드되어 있습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (235, 235, '스모크 치즈 & 견과류 샐러드', '풍미 깊은 스모크 고다 치즈와 구운 캐슈넛, 아몬드, 건크랜베리에 사과 슬라이스를 곁들여 와인 안주로도 좋습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (236, 236, '훈제오리 부추 샌드위치', '기름기 뺀 담백한 훈제오리와 알싸한 부추 무침을 특제 쌈장 마요 소스와 함께 호밀빵에 샌드한 퓨전 샌드위치입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (237, 237, '훈제연어 아보카도 롤 도시락', '신선한 훈제연어와 크림치즈, 오이를 만 누드롤 위에 부드러운 아보카도 슬라이스를 얹어 정갈하게 담았습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (238, 238, '달고나 밀크티', '추억의 바삭바삭한 수제 달고나 조각을 진한 로얄 밀크티 위에 소복이 얹어 서서히 녹아드는 진한 풍미를 즐깁니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (239, 239, '대과종 애플청포도 팩', '사과처럼 아삭아삭 베어 물면 달콤한 과즙이 터져 나오는 고당도 신품종 프리미엄 청포도입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (240, 240, '바나나 피넛버터 그릭 요거트 볼', '꾸덕한 요거트 위에 달콤한 바나나 슬라이스와 100% 순수 무가당 피넛버터, 카카오닙스를 올려 에너지를 충전합니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (241, 241, '곡물 가득 멀티그레인 식빵', '해바라기씨, 아마씨, 오트밀 등 7가지 슈퍼 곡물을 풍성하게 넣어 씹을수록 구수하고 건강한 곡물 식빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (242, 242, '소금 카라멜 크로플 2입', '버터 풍미 가득한 크루아상 생지를 와플팬에 눌러 굽고 수제 소금 카라멜 시럽을 듬뿍 코팅했습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (243, 243, '빅토리아 라즈베리 스폰지 케이크', '버터 풍미 가득한 영국식 스폰지 시트에 수제 라즈베리 잼과 바닐라 버터크림을 두툼하게 샌드했습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (244, 244, '망고 요거트 판나코타', '탱글하고 부드러운 우유 푸딩 위에 달콤한 프리미엄 애플망고 퓨레와 생망고 조각을 풍성하게 얹었습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (245, 245, '그릴드 닭다리살 웜 샐러드', '노릇하게 구워낸 부드러운 닭다리살 스테이크와 구운 파프리카, 단호박에 오리엔탈 참깨 소스를 곁들였습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (246, 246, '바질 쉬림프 치아바타', '향긋한 바질 페스토와 올리브유에 마리네이드한 통새우, 신선한 토마토를 쫄깃한 먹물 치아바타에 채웠습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (247, 247, '바질 쉬림프 리조또 라이스', '향긋한 바질 페스토와 동물성 생크림 소스에 통새우와 쌀알의 식감을 살려 고소하고 부드럽게 조리했습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (248, 248, '토피넛 헤이즐넛 라떼', '고소한 구운 견과류와 버터 스카치 캔디의 풍미가 에스프레소와 어우러져 추운 날 따뜻한 위로를 건넵니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (249, 249, '칼로리 부담 없는 토망고 컵', '천연 감미료로 재배해 일반 토마토보다 3배 이상 달콤하고 칼로리는 가벼운 건강 간식 토마토입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (250, 250, '마스카포네 생크림 치즈 (250g)', '부드럽고 크리미한 이탈리아식 생크림 치즈로 티라미수를 만들거나 과일, 크래커에 발라먹기 좋습니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (251, 251, '무염 버터 소프트 쁘띠 바게트', '딱딱하지 않고 겉은 얇게 바삭하며 속은 깃털처럼 부드러워 수프나 파스타 소스에 찍어 먹기 안성맞춤입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (252, 252, '무화과 버터 스콘', '달콤 쫀득한 건무화과가 씹히는 고소한 영국식 버터 스콘으로 딸기잼과 클로티드 크림에 곁들이기 좋습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (253, 253, '로투스 카라멜 무스 케이크', '바삭한 로투스 쿠키 크런치 베이스에 달콤 쌉싸름한 카라멜 무스를 얹어 진한 달콤함을 자랑합니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (254, 254, '더블 베리 마카롱 4구 팩', '블루베리 크림치즈, 라즈베리 가나슈, 딸기 요거트, 체리 바닐라 4종으로 구성된 상큼달콤 세트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (255, 255, '아시안 비프 쌀국수 샐러드', '상큼한 느억맘 소스에 버무린 얇은 쌀국수 면과 부드러운 소고기, 신선한 고수와 민트가 입맛을 돋워줍니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (256, 256, '불고기 에그 샌드위치', '국내산 간장 양념 불고기와 반숙 계란 후라이, 양상추를 두툼하게 넣어 한국인의 입맛에 꼭 맞췄습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (257, 257, '매운 쭈꾸미 덮밥', '센 불에 빠르게 볶아 야들야들한 쭈꾸미와 매콤 칼칼한 특제 양념이 입맛을 돋우는 활력 충전 덮밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (258, 258, '복숭아 과육 요거트 스무디', '달콤한 백도 복숭아 과육과 플레인 요거트를 부드럽게 갈아 얼음과 함께 갈아낸 시원한 과일 스무디입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (259, 259, '제주 애플망고 1과 컷팅 보울', '제주도 온실에서 완숙되어 수확한 최고급 국내산 애플망고의 진하고 부드러운 달콤함을 만끽하세요.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (260, 260, '프로틴 그릭 요거트 드링크 (250ml 2병)', '달걀 3개 분량의 순수 단백질 18g을 담아 운동 전후 맛있고 간편하게 마시는 고단백 유제품 음료입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (261, 261, '치즈 듬뿍 롤 포카치아', '체다 치즈와 고다 치즈를 겹겹이 말아 구워내 겉면의 바삭한 치즈 누룽지와 속의 쫄깃함이 돋보입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (262, 262, '바질 소시지 페이스트리', '육즙 가득한 프리미엄 돈육 소시지를 바삭한 페이스트리로 감싸고 바질 페스토와 홀그레인 머스터드를 얹었습니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (263, 263, '복숭아 얼그레이 생크림 케이크', '향긋한 얼그레이 시트에 달콤하고 향긋한 생복숭아 과육과 마스카포네 크림을 조화롭게 레이어링했습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (264, 264, '바나나 푸딩 컵', '숙성된 달콤한 생바나나와 부드러운 바닐라 웨이퍼 쿠키, 커스터드 크림이 층층이 섞여 숟가락으로 떠먹기 좋습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (265, 265, '구운 두부 버섯 오리엔탈 샐러드', '들기름에 부쳐낸 고소한 손두부와 볶은 표고·느타리버섯을 신선한 상추, 깻잎과 함께 오리엔탈 소스로 버무렸습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (266, 266, '참치 멜트 핫 샌드위치', '고소한 참치 샐러드와 녹아내린 체다 치즈를 식빵 사이에 넣고 버터 팬에 바삭하게 구워낸 따뜻한 샌드위치입니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (267, 267, '베이컨 갈릭 볶음밥', '바삭하게 볶은 훈제 베이컨과 노릇한 마늘 슬라이스, 대파 기름으로 볶아내어 풍미가 뛰어난 볶음밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (268, 268, '생 레몬 히비스커스 티', '붉은 루비빛의 새콤한 히비스커스 허브티에 갓 착즙한 레몬즙과 꿀을 타서 비타민을 가득 채웠습니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (269, 269, '레드 용과 컷팅 팩', '화려한 자주빛 색감과 은은한 단맛, 풍부한 식이섬유를 지닌 열대 생 레드 용과 손질 과일입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (270, 270, '트러플 크림치즈 스프레드 (150g)', '진한 필라델피아 크림치즈에 최고급 이탈리아산 블랙 트러플 페이스트를 블렌딩하여 베이글에 바르면 환상적입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (271, 271, '참깨 베이글 세트', '고소한 통참깨를 겉면에 듬뿍 묻혀 구워내 씹을 때마다 톡톡 터지는 고소한 향이 입안을 가득 채웁니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (272, 272, '밤 듬뿍 공주밤 페이스트리', '달콤한 국내산 공주 알밤이 통째로 듬뿍 들어가 씹을 때마다 달콤하고 구수한 풍미가 가득합니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (273, 273, '오페라 커피 가나슈 케이크', '아몬드 비스퀴에 진한 커피 시럽을 적시고 커피 버터크림과 다크 초콜릿 가나슈를 얇게 겹겹이 쌓았습니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (274, 274, '아몬드 플로랑탱 4개입', '바삭한 사브레 쿠키 베이스 위에 꿀과 버터에 졸인 고소한 슬라이스 아몬드를 카라멜라이징하여 구웠습니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (275, 275, '생블루베리 고트 치즈 샐러드', '진하고 크리미한 산양유 고트 치즈와 신선한 생블루베리, 캐러멜 호두를 올려 고급스러운 프렌치 풍미를 자랑합니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (276, 276, '갈릭 바베큐 포크 파니니', '진한 바베큐 소스에 버무린 부드러운 돼지고기 풀드포크와 구운 양파, 모짜렐라 치즈를 그릴에 눌렀습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (277, 277, '소고기 버섯 솥밥 스타일 도시락', '표고버섯과 느타리버섯, 양념 소고기를 얹어 솥밥처럼 지어내어 양념간장에 슥슥 비벼 먹는 정갈한 도시락입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (278, 278, '코코넛 밀크 콜드브루', '고소하고 달콤한 열대 코코넛 밀크 베이스에 깔끔한 콜드브루 샷을 띄워 이국적인 풍미를 자아냅니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (279, 279, '열대과일 3종 믹스 (망고·파파야·용과)', '동남아의 신선함을 그대로 담아 달콤한 망고, 부드러운 파파야, 산뜻한 용과를 믹스한 과일 보울입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (280, 280, '무화과 피칸 그릭 요거트 볼', '와인에 졸인 달콤한 건무화과와 고소하게 볶은 피칸, 메이플 시럽을 꾸덕한 그릭 요거트에 얹었습니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (281, 281, '카레 감자 깜빠뉴', '은은한 인도풍 카레 스파이스와 달콤한 포슬포슬 감자가 통밀 빵과 어우러져 식사 대용으로 든든합니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (282, 282, '라즈베리 크림 도넛', '상큼한 산딸기 퓨레로 만든 새콤달콤한 라즈베리 크림이 가득 들어있는 푹신푹신한 수제 링도넛입니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (283, 283, '생 무화과 얼그레이 케이크', '당도 높은 제철 생무화과와 베르가못 향의 얼그레이 생크림이 만나 우아하고 고급스러운 디저트 타임을 선사합니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (284, 284, '흑임자 찰떡 브라우니', '고소한 검은깨 흑임자 반죽에 쫀득한 찹쌀떡을 넣어 달지 않고 한국적인 고소함이 돋보이는 웰빙 디저트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (285, 285, '아보카도 에그 콥 샐러드', '부드러운 아보카도 반 개와 완숙 달걀, 옥수수, 방울토마토를 가지런히 담아 상큼한 이탈리안 허브 드레싱을 곁들였습니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (286, 286, '리코타 썬드라이 토마토 샌드위치', '직접 만든 담백한 리코타 치즈와 쫀득한 썬드라이 토마토, 신선한 루꼴라를 호밀빵에 샌드했습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (287, 287, '데리야끼 연어 스테이크 덮밥', '노릇하게 구운 연어 필렛에 달콤 짭짤한 특제 데리야끼 글레이즈를 입히고 구운 채소를 곁들였습니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (288, 288, '바나나 아보카도 주스', '달콤한 완숙 바나나와 영양 가득한 생아보카도를 우유와 함께 갈아 한 잔만 마셔도 아침 식사 대용으로 든든합니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (289, 289, '단단한 감홍 사과 슬라이스 팩', '국내 육성 품종 중 당도가 가장 높은 명품 감홍 사과의 진한 풍미와 아삭한 식감을 담았습니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (290, 290, '무가당 케피어 발효유 (500ml)', '티벳 버섯이라 불리는 케피어 유산균 그레인으로 발효해 유익균이 풍부하고 톡 쏘는 청량감이 있는 전통 발효유입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (291, 291, '올리브 푸가스', '나뭇잎 모양으로 얇고 바삭하게 구워내 올리브와 허브의 풍미가 바삭한 크러스트와 조화를 이루는 남프랑스 전통 빵입니다.', '식사빵', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (292, 292, '더블 초코칩 브라우니 쿠키번', '진한 다크 초콜릿 칩이 듬뿍 박힌 쿠키 도우를 빵 위에 얹어 구워내 겉은 바삭하고 속은 쫀득달콤합니다.', '디저트 빵', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (293, 293, '화이트 초콜릿 라즈베리 무스', '달콤한 화이트 초콜릿의 부드러움과 새콤한 라즈베리 젤리가 층을 이루어 입안에서 산뜻하게 녹아내립니다.', '케이크', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (294, 294, '쇼콜라 마들렌 & 피낭시에 세트', '진한 카카오 파우더와 초코칩을 넣은 마들렌 2개와 골든 버터 휘낭시에 2개로 구성된 알찬 선물세트입니다.', '디저트', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (295, 295, '트러플 머쉬룸 샐러드 볼', '은은한 이탈리아산 트러플 오일 향을 입혀 볶아낸 모둠 버섯과 파마산 레지아노 치즈가 어우러진 프리미엄 샐러드입니다.', '샐러드', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (296, 296, '훈제연어 아보카도 랩', '또띠아에 신선한 훈제연어와 부드러운 아보카도, 아삭한 양파와 케이퍼 마요 소스를 넣어 산뜻하게 말아냈습니다.', '샌드위치', 20000, 11000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (297, 297, '닭가슴살 깍두기 볶음밥', '아삭하게 잘 익은 깍두기와 담백한 닭가슴살 큐브를 고소하게 볶아 깔끔하고 매콤하게 즐기는 다이어트 볶음밥입니다.', '밥류', 20000, 12000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (298, 298, '콜드브루 캔 커피 4입 선물세트', '휴대하기 편한 알루미늄 캔에 신선하게 밀봉 포장된 에티오피아 싱글오리진 콜드브루 세트입니다.', '음료 / 카페', 20000, 13000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (299, 299, '컬러 방울토마토 4색 믹스 팩', '빨강, 노랑, 주황, 초록 4가지 색상의 방울토마토를 담아 식탁을 화사하게 만들어 주는 비타민 간식입니다.', '과일류', 20000, 14000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days'),
+  (300, 300, '치즈 플래터 4종 세트 (브리·고다·체다·스모크)', '각기 다른 매력의 프리미엄 자연치즈 4가지를 한 팩에 담아 와인 파티나 홈파티용으로 손색없는 세트입니다.', '유제품', 20000, 10000, 1000000, 'ON_SALE', NULL, time '18:00', time '21:30', current_timestamp - interval '120 days', false, 0, current_timestamp - interval '120 days');
 
 INSERT INTO public.carts (id, member_id)
 SELECT seed_id, seed_id FROM demo_store_source;
@@ -517,28 +787,12 @@ CREATE TEMP TABLE demo_member_charge AS
 SELECT
     member_id,
     sum(total_price) FILTER (WHERE status NOT IN ('CANCELLED', 'REJECTED'))
-        + CASE WHEN member_id <= 150 THEN 10000000 ELSE 0 END AS charge_amount
+        + 1000000000000 AS charge_amount
 FROM public.orders
 GROUP BY member_id;
 
-INSERT INTO public.payments (
-    payment_id, member_id, amount, pg_provider, created_at, approved_at,
-    approved_status, pg_transaction_id, merchant_order_id
-)
-SELECT
-    member_id,
-    member_id,
-    charge_amount,
-    'TOSS',
-    current_timestamp - interval '9 years',
-    current_timestamp - interval '9 years' + interval '1 minute',
-    'APPROVED',
-    'demo-payment-' || lpad(member_id::text, 3, '0'),
-    'DEMO-CHARGE-' || lpad(member_id::text, 3, '0')
-FROM demo_member_charge;
-
 INSERT INTO public.deposits (deposit_id, member_id, balance, updated_at)
-SELECT member_id, member_id, CASE WHEN member_id <= 150 THEN 10000000 ELSE 0 END, current_timestamp
+SELECT member_id, member_id, 1000000000000, current_timestamp
 FROM demo_member_charge;
 
 INSERT INTO public.deposit_history (
@@ -661,74 +915,80 @@ FROM public.orders
 WHERE status = 'PICKED_UP'
 GROUP BY member_id;
 
--- BEGIN SETTLEMENT PERFORMANCE TEST ORDERS
--- 정산 방식별 성능 비교를 위한 전용 주문 데이터입니다.
--- 기존 시연 데이터와 분리하기 위해 다음 조건을 사용합니다.
---   * 주문 ID: 300001 ~ 750000
---   * pickup_code: SETTLEMENT-TEST- 접두어
---   * 주문 기간: 2026-08-01 ~ 2026-08-20
+-- BEGIN EVENT SETTLEMENT PERFORMANCE TEST DATA
+-- 주문 완료 이벤트 방식의 월 정산 성능 테스트를 위한 사전 적립 데이터입니다.
+--   * 정산 월: 2026-09
 --   * 매장 수: 300개
---   * 매장별 주문 수: 1,500건
---   * 전체 주문 수: 450,000건
--- 모든 성능 테스트가 끝난 뒤 이 블록을 제거하면 기존 시드 데이터만 생성됩니다.
-WITH settlement_test_orders AS (
-    SELECT
-        (300000 + (store_id - 1) * 1500 + order_no)::bigint AS order_id,
-            store_id::bigint AS store_id,
-            ((store_id + order_no - 2) % 300 + 1)::bigint AS member_id,
-    order_no,
-    timestamp '2026-08-01 10:00:00'
-    + ((order_no - 1) % 20) * interval '1 day'
-    + ((order_no + store_id) % 3600) * interval '1 second' AS created_at,
-    (10000 + (store_id % 5) * 1000)::numeric(38,2) AS unit_price,
-    (1 + order_no % 3)::bigint AS quantity,
-    CASE
-    WHEN order_no % 5 = 0 THEN 'NO_SHOW'
-    ELSE 'PICKED_UP'
-END AS status
-    FROM generate_series(1, 300) AS stores(store_id)
-    CROSS JOIN generate_series(1, 1500) AS order_numbers(order_no)
-)
-INSERT INTO public.orders (
-    id, member_id, store_id, dish_id, dish_name, member_name, phone, quantity,
-    unit_price, total_price, total_saved_amount, status, payment_status,
-    pickup_start_at, pickup_end_at, pickup_deadline, pickup_result_at, pickup_code,
-    cancel_reason, reject_reason, is_deleted, created_at, updated_at, event_version
+--   * 매장별 정산 상세: 1,500건
+--   * 전체 정산 상세: 450,000건
+--   * Settlement ID: 900001 ~ 900300
+--   * Order ID: 300001 ~ 750000
+-- 테스트 완료 후 이 블록을 제거하거나, 아래 CLEANUP 블록을 실행하면 됩니다.
+
+INSERT INTO public.settlements (
+    id, store_id, settlement_month, period_start, period_end, total_order_count,
+    gross_amount, fee_rate, fee_amount, settlement_amount, settlement_status,
+    bank_code, account_number, account_holder, failure_reason, created_at, updated_at
 )
 SELECT
+    (900000 + store_id)::bigint,
+        store_id::bigint,
+        '2026-09',
+    timestamp '2026-09-01 00:00:00',
+    timestamp '2026-10-01 00:00:00',
+    0,
+    0,
+    0.1000,
+    0,
+    0,
+    'ACCUMULATING',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    timestamp '2026-09-01 00:00:00',
+    timestamp '2026-09-01 00:00:00'
+FROM generate_series(1, 300) AS stores(store_id);
+
+WITH event_settlement_details AS (
+    SELECT
+        store_id::bigint AS store_id,
+            order_no,
+        (900000 + store_id)::bigint AS settlement_id,
+            (300000 + (store_id - 1) * 1500 + order_no)::bigint AS order_id,
+            (
+                (10000 + (store_id % 5) * 1000)
+                    * (1 + order_no % 3)
+                )::bigint AS sales_amount,
+            timestamp '2026-09-01 10:00:00'
+                + ((order_no - 1) % 20) * interval '1 day'
+    + ((order_no + store_id) % 3600) * interval '1 second'
+    + interval '8 hours' AS order_completed_at
+FROM generate_series(1, 300) AS stores(store_id)
+    CROSS JOIN generate_series(1, 1500) AS order_numbers(order_no)
+    )
+INSERT INTO public.settlement_details (
+    settlement_id, order_id, sales_amount, fee_rate, fee_amount,
+    settlement_amount, order_completed_at, created_at
+)
+SELECT
+    settlement_id,
     order_id,
-    member_id,
-    store_id,
-    store_id,
-    '정산 성능 테스트 상품 ' || lpad(store_id::text, 3, '0'),
-    '정산 테스트 구매자 ' || lpad(member_id::text, 3, '0'),
-    '010-9000-' || lpad(member_id::text, 4, '0'),
-    quantity,
-    unit_price,
-    unit_price * quantity,
-    (20000 - unit_price) * quantity,
-    status,
-    'COMPLETED',
-    time '18:00',
-    time '21:30',
-    created_at + interval '8 hours',
-    created_at + interval '8 hours',
-    'SETTLEMENT-TEST-' || order_id,
-    NULL,
-    NULL,
-    false,
-    created_at,
-    created_at + interval '8 hours',
-    0
-FROM settlement_test_orders;
--- END SETTLEMENT PERFORMANCE TEST ORDERS
+    sales_amount,
+    0.1000,
+    floor(sales_amount * 0.1000)::bigint,
+        sales_amount - floor(sales_amount * 0.1000)::bigint,
+        order_completed_at,
+    order_completed_at
+FROM event_settlement_details
+ORDER BY store_id, order_no;
+-- END EVENT SETTLEMENT PERFORMANCE TEST DATA
 
 SELECT setval('stores_store_id_seq', 300, true);
 SELECT setval('store_payout_accounts_payout_account_id_seq', 300, true);
 SELECT setval('dishes_id_seq', 300, true);
 SELECT setval('carts_id_seq', 300, true);
 SELECT setval('orders_id_seq', 750000, true);
-SELECT setval('payments_payment_id_seq', 300, true);
 SELECT setval('deposits_deposit_id_seq', 300, true);
 
 -- 정산 실행 시 기존 더미 데이터와 PK가 충돌하지 않도록 조정

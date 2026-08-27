@@ -1,5 +1,6 @@
 package kr.lastdish.core.order.application;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -9,14 +10,15 @@ import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
 import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.order.application.dto.*;
 import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.store.application.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +28,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
   private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Seoul");
   private static final int MAX_PICKUP_CODE_RETRY = 5;
+  public static final int PICKUP_EXPIRATION_BATCH_SIZE = 1000;
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderNotificationEventWriter orderNotificationEventWriter;
   private final OrderPickedUpEventWriter orderPickedUpEventWriter;
   private final OrderNoShowEventWriter orderNoShowEventWriter;
   private final PickupCodeGenerator pickupCodeGenerator;
-  private final StoreService storeService;
 
   // 장바구니 스냅샷의 정가·판매가로 주문을 만든다. 절약 금액은 Order가 두 값에서 계산한다.
   public Order createOrder(
       Long memberId,
       OrderMemberInfo memberInfo,
       CartOrderSnapshot cartItem,
+      BigDecimal usedPoint,
       LocalDateTime pickupDeadline) {
     Order order =
         Order.create(
@@ -51,6 +55,7 @@ public class OrderService {
             cartItem.quantity(),
             cartItem.dishPrice(),
             cartItem.unitPrice(),
+            usedPoint,
             cartItem.pickupStartAt(),
             cartItem.pickupEndAt(),
             pickupDeadline);
@@ -63,12 +68,35 @@ public class OrderService {
   /** 픽업 마감 일시를 한 번 계산해 검증하고 주문 생성에 사용할 값으로 반환한다. */
   public LocalDateTime validatePickupDeadline(CartOrderSnapshot cartItem, LocalDateTime now) {
     LocalDateTime pickupDeadline =
-        storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now);
-    if (now.isAfter(pickupDeadline)) {
+        Order.calculatePickupDeadline(now, cartItem.pickupStartAt(), cartItem.pickupEndAt());
+    if (!now.isBefore(pickupDeadline)) {
       throw new BusinessException(ErrorCode.ORDER_PICKUP_DEADLINE_PASSED);
     }
 
     return pickupDeadline;
+  }
+
+  @Transactional
+  public int expirePickupOrders(LocalDateTime now) {
+    var expirationTargets =
+        orderRepository
+            .findPickupExpirationTargets(now, PageRequest.of(0, PICKUP_EXPIRATION_BATCH_SIZE))
+            .stream()
+            .limit(PICKUP_EXPIRATION_BATCH_SIZE)
+            .toList();
+    expirationTargets.forEach(
+        order -> {
+          order.markNoShow(now);
+          long aggregateVersion = order.nextEventVersion();
+          orderStatusChangedEventWriter.append(order, aggregateVersion);
+          orderNoShowEventWriter.append(order, aggregateVersion);
+        });
+    return expirationTargets.size();
+  }
+
+  @Transactional(readOnly = true)
+  public boolean hasActiveOrdersForDish(Long dishId) {
+    return orderRepository.existsActiveOrderByDishId(dishId);
   }
 
   public OrderResult completePayment(Long orderId) {
@@ -123,6 +151,7 @@ public class OrderService {
     String pickupCode = generatePickupCode(order.getStoreId());
     order.issuePickupCode(pickupCode);
     orderStatusChangedEventWriter.append(order);
+    orderNotificationEventWriter.appendAccepted(order);
     return OrderReceptionResult.from(order);
   }
 
@@ -144,11 +173,11 @@ public class OrderService {
     orderStatusChangedEventWriter.append(order, aggregateVersion);
 
     if (command.status() == OrderStatus.PICKED_UP) {
-      // TODO: 정산·포인트 Consumer 준비 후 ORDER_PICKED_UP Outbox 이벤트 발행 활성화
-      // orderPickedUpEventWriter.append(order, aggregateVersion);
+      orderPickedUpEventWriter.append(order, aggregateVersion);
+      orderNotificationEventWriter.appendPickedUp(order);
     } else if (command.status() == OrderStatus.NO_SHOW) {
-      // TODO: 정산 Consumer 준비 후 ORDER_NO_SHOW Outbox 이벤트 발행 활성화
-      // orderNoShowEventWriter.append(order, aggregateVersion);
+      orderNoShowEventWriter.append(order, aggregateVersion);
+      orderNotificationEventWriter.appendNoShow(order);
     }
 
     return PickupStatusResult.from(order);
@@ -178,5 +207,10 @@ public class OrderService {
     return orderRepository
         .findAllByStoreIdAndStatus(storeId, status, pageable)
         .map(OrderResult::from);
+  }
+
+  @Transactional(readOnly = true)
+  public boolean existsNotCompletedOrder(Long storeId) {
+    return orderRepository.existsNotCompletedOrder(storeId);
   }
 }

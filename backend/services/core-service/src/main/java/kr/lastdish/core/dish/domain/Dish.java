@@ -9,11 +9,14 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "dishes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class Dish {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,6 +65,10 @@ public class Dish {
   @Column(name = "event_version", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
   private long aggregateVersion;
 
+  @Column(nullable = false)
+  @LastModifiedDate
+  private LocalDateTime updatedAt;
+
   public static Dish create(
       Long storeId,
       String dishName,
@@ -92,7 +99,7 @@ public class Dish {
     return dish;
   }
 
-  public void update(
+  public Dish replace(
       String dishName,
       LocalDateTime registeredAt,
       String description,
@@ -100,13 +107,22 @@ public class Dish {
       BigDecimal discountPrice,
       LocalTime pickupStartTime,
       LocalTime pickupEndTime) {
-    this.dishName = dishName;
-    this.registeredAt = registeredAt;
-    this.description = description;
-    this.dishPrice = dishPrice;
-    this.discountPrice = discountPrice;
-    this.pickupStartTime = pickupStartTime;
-    this.pickupEndTime = pickupEndTime;
+    Dish replacement =
+        create(
+            storeId,
+            dishName,
+            registeredAt,
+            description,
+            category,
+            thumbnailUrl,
+            stockQuantity,
+            dishPrice,
+            discountPrice,
+            pickupStartTime,
+            pickupEndTime);
+    replacement.dishStatus = dishStatus;
+    delete();
+    return replacement;
   }
 
   public void updateStatus(DishStatus dishStatus) {
@@ -144,11 +160,6 @@ public class Dish {
     if (this.stockQuantity > 0 && this.dishStatus == DishStatus.SOLD_OUT) {
       this.dishStatus = DishStatus.ON_SALE;
     }
-  }
-
-  public void closeSale() {
-    this.stockQuantity = 0L;
-    this.dishStatus = DishStatus.SOLD_OUT;
   }
 
   private void validateOnSale() {

@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.cart.application.dto.CartOrderSnapshot;
@@ -19,12 +20,12 @@ import kr.lastdish.core.order.application.dto.OrderResult;
 import kr.lastdish.core.order.application.dto.PickupStatusResult;
 import kr.lastdish.core.order.application.dto.UpdatePickupStatusCommand;
 import kr.lastdish.core.order.application.event.OrderNoShowEventWriter;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderPickedUpEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
-import kr.lastdish.core.store.application.StoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,13 +47,13 @@ class OrderServiceTest {
 
   @Mock private OrderStatusChangedEventWriter orderStatusChangedEventWriter;
 
+  @Mock private OrderNotificationEventWriter orderNotificationEventWriter;
+
   @Mock private OrderPickedUpEventWriter orderPickedUpEventWriter;
 
   @Mock private OrderNoShowEventWriter orderNoShowEventWriter;
 
   @Mock private PickupCodeGenerator pickupCodeGenerator;
-
-  @Mock private StoreService storeService;
 
   private static final LocalDateTime FIXED_NOW = LocalDateTime.of(2026, 8, 19, 12, 0);
 
@@ -64,10 +65,53 @@ class OrderServiceTest {
         new OrderService(
             orderRepository,
             orderStatusChangedEventWriter,
+            orderNotificationEventWriter,
             orderPickedUpEventWriter,
             orderNoShowEventWriter,
-            pickupCodeGenerator,
-            storeService);
+            pickupCodeGenerator);
+  }
+
+  @Test
+  void dish_픽업_마감_시간이_지난_주문을_노쇼_처리한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 10, 19, 0);
+    Order firstOrder = mock(Order.class);
+    Order secondOrder = mock(Order.class);
+    when(orderRepository.findPickupExpirationTargets(eq(now), any(Pageable.class)))
+        .thenReturn(List.of(firstOrder, secondOrder));
+    when(firstOrder.nextEventVersion()).thenReturn(3L);
+    when(secondOrder.nextEventVersion()).thenReturn(5L);
+
+    assertThat(orderService.expirePickupOrders(now)).isEqualTo(2);
+
+    verify(firstOrder).markNoShow(now);
+    verify(secondOrder).markNoShow(now);
+    verify(orderStatusChangedEventWriter).append(firstOrder, 3L);
+    verify(orderStatusChangedEventWriter).append(secondOrder, 5L);
+    verify(orderNoShowEventWriter).append(firstOrder, 3L);
+    verify(orderNoShowEventWriter).append(secondOrder, 5L);
+  }
+
+  @Test
+  void 픽업_만료_주문은_한_트랜잭션에서_1000건까지_처리한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 10, 19, 0);
+    List<Order> orders = IntStream.range(0, 1001).mapToObj(index -> mock(Order.class)).toList();
+    when(orderRepository.findPickupExpirationTargets(eq(now), any(Pageable.class)))
+        .thenReturn(orders);
+
+    assertThat(orderService.expirePickupOrders(now)).isEqualTo(1000);
+
+    verify(orderRepository).findPickupExpirationTargets(now, PageRequest.of(0, 1000));
+    verify(orders.get(999)).markNoShow(now);
+    verify(orders.get(1000), never()).markNoShow(now);
+  }
+
+  @Test
+  void Dish의_진행중_주문_존재_여부를_조회한다() {
+    when(orderRepository.existsActiveOrderByDishId(10L)).thenReturn(true);
+
+    assertThat(orderService.hasActiveOrdersForDish(10L)).isTrue();
+
+    verify(orderRepository).existsActiveOrderByDishId(10L);
   }
 
   @Test
@@ -89,9 +133,10 @@ class OrderServiceTest {
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
+    LocalDateTime pickupDeadline = FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt());
     Order order =
         orderService.createOrder(
-            memberId, memberInfo, cartItem, FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt()));
+            memberId, memberInfo, cartItem, BigDecimal.valueOf(5_000), pickupDeadline);
 
     assertThat(order).isNotNull();
     assertThat(order.getMemberId()).isEqualTo(memberId);
@@ -103,6 +148,8 @@ class OrderServiceTest {
     assertThat(order.getDishName()).isEqualTo("DishName");
     assertThat(order.getUnitPrice()).isEqualByComparingTo("5000");
     assertThat(order.getTotalPrice()).isEqualByComparingTo("20000");
+    assertThat(order.getUsedPoint()).isEqualByComparingTo("5000");
+    assertThat(order.getUsedDeposit()).isEqualByComparingTo("15000");
     assertThat(order.getTotalSavedAmount()).isEqualByComparingTo("4000");
     assertThat(order.getPickupDeadline())
         .isEqualTo(FIXED_NOW.toLocalDate().atTime(cartItem.pickupEndAt()));
@@ -116,8 +163,6 @@ class OrderServiceTest {
   @DisplayName("자정을 넘기는 픽업의 마감 일시를 계산한다")
   void 자정을_넘기는_픽업의_마감_일시를_계산한다(LocalDateTime now, LocalDateTime expectedDeadline) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(23, 0), LocalTime.of(1, 0));
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now))
-        .thenReturn(expectedDeadline);
     LocalDateTime pickupDeadline = orderService.validatePickupDeadline(cartItem, now);
 
     assertThat(pickupDeadline).isEqualTo(expectedDeadline);
@@ -134,9 +179,6 @@ class OrderServiceTest {
   @DisplayName("픽업 마감 전이면 주문할 수 있다")
   void 픽업_마감_전이면_주문할_수_있다(LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(pickupStartAt, pickupEndAt);
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), pickupEndAt, now))
-        .thenReturn(now.toLocalDate().atTime(pickupEndAt));
-
     orderService.validatePickupDeadline(cartItem, now);
   }
 
@@ -151,13 +193,10 @@ class OrderServiceTest {
   }
 
   @Test
-  @DisplayName("픽업 마감이 지나면 주문할 수 없다")
-  void 픽업_마감이_지났으면_주문할_수_없다() {
+  @DisplayName("정확히 픽업 마감 시각이면 주문할 수 없다")
+  void 정확히_픽업_마감_시각이면_주문할_수_없다() {
     CartOrderSnapshot cartItem = createCartOrderSnapshot(LocalTime.of(18, 0), LocalTime.of(19, 0));
-    LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0, 1);
-    when(storeService.calculatePickupDeadline(cartItem.storeId(), cartItem.pickupEndAt(), now))
-        .thenReturn(LocalDateTime.of(2026, 8, 19, 19, 0));
-
+    LocalDateTime now = LocalDateTime.of(2026, 8, 19, 19, 0);
     assertThatThrownBy(() -> orderService.validatePickupDeadline(cartItem, now))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
@@ -206,6 +245,7 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).findWithLockByIdAndIsDeletedFalse(orderId);
     verify(order, times(1)).cancel(memberId);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter, never()).appendCancelled(any(), anyLong());
   }
 
   @Test
@@ -232,6 +272,7 @@ class OrderServiceTest {
     verify(orderRepository, times(1)).validateActivePickUpCode(storeId, pickupCode);
     verify(order, times(1)).issuePickupCode(pickupCode);
     verify(orderStatusChangedEventWriter).append(order);
+    verify(orderNotificationEventWriter).appendAccepted(order);
   }
 
   @Test
@@ -303,7 +344,7 @@ class OrderServiceTest {
     verify(order).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
-    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
+    verify(orderNotificationEventWriter).appendPickedUp(order);
   }
 
   @Test
@@ -324,7 +365,7 @@ class OrderServiceTest {
     verify(order, never()).completePickup(any(LocalDateTime.class));
     verify(order).nextEventVersion();
     verify(orderStatusChangedEventWriter).append(order, 7L);
-    verifyNoInteractions(orderPickedUpEventWriter, orderNoShowEventWriter);
+    verify(orderNotificationEventWriter).appendNoShow(order);
   }
 
   @Test

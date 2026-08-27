@@ -1,6 +1,7 @@
 package kr.lastdish.core.order.infrastructure;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.core.common.exception.ErrorCode;
@@ -81,7 +82,31 @@ public class OrderRepositoryImpl implements OrderRepository {
   }
 
   @Override
-  public List<Order> findPickupExpirationTargets(Long storeId, LocalDateTime now) {
-    return orderJpaRepository.findPickupExpirationTargets(storeId, now);
+  public List<Order> findPickupExpirationTargets(LocalDateTime now, Pageable pageable) {
+    return orderJpaRepository.findPickupExpirationTargets(now, pageable);
+  }
+
+  @Override
+  public boolean existsActiveOrderByDishId(Long dishId) {
+    return orderJpaRepository.existsActiveOrderByDishId(dishId);
+  }
+
+  @Override
+  public List<Order> findPickupStartNotificationTargets(
+      LocalTime pickupStartTime, LocalDateTime deadlineFrom, LocalDateTime deadlineTo) {
+    return orderJpaRepository.findPickupStartNotificationTargets(
+        pickupStartTime, deadlineFrom, deadlineTo);
+  }
+
+  @Override
+  public List<Order> findPickupDeadlineSoonNotificationTargets(
+      LocalDateTime deadlineFrom, LocalDateTime deadlineTo) {
+    return orderJpaRepository.findPickupDeadlineSoonNotificationTargets(deadlineFrom, deadlineTo);
+  }
+
+  @Override
+  public boolean existsNotCompletedOrder(Long storeId) {
+    return orderJpaRepository.existsNotCompletedOrder(
+        storeId, List.of(OrderStatus.RESERVED, OrderStatus.PICKUP_READY));
   }
 }
