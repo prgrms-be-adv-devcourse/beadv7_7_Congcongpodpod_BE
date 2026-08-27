@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PaymentStatusVerificationScheduler {
 
-    private final PaymentFacade paymentFacade;
+  private final PaymentFacade paymentFacade;
 
-    @Scheduled(fixedDelayString = "${payment.processing-verify.interval-ms:300000}")
-    public void verifyProcessingPayments() {
-        paymentFacade.verifyProcessingPayments();
-    }
+  @Scheduled(fixedDelayString = "${payment.processing-verify.interval-ms:300000}")
+  public void verifyProcessingPayments() {
+    paymentFacade.verifyProcessingPayments();
+  }
 }

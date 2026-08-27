@@ -36,7 +36,7 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
   @Override
   public int claimProcessingPayments(
-          LocalDateTime now, LocalDateTime threshold, LocalDateTime lockTimeout, int batchSize) {
+      LocalDateTime now, LocalDateTime threshold, LocalDateTime lockTimeout, int batchSize) {
     return paymentJpaRepository.claimProcessingPayments(now, threshold, lockTimeout, batchSize);
   }
 

@@ -152,8 +152,8 @@ public class PaymentService {
     LocalDateTime lockTimeout = now.minusMinutes(processingVerifyLockTimeoutMinutes);
 
     int claimed =
-            paymentRepository.claimProcessingPayments(
-                    now, threshold, lockTimeout, processingVerifyBatchSize);
+        paymentRepository.claimProcessingPayments(
+            now, threshold, lockTimeout, processingVerifyBatchSize);
     if (claimed == 0) {
       return List.of();
     }

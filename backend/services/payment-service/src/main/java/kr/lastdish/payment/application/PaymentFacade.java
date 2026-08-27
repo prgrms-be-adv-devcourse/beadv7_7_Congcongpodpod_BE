@@ -2,7 +2,6 @@ package kr.lastdish.payment.application;
 
 import java.math.BigDecimal;
 import java.util.List;
-
 import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.payment.application.dto.ApprovalClaim;
 import kr.lastdish.payment.application.dto.PaymentApproveResponse;
@@ -113,13 +112,16 @@ public class PaymentFacade {
           log.info("결제 상태 확인 배치 : FAILED로 확정. paymentId={}", payment.getId());
         }
         case UNKNOWN ->
-                log.info(
-                        "결제 상태 확인 배치 : 확정 보류, 다음 사이클로 넘김. paymentId={}, reason={}",
-                        payment.getId(),
-                        pgResult.failureMessage());
+            log.info(
+                "결제 상태 확인 배치 : 확정 보류, 다음 사이클로 넘김. paymentId={}, reason={}",
+                payment.getId(),
+                pgResult.failureMessage());
       }
     } catch (PaymentException e) {
-      log.info("결제 상태 확인 배치 : 이미 다른 경로에서 처리됨. paymentId={}, message={}", payment.getId(), e.getMessage());
+      log.info(
+          "결제 상태 확인 배치 : 이미 다른 경로에서 처리됨. paymentId={}, message={}",
+          payment.getId(),
+          e.getMessage());
     } catch (Exception e) {
       log.error("결제 상태 확인 배치 : 확정 처리 중 예외, 다음 후보로 넘어갑니다. paymentId={}", payment.getId(), e);
     }

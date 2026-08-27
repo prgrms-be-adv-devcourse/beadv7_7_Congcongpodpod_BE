@@ -192,19 +192,19 @@ class PaymentServiceTest {
 
     when(paymentRepository.claimProcessingPayments(any(), any(), any(), anyInt())).thenReturn(2);
     when(paymentRepository.findClaimedProcessingPayments(any()))
-            .thenReturn(List.of(payment1, payment2));
+        .thenReturn(List.of(payment1, payment2));
 
     List<Payment> result = paymentService.claimStuckProcessingPayments();
 
     assertThat(result).containsExactly(payment1, payment2);
 
     ArgumentCaptor<java.time.LocalDateTime> claimNowCaptor =
-            ArgumentCaptor.forClass(java.time.LocalDateTime.class);
+        ArgumentCaptor.forClass(java.time.LocalDateTime.class);
     verify(paymentRepository)
-            .claimProcessingPayments(claimNowCaptor.capture(), any(), any(), anyInt());
+        .claimProcessingPayments(claimNowCaptor.capture(), any(), any(), anyInt());
 
     ArgumentCaptor<java.time.LocalDateTime> findNowCaptor =
-            ArgumentCaptor.forClass(java.time.LocalDateTime.class);
+        ArgumentCaptor.forClass(java.time.LocalDateTime.class);
     verify(paymentRepository).findClaimedProcessingPayments(findNowCaptor.capture());
 
     assertThat(claimNowCaptor.getValue()).isEqualTo(findNowCaptor.getValue());

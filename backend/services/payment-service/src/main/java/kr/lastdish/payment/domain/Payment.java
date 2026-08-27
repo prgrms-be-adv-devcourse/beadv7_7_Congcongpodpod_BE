@@ -71,18 +71,20 @@ public class Payment {
 
   // 결제 준비(READY) 상태를 확인하고 처리 중(CONFIRMING) 상태로 전환
   public ApprovalClaimResult claimApproval() {
-    ApprovalClaimResult result = switch (this.approvedStatus)  {
-      case READY -> {
-        this.approvedStatus = ApprovedStatus.PROCESSING;
-        yield ApprovalClaimResult.STARTED;
-      }
-      case PROCESSING -> ApprovalClaimResult.ALREADY_PROCESSING;
-      case APPROVED -> ApprovalClaimResult.ALREADY_APPROVED;
-      case FAILED -> ApprovalClaimResult.ALREADY_FAILED;
-      case EXPIRED ->
-          throw new PaymentException(
-              ErrorCode.INVALID_PAYMENT_STATUS, "만료된 결제입니다. 처음부터 다시 시도해주세요. paymentId=" + this.id);
-    };
+    ApprovalClaimResult result =
+        switch (this.approvedStatus) {
+          case READY -> {
+            this.approvedStatus = ApprovedStatus.PROCESSING;
+            yield ApprovalClaimResult.STARTED;
+          }
+          case PROCESSING -> ApprovalClaimResult.ALREADY_PROCESSING;
+          case APPROVED -> ApprovalClaimResult.ALREADY_APPROVED;
+          case FAILED -> ApprovalClaimResult.ALREADY_FAILED;
+          case EXPIRED ->
+              throw new PaymentException(
+                  ErrorCode.INVALID_PAYMENT_STATUS,
+                  "만료된 결제입니다. 처음부터 다시 시도해주세요. paymentId=" + this.id);
+        };
     if (result == ApprovalClaimResult.STARTED) {
       this.updatedAt = LocalDateTime.now();
     }

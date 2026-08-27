@@ -11,14 +11,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PaymentExpirationScheduler {
 
-    private final PaymentService paymentService;
+  private final PaymentService paymentService;
 
-    @Scheduled(fixedDelayString = "${payment.ready-expire.interval-ms:300000}")
-    public void expireReadyStatePayments() {
-        int expiredCount = paymentService.expireReadyStatePayments();
-        if (expiredCount > 0) {
-            log.info("READY 상태로 방치된 결제 {}건을 EXPIRED 처리했습니다.", expiredCount);
-        }
+  @Scheduled(fixedDelayString = "${payment.ready-expire.interval-ms:300000}")
+  public void expireReadyStatePayments() {
+    int expiredCount = paymentService.expireReadyStatePayments();
+    if (expiredCount > 0) {
+      log.info("READY 상태로 방치된 결제 {}건을 EXPIRED 처리했습니다.", expiredCount);
     }
-
+  }
 }

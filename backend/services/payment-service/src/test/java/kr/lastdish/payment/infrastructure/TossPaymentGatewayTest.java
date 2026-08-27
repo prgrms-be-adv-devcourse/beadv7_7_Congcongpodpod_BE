@@ -146,15 +146,15 @@ class TossPaymentGatewayTest {
   @Test
   void checkStatus_DONE_응답이면_SUCCESS로_확정한다() {
     mockServer
-            .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-1"))
-            .andExpect(method(HttpMethod.GET))
-            .andRespond(
-                    withSuccess(
-                            """
+        .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-1"))
+        .andExpect(method(HttpMethod.GET))
+        .andRespond(
+            withSuccess(
+                """
                             {"paymentKey":"pk_check_1","orderId":"order-check-1","totalAmount":10000,
                              "status":"DONE","method":"카드"}
                             """,
-                            MediaType.APPLICATION_JSON));
+                MediaType.APPLICATION_JSON));
 
     PgApprovalResult result = gateway.checkStatus("order-check-1");
 
@@ -166,11 +166,11 @@ class TossPaymentGatewayTest {
   @Test
   void checkStatus_404이면_FAILURE로_확정한다() {
     mockServer
-            .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-2"))
-            .andRespond(
-                    withStatus(HttpStatus.NOT_FOUND)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body("{\"code\":\"NOT_FOUND_PAYMENT\",\"message\":\"존재하지 않는 결제 정보 입니다.\"}"));
+        .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-2"))
+        .andRespond(
+            withStatus(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"code\":\"NOT_FOUND_PAYMENT\",\"message\":\"존재하지 않는 결제 정보 입니다.\"}"));
 
     PgApprovalResult result = gateway.checkStatus("order-check-2");
 
@@ -182,8 +182,8 @@ class TossPaymentGatewayTest {
   @Test
   void checkStatus_429면_UNKNOWN으로_불확실_처리한다() {
     mockServer
-            .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-3"))
-            .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+        .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-3"))
+        .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
     PgApprovalResult result = gateway.checkStatus("order-check-3");
 
@@ -194,8 +194,8 @@ class TossPaymentGatewayTest {
   @Test
   void checkStatus_5xx면_UNKNOWN으로_불확실_처리한다() {
     mockServer
-            .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-4"))
-            .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
+        .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-4"))
+        .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
 
     PgApprovalResult result = gateway.checkStatus("order-check-4");
 
@@ -206,11 +206,11 @@ class TossPaymentGatewayTest {
   @Test
   void checkStatus_200인데_status가_DONE이_아니면_방어적으로_UNKNOWN_처리한다() {
     mockServer
-            .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-5"))
-            .andRespond(
-                    withSuccess(
-                            "{\"paymentKey\":\"pk_check_5\",\"status\":\"IN_PROGRESS\"}",
-                            MediaType.APPLICATION_JSON));
+        .expect(requestTo("https://api.tosspayments.com/v1/payments/orders/order-check-5"))
+        .andRespond(
+            withSuccess(
+                "{\"paymentKey\":\"pk_check_5\",\"status\":\"IN_PROGRESS\"}",
+                MediaType.APPLICATION_JSON));
 
     PgApprovalResult result = gateway.checkStatus("order-check-5");
 

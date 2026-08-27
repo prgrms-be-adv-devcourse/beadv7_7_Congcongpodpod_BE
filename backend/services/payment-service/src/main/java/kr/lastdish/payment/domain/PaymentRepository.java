@@ -13,7 +13,8 @@ public interface PaymentRepository {
 
   int expireReadyStatePayments(LocalDateTime now, LocalDateTime threshold, int batchSize);
 
-  int claimProcessingPayments(LocalDateTime now, LocalDateTime threshold, LocalDateTime lockTimeout, int batchSize);
+  int claimProcessingPayments(
+      LocalDateTime now, LocalDateTime threshold, LocalDateTime lockTimeout, int batchSize);
 
   List<Payment> findClaimedProcessingPayments(LocalDateTime now);
 }
