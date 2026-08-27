@@ -20,14 +20,15 @@ const REPORT_PARTICLES = Array.from({ length: 36 }, (_, index) => ({
   drift: (index % 2 === 0 ? -1 : 1) * (5 + (index % 5) * 3),
   fall: 24 + (index % 6) * 7,
 }));
-const REPORT_LEAVES = Array.from({ length: 24 }, (_, index) => ({
-  left: `${3 + ((index * 37) % 94)}%` as `${number}%`,
-  start: 0.03 + (index % 8) * 0.028,
-  end: 0.7 + (index % 5) * 0.055,
-  size: 9 + (index % 4) * 2,
-  drift: (index % 2 === 0 ? -1 : 1) * (20 + (index % 6) * 7),
-  rotation: (index % 2 === 0 ? 1 : -1) * (150 + (index % 5) * 45),
-  color: [colors.green100, colors.green300, colors.green500, colors.green700][index % 4],
+const REPORT_LEAVES = Array.from({ length: 18 }, (_, index) => ({
+  left: `${2 + ((index * 41) % 95)}%` as `${number}%`,
+  start: 0.02 + (index % 7) * 0.035,
+  end: 0.82 + (index % 4) * 0.05,
+  size: 16 + (index % 4) * 3,
+  sway: (index % 2 === 0 ? -1 : 1) * (30 + (index % 5) * 11),
+  drift: (index % 2 === 0 ? 1 : -1) * (8 + (index % 4) * 5),
+  rotation: (index % 2 === 0 ? 1 : -1) * (380 + (index % 5) * 80),
+  color: [colors.green300, colors.green500, colors.green700, colors.green900][index % 4],
 }));
 
 function notificationVisual(type?: string) {
@@ -114,15 +115,19 @@ function MetricBlurCurtain({ motion, accent = false }: { motion: Animated.Value;
 
 function ReportLeafFall({ motion, height }: { motion: Animated.Value; height: number }) {
   return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.reportLeafField}>
-    {REPORT_LEAVES.map((leaf, index) => <Animated.View key={`${leaf.left}-${index}`} style={[styles.reportFallingLeaf, {
-      left: leaf.left,
-      opacity: motion.interpolate({ inputRange: [leaf.start, leaf.start + 0.05, leaf.end - 0.08, leaf.end], outputRange: [0, 0.86, 0.72, 0], extrapolate: 'clamp' }),
-      transform: [
-        { translateY: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: [-40, height + 44], extrapolate: 'clamp' }) },
-        { translateX: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: [0, leaf.drift], extrapolate: 'clamp' }) },
-        { rotate: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: ['0deg', `${leaf.rotation}deg`], extrapolate: 'clamp' }) },
-      ],
-    }]}><Ionicons name="leaf-outline" size={leaf.size} color={leaf.color}/></Animated.View>)}
+    {REPORT_LEAVES.map((leaf, index) => {
+      const span = leaf.end - leaf.start;
+      const timeline = [leaf.start, leaf.start + span * 0.2, leaf.start + span * 0.4, leaf.start + span * 0.6, leaf.start + span * 0.8, leaf.end];
+      return <Animated.View key={`${leaf.left}-${index}`} style={[styles.reportFallingLeaf, {
+        left: leaf.left,
+        opacity: motion.interpolate({ inputRange: [leaf.start, leaf.start + 0.035, leaf.end - 0.06, leaf.end], outputRange: [0, 0.96, 0.88, 0], extrapolate: 'clamp' }),
+        transform: [
+          { translateY: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: [-56, height + 60], extrapolate: 'clamp' }) },
+          { translateX: motion.interpolate({ inputRange: timeline, outputRange: [0, leaf.sway, leaf.sway * -0.72, leaf.sway * 0.84, leaf.sway * -0.48, leaf.drift], extrapolate: 'clamp' }) },
+          { rotate: motion.interpolate({ inputRange: timeline, outputRange: ['0deg', `${leaf.rotation * 0.18}deg`, `${leaf.rotation * 0.37}deg`, `${leaf.rotation * 0.6}deg`, `${leaf.rotation * 0.82}deg`, `${leaf.rotation}deg`], extrapolate: 'clamp' }) },
+        ],
+      }]}><Ionicons name="leaf" size={leaf.size} color={leaf.color}/></Animated.View>;
+    })}
   </View>;
 }
 
@@ -159,7 +164,7 @@ function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRe
     leafFall.setValue(0);
     Animated.parallel([
       Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }),
-      Animated.timing(leafFall, { toValue: 1, duration: 1800, easing: Easing.in(Easing.quad), isInteraction: false, useNativeDriver: true }),
+      Animated.timing(leafFall, { toValue: 1, duration: 4500, easing: Easing.linear, isInteraction: false, useNativeDriver: true }),
     ]).start();
   }, [entrance, leafFall, reduceMotion, report]);
 
