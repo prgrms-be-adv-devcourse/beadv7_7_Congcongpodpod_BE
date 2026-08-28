@@ -1,0 +1,2938 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "서비스 로그 열기 ↗",
+      "tooltip": "Loki 로그 대시보드를 새 탭에서 엽니다.",
+      "type": "link",
+      "url": "/d/lastdish-service-logs/service-logs"
+    }
+  ],
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "전체 시스템 상태",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": [],
+      "description": "서비스·DB·Redis·Kafka·Elasticsearch·모니터링 구성요소의 현재 상태를 한 번에 확인합니다."
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "핵심 서비스·데이터 상태",
+      "description": "설정·게이트웨이·회원·코어·결제·AI 서비스와 서비스별 PostgreSQL·Redis·Kafka 상태입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "wideLayout": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"config-server\"})",
+          "legendFormat": "설정 서버",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"gateway-service\"})",
+          "legendFormat": "게이트웨이",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"member-service\"})",
+          "legendFormat": "회원 서비스",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"core-service\"})",
+          "legendFormat": "코어 서비스",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "max(pg_up{job=\"member-postgresql\"})",
+          "legendFormat": "회원 PostgreSQL",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "max(pg_up{job=\"core-postgresql\"})",
+          "legendFormat": "코어 PostgreSQL",
+          "range": true
+        },
+        {
+          "refId": "G",
+          "editorMode": "code",
+          "expr": "max(kube_pod_status_ready{namespace=\"data\",pod=~\"redis-.*\",condition=\"true\"})",
+          "legendFormat": "Redis",
+          "range": true
+        },
+        {
+          "refId": "H",
+          "editorMode": "code",
+          "expr": "max(kube_pod_status_ready{namespace=\"data\",pod=~\"kafka-.*\",condition=\"true\"})",
+          "legendFormat": "Kafka",
+          "range": true
+        },
+        {
+          "refId": "I",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"payment-service\"})",
+          "legendFormat": "결제 서비스",
+          "range": true
+        },
+        {
+          "refId": "J",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"ai-service\"})",
+          "legendFormat": "AI 서비스",
+          "range": true
+        },
+        {
+          "refId": "K",
+          "editorMode": "code",
+          "expr": "max(pg_up{job=\"payment-postgresql\"})",
+          "legendFormat": "결제 PostgreSQL",
+          "range": true
+        },
+        {
+          "refId": "L",
+          "editorMode": "code",
+          "expr": "max(pg_up{job=\"ai-postgresql\"})",
+          "legendFormat": "AI PostgreSQL",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1128,
+      "type": "stat",
+      "title": "검색·모니터링·Exporter 상태",
+      "description": "Elasticsearch·Prometheus·Grafana·Node Exporter와 데이터 Exporter 수집 상태입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "wideLayout": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "max(up{job=\"elasticsearch\"})",
+          "legendFormat": "Elasticsearch",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "max(kube_pod_status_ready{namespace=\"monitoring\",pod=~\"prometheus-.*\",condition=\"true\"})",
+          "legendFormat": "Prometheus",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "max(kube_pod_status_ready{namespace=\"monitoring\",pod=~\"grafana-.*\",condition=\"true\"})",
+          "legendFormat": "Grafana",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "max(up{job=~\"main-node-exporter|data-node-exporter\"})",
+          "legendFormat": "Node Exporter",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "max(up{job=\"member-postgresql\"})",
+          "legendFormat": "Member PG Exporter",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "max(up{job=\"core-postgresql\"})",
+          "legendFormat": "Core PG Exporter",
+          "range": true
+        },
+        {
+          "refId": "G",
+          "editorMode": "code",
+          "expr": "max(up{job=\"elasticsearch\"})",
+          "legendFormat": "Elasticsearch Exporter",
+          "range": true
+        },
+        {
+          "refId": "H",
+          "editorMode": "code",
+          "expr": "max(up{job=\"payment-postgresql\"})",
+          "legendFormat": "Payment PG Exporter",
+          "range": true
+        },
+        {
+          "refId": "I",
+          "editorMode": "code",
+          "expr": "max(up{job=\"ai-postgresql\"})",
+          "legendFormat": "AI PG Exporter",
+          "range": true
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "현재 Pod별 누적 재시작 횟수입니다. 값이 증가하면 OOM 또는 probe 실패를 확인합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"platform\",pod=~\"config-server-.*\"})",
+          "legendFormat": "설정 서버",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"app\",pod=~\"gateway-service-.*\"})",
+          "legendFormat": "게이트웨이",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"app\",pod=~\"member-service-.*\"})",
+          "legendFormat": "회원 서비스",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"app\",pod=~\"core-service-.*\"})",
+          "legendFormat": "코어 서비스",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"app\",pod=~\"payment-service-.*\"})",
+          "legendFormat": "결제 서비스",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"app\",pod=~\"ai-service-.*\"})",
+          "legendFormat": "AI 서비스",
+          "range": true
+        }
+      ],
+      "title": "전체 서비스 Pod 재시작 횟수",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Deployment가 원하는 replica와 현재 available replica를 비교합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"platform\",deployment=\"config-server\"}",
+          "legendFormat": "설정 서버",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\",deployment=\"gateway-service\"}",
+          "legendFormat": "게이트웨이",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\",deployment=\"member-service\"}",
+          "legendFormat": "회원 서비스",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\",deployment=\"core-service\"}",
+          "legendFormat": "코어 서비스",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\",deployment=\"payment-service\"}",
+          "legendFormat": "결제 서비스",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\",deployment=\"ai-service\"}",
+          "legendFormat": "AI 서비스",
+          "range": true
+        }
+      ],
+      "title": "서비스별 사용 가능한 레플리카",
+      "type": "stat"
+    },
+    {
+      "id": 105,
+      "type": "row",
+      "title": "EC2 전체 자원",
+      "description": "Main/Data EC2의 자원 사용률·잔여 용량·파일 디스크립터·Load Average·네트워크 상태를 한 영역에서 확인합니다.",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "panels": []
+    },
+    {
+      "id": 110,
+      "type": "bargauge",
+      "title": "Main EC2 자원 사용률",
+      "description": "CPU·RAM·디스크 사용률·디스크 여유율·CPU I/O 대기율·Swap 사용률을 하나의 가로 막대 패널로 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "디스크 여유율"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 10
+                    },
+                    {
+                      "color": "green",
+                      "value": 20
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Swap"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 12,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * (1 - avg (rate(node_cpu_seconds_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mode=\"idle\"}[30s])))",
+          "legendFormat": "CPU",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"} / node_memory_MemTotal_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"})",
+          "legendFormat": "RAM",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})",
+          "legendFormat": "루트 디스크",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "100 * avg (rate(node_cpu_seconds_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mode=\"iowait\"}[30s]))",
+          "legendFormat": "CPU I/O 대기",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "100 * node_filesystem_avail_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"}",
+          "legendFormat": "디스크 여유율",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "100 * (node_memory_SwapTotal_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"} - node_memory_SwapFree_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}) / clamp_min(node_memory_SwapTotal_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}, 1)",
+          "legendFormat": "Swap",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1110,
+      "type": "bargauge",
+      "title": "Data EC2 자원 사용률",
+      "description": "CPU·RAM·디스크 사용률·디스크 여유율·CPU I/O 대기율·Swap 사용률을 하나의 가로 막대 패널로 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "디스크 여유율"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 10
+                    },
+                    {
+                      "color": "green",
+                      "value": 20
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Swap"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 12,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * (1 - avg (rate(node_cpu_seconds_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",mode=\"idle\"}[30s])))",
+          "legendFormat": "CPU",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"} / node_memory_MemTotal_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"})",
+          "legendFormat": "RAM",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})",
+          "legendFormat": "루트 디스크",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "100 * avg (rate(node_cpu_seconds_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",mode=\"iowait\"}[30s]))",
+          "legendFormat": "CPU I/O 대기",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "100 * node_filesystem_avail_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"}",
+          "legendFormat": "디스크 여유율",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "100 * (node_memory_SwapTotal_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"} - node_memory_SwapFree_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"}) / clamp_min(node_memory_SwapTotal_bytes{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"}, 1)",
+          "legendFormat": "Swap",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1116,
+      "type": "stat",
+      "title": "Main EC2 열린 파일 디스크립터 수",
+      "description": "현재 커널에 할당된 파일 디스크립터 수입니다. 지속 상승하면 연결·파일 누수를 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 0,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10000
+              },
+              {
+                "color": "red",
+                "value": 50000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "node_filefd_allocated{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "열린 FD",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1123,
+      "type": "stat",
+      "title": "Data EC2 열린 파일 디스크립터 수",
+      "description": "현재 커널에 할당된 파일 디스크립터 수입니다. 지속 상승하면 연결·파일 누수를 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 12,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10000
+              },
+              {
+                "color": "red",
+                "value": 50000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "node_filefd_allocated{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"}",
+          "legendFormat": "열린 FD",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1300,
+      "type": "row",
+      "title": "서버별 워크로드 자원",
+      "description": "Main EC2의 Kubernetes Pod와 Data EC2의 Docker 컨테이너별 CPU·메모리 사용량 및 전체 합계입니다.",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "panels": []
+    },
+    {
+      "id": 1301,
+      "type": "timeseries",
+      "title": "Main EC2 · Kubernetes Pod CPU 사용률 (2 Core 기준 %)",
+      "description": "Main EC2의 전체 2 vCPU(2000mCPU = 100%) 기준으로 각 Pod와 전체 Pod 합계의 실제 CPU 사용률(%)만 깔끔하게 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*전체 Pod 합계.*"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2.5
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "50 * sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{job=\"kubernetes-cadvisor\",namespace=~\"app|platform|data|monitoring\",container!=\"\",image!=\"\"}[30s]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "50 * sum(rate(container_cpu_usage_seconds_total{job=\"kubernetes-cadvisor\",namespace=~\"app|platform|data|monitoring\",container!=\"\",image!=\"\"}[30s]))",
+          "legendFormat": "전체 Pod 합계",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1302,
+      "type": "timeseries",
+      "title": "Main EC2 · Kubernetes Pod 메모리 사용률 (8GB 기준 %)",
+      "description": "Main EC2의 전체 물리 RAM(8.0 GiB = 100%) 기준으로 각 Pod(서비스)별 실제 메모리 점유율(%)과 전체 Pod 합계를 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*전체 Pod 합계.*"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2.5
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum by (namespace, pod) (container_memory_working_set_bytes{job=\"kubernetes-cadvisor\",namespace=~\"app|platform|data|monitoring\",container!=\"\",image!=\"\"}) / sum(node_memory_MemTotal_bytes{job=\"main-node-exporter\"})",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * sum(container_memory_working_set_bytes{job=\"kubernetes-cadvisor\",namespace=~\"app|platform|data|monitoring\",container!=\"\",image!=\"\"}) / sum(node_memory_MemTotal_bytes{job=\"main-node-exporter\"})",
+          "legendFormat": "전체 Pod 합계",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1303,
+      "type": "timeseries",
+      "title": "Data EC2 · Docker Compose CPU 사용률 (2 Core 기준 %)",
+      "description": "Data EC2의 전체 2 vCPU(2000mCPU = 100%) 기준으로 각 Docker 컨테이너(PostgreSQL, Elasticsearch 등)와 전체 합계의 실제 CPU 사용률(%)을 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*전체 합계.*"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2.5
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "50 * sum by (container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{job=\"data-cadvisor\",container_label_com_docker_compose_service!=\"\",image!=\"\"}[30s]))",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "50 * sum(rate(container_cpu_usage_seconds_total{job=\"data-cadvisor\",container_label_com_docker_compose_service!=\"\",image!=\"\"}[30s]))",
+          "legendFormat": "전체 합계",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1304,
+      "type": "timeseries",
+      "title": "Data EC2 · Docker 컨테이너 메모리 사용률 (4GB 기준 %)",
+      "description": "Data EC2의 전체 물리 RAM(4.0 GiB = 100%) 기준으로 각 Docker 컨테이너(PostgreSQL DB, Elasticsearch 등)별 실제 메모리 점유율(%)과 전체 합계를 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*전체 합계.*"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2.5
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum by (container_label_com_docker_compose_service) (container_memory_working_set_bytes{job=\"data-cadvisor\",container_label_com_docker_compose_service!=\"\",image!=\"\"}) / sum(node_memory_MemTotal_bytes{job=\"data-node-exporter\"})",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * sum(container_memory_working_set_bytes{job=\"data-cadvisor\",container_label_com_docker_compose_service!=\"\",image!=\"\"}) / sum(node_memory_MemTotal_bytes{job=\"data-node-exporter\"})",
+          "legendFormat": "전체 합계",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1118,
+      "type": "timeseries",
+      "title": "Main EC2 CPU Load Average",
+      "description": "실행 중이거나 CPU를 기다리는 작업 수입니다. 2 vCPU 서버에서 5분 Load가 2 이상 지속되면 CPU 경합을 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "node_load1{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "1분",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "node_load5{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "5분",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "node_load15{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "15분",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1119,
+      "type": "timeseries",
+      "title": "Main EC2 네트워크 송수신",
+      "description": "Loopback을 제외한 초당 네트워크 수신·송신량입니다. 서비스 트래픽과 DB·Exporter 통신 증가를 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_receive_bytes_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "수신",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_transmit_bytes_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "송신",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1120,
+      "type": "timeseries",
+      "title": "Main EC2 네트워크 오류·드롭",
+      "description": "초당 네트워크 오류와 드롭 수입니다. 0보다 큰 값이 지속되면 보안 그룹·MTU·NIC·호스트 부하를 점검합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_receive_errs_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s])) + sum(rate(node_network_receive_drop_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "수신 오류·드롭",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_transmit_errs_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s])) + sum(rate(node_network_transmit_drop_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "송신 오류·드롭",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1125,
+      "type": "timeseries",
+      "title": "Data EC2 CPU Load Average",
+      "description": "실행 중이거나 CPU를 기다리는 작업 수입니다. 2 vCPU 서버에서 5분 Load가 2 이상 지속되면 CPU 경합을 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 51
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "node_load1{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"}",
+          "legendFormat": "1분",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "node_load5{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"}",
+          "legendFormat": "5분",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "node_load15{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\"}",
+          "legendFormat": "15분",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1126,
+      "type": "timeseries",
+      "title": "Data EC2 네트워크 송수신",
+      "description": "Loopback을 제외한 초당 네트워크 수신·송신량입니다. 서비스 트래픽과 DB·Exporter 통신 증가를 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 51
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_receive_bytes_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",device!=\"lo\"}[30s]))",
+          "legendFormat": "수신",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_transmit_bytes_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",device!=\"lo\"}[30s]))",
+          "legendFormat": "송신",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1127,
+      "type": "timeseries",
+      "title": "Data EC2 네트워크 오류·드롭",
+      "description": "초당 네트워크 오류와 드롭 수입니다. 0보다 큰 값이 지속되면 보안 그룹·MTU·NIC·호스트 부하를 점검합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 51
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_receive_errs_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",device!=\"lo\"}[30s])) + sum(rate(node_network_receive_drop_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",device!=\"lo\"}[30s]))",
+          "legendFormat": "수신 오류·드롭",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_transmit_errs_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",device!=\"lo\"}[30s])) + sum(rate(node_network_transmit_drop_total{job=\"data-node-exporter\",server=\"Data EC2\",instance=\"ssh-tunnel:19101\",device!=\"lo\"}[30s]))",
+          "legendFormat": "송신 오류·드롭",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "type": "row",
+      "title": "애플리케이션 리소스",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      },
+      "panels": [],
+      "description": "Config·Gateway·Member·Core Pod의 CPU·메모리·JVM·HTTP 처리량입니다."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "실제 CPU 사용량과 Kubernetes가 예약한 request를 mCPU로 비교합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*\\(mCPU\\).*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mcores"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    4,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum by (namespace, pod) ((rate(container_cpu_usage_seconds_total{namespace=~\"app|platform\",pod=~\"${service:regex}-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=~\"app|platform\",pod=~\"${service:regex}-.*\",container!=\"\",image!=\"\"} < 60))) / sum by (namespace, pod) (kube_pod_container_resource_limits{namespace=~\"app|platform\", pod=~\"${service:regex}-.*\", resource=\"cpu\", unit=\"core\"})",
+          "legendFormat": "{{pod}} 사용률 (%)",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum by (namespace, pod) ((rate(container_cpu_usage_seconds_total{namespace=~\"app|platform\",pod=~\"${service:regex}-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=~\"app|platform\",pod=~\"${service:regex}-.*\",container!=\"\",image!=\"\"} < 60))) * 1000",
+          "legendFormat": "{{pod}} 실측치 (mCPU)",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum by (namespace, pod) (kube_pod_container_resource_requests{namespace=~\"app|platform\", pod=~\"${service:regex}-.*\", resource=\"cpu\", unit=\"core\"}) * 1000",
+          "legendFormat": "{{pod}} 예약량 (mCPU)",
+          "range": true
+        }
+      ],
+      "title": "서비스 CPU 사용률(%) 및 사용량(mCPU)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "실제 working set과 OOM 종료 기준인 memory limit을 비교합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Memory",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/limit$/"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    8,
+                    8
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (namespace, pod) ((container_memory_working_set_bytes{namespace=~\"app|platform\",pod=~\"${service:regex}-.*\",container!=\"\",image!=\"\"} and on(namespace,pod,container) (time() - container_last_seen{namespace=~\"app|platform\",pod=~\"${service:regex}-.*\",container!=\"\",image!=\"\"} < 60)))",
+          "legendFormat": "{{pod}} usage",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum by (namespace, pod) (kube_pod_container_resource_limits{namespace=~\"app|platform\", pod=~\"${service:regex}-.*\", resource=\"memory\", unit=\"byte\"})",
+          "legendFormat": "{{pod}} limit",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "메모리 사용량과 상한",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Spring JVM의 heap 사용량 추세입니다.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Heap",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 69
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (application) (jvm_memory_used_bytes{job=\"kubernetes-spring-pods\", area=\"heap\", application=~\"${service:regex}\"})",
+          "legendFormat": "{{application}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "JVM 힙 사용량",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "서비스가 처리한 HTTP 요청의 초당 증가량입니다.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "requests/s",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0,
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 69
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (application) (rate(http_server_requests_seconds_count{job=\"kubernetes-spring-pods\", application=~\"${service:regex}\", uri!~\"/actuator.*\"}[30s]))",
+          "legendFormat": "{{application}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP 요청 처리율",
+      "type": "timeseries"
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "PostgreSQL (추적 DB: member_db · core_db · payment_db · ai_db)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 77
+      },
+      "panels": [],
+      "description": "각 서비스가 사용하는 member_db, core_db, payment_db, ai_db의 PostgreSQL 연결·트랜잭션 지표와 공용 Redis·Kafka 상태를 확인합니다."
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "DB 현재 연결 수",
+      "description": "Member/Core DB의 idle 포함 전체 PostgreSQL 연결 수입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 78
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "max(pg_stat_database_numbackends{job=\"member-postgresql\",datname=\"member_db\"})",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "max(pg_stat_database_numbackends{job=\"core-postgresql\",datname=\"core_db\"})",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "max(pg_stat_database_numbackends{job=\"payment-postgresql\",datname=\"payment_db\"})",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "max(pg_stat_database_numbackends{job=\"ai-postgresql\",datname=\"ai_db\"})",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "DB 크기",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 78
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "max(pg_database_size_bytes{job=\"member-postgresql\",datname=\"member_db\"})",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "max(pg_database_size_bytes{job=\"core-postgresql\",datname=\"core_db\"})",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "max(pg_database_size_bytes{job=\"payment-postgresql\",datname=\"payment_db\"})",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "max(pg_database_size_bytes{job=\"ai-postgresql\",datname=\"ai_db\"})",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ],
+      "description": "Member/Core 데이터베이스가 디스크에서 차지하는 현재 크기입니다."
+    },
+    {
+      "id": 22,
+      "type": "bargauge",
+      "title": "DB 연결 사용률",
+      "description": "현재 연결 수를 max_connections로 나눈 값입니다. 70% 이상이 지속되면 풀과 연결 한도를 점검합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 78
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "maxVizHeight": 120,
+        "minVizHeight": 20,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * max(pg_stat_database_numbackends{job=\"member-postgresql\",datname=\"member_db\"}) / max(pg_settings_max_connections{job=\"member-postgresql\"})",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * max(pg_stat_database_numbackends{job=\"core-postgresql\",datname=\"core_db\"}) / max(pg_settings_max_connections{job=\"core-postgresql\"})",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "100 * max(pg_stat_database_numbackends{job=\"payment-postgresql\",datname=\"payment_db\"}) / max(pg_settings_max_connections{job=\"payment-postgresql\"})",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "100 * max(pg_stat_database_numbackends{job=\"ai-postgresql\",datname=\"ai_db\"}) / max(pg_settings_max_connections{job=\"ai-postgresql\"})",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "최근 1시간 데드락",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 83
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(increase(pg_stat_database_deadlocks{job=\"member-postgresql\",datname=\"member_db\"}[1h]))",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(increase(pg_stat_database_deadlocks{job=\"core-postgresql\",datname=\"core_db\"}[1h]))",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(increase(pg_stat_database_deadlocks{job=\"payment-postgresql\",datname=\"payment_db\"}[1h]))",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "sum(increase(pg_stat_database_deadlocks{job=\"ai-postgresql\",datname=\"ai_db\"}[1h]))",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ],
+      "description": "최근 1시간 동안 DB별 데드락 수입니다. 1건 이상이면 강제 롤백된 트랜잭션과 잠금 순서를 확인합니다."
+    },
+    {
+      "id": 25,
+      "type": "stat",
+      "title": "잠금 대기 쿼리",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 83
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(pg_query_health_lock_waiting_queries{job=\"member-postgresql\",datname=\"member_db\"})",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(pg_query_health_lock_waiting_queries{job=\"core-postgresql\",datname=\"core_db\"})",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(pg_query_health_lock_waiting_queries{job=\"payment-postgresql\",datname=\"payment_db\"})",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "sum(pg_query_health_lock_waiting_queries{job=\"ai-postgresql\",datname=\"ai_db\"})",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ],
+      "description": "실제로 잠금 획득을 기다리는 쿼리 수입니다. 1 이상이면 blocking 세션을 확인합니다."
+    },
+    {
+      "id": 23,
+      "type": "bargauge",
+      "title": "DB 캐시 적중률",
+      "description": "shared buffer에서 데이터를 찾은 비율입니다. 지속적으로 낮으면 디스크 I/O와 쿼리를 점검합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 83
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 90
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "maxVizHeight": 120,
+        "minVizHeight": 20,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum(pg_stat_database_blks_hit{job=\"member-postgresql\",datname=\"member_db\"}) / clamp_min(sum(pg_stat_database_blks_hit{job=\"member-postgresql\",datname=\"member_db\"}) + sum(pg_stat_database_blks_read{job=\"member-postgresql\",datname=\"member_db\"}), 1)",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * sum(pg_stat_database_blks_hit{job=\"core-postgresql\",datname=\"core_db\"}) / clamp_min(sum(pg_stat_database_blks_hit{job=\"core-postgresql\",datname=\"core_db\"}) + sum(pg_stat_database_blks_read{job=\"core-postgresql\",datname=\"core_db\"}), 1)",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "100 * sum(pg_stat_database_blks_hit{job=\"payment-postgresql\",datname=\"payment_db\"}) / clamp_min(sum(pg_stat_database_blks_hit{job=\"payment-postgresql\",datname=\"payment_db\"}) + sum(pg_stat_database_blks_read{job=\"payment-postgresql\",datname=\"payment_db\"}), 1)",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "100 * sum(pg_stat_database_blks_hit{job=\"ai-postgresql\",datname=\"ai_db\"}) / clamp_min(sum(pg_stat_database_blks_hit{job=\"ai-postgresql\",datname=\"ai_db\"}) + sum(pg_stat_database_blks_read{job=\"ai-postgresql\",datname=\"ai_db\"}), 1)",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "초당 DB 트랜잭션",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 88
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "tps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"member-postgresql\",datname=\"member_db\"}[30s]))",
+          "legendFormat": "Member 커밋/초",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_rollback{job=\"member-postgresql\",datname=\"member_db\"}[30s]))",
+          "legendFormat": "Member 롤백/초",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"core-postgresql\",datname=\"core_db\"}[30s]))",
+          "legendFormat": "Core 커밋/초",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_rollback{job=\"core-postgresql\",datname=\"core_db\"}[30s]))",
+          "legendFormat": "Core 롤백/초",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"payment-postgresql\",datname=\"payment_db\"}[30s]))",
+          "legendFormat": "Payment 커밋/초",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_rollback{job=\"payment-postgresql\",datname=\"payment_db\"}[30s]))",
+          "legendFormat": "Payment 롤백/초",
+          "range": true
+        },
+        {
+          "refId": "G",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"ai-postgresql\",datname=\"ai_db\"}[30s]))",
+          "legendFormat": "AI 커밋/초",
+          "range": true
+        },
+        {
+          "refId": "H",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_xact_rollback{job=\"ai-postgresql\",datname=\"ai_db\"}[30s]))",
+          "legendFormat": "AI 롤백/초",
+          "range": true
+        }
+      ],
+      "description": "최근 5분 기준 DB별 커밋·롤백 처리량입니다. 롤백 증가나 처리량 급락 시 오류와 느린 쿼리를 확인합니다."
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "DB 임시 파일 쓰기",
+      "description": "정렬·해시가 work_mem을 초과해 디스크에 쓰는 DB별 속도입니다. 지속 증가와 응답 지연이 동반되면 쿼리·인덱스·work_mem을 점검합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 88
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_temp_bytes{job=\"member-postgresql\",datname=\"member_db\"}[30s]))",
+          "legendFormat": "Member DB",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_temp_bytes{job=\"core-postgresql\",datname=\"core_db\"}[30s]))",
+          "legendFormat": "Core DB",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_temp_bytes{job=\"payment-postgresql\",datname=\"payment_db\"}[30s]))",
+          "legendFormat": "Payment DB",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "sum(rate(pg_stat_database_temp_bytes{job=\"ai-postgresql\",datname=\"ai_db\"}[30s]))",
+          "legendFormat": "AI DB",
+          "range": true
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "data namespace의 공용 Redis Pod 누적 재시작 횟수입니다. 값이 증가하면 OOM·probe 실패·컨테이너 로그를 확인합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 96
+      },
+      "id": 120,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"data\",pod=~\"redis-.*\"})",
+          "legendFormat": "Redis",
+          "range": true
+        }
+      ],
+      "title": "공용 Redis Pod 재시작 횟수",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "data namespace의 공용 Kafka Pod 누적 재시작 횟수입니다. 값이 증가하면 OOM·probe 실패·컨테이너 로그를 확인합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 96
+      },
+      "id": 121,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"data\",pod=~\"kafka-.*\"})",
+          "legendFormat": "Kafka",
+          "range": true
+        }
+      ],
+      "title": "공용 Kafka Pod 재시작 횟수",
+      "type": "stat"
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "공용 Redis Pod CPU 사용률(%) 및 메모리(MiB)",
+      "description": "모든 서비스가 공유하는 Redis Pod의 CPU·메모리 사용량입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*(mCPU|메모리).*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mcores"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum((rate(container_cpu_usage_seconds_total{namespace=\"data\",pod=~\"redis-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=\"data\",pod=~\"redis-.*\",container!=\"\",image!=\"\"} < 60))) / sum(kube_pod_container_resource_limits{namespace=\"data\",pod=~\"redis-.*\",resource=\"cpu\",unit=\"core\"})",
+          "legendFormat": "CPU 사용률 (Limit 기준 %)",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum((rate(container_cpu_usage_seconds_total{namespace=\"data\",pod=~\"redis-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=\"data\",pod=~\"redis-.*\",container!=\"\",image!=\"\"} < 60))) * 1000",
+          "legendFormat": "CPU 실측치 (mCPU)",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum((container_memory_working_set_bytes{namespace=\"data\",pod=~\"redis-.*\",container!=\"\",image!=\"\"} and on(namespace,pod,container) (time() - container_last_seen{namespace=\"data\",pod=~\"redis-.*\",container!=\"\",image!=\"\"} < 60)))",
+          "legendFormat": "메모리 working set",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "공용 Kafka Pod CPU 사용률(%) 및 메모리(MiB)",
+      "description": "모든 이벤트 서비스가 공유하는 Kafka Pod의 CPU·메모리 사용량입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*(mCPU|메모리).*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mcores"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum((rate(container_cpu_usage_seconds_total{namespace=\"data\",pod=~\"kafka-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=\"data\",pod=~\"kafka-.*\",container!=\"\",image!=\"\"} < 60))) / sum(kube_pod_container_resource_limits{namespace=\"data\",pod=~\"kafka-.*\",resource=\"cpu\",unit=\"core\"})",
+          "legendFormat": "CPU 사용률 (Limit 기준 %)",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum((rate(container_cpu_usage_seconds_total{namespace=\"data\",pod=~\"kafka-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=\"data\",pod=~\"kafka-.*\",container!=\"\",image!=\"\"} < 60))) * 1000",
+          "legendFormat": "CPU 실측치 (mCPU)",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum((container_memory_working_set_bytes{namespace=\"data\",pod=~\"kafka-.*\",container!=\"\",image!=\"\"} and on(namespace,pod,container) (time() - container_last_seen{namespace=\"data\",pod=~\"kafka-.*\",container!=\"\",image!=\"\"} < 60)))",
+          "legendFormat": "메모리 working set",
+          "range": true
+        }
+      ]
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 42,
+  "tags": [
+    "lastdish",
+    "overview",
+    "services",
+    "postgresql",
+    "redis",
+    "kafka",
+    "monitoring"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "전체",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up{job=\"kubernetes-spring-pods\"}, application)",
+        "includeAll": true,
+        "label": "Service",
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": {
+          "query": "label_values(up{job=\"kubernetes-spring-pods\"}, application)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "LastDish 서비스 전체 현황",
+  "uid": "lastdish-services",
+  "version": 1
+}

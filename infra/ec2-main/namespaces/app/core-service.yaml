@@ -1,0 +1,216 @@
+# 핵심 비즈니스 기능을 담당하며 외부 Core PostgreSQL과 Member Service를 사용합니다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-service
+  namespace: app
+  labels:
+    app: core-service
+spec:
+  # 현재 단일 노드·소규모 트래픽 기준 1개 Pod를 운영합니다.
+  replicas: 1
+  # 신규 Pod가 Ready 상태가 된 뒤 기존 Pod를 종료해 설정 반영 중 서비스 공백을 방지합니다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # 신규 Pod가 10초간 Ready 상태를 유지해야 배포 성공으로 판단합니다.
+  minReadySeconds: 10
+  revisionHistoryLimit: 5
+  # 아래 Pod template의 app label과 일치해야 Deployment가 Pod를 관리할 수 있습니다.
+  selector:
+    matchLabels:
+      app: core-service
+  template:
+    metadata:
+      labels:
+        app: core-service
+      annotations:
+        # Prometheus가 Pod IP의 Spring Actuator endpoint를 자동 발견해 수집합니다.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.37
+          command: ["sh", "-c", "until nc -z 10.30.2.93 5433 && nc -z config-server.platform.svc.cluster.local 8888 && nc -z kafka.data.svc.cluster.local 9092 && nc -z redis.data.svc.cluster.local 6379 && nc -z member-service 80; do sleep 5; done"]
+          resources:
+            requests: {cpu: 1m, memory: 4Mi}
+            limits: {cpu: 10m, memory: 16Mi}
+      containers:
+        - name: core-service
+          image: ghcr.io/prgrms-be-adv-devcourse/lastdish-core-service:dev
+          # dev 태그가 갱신될 수 있으므로 새 Pod 생성 시 항상 이미지를 확인합니다.
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              # Spring Boot 4 환경변수 변환의 모호성을 피해 시스템 속성의 점·하이픈을 정확히 전달합니다.
+              value: >-
+                -XX:InitialRAMPercentage=60.0 -XX:MaxRAMPercentage=60.0 -Duser.timezone=Asia/Seoul
+                -Dmanagement.metrics.distribution.percentiles-histogram.http.server.requests=true
+            - name: CONFIG_SERVER_URL
+              # Core가 시작할 때 원격 Spring 설정을 가져오는 Config Server 주소입니다.
+              value: http://config-server.platform.svc.cluster.local:8888
+            - name: LOGGING_STRUCTURED_FORMAT_CONSOLE
+              value: ecs
+            - name: SPRINGDOC_ENABLED
+              value: "true"
+            - name: SPRING_FLYWAY_LOCATIONS
+              value: classpath:db/migration,classpath:db/seed
+            - name: CORE_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  # app-runtime-config의 비밀이 아닌 외부 DB 주소입니다.
+                  name: app-runtime-config
+                  key: CORE_DB_URL
+            - name: MEMBER_SERVICE_BASE_URL
+              # 같은 app 네임스페이스라 Service 이름만으로 접근할 수 있습니다.
+              value: http://member-service
+            - name: CORE_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  # 실제 DB 계정과 비밀번호는 app 네임스페이스 Secret에서 가져옵니다.
+                  name: app-runtime-secrets
+                  key: CORE_DB_USERNAME
+            - name: CORE_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-runtime-secrets
+                  # 같은 Secret의 password 값을 CORE_DB_PASSWORD로 주입합니다.
+                  key: CORE_DB_PASSWORD
+            - name: TOSS_CLIENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  # Toss 결제 연동 키와 암호화 키를 한 Secret에서 관리합니다.
+                  name: app-runtime-secrets
+                  key: TOSS_CLIENT_KEY
+            - name: TOSS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-runtime-secrets
+                  key: TOSS_SECRET_KEY
+            - name: ENCRYPTION_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-runtime-secrets
+                  key: ENCRYPTION_SECRET_KEY
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  # data 네임스페이스 Redis Service의 Kubernetes DNS입니다.
+                  name: app-runtime-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-runtime-config
+                  key: REDIS_PORT
+            - name: REDIS_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-runtime-config
+                  key: REDIS_USERNAME
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # Secret은 네임스페이스를 넘을 수 없어 app에도 동일 자격증명을 둡니다.
+                  name: app-runtime-secrets
+                  key: REDIS_PASSWORD
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  # data 네임스페이스 Kafka의 내부 접속 주소입니다.
+                  name: app-runtime-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+            - name: S3_ENABLED
+              valueFrom: {configMapKeyRef: {name: app-runtime-config, key: S3_ENABLED}}
+            - name: S3_BUCKET
+              valueFrom: {configMapKeyRef: {name: app-runtime-config, key: S3_BUCKET}}
+            - name: AWS_REGION
+              valueFrom: {configMapKeyRef: {name: app-runtime-config, key: AWS_REGION}}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom: {secretKeyRef: {name: app-runtime-secrets, key: AWS_ACCESS_KEY_ID}}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: app-runtime-secrets, key: AWS_SECRET_ACCESS_KEY}}
+            - name: S3_PRESIGNED_URL_EXPIRATION
+              valueFrom: {configMapKeyRef: {name: app-runtime-config, key: S3_PRESIGNED_URL_EXPIRATION}}
+            - name: S3_MAX_UPLOAD_SIZE
+              valueFrom: {configMapKeyRef: {name: app-runtime-config, key: S3_MAX_UPLOAD_SIZE}}
+            - name: NAVER_MAP_CLIENT_ID
+              valueFrom: {secretKeyRef: {name: app-runtime-secrets, key: NAVER_MAP_CLIENT_ID}}
+            - name: NAVER_MAP_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: app-runtime-secrets, key: NAVER_MAP_CLIENT_SECRET}}
+          readinessProbe:
+            # 준비된 Pod만 Service 트래픽을 받습니다.
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            # 5초 간격으로 최대 12회 실패를 허용합니다.
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          startupProbe:
+            # Spring 초기 기동이 끝날 때까지 liveness 판단을 유예합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            # 약 10분 동안 Spring 및 DB 초기화를 기다립니다.
+            failureThreshold: 60
+          livenessProbe:
+            # 기동 후 응답 불능 상태가 지속되면 컨테이너를 재시작합니다.
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            # requests는 스케줄링 기준, limits는 컨테이너 메모리 상한입니다.
+            requests:
+              # 주문 처리 부하를 고려해 다른 경량 서비스보다 높은 최소 CPU를 예약합니다.
+              cpu: 75m
+              memory: 256Mi
+            limits:
+              # Spring/JPA 초기화 시 CPU burst를 허용해 rollout 제한시간 내 기동되도록 합니다.
+              cpu: 1000m
+              # 프로세스가 사용할 수 있는 메모리 상한입니다.
+              memory: 1024Mi
+          securityContext:
+            # root 실행과 불필요한 Linux capability를 차단합니다.
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            # 이미지 내부 비-root 애플리케이션 계정으로 실행합니다.
+            runAsGroup: 101
+            capabilities:
+              drop:
+                - ALL
+---
+# 클러스터 내부에서 Core Pod를 core-service:80이라는 고정 주소로 노출합니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: core-service
+  namespace: app
+spec:
+  type: ClusterIP
+  # Deployment Pod의 app=core-service label과 연결됩니다.
+  selector:
+    app: core-service
+  ports:
+    - name: http
+      port: 80
+      # Service 80 → 컨테이너의 이름 있는 http 포트(8080)로 전달합니다.
+      targetPort: http
