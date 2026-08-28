@@ -116,7 +116,7 @@ const mapStore = (store: ApiStore, hasAvailableDish?: boolean): Store => ({
     ...dish,
     storeId: dish.storeId ?? store.storeId,
     storeName: dish.storeName ?? store.storeName,
-    stockQuantity: dish.stockQuantity ?? (hasAvailableDish ? 1 : 0),
+    stockQuantity: dish.stockQuantity,
   })),
 });
 

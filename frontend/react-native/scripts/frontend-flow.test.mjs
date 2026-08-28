@@ -19,8 +19,13 @@ test('목록 탭은 상품을 중심으로 상품 상세에 연결한다', () =>
   assert.match(stores, /searchRecommendedStores/);
   assert.match(stores, /setAvailabilityMode\('TODAY'\)/);
   assert.match(stores, /useNearbyStores\(radiusKm, availabilityMode\)/);
+  assert.match(stores, /isSimpleKeywordSearch/);
+  assert.match(stores, /nearbyEntries\.filter\(\(entry\) => matchesKeyword\(entry, submittedQuery\)\)/);
+  assert.match(stores, /const currentLocation = await refreshLocation\(\)/);
   assert.match(stores, /추천 상품/);
+  assert.match(stores, /badges\.length > 0/);
   assert.match(stores, /\.slice\(0, 4\)/);
+  assert.match(stores, /formatDishPickupWindow\(dish\)/);
   assert.match(source('src/components/product-store-card.tsx'), /dish\.discountPrice\.toLocaleString/);
 });
 
@@ -32,10 +37,13 @@ test('지도 앱·웹이 동일한 화면 경계를 전달한다', () => {
   const home = source('src/app/(tabs)/index.tsx');
   assert.match(home, /reload\(next, false, next\.bounds\)/);
   assert.match(home, /reload\(target, false, target\.bounds\)/);
-  assert.match(home, /availabilitySegment: \{ width: 44, height: 44/);
+  assert.match(home, /const MAP_CONTROL_SIZE = 44/);
+  assert.match(home, /availabilitySegment: \{ width: MAP_CONTROL_SIZE, height: MAP_CONTROL_SIZE/);
+  assert.match(home, /control: \{ width: MAP_CONTROL_SIZE, height: MAP_CONTROL_SIZE/);
   const storesApi = source('src/lib/stores.ts');
   assert.match(storesApi, /\/ai\/stores\/nearby/);
   assert.match(storesApi, /pickupFilter, page: String\(page\)/);
+  assert.doesNotMatch(storesApi, /hasAvailableDish \? 1 : 0/);
   assert.match(source('src/hooks/use-nearby-stores.ts'), /pickupFilterRef\.current/);
   assert.match(storesApi, /batch\.length < size/);
   assert.match(storesApi, /\/ai\/search/);

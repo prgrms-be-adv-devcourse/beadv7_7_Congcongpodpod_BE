@@ -9,9 +9,14 @@ import type { Dish, Store } from '@/types/store';
 
 type Props = {
   dish?: Dish;
+  distanceKm?: number;
   store: Store;
   onPress: () => void;
 };
+
+const formatDistance = (value?: number) => value === undefined
+  ? undefined
+  : value < 1 ? `${Math.round(value * 1000)}m` : `${value.toFixed(1)}km`;
 
 const formatPickupTime = (dish?: Dish) => {
   const start = dish?.pickupStartTime?.slice(0, 5);
@@ -21,12 +26,12 @@ const formatPickupTime = (dish?: Dish) => {
   return '오늘 픽업';
 };
 
-export function ProductStoreCard({ dish, store, onPress }: Props) {
+export function ProductStoreCard({ dish, distanceKm, store, onPress }: Props) {
   const discountRate = getDishDiscountRate(dish);
-  const scarce = dish && dish.quantity > 0 && dish.quantity <= 5;
+  const distance = formatDistance(distanceKm);
   const accessibilityLabel = dish
-    ? `${dish.dishName}, ${dish.discountPrice.toLocaleString()}원, ${store.storeName}, ${formatPickupTime(dish)}`
-    : `${store.storeName}, 등록된 픽업 상품 없음`;
+    ? `${dish.dishName}, ${dish.discountPrice.toLocaleString()}원, ${store.storeName}, ${distance ? `직선거리 ${distance}, ` : ''}${formatPickupTime(dish)}`
+    : `${store.storeName}, ${distance ? `직선거리 ${distance}, ` : ''}등록된 픽업 상품 없음`;
 
   return (
     <Pressable
@@ -53,16 +58,16 @@ export function ProductStoreCard({ dish, store, onPress }: Props) {
           <View style={styles.pickupRow}>
             <Ionicons name="time-outline" size={14} color={colors.green700}/>
             <Text style={styles.pickupText}>{formatPickupTime(dish)}</Text>
-            {scarce ? <><View style={styles.metaDot}/><Text style={styles.scarceText}>남은 수량 {dish.quantity}개</Text></> : null}
           </View>
           <View style={styles.storeRow}>
             <Text numberOfLines={1} style={styles.storeName}>{store.storeName}</Text>
+            {distance ? <><View style={styles.storeDot}/><Ionicons name="navigate-outline" size={11} color={colors.ink500}/><Text style={styles.distance}>{distance}</Text></> : null}
             <Ionicons name="chevron-forward" size={14} color={colors.ink400}/>
           </View>
         </> : <>
           <Text numberOfLines={1} style={styles.productName}>{store.storeName}</Text>
           <Text style={styles.emptyTitle}>현재 등록된 픽업 상품이 없어요</Text>
-          <Text numberOfLines={1} style={styles.emptyMeta}>{store.address || '매장 정보를 확인해보세요'}</Text>
+          <Text numberOfLines={1} style={styles.emptyMeta}>{[distance, store.address || '매장 정보를 확인해보세요'].filter(Boolean).join(' · ')}</Text>
         </>}
       </View>
     </Pressable>
@@ -83,10 +88,10 @@ const styles = StyleSheet.create({
   originalPrice: { color: colors.ink400, fontFamily: fonts.body, fontSize: 11, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] },
   pickupRow: { minHeight: 24, marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 4 },
   pickupText: { color: colors.green700, fontFamily: fonts.body, fontSize: 11, fontWeight: '800' },
-  metaDot: { width: 3, height: 3, marginHorizontal: 2, borderRadius: 2, backgroundColor: colors.ink400 },
-  scarceText: { color: colors.warning, fontFamily: fonts.body, fontSize: 10, fontWeight: '800', fontVariant: ['tabular-nums'] },
   storeRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  storeName: { maxWidth: '90%', color: colors.ink500, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' },
+  storeName: { maxWidth: '70%', color: colors.ink500, fontFamily: fonts.body, fontSize: 11, fontWeight: '700' },
+  storeDot: { width: 3, height: 3, marginHorizontal: 2, borderRadius: 2, backgroundColor: colors.ink400 },
+  distance: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '800', fontVariant: ['tabular-nums'] },
   emptyTitle: { marginTop: 7, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' },
   emptyMeta: { marginTop: 5, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 },
 });

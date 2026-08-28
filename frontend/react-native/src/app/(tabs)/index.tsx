@@ -21,7 +21,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { getStoreCategoryVisual, STORE_CATEGORY_KEYS } from '@/lib/store-category';
 import { getStoreProfileImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
-import { formatCheapestDishOffer, formatDishPickupWindow, formatStoreOperatingHours, getCheapestDish, storeMatchesAvailability } from '@/lib/store-pricing';
+import { formatCheapestDishOffer, formatDishPickupWindow, formatStoreOperatingHours, getCheapestDish } from '@/lib/store-pricing';
 import { searchStores as searchAllStores } from '@/lib/stores';
 import { radiusForBounds } from '@/lib/map-viewport';
 import { useAuth } from '@/providers/auth-provider';
@@ -31,6 +31,7 @@ import type { Store } from '@/types/store';
 
 const homeCategories = STORE_CATEGORY_KEYS;
 type HomeCategory = (typeof homeCategories)[number];
+const MAP_CONTROL_SIZE = 44;
 const availabilityModes: { key: StoreAvailabilityMode; label: string; icon: 'calendar-outline' | 'bag-check-outline' | 'storefront-outline' }[] = [
   { key: 'TODAY', label: '오늘', icon: 'calendar-outline' },
   { key: 'NOW', label: '지금', icon: 'bag-check-outline' },
@@ -124,11 +125,10 @@ export default function HomeScreen() {
     transform: [{ translateY: -4 * (1 - searchExpansion.value) }],
   }));
   const filteredStores = useMemo(() => stores.filter((store) => {
-    const availabilityMatches = storeMatchesAvailability(store, availabilityMode);
     const categoryMatches = !selectedCategory || store.category === selectedCategory;
     const priceMatches = !underTen || store.dishes.some((dish) => dish.discountPrice <= 10_000);
-    return availabilityMatches && categoryMatches && priceMatches;
-  }), [availabilityMode, selectedCategory, stores, underTen]);
+    return categoryMatches && priceMatches;
+  }), [selectedCategory, stores, underTen]);
   const markerStores = useMemo(() => {
     if (mapCamera.zoom < 13.5) return [];
     // 지도 SDK가 실제 화면 밖 마커를 클리핑합니다. 카메라 중심의 임의 원형 범위나
@@ -282,7 +282,6 @@ export default function HomeScreen() {
         </View>
 
         {!searchFocused && !searchOpen ? <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.chipScroller, { top: top + 57 }]} contentContainerStyle={[styles.chips, { paddingHorizontal: gutter }]}> 
-          <View style={[styles.chip, styles.chipActive]}><Ionicons name="time" size={13} color={colors.green700}/><Text style={[styles.chipText, styles.chipActiveText]}>지금 픽업</Text></View>
           <Pressable onPress={() => { setUnderTen((value) => !value); setSelected(null); }} style={({ pressed }) => [styles.chip, underTen && styles.chipActive, pressed && styles.pressed]}><Text style={[styles.chipText, underTen && styles.chipActiveText]}>1만원 이하</Text></Pressable>
           {homeCategories.map((key) => { const visual = getStoreCategoryVisual(key); const active = selectedCategory === key; return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={key} onPress={() => { setSelectedCategory((current) => current === key ? undefined : key); setSelected(null); void Haptics.selectionAsync(); }} style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}><Ionicons name={visual.icon} size={13} color={active ? colors.green700 : colors.ink700}/><Text style={[styles.chipText, active && styles.chipActiveText]}>{visual.label}</Text></Pressable>; })}
         </ScrollView> : null}
@@ -510,18 +509,18 @@ const styles = StyleSheet.create({
   areaRefreshText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   mapActionStack: { position: 'absolute', right: 14, alignItems: 'center', gap: 9, zIndex: 12 },
   availabilityAction: { position: 'absolute', left: 14, zIndex: 12 },
-  availabilityButton: { width: 44, overflow: 'hidden', borderRadius: radius.control, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.control },
-  availabilitySegment: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', gap: 1 },
-  availabilitySegmentBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
+  availabilityButton: { width: MAP_CONTROL_SIZE, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  availabilitySegment: { width: MAP_CONTROL_SIZE, height: MAP_CONTROL_SIZE, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  availabilitySegmentBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   availabilitySegmentActive: { backgroundColor: colors.green500 },
   availabilityPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
   availabilityText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 9, lineHeight: 11, fontWeight: '900' },
   availabilityTextActive: { color: colors.white },
-  mapControls: { width: 44, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  mapControls: { width: MAP_CONTROL_SIZE, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compass: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compassRose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   compassNorth: { position: 'absolute', top: -1, color: '#E2473E', fontFamily: fonts.body, fontSize: 9, fontWeight: '900' },
-  control: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  control: { width: MAP_CONTROL_SIZE, height: MAP_CONTROL_SIZE, alignItems: 'center', justifyContent: 'center' },
   controlLine: { height: 1, backgroundColor: colors.line },
   controlPressed: { backgroundColor: colors.green50 },
   recenter: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },

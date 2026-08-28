@@ -53,6 +53,17 @@ export function useNearbyStores(radiusKm = 5, pickupFilter: StoreAvailabilityMod
 
   loadStoresRef.current = loadStores;
   const reload = useCallback(async (target?: Coordinate, silent = false, bounds?: MapBounds) => loadStores(target ?? locationRef.current, silent, bounds), [loadStores]);
+  const refreshLocation = useCallback(async () => {
+    const permission = await Location.getForegroundPermissionsAsync().catch(() => null);
+    if (!permission?.granted) return locationRef.current;
+    const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).catch(() => null);
+    if (!current) return locationRef.current;
+    const next = { latitude: current.coords.latitude, longitude: current.coords.longitude };
+    locationRef.current = next;
+    setLocation(next);
+    setLocationResolved(true);
+    return next;
+  }, []);
 
   useEffect(() => { void loadStores(locationRef.current); }, [loadStores]);
   useEffect(() => {
@@ -119,5 +130,5 @@ export function useNearbyStores(radiusKm = 5, pickupFilter: StoreAvailabilityMod
     };
   }, [locationGranted]);
 
-  return { stores, loading, error, reload, location, locationResolved, heading };
+  return { stores, loading, error, reload, refreshLocation, location, locationResolved, heading };
 }

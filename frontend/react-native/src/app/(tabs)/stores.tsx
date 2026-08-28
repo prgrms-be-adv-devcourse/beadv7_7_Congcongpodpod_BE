@@ -20,8 +20,9 @@ import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { getDishImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
+import { distanceKm } from '@/lib/map-viewport';
 import { searchRecommendedStores, type RecommendedStore } from '@/lib/stores';
-import { getDishDiscountRate, isDishAvailableForMode } from '@/lib/store-pricing';
+import { formatDishPickupWindow, getDishDiscountRate } from '@/lib/store-pricing';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 import { useStoreAvailability, type StoreAvailabilityMode } from '@/providers/store-availability-provider';
@@ -42,6 +43,14 @@ const RADIUS_STEP_KM = 0.1;
 const RADIUS_HAPTIC_STEPS = new Set([0, 9, 29, 49]);
 const formatRadius = (value: number) => value < 1 ? `${Math.round(value * 1000)}m` : `${Number(value.toFixed(1))}km`;
 type ProductEntry = { key: string; store: Store; dish?: Dish };
+type SearchMode = 'KEYWORD' | 'NATURAL';
+const FILTER_KEYWORD_PATTERN = /(\d+원|이하|이상|근처|주변|할인)/;
+const isSimpleKeywordSearch = (value: string) => value.split(/\s+/).filter(Boolean).length <= 2 && !FILTER_KEYWORD_PATTERN.test(value);
+const matchesKeyword = ({ store, dish }: ProductEntry, keyword: string) => {
+  const tokens = keyword.toLocaleLowerCase('ko-KR').split(/\s+/).filter(Boolean);
+  const haystack = [store.storeName, store.category, store.address, dish?.dishName, dish?.description].filter(Boolean).join(' ').toLocaleLowerCase('ko-KR');
+  return tokens.every((token) => haystack.includes(token));
+};
 const availabilityModes: { key: StoreAvailabilityMode; label: string }[] = [
   { key: 'TODAY', label: '오늘' },
   { key: 'NOW', label: '지금' },
@@ -53,11 +62,12 @@ export default function StoresScreen() {
   const [radiusPickerOpen, setRadiusPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [searchMode, setSearchMode] = useState<SearchMode>();
   const [recommendations, setRecommendations] = useState<RecommendedStore[]>([]);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [category, setCategory] = useState<(typeof categories)[number][0]>('ALL');
   const { availabilityMode, setAvailabilityMode } = useStoreAvailability();
-  const { stores, loading, reload, location } = useNearbyStores(radiusKm, availabilityMode);
+  const { stores, loading, reload, refreshLocation, location } = useNearbyStores(radiusKm, availabilityMode);
   const { refreshing, onRefresh } = usePullToRefresh(reload);
   const { contentWidth, gutter } = useResponsiveLayout();
   const { member } = useAuth();
@@ -65,22 +75,25 @@ export default function StoresScreen() {
   const nearbyEntries = useMemo<ProductEntry[]>(() => stores.flatMap<ProductEntry>((store) => {
       const categoryMatch = category === 'ALL' || store.category === category;
       if (!categoryMatch) return [];
-      const dishes = store.dishes.filter((dish) => {
-        return isDishAvailableForMode(dish, availabilityMode);
-      });
+      // nearby API가 pickupFilter에 맞는 대표 상품을 이미 선별한다.
+      // 일부 배포 응답에는 stockQuantity가 없으므로 클라이언트에서 재고로 다시 제거하지 않는다.
+      const dishes = store.dishes;
       if (dishes.length) return dishes.map((dish) => ({ key: `${store.storeId}:${dish.dishId}`, store, dish }));
       return availabilityMode === 'ALL' ? [{ key: `${store.storeId}:empty`, store, dish: undefined }] : [];
     }), [availabilityMode, category, stores]);
   const recommendedEntries = useMemo<ProductEntry[]>(() => recommendations.flatMap(({ store }) =>
     store.dishes.map((dish) => ({ key: `recommended:${store.storeId}:${dish.dishId}`, store, dish }))), [recommendations]);
-  const productEntries = submittedQuery ? recommendedEntries : nearbyEntries;
+  const productEntries = submittedQuery
+    ? searchMode === 'NATURAL' ? recommendedEntries : nearbyEntries.filter((entry) => matchesKeyword(entry, submittedQuery))
+    : nearbyEntries;
   const productCount = productEntries.filter((entry) => entry.dish).length;
-  const featured = recommendations.filter(({ store }) => store.dishes[0]).slice(0, 4);
+  const featured = recommendations.filter(({ store, badges }) => store.dishes[0] && badges.length > 0).slice(0, 4);
   const featureWidth = (contentWidth - gutter * 2 - 10) / 2;
 
   const clearSearch = () => {
     setQuery('');
     setSubmittedQuery('');
+    setSearchMode(undefined);
     setRecommendations([]);
   };
   const submitSearch = async () => {
@@ -89,11 +102,19 @@ export default function StoresScreen() {
       clearSearch();
       return;
     }
-    setAvailabilityMode('TODAY');
-    setSubmittedQuery(nextQuery);
     setRecommendationLoading(true);
     try {
-      setRecommendations(await searchRecommendedStores(nextQuery, location.latitude, location.longitude, radiusKm));
+      const currentLocation = await refreshLocation();
+      setSubmittedQuery(nextQuery);
+      if (isSimpleKeywordSearch(nextQuery)) {
+        setSearchMode('KEYWORD');
+        setRecommendations([]);
+        await reload(currentLocation, true);
+        return;
+      }
+      setSearchMode('NATURAL');
+      setAvailabilityMode('TODAY');
+      setRecommendations(await searchRecommendedStores(nextQuery, currentLocation.latitude, currentLocation.longitude, radiusKm));
     } catch {
       setRecommendations([]);
     } finally {
@@ -115,9 +136,9 @@ export default function StoresScreen() {
       <Pressable accessibilityLabel={`검색 반경 ${formatRadius(radiusKm)}`} accessibilityHint="검색 반경 설정을 엽니다" accessibilityRole="button" onPress={() => setRadiusPickerOpen(true)} style={({ pressed }) => [styles.radiusPickerButton, pressed && styles.pressed]}><Ionicons name="options-outline" size={16} color={colors.ink900}/><Text style={styles.radiusPickerValue}>{formatRadius(radiusKm)}</Text><Ionicons name="chevron-down" size={14} color={colors.ink500}/></Pressable></View>
       <View style={styles.availabilitySegments}>{availabilityModes.map(({ key, label }) => { const active = availabilityMode === key; return <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => setAvailabilityMode(key)} style={[styles.availabilitySegment, active && styles.availabilitySegmentActive]}><Text style={[styles.availabilitySegmentText, active && styles.availabilitySegmentTextActive]}>{label}</Text></Pressable>; })}</View>
     </View>
-    {submittedQuery && (featured.length || recommendationLoading) ? <View style={styles.featuredSection}>
+    {searchMode === 'NATURAL' && submittedQuery && (featured.length || recommendationLoading) ? <View style={styles.featuredSection}>
       <View style={[styles.sectionHeading, { paddingHorizontal: gutter }]}><View><Text style={styles.sectionTitle}>추천 상품</Text><Text style={styles.sectionDescription}>“{submittedQuery}” 조건에 맞춰 골랐어요</Text></View><Text style={styles.sectionCount}>{featured.length}개</Text></View>
-      {recommendationLoading ? <LoadingState label="추천 상품을 찾고 있어요"/> : <View style={[styles.featuredGrid, { paddingHorizontal: gutter }]}>{featured.map(({ store, badges, reason }) => <FeaturedProduct badges={badges} dish={store.dishes[0]} key={`${store.storeId}:${store.dishes[0].dishId}`} reason={reason} store={store} width={featureWidth}/>)}</View>}
+      {recommendationLoading ? <LoadingState label="추천 상품을 찾고 있어요"/> : <View style={[styles.featuredGrid, { paddingHorizontal: gutter }]}>{featured.map(({ store, badges, reason }) => <FeaturedProduct badges={badges} dish={store.dishes[0]} distanceKm={distanceKm(location, store)} key={`${store.storeId}:${store.dishes[0].dishId}`} reason={reason} store={store} width={featureWidth}/>)}</View>}
     </View> : null}
     <View style={styles.sectionDivider}/>
     <View style={[styles.listHeading, { paddingHorizontal: gutter }]}><Text style={styles.listTitle}>{submittedQuery ? '추천 검색 결과' : '가까운 상품'}</Text><View style={styles.resultBadge}><Ionicons name="location" size={13} color={colors.ink700}/><Text style={styles.resultText}>{formatRadius(radiusKm)} · 상품 {productCount}개</Text></View></View>
@@ -130,7 +151,7 @@ export default function StoresScreen() {
     keyExtractor={(item) => item.key}
     ListHeaderComponent={header}
     contentContainerStyle={[styles.list, { width: contentWidth, paddingBottom: FLOATING_TAB_CONTENT_INSET }]}
-    renderItem={({ item }) => <View style={{ paddingHorizontal: gutter }}><ProductStoreCard dish={item.dish} store={item.store} onPress={() => item.dish ? router.push({ pathname: '/dishes/[dishId]', params: { dishId: String(item.dish.dishId), origin: '/stores' } }) : router.push({ pathname: '/stores/[storeId]', params: { storeId: String(item.store.storeId), origin: '/stores' } })}/></View>}
+    renderItem={({ item }) => <View style={{ paddingHorizontal: gutter }}><ProductStoreCard dish={item.dish} distanceKm={distanceKm(location, item.store)} store={item.store} onPress={() => item.dish ? router.push({ pathname: '/dishes/[dishId]', params: { dishId: String(item.dish.dishId), origin: '/stores' } }) : router.push({ pathname: '/stores/[storeId]', params: { storeId: String(item.store.storeId), origin: '/stores' } })}/></View>}
     refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={onRefresh}/>}
     showsVerticalScrollIndicator={false}
     ListEmptyComponent={loading || recommendationLoading ? <LoadingState label={recommendationLoading ? '추천 상품을 찾고 있어요' : '주변 마감 상품을 찾고 있어요'}/> : <EmptyState title={submittedQuery ? '조건에 맞는 추천 상품이 없어요' : '주변 픽업 상품을 찾지 못했어요'} description={submittedQuery ? '검색 조건이나 반경을 바꿔보세요.' : '전체 매장을 선택하거나 검색 반경을 넓혀보세요.'}/>}
@@ -230,9 +251,11 @@ function RadiusPicker({ visible, value, onClose, onApply }: { visible: boolean; 
   </Modal>;
 }
 
-function FeaturedProduct({ dish, store, width, badges, reason }: { dish: Dish; store: Store; width: number; badges: string[]; reason: string }) {
+function FeaturedProduct({ dish, distanceKm: storeDistanceKm, store, width, badges, reason }: { dish: Dish; distanceKm: number; store: Store; width: number; badges: string[]; reason: string }) {
   const discountRate = getDishDiscountRate(dish);
-  return <Pressable accessibilityHint="상품 상세를 엽니다" accessibilityLabel={`${dish.dishName}, ${dish.discountPrice.toLocaleString()}원, ${store.storeName}, ${reason}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/dishes/[dishId]', params: { dishId: String(dish.dishId), origin: '/stores' } })} style={({ pressed }) => [styles.featureCard, { width }, pressed && styles.pressed]}><View><Image accessibilityLabel={`${dish.dishName} 상품 이미지`} source={getDishImageSource(dish, store.category)} style={[styles.featureImage, { width }]}/>{discountRate > 0 ? <View style={styles.featureDiscount}><Text style={styles.featureDiscountText}>{discountRate}% 할인</Text></View> : null}{badges[0] ? <View style={styles.recommendBadge}><Text numberOfLines={1} style={styles.recommendBadgeText}>{badges[0]}</Text></View> : null}</View><View style={styles.featureCopy}><Text numberOfLines={2} style={styles.featureName}>{dish.dishName}</Text><Text numberOfLines={1} style={styles.featureMeta}>{store.storeName}</Text><View style={styles.featurePriceRow}><Text style={styles.featurePrice}>{dish.discountPrice.toLocaleString()}원</Text>{dish.price > dish.discountPrice ? <Text style={styles.featureOriginalPrice}>{dish.price.toLocaleString()}원</Text> : null}</View><Text numberOfLines={2} style={styles.featureReason}>{reason}</Text></View></Pressable>;
+  const pickupWindow = formatDishPickupWindow(dish);
+  const distance = storeDistanceKm < 1 ? `${Math.round(storeDistanceKm * 1000)}m` : `${storeDistanceKm.toFixed(1)}km`;
+  return <Pressable accessibilityHint="상품 상세를 엽니다" accessibilityLabel={`${dish.dishName}, ${dish.discountPrice.toLocaleString()}원, ${store.storeName}, 직선거리 ${distance}, ${pickupWindow}, ${reason}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/dishes/[dishId]', params: { dishId: String(dish.dishId), origin: '/stores' } })} style={({ pressed }) => [styles.featureCard, { width }, pressed && styles.pressed]}><View><Image accessibilityLabel={`${dish.dishName} 상품 이미지`} source={getDishImageSource(dish, store.category)} style={[styles.featureImage, { width }]}/>{discountRate > 0 ? <View style={styles.featureDiscount}><Text style={styles.featureDiscountText}>{discountRate}% 할인</Text></View> : null}{badges[0] ? <View style={styles.recommendBadge}><Text numberOfLines={1} style={styles.recommendBadgeText}>{badges[0]}</Text></View> : null}</View><View style={styles.featureCopy}><Text numberOfLines={2} style={styles.featureName}>{dish.dishName}</Text><View style={styles.featureStoreMeta}><Text numberOfLines={1} style={styles.featureMeta}>{store.storeName}</Text><View style={styles.featureMetaDot}/><Ionicons name="navigate-outline" size={10} color={colors.ink500}/><Text style={styles.featureDistance}>{distance}</Text></View><View style={styles.featurePickup}><Ionicons name="time-outline" size={12} color={colors.green700}/><Text numberOfLines={1} style={styles.featurePickupText}>{pickupWindow}</Text></View><View style={styles.featurePriceRow}><Text style={styles.featurePrice}>{dish.discountPrice.toLocaleString()}원</Text>{dish.price > dish.discountPrice ? <Text style={styles.featureOriginalPrice}>{dish.price.toLocaleString()}원</Text> : null}</View><Text numberOfLines={2} style={styles.featureReason}>{reason}</Text></View></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -240,7 +263,7 @@ const styles = StyleSheet.create({
   topBar: { alignSelf: 'center', paddingTop: 10, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.canvas }, topFade: { height: 16 }, search: { minWidth: 0, height: 44, flex: 1, paddingLeft: 7, paddingRight: 12, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 22, backgroundColor: colors.white, ...shadow.control }, searchInput: { minWidth: 0, flex: 1, height: 44, paddingVertical: 0, color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '600' }, headerActions: { flexDirection: 'row', gap: 5, backgroundColor: 'transparent' }, iconTouch: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }, iconSurface: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: colors.white, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,28,22,.08)', ...shadow.control }, cartBadge: { position: 'absolute', right: 0, top: -3, minWidth: 16, height: 16, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.green500, borderWidth: 1.5, borderColor: colors.white }, cartBadgeText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
   categoryList: { gap: 25 }, category: { minHeight: 48, alignItems: 'center', justifyContent: 'center' }, categoryText: { color: colors.ink400, fontFamily: fonts.body, fontSize: 15, fontWeight: '700' }, categoryTextActive: { color: colors.ink900, fontWeight: '900' }, categoryLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, borderRadius: 2, backgroundColor: colors.ink900 }, divider: { height: 1, backgroundColor: colors.line },
   radiusSection: { marginTop: 12, padding: 10, gap: 10, borderRadius: radius.input, backgroundColor: colors.canvas }, radiusTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, radiusTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' }, radiusDescription: { marginTop: 2, color: colors.ink500, fontFamily: fonts.body, fontSize: 10 }, radiusPickerButton: { minWidth: 94, minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.control, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong }, radiusPickerValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' }, availabilitySegments: { minHeight: 42, padding: 3, flexDirection: 'row', borderRadius: radius.control, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, availabilitySegment: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control - 3 }, availabilitySegmentActive: { backgroundColor: colors.green500 }, availabilitySegmentText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 12, fontWeight: '800' }, availabilitySegmentTextActive: { color: colors.white },
-  featuredSection: { paddingTop: 18, paddingBottom: 18 }, sectionHeading: { marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }, sectionTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.6 }, sectionDescription: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 12 }, sectionCount: { color: colors.ink700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' }, featuredGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, featureCard: { overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.card }, featureImage: { aspectRatio: 4 / 3, backgroundColor: colors.canvas }, featureDiscount: { position: 'absolute', left: 8, bottom: 8, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.ink900 }, featureDiscountText: { color: colors.white, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' }, recommendBadge: { position: 'absolute', right: 8, top: 8, maxWidth: '72%', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.green700 }, recommendBadgeText: { color: colors.white, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' }, featureCopy: { minHeight: 126, padding: 10 }, featureName: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800' }, featureMeta: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' }, featurePriceRow: { marginTop: 6, flexDirection: 'row', alignItems: 'baseline', gap: 6 }, featurePrice: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, fontWeight: '900', fontVariant: ['tabular-nums'] }, featureOriginalPrice: { color: colors.ink400, fontFamily: fonts.body, fontSize: 9, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] }, featureReason: { marginTop: 7, color: colors.ink700, fontFamily: fonts.body, fontSize: 10, lineHeight: 14, fontWeight: '700' },
+  featuredSection: { paddingTop: 18, paddingBottom: 18 }, sectionHeading: { marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }, sectionTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.6 }, sectionDescription: { marginTop: 3, color: colors.ink500, fontFamily: fonts.body, fontSize: 12 }, sectionCount: { color: colors.ink700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' }, featuredGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, featureCard: { overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.card }, featureImage: { aspectRatio: 4 / 3, backgroundColor: colors.canvas }, featureDiscount: { position: 'absolute', left: 8, bottom: 8, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.ink900 }, featureDiscountText: { color: colors.white, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' }, recommendBadge: { position: 'absolute', right: 8, top: 8, maxWidth: '72%', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.green700 }, recommendBadgeText: { color: colors.white, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' }, featureCopy: { minHeight: 144, padding: 10 }, featureName: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800' }, featureStoreMeta: { marginTop: 4, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 3 }, featureMeta: { minWidth: 0, maxWidth: '62%', color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' }, featureMetaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.ink400 }, featureDistance: { color: colors.ink500, fontFamily: fonts.body, fontSize: 9, fontWeight: '800', fontVariant: ['tabular-nums'] }, featurePickup: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 4 }, featurePickupText: { color: colors.green700, fontFamily: fonts.body, fontSize: 10, fontWeight: '800', fontVariant: ['tabular-nums'] }, featurePriceRow: { marginTop: 6, flexDirection: 'row', alignItems: 'baseline', gap: 6 }, featurePrice: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, fontWeight: '900', fontVariant: ['tabular-nums'] }, featureOriginalPrice: { color: colors.ink400, fontFamily: fonts.body, fontSize: 9, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] }, featureReason: { marginTop: 7, color: colors.ink700, fontFamily: fonts.body, fontSize: 10, lineHeight: 14, fontWeight: '700' },
   sectionDivider: { height: 8, backgroundColor: colors.canvas }, listHeading: { paddingTop: 14, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, listTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' }, resultBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 }, resultText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 12, fontWeight: '700' }, pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   modalRoot: { flex: 1, justifyContent: 'flex-end' }, scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 20, 17, 0.46)' }, sheetStage: { width: '100%', alignItems: 'center' }, safeAreaFill: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.white }, sheet: { width: '100%', maxWidth: 560, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, backgroundColor: colors.white, ...shadow.float }, sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.lineStrong }, sheetHeader: { minHeight: 78, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, sheetTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }, sheetDescription: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 11 }, sheetClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.canvas }, radiusPreview: { minHeight: 72, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, backgroundColor: colors.canvas }, previewLabel: { color: colors.ink700, fontFamily: fonts.body, fontSize: 13, fontWeight: '700' }, previewValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 25, fontWeight: '900', letterSpacing: -0.8 }, sliderTouch: { height: 60, marginTop: 18, justifyContent: 'center' }, sliderTrack: { height: 3, borderRadius: 2, backgroundColor: colors.line }, sliderFill: { position: 'absolute', left: 0, height: 3, borderRadius: 2, backgroundColor: colors.green500 }, sliderTick: { position: 'absolute', top: -5, zIndex: 2, width: 13, height: 13, marginLeft: -6.5, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.line, borderWidth: 1.5, borderColor: colors.white }, sliderTickActive: { backgroundColor: colors.green500 }, sliderTickMin: { left: 0 }, sliderTickOne: { left: '18.37%' }, sliderTickThree: { left: '59.18%' }, sliderTickMax: { left: '100%' }, sliderThumb: { position: 'absolute', top: '50%', zIndex: 3, width: 28, height: 28, marginLeft: -14, marginTop: -14, borderRadius: 14, backgroundColor: colors.white, borderWidth: 7, borderColor: colors.ink900, ...shadow.card }, sliderLabels: { position: 'relative', height: 18, marginTop: -4 }, sliderLabel: { position: 'absolute', color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' }, sliderLabelMin: { left: 0 }, sliderLabelOne: { left: '18.37%', width: 36, marginLeft: -18, textAlign: 'center' }, sliderLabelThree: { left: '59.18%', width: 36, marginLeft: -18, textAlign: 'center' }, sliderLabelMax: { right: 0 }, sliderHint: { marginTop: 12, color: colors.ink500, fontFamily: fonts.body, fontSize: 11, textAlign: 'center' }, sheetActions: { marginTop: 22, flexDirection: 'row', gap: 8 }, cancelButton: { minHeight: 52, flex: 0.7, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white }, cancelText: { color: colors.ink900, fontFamily: fonts.body, fontSize: 14, fontWeight: '800' }, applyButton: { minHeight: 52, flex: 1.3, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green500 }, applyText: { color: colors.white, fontFamily: fonts.body, fontSize: 14, fontWeight: '900' },
 });
