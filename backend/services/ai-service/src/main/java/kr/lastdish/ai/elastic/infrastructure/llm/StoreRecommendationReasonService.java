@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class StoreRecommendationReasonService {
 
-  private static final long TIMEOUT_MS = 3000;
+  private static final long TIMEOUT_MS = 5500;
 
   // 폴백 문장에서 배지 하나당 붙일 짧은 근거, 여러 배지가 있으면 자연스럽게 이어붙암
   private static final Map<String, String> BADGE_PHRASES =
@@ -138,23 +138,23 @@ public class StoreRecommendationReasonService {
       BeanOutputConverter<RecommendationReasonResponse> converter) {
     String templateText =
         """
-                            당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
-                            사용자가 "{rawIntent}"라는 의도로 검색했고, 아래는 순위가 정해진 상위 매장 목록입니다.
+                                당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
+                                사용자가 "{rawIntent}"라는 의도로 검색했고, 아래는 순위가 정해진 상위 매장 목록입니다.
 
-                            각 매장마다, 이 매장이 왜 이 순위/추천 목록에 올랐는지 한국어 한 문장으로 설명하세요.
+                                각 매장마다, 이 매장이 왜 이 순위/추천 목록에 올랐는지 한국어 한 문장으로 설명하세요.
 
-                            규칙:
-                            1. distanceKm(실제 거리), discountRate(실제 할인율%), storeNameSimScore/
-                               dishNameSimScore/descriptionSimScore(0~1, 0.7 이상이면 그 항목이 검색어와
-                               잘 맞음), badges 중 실제로 값이 있는 근거만 골라 씁니다. 없는 사실은 지어내지 마세요.
-                            2. "왜 이 순위인지"가 드러나도록 그 매장에서 가장 두드러진 근거 1~2개를 구체적
-                               수치와 함께 짧게 씁니다(예: "1.2km로 가장 가까워요", "설명이 취향과 잘 맞아요").
-                            3. storeId는 입력값을 그대로 사용합니다.
+                                규칙:
+                                1. distanceKm(실제 거리), discountRate(실제 할인율%), storeNameSimScore/
+                                   dishNameSimScore/descriptionSimScore(0~1, 0.7 이상이면 그 항목이 검색어와
+                                   잘 맞음), badges 중 실제로 값이 있는 근거만 골라 씁니다. 없는 사실은 지어내지 마세요.
+                                2. "왜 이 순위인지"가 드러나도록 그 매장에서 가장 두드러진 근거 1~2개를 구체적
+                                   수치와 함께 짧게 씁니다(예: "1.2km로 가장 가까워요", "설명이 취향과 잘 맞아요").
+                                3. storeId는 입력값을 그대로 사용합니다.
 
-                            매장 목록: {items}
+                                매장 목록: {items}
 
-                            {format}
-                            """;
+                                {format}
+                                """;
 
     PromptTemplate promptTemplate = new PromptTemplate(templateText);
     return promptTemplate.create(

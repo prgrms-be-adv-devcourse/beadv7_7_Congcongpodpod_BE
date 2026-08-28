@@ -40,7 +40,8 @@ public class StoreRankingService {
       List<SearchHit<StoreDocument>> searchHits,
       GeoPoint userLocation,
       boolean deadlineRequested,
-      List<Float> queryVector) {
+      List<Float> queryVector,
+      BigDecimal walletBalance) {
 
     if (searchHits == null || searchHits.isEmpty()) {
       return Collections.emptyList();
@@ -53,7 +54,7 @@ public class StoreRankingService {
                 Comparator.comparingDouble(StoreSearchResultDtoHolder::getTotalScore).reversed())
             .toList();
 
-    assignBadges(holders, deadlineRequested);
+    assignBadges(holders, deadlineRequested, walletBalance);
 
     return holders.stream()
         .map(
@@ -139,10 +140,13 @@ public class StoreRankingService {
   }
 
   private double normalizeCosine(double cosine) {
-    return Math.max(0.0, Math.min(1.0, (cosine + 1.0) / 2.0));
+    return Math.max(0.0, Math.min(1.0, cosine));
   }
 
-  private void assignBadges(List<StoreSearchResultDtoHolder> holders, boolean deadlineRequested) {
+  private void assignBadges(
+      List<StoreSearchResultDtoHolder> holders,
+      boolean deadlineRequested,
+      BigDecimal walletBalance) {
     if (holders.isEmpty()) return;
 
     double minDistance =
@@ -176,6 +180,11 @@ public class StoreRankingService {
       }
       if (holder.rawDescriptionSim >= VECTOR_SIM_BADGE_THRESHOLD) {
         holder.badges.add("메뉴 설명과 잘 맞아요");
+      }
+      if (walletBalance != null
+          && holder.minPrice < Double.MAX_VALUE
+          && holder.minPrice <= walletBalance.doubleValue()) {
+        holder.badges.add("예치금으로 구매 가능");
       }
     }
   }
