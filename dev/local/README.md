@@ -4,7 +4,7 @@
 
 ```text
 dev/local/
-├── config-server/config/       # Native Config Server가 제공하는 설정
+├── config-server/              # Native Config 원본·외부 저장소 동기화 스크립트
 ├── member-service/
 │   ├── generate-jwt-keys.sh    # macOS·Linux 키 생성
 │   ├── generate-jwt-keys.ps1   # Windows 키 생성
@@ -33,7 +33,7 @@ dev/local/
 
 ## Config Server 설정 배포
 
-`config-server/config`의 아래 6개 파일은 로컬과 배포 환경이 함께 사용하는 원본입니다.
+`config-server`의 아래 6개 파일은 로컬과 배포 환경이 함께 사용하는 원본입니다.
 프로필별 `*-local.yml` 오버레이는 사용하지 않습니다.
 
 ```text
