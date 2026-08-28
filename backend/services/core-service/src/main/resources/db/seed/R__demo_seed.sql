@@ -1865,7 +1865,9 @@ SELECT setval('stores_store_id_seq', 1000, true);
 SELECT setval('store_payout_accounts_payout_account_id_seq', 1000, true);
 SELECT setval('dishes_id_seq', 1000, true);
 SELECT setval('carts_id_seq', 1000, true);
-SELECT setval('orders_id_seq', 1450000, true);
+-- 2026-10 정산 성능 데이터의 가상 order_id(최대 2,450,000)와
+-- 이후 생성되는 실제 주문 ID가 충돌하지 않도록 주문 시퀀스를 함께 이동합니다.
+SELECT setval('orders_id_seq', 2450000, true);
 SELECT setval('deposits_deposit_id_seq', 1000, true);
 
 -- 정산 실행 시 기존 더미 데이터와 PK가 충돌하지 않도록 조정
