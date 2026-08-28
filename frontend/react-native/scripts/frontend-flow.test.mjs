@@ -16,6 +16,11 @@ test('목록 탭은 상품을 중심으로 상품 상세에 연결한다', () =>
   assert.match(stores, /ProductStoreCard/);
   assert.match(stores, /pathname: '\/dishes\/\[dishId\]'/);
   assert.match(stores, /stores\.flatMap<ProductEntry>/);
+  assert.match(stores, /searchRecommendedStores/);
+  assert.match(stores, /setAvailabilityMode\('TODAY'\)/);
+  assert.match(stores, /availabilityMode === 'NOW'/);
+  assert.match(stores, /추천 상품/);
+  assert.match(stores, /\.slice\(0, 4\)/);
   assert.match(source('src/components/product-store-card.tsx'), /dish\.discountPrice\.toLocaleString/);
 });
 
@@ -76,4 +81,15 @@ test('주문 불가 장바구니 상품은 유지하고 결제를 차단한다',
   assert.match(cart, /disabled=\{!availability\?\.orderable\}/);
   assert.match(checkout, /\['ORD007','D001','D003'\]/);
   assert.match(checkout, /router\.replace\('\/cart'\)/);
+  assert.match(checkout, /getPointBalance\(true\)/);
+  assert.match(checkout, /if\(pointError\)/);
+  assert.match(checkout, /createOrderFromCartItem\(serverItem\.cartItemId,dishPriceVersion,usedPoint\)/);
+  assert.match(cartApi, /JSON\.stringify\(\{ dishPriceVersion, usedPoint \}\)/);
+});
+
+test('포인트 내역은 거래 유형으로 증감 부호를 결정한다', () => {
+  const points = source('src/app/points.tsx');
+  assert.match(points, /type === 'EARN' \|\| type === 'REFUND'/);
+  assert.match(points, /isPointIncrease\(item\.type\) \? '\+' : '−'/);
+  assert.match(points, /Math\.abs\(Number\(item\.amount\)\)/);
 });

@@ -46,6 +46,13 @@ type AiStoreSearchResult = {
   reason?: string | null;
 };
 
+export type RecommendedStore = {
+  store: Store;
+  totalScore: number;
+  badges: string[];
+  reason: string;
+};
+
 type Envelope<T> = { success?: boolean; data?: T };
 type Page<T> = { content?: T[]; stores?: T[]; page?: number; totalPages?: number; totalElements?: number } | T[];
 
@@ -118,13 +125,22 @@ export async function getNearbyStores(latitude: number, longitude: number, radiu
 }
 
 export async function searchStores(keyword: string, latitude: number, longitude: number) {
+  return (await searchRecommendedStores(keyword, latitude, longitude)).map((result) => result.store).slice(0, 8);
+}
+
+export async function searchRecommendedStores(keyword: string, latitude: number, longitude: number, radiusKm = 5): Promise<RecommendedStore[]> {
   const query = keyword.trim();
   if (!query) return [];
   const results = await api<AiStoreSearchResult[]>('/ai/search', {
     method: 'POST',
-    body: JSON.stringify({ query, latitude, longitude, radiusKm: 500 }),
+    body: JSON.stringify({ query, latitude, longitude, radiusKm }),
   }, { timeoutMs: 30_000 });
-  return results.map((result) => mapStore(result.store, true)).slice(0, 8);
+  return results.map((result) => ({
+    store: mapStore(result.store, true),
+    totalScore: Number(result.totalScore ?? 0),
+    badges: result.badges ?? [],
+    reason: result.reason?.trim() || result.badges?.[0] || '검색 조건과 잘 맞는 픽업 상품이에요.',
+  }));
 }
 
 export async function getStore(storeId: number, force = false) {
