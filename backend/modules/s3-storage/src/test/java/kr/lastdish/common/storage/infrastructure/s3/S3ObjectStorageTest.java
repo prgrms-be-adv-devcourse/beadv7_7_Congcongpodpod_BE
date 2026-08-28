@@ -61,7 +61,7 @@ class S3ObjectStorageTest {
   }
 
   @Test
-  void ContentType과_정확한_파일_크기를_서명에_포함한다() {
+  void ContentType만_필수_업로드_헤더로_서명한다() {
     Instant now = Instant.parse("2026-08-14T00:00:00Z");
 
     try (S3Presigner presigner =
@@ -74,14 +74,11 @@ class S3ObjectStorageTest {
           new S3ObjectStorage(
               mock(S3Client.class), presigner, properties, Clock.fixed(now, ZoneOffset.UTC));
 
-      PresignedUploadUrl result =
-          storage.issuePutUrl("tmp/dish/3/test.jpg", "image/jpeg", 1024L, Duration.ofMinutes(5));
+      PresignedUploadUrl result = storage.issuePutUrl("tmp/dish/3/test.jpg", Duration.ofMinutes(5));
 
       assertThat(result.objectKey()).isEqualTo("tmp/dish/3/test.jpg");
       assertThat(result.requiredHeaders())
-          .containsEntry("content-type", "image/jpeg")
-          .containsEntry("content-length", "1024")
-          .doesNotContainKey("host");
+          .doesNotContainKeys("content-type", "content-length", "host");
       assertThat(result.expiresAt()).isEqualTo(now.plus(Duration.ofMinutes(5)));
     }
   }

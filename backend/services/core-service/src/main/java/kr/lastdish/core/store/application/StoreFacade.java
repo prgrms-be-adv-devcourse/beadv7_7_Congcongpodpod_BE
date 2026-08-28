@@ -11,18 +11,15 @@ import kr.lastdish.common.api.exception.CommonErrorCode;
 import kr.lastdish.core.dish.application.DishService;
 import kr.lastdish.core.dish.application.dto.InternalDishResult;
 import kr.lastdish.core.dish.presentation.dto.DishResponse;
+import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.settlement.application.dto.StoreSettlementAccountResult;
 import kr.lastdish.core.store.application.dto.InternalStoreResult;
 import kr.lastdish.core.store.application.dto.NearbyStoreResult;
 import kr.lastdish.core.store.application.dto.StorePageResult;
 import kr.lastdish.core.store.application.dto.StoreResult;
-import kr.lastdish.core.store.domain.Category;
-import kr.lastdish.core.store.domain.Store;
-import kr.lastdish.core.store.domain.StorePayoutAccountRepository;
-import kr.lastdish.core.store.domain.StoreRepository;
+import kr.lastdish.core.store.domain.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -35,42 +32,22 @@ public class StoreFacade {
   private final DishService dishService;
   private final StorePayoutAccountRepository storePayoutAccountRepository;
   private final StoreRepository storeRepository;
+  private final OrderService orderService;
 
   public void validateStoreOwner(Long storeId, Long memberId) {
     storeService.validateSeller(storeId, memberId);
   }
 
-  public void validateOpen(Long storeId, LocalDateTime now) {
-    storeService.validateOpen(storeId, now);
+  public void validateOpen(Long storeId) {
+    storeService.validateOpen(storeId);
+  }
+
+  public Long getStoreOwnerMemberId(Long storeId) {
+    return storeService.getStore(storeId).memberId();
   }
 
   public List<Long> findSettlementTargetStoreIds() {
     return storeService.findSettlementTargetStoreIds();
-  }
-
-  // 마감 시간이 지난 후보 매장의 ID 조회
-  public List<Long> findStoreIdsReadyToClose(LocalDateTime now) {
-    return storeRepository.findStoreIdsReadyToClose(now);
-  }
-
-  @Transactional
-  public void rescheduleNextClosingAt(Long storeId, LocalDateTime now) {
-    rescheduleNextClosingAt(storeId, now, "마감 대상 매장을 찾을 수 없습니다.");
-  }
-
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void rescheduleNextClosingAtAfterFailure(Long storeId, LocalDateTime now) {
-    rescheduleNextClosingAt(storeId, now, "마감 실패 매장을 찾을 수 없습니다.");
-  }
-
-  // 매장 행을 잠근 뒤 다음 마감 시각을 갱신한다.
-  private void rescheduleNextClosingAt(Long storeId, LocalDateTime now, String notFoundMessage) {
-    Store store =
-        storeRepository
-            .findWithLockById(storeId)
-            .orElseThrow(
-                () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, notFoundMessage));
-    store.rescheduleNextClosingAt(now);
   }
 
   public Optional<StoreSettlementAccountResult> findSettlementAccount(Long storeId) {
@@ -125,7 +102,7 @@ public class StoreFacade {
 
   private InternalStoreResult toInternalStoreResult(Store store) {
     InternalDishResult dish = dishService.getDishByStoreIdForRenewal(store.getId()).orElse(null);
-    return InternalStoreResult.from(StoreResult.from(store), dish);
+    return InternalStoreResult.from(StoreResult.from(store), dish, store.isDeleted());
   }
 
   public StorePageResult getNearbyStores(
@@ -173,5 +150,17 @@ public class StoreFacade {
             minLatitude, maxLatitude, minLongitude, maxLongitude, category);
 
     return StorePageResult.of(results, page, size, totalElements);
+  }
+
+  @Transactional
+  public StoreResult changeStatus(Long storeId, Long memberId, StoreStatus status) {
+    Store store = storeService.getOwnedStoreWithLock(storeId, memberId);
+
+    if (status == StoreStatus.CLOSED && orderService.existsNotCompletedOrder(storeId)) {
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, "처리되지 않은 주문이 존재하여 매장을 마감할 수 없습니다.");
+    }
+
+    return storeService.changeStatus(store, status);
   }
 }

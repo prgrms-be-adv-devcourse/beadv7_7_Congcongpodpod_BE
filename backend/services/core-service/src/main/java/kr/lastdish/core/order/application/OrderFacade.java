@@ -1,5 +1,6 @@
 package kr.lastdish.core.order.application;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -10,6 +11,7 @@ import kr.lastdish.core.common.exception.ErrorCode;
 import kr.lastdish.core.deposit.application.DepositFacade;
 import kr.lastdish.core.dish.application.DishFacade;
 import kr.lastdish.core.order.application.dto.*;
+import kr.lastdish.core.order.application.event.OrderNotificationEventWriter;
 import kr.lastdish.core.order.application.event.OrderStatusChangedEventWriter;
 import kr.lastdish.core.order.domain.MemberSnapshot;
 import kr.lastdish.core.order.domain.MemberSnapshotRepository;
@@ -17,6 +19,7 @@ import kr.lastdish.core.order.domain.Order;
 import kr.lastdish.core.order.domain.OrderRejectReason;
 import kr.lastdish.core.order.domain.OrderRepository;
 import kr.lastdish.core.order.domain.OrderStatus;
+import kr.lastdish.core.point.application.PointService;
 import kr.lastdish.core.store.application.StoreFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,16 +34,19 @@ public class OrderFacade {
 
   private final OrderRepository orderRepository;
   private final OrderStatusChangedEventWriter orderStatusChangedEventWriter;
+  private final OrderNotificationEventWriter orderNotificationEventWriter;
   private final OrderService orderService;
   private final CartFacade cartFacade;
   private final DishFacade dishFacade;
   private final DepositFacade depositFacade;
   private final StoreFacade storeFacade;
+  private final PointService pointService;
   private final MemberSnapshotRepository memberSnapshotRepository;
 
   // 주문 생성 - 재고 차감 - 결제
   @Transactional
-  public OrderResult payAndCreateOrder(Long memberId, Long cartItemId, Long dishPriceVersion) {
+  public OrderResult payAndCreateOrder(
+      Long memberId, Long cartItemId, Long dishPriceVersion, BigDecimal usedPoint) {
     MemberSnapshot memberSnapshot =
         memberSnapshotRepository
             .findActiveByMemberId(memberId)
@@ -52,18 +58,26 @@ public class OrderFacade {
     CartOrderSnapshot cartItem =
         cartFacade.getValidatedOrderSnapshot(memberId, cartItemId, dishPriceVersion);
 
-    // 영업 여부와 픽업 마감을 같은 기준 시각으로 판단한다. 각자 now()를 부르면 자정 근처에서 두 판정이 갈린다.
+    // 서버 현재 시각을 한 번만 구해 자정 경계를 포함한 픽업 마감 일시를 계산한다.
     LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
     LocalDateTime pickupDeadline = validateBeforeOrder(cartItem, now);
 
     // 주문 생성 및 저장
-    Order order = orderService.createOrder(memberId, memberInfo, cartItem, pickupDeadline);
+    Order order =
+        orderService.createOrder(memberId, memberInfo, cartItem, usedPoint, pickupDeadline);
 
     // 재고 차감
     dishFacade.decreaseStock(order.getDishId(), order.getQuantity());
 
+    // 포인트 사용
+    if (usedPoint.compareTo(BigDecimal.ZERO) > 0) {
+      pointService.use(memberId, order.getId(), usedPoint);
+    }
+
     // 예치금 사용
-    depositFacade.use(memberId, order.getId(), order.getTotalPrice());
+    if (order.getUsedDeposit().compareTo(BigDecimal.ZERO) > 0) {
+      depositFacade.use(memberId, order.getId(), order.getUsedDeposit());
+    }
 
     // 결제 완료 처리
     OrderResult result = orderService.completePayment(order.getId());
@@ -71,11 +85,14 @@ public class OrderFacade {
     // 주문이 완료된 상품을 장바구니에서 제거
     cartFacade.removeOrderedItem(memberId, cartItemId);
 
+    Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
+    orderNotificationEventWriter.appendCreated(order, sellerMemberId);
+
     return result;
   }
 
   private LocalDateTime validateBeforeOrder(CartOrderSnapshot cartItem, LocalDateTime now) {
-    storeFacade.validateOpen(cartItem.storeId(), now);
+    storeFacade.validateOpen(cartItem.storeId());
     return orderService.validatePickupDeadline(cartItem, now);
   }
 
@@ -88,8 +105,11 @@ public class OrderFacade {
     // 재고 복구
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
 
-    // 결제 환불
-    depositFacade.refund(memberId, orderId, order.getTotalPrice());
+    // 환불
+    refundPointAndDeposit(order);
+
+    Long sellerMemberId = storeFacade.getStoreOwnerMemberId(order.getStoreId());
+    orderNotificationEventWriter.appendCancelled(order, sellerMemberId);
 
     return OrderResult.from(order);
   }
@@ -126,8 +146,9 @@ public class OrderFacade {
     dishFacade.increaseStock(order.getDishId(), order.getQuantity());
     order.rejectOrder(reason);
     orderStatusChangedEventWriter.append(order);
+    orderNotificationEventWriter.appendRejected(order, reason);
     // 환불
-    depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    refundPointAndDeposit(order);
     return OrderRejectResult.from(order);
   }
 
@@ -136,9 +157,20 @@ public class OrderFacade {
     Order order = orderRepository.findWithLockByIdAndIsDeletedFalse(orderId);
     order.rejectOrder(reason);
     orderStatusChangedEventWriter.append(order);
+    orderNotificationEventWriter.appendRejected(order, reason);
     // 환불 - 재고 복구 안함
-    depositFacade.refund(order.getMemberId(), orderId, order.getTotalPrice());
+    refundPointAndDeposit(order);
     return OrderRejectResult.from(order);
+  }
+
+  private void refundPointAndDeposit(Order order) {
+    if (order.getUsedPoint().compareTo(BigDecimal.ZERO) > 0) {
+      pointService.refund(order.getMemberId(), order.getId());
+    }
+
+    if (order.getUsedDeposit().compareTo(BigDecimal.ZERO) > 0) {
+      depositFacade.refund(order.getMemberId(), order.getId(), order.getUsedDeposit());
+    }
   }
 
   @Transactional

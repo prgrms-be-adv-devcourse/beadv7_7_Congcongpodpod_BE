@@ -12,7 +12,7 @@ public class TossRestClientConfig {
   public RestClient.Builder tossRestClientBuilder() {
     SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
     requestFactory.setConnectTimeout(3000);
-    requestFactory.setReadTimeout(5000);
+    requestFactory.setReadTimeout(60000); // Toss 권장 Timeout 60초
     return RestClient.builder().requestFactory(requestFactory);
   }
 }

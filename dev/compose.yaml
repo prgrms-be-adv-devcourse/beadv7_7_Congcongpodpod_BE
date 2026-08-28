@@ -169,7 +169,7 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
-    mem_limit: 1536m
+    mem_limit: 1152m
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent --user elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null"]
       interval: 10s
@@ -185,6 +185,9 @@ services:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: native
       CONFIG_NATIVE_SEARCH_LOCATIONS: file:/config
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in dev/.env}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
     volumes:
       - ./local/config-server/config:/config:ro
     # Main EC2 Deployment의 메모리 상한과 동일합니다.
@@ -238,7 +241,7 @@ services:
         condition: service_healthy
     ports:
       - "8081:8080"
-    mem_limit: 768m
+    mem_limit: 448m
 
   core-service:
     build:
@@ -251,6 +254,8 @@ services:
       SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/seed}
       CONFIG_SERVER_URL: http://config-server:8888
       CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db?reWriteBatchedInserts=true
+      NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
+      NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
       CORE_DB_USERNAME: core
       CORE_DB_PASSWORD: core_local_password
       MEMBER_SERVICE_BASE_URL: http://member-service:8080
@@ -268,8 +273,6 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
       S3_MAX_UPLOAD_SIZE: ${S3_MAX_UPLOAD_SIZE:-10MB}
-      NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
-      NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
       # dev/.env에서 읽는다. 누락 시 잘못된 설정으로 기동하지 않도록 즉시 실패시킨다.
       TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:?TOSS_CLIENT_KEY is required in dev/.env}
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:?TOSS_SECRET_KEY is required in dev/.env}
@@ -286,7 +289,7 @@ services:
         condition: service_healthy
     ports:
       - "8082:8080"
-    mem_limit: 1024m
+    mem_limit: 512m
 
   payment-service:
     build:
@@ -321,7 +324,7 @@ services:
         condition: service_healthy
     ports:
       - "8083:8080"
-    mem_limit: 768m
+    mem_limit: 384m
 
   ai-service:
     build:
@@ -332,6 +335,7 @@ services:
       SPRING_PROFILES_ACTIVE: local
       SPRINGDOC_ENABLED: "true"
       CONFIG_SERVER_URL: http://config-server:8888
+      SERVICES_CORE_BASE_URL: http://core-service:8080
       AI_DB_URL: jdbc:postgresql://core-db:5432/ai_db
       AI_DB_USERNAME: ai
       AI_DB_PASSWORD: ai_local_password
@@ -350,7 +354,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required in dev/.env}
       S3_PRESIGNED_URL_EXPIRATION: ${S3_PRESIGNED_URL_EXPIRATION:-5m}
       AI_ENGINE_URL: ${AI_ENGINE_URL:?AI_ENGINE_URL is required in dev/.env }
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in dev/.env}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
 
@@ -360,6 +364,8 @@ services:
         condition: service_healthy
       core-db:
         condition: service_healthy
+      core-service:
+        condition: service_started
       database-initializer:
         condition: service_completed_successfully
       redis:
@@ -370,7 +376,7 @@ services:
         condition: service_healthy
     ports:
       - "8084:8080"
-    mem_limit: 1024m
+    mem_limit: 512m
 
   gateway-service:
     build:
@@ -410,7 +416,7 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
-    mem_limit: 512m
+    mem_limit: 320m
 
 secrets:
   member-access-private-key:

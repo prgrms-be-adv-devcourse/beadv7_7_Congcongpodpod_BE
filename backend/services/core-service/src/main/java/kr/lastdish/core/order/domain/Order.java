@@ -85,6 +85,12 @@ public class Order {
   @Column(nullable = false)
   private BigDecimal unitPrice;
 
+  @Column(nullable = false)
+  private BigDecimal usedPoint;
+
+  @Column(nullable = false)
+  private BigDecimal usedDeposit;
+
   /**
    * 이 주문으로 아낀 총 금액입니다. (정가 - 판매가) × 수량으로 주문 시점에 확정한다.
    *
@@ -118,6 +124,7 @@ public class Order {
       Long quantity,
       BigDecimal dishPrice,
       BigDecimal unitPrice,
+      BigDecimal usedPoint,
       LocalTime pickupStartAt,
       LocalTime pickupEndAt,
       LocalDateTime pickupDeadline) {
@@ -133,6 +140,8 @@ public class Order {
     order.quantity = quantity;
     order.unitPrice = unitPrice;
     order.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
+    order.usedPoint = usedPoint;
+    order.usedDeposit = order.totalPrice.subtract(usedPoint);
     order.totalSavedAmount = dishPrice.subtract(unitPrice).multiply(BigDecimal.valueOf(quantity));
     order.pickupStartAt = pickupStartAt;
     order.pickupEndAt = pickupEndAt;
@@ -140,6 +149,18 @@ public class Order {
     order.isDeleted = false;
     order.eventVersion = 0L;
     return order;
+  }
+
+  /** 서버 기준 현재 날짜와 주문의 픽업 시간으로 픽업 마감 일시를 계산한다. */
+  public static LocalDateTime calculatePickupDeadline(
+      LocalDateTime now, LocalTime pickupStartAt, LocalTime pickupEndAt) {
+    LocalDateTime pickupDeadline = now.toLocalDate().atTime(pickupEndAt);
+
+    if (now.isAfter(pickupDeadline)) {
+      return pickupDeadline.plusDays(1);
+    }
+
+    return pickupDeadline;
   }
 
   public long nextEventVersion() {

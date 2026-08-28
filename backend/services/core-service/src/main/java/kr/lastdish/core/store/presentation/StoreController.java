@@ -49,7 +49,7 @@ public class StoreController {
       @PathVariable Long storeId,
       @RequestHeader("X-Authenticated-Member-Id") Long memberId,
       @Valid @RequestBody ChangeStoreStatusRequest request) {
-    StoreResult result = storeService.changeStatus(storeId, memberId, request.status());
+    StoreResult result = storeFacade.changeStatus(storeId, memberId, request.status());
 
     return ApiResponse.ok(StoreResponse.from(result));
   }
@@ -110,6 +110,13 @@ public class StoreController {
   }
 
   // 매장 정산 계좌
+  @GetMapping("/{storeId}/payoutAccount")
+  public ApiResponse<StoreAccountResponse> getPayoutAccount(
+      @PathVariable Long storeId, @RequestHeader("X-Authenticated-Member-Id") Long memberId) {
+    return ApiResponse.ok(
+        StoreAccountResponse.from(storeService.getPayoutAccount(storeId, memberId)));
+  }
+
   @PostMapping("/{storeId}/payoutAccount")
   public ApiResponse<StoreAccountResponse> registerPayoutAccount(
       @PathVariable Long storeId,

@@ -37,19 +37,6 @@ class StoreFacadeTest {
   @InjectMocks private StoreFacade storeFacade;
 
   @Test
-  void reschedules_next_closing_at_through_locked_lookup() {
-    Long storeId = 10L;
-    LocalDateTime now = LocalDateTime.of(2026, 8, 20, 22, 0);
-    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
-
-    when(storeRepository.findWithLockById(storeId)).thenReturn(Optional.of(store));
-
-    storeFacade.rescheduleNextClosingAt(storeId, now);
-
-    verify(storeRepository).findWithLockById(storeId);
-  }
-
-  @Test
   void returns_store_and_null_dish_when_store_exists_without_dish() {
     // given
     Long storeId = 10L;
@@ -120,6 +107,24 @@ class StoreFacadeTest {
     assertThat(result.getFirst().storeId()).isEqualTo(10L);
     assertThat(result.getFirst().dish()).isEqualTo(dish);
     verify(storeRepository).findRenewalTargets(localFrom, localTo);
+  }
+
+  @Test
+  void 소프트_삭제된_매장은_검색_갱신_응답에_삭제_표시한다() {
+    Instant from = Instant.parse("2026-08-22T13:00:00Z");
+    Instant to = Instant.parse("2026-08-22T13:01:00Z");
+    LocalDateTime localFrom = LocalDateTime.of(2026, 8, 22, 22, 0);
+    LocalDateTime localTo = LocalDateTime.of(2026, 8, 22, 22, 1);
+    Store store = createStore(LocalTime.of(9, 0), LocalTime.of(22, 0));
+    ReflectionTestUtils.setField(store, "id", 10L);
+    store.delete();
+
+    when(storeRepository.findRenewalTargets(localFrom, localTo)).thenReturn(List.of(store));
+    when(dishService.getDishByStoreIdForRenewal(10L)).thenReturn(Optional.empty());
+
+    List<InternalStoreResult> result = storeFacade.getDishAndStoresForRenewal(from, to);
+
+    assertThat(result).singleElement().extracting(InternalStoreResult::deleted).isEqualTo(true);
   }
 
   private StoreResult createStoreResult(Long storeId) {

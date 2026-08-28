@@ -92,6 +92,31 @@ class StoreJpaRepositoryTest {
         .containsExactly(changedStore.getId(), dishChangedStore.getId());
   }
 
+  @Test
+  void 소프트_삭제된_Dish가_기간_내_변경되면_매장을_갱신_대상으로_조회한다() {
+    LocalDateTime from = LocalDateTime.of(2026, 8, 22, 22, 0);
+    LocalDateTime to = from.plusMinutes(1);
+    Store store = storeJpaRepository.saveAndFlush(store("999-99-99999", from.plusHours(1)));
+    Dish dish = dishJpaRepository.saveAndFlush(dish(store.getId()));
+
+    entityManager
+        .createNativeQuery("UPDATE stores SET updated_at = :updatedAt WHERE store_id = :storeId")
+        .setParameter("updatedAt", from.minusMinutes(1))
+        .setParameter("storeId", store.getId())
+        .executeUpdate();
+    entityManager
+        .createNativeQuery(
+            "UPDATE dishes SET is_deleted = true, updated_at = :updatedAt WHERE id = :dishId")
+        .setParameter("updatedAt", from.plusSeconds(30))
+        .setParameter("dishId", dish.getId())
+        .executeUpdate();
+    entityManager.clear();
+
+    List<Store> result = storeJpaRepository.findRenewalTargets(from, to);
+
+    assertThat(result).extracting(Store::getId).containsExactly(store.getId());
+  }
+
   private Store store(String businessNumber, LocalDateTime nextClosingAt) {
     Store store =
         new Store(

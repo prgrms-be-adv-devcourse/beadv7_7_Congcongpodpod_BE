@@ -4,15 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import kr.lastdish.payment.application.dto.ApprovalClaim;
 import kr.lastdish.payment.application.dto.PgApprovalResult;
 import kr.lastdish.payment.application.event.ChargeRequestedEventWriter;
 import kr.lastdish.payment.domain.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +34,13 @@ class PaymentServiceTest {
 
   @InjectMocks private PaymentService paymentService;
   @Captor private ArgumentCaptor<PaymentLog> paymentLogCaptor;
+
+  @BeforeEach
+  void setUpReconcileConfig() {
+    ReflectionTestUtils.setField(paymentService, "processingVerifyThresholdMinutes", 40);
+    ReflectionTestUtils.setField(paymentService, "processingVerifyLockTimeoutMinutes", 10);
+    ReflectionTestUtils.setField(paymentService, "processingVerifyBatchSize", 50);
+  }
 
   @Test
   void claimApproval_READY인_결제는_STARTED를_반환하고_PROCESSING으로_전환된다() {
@@ -175,5 +183,40 @@ class PaymentServiceTest {
     assertThat(savedLog.getPaymentMethod()).isNull();
     assertThat(savedLog.getMaskedCardNum()).isNull();
     assertThat(savedLog.getCardCompany()).isNull();
+  }
+
+  @Test
+  void claimStuckProcessingPayments_동일한_now로_클레임과_재조회를_수행한다() {
+    Payment payment1 = mock(Payment.class);
+    Payment payment2 = mock(Payment.class);
+
+    when(paymentRepository.claimProcessingPayments(any(), any(), any(), anyInt())).thenReturn(2);
+    when(paymentRepository.findClaimedProcessingPayments(any()))
+        .thenReturn(List.of(payment1, payment2));
+
+    List<Payment> result = paymentService.claimStuckProcessingPayments();
+
+    assertThat(result).containsExactly(payment1, payment2);
+
+    ArgumentCaptor<java.time.LocalDateTime> claimNowCaptor =
+        ArgumentCaptor.forClass(java.time.LocalDateTime.class);
+    verify(paymentRepository)
+        .claimProcessingPayments(claimNowCaptor.capture(), any(), any(), anyInt());
+
+    ArgumentCaptor<java.time.LocalDateTime> findNowCaptor =
+        ArgumentCaptor.forClass(java.time.LocalDateTime.class);
+    verify(paymentRepository).findClaimedProcessingPayments(findNowCaptor.capture());
+
+    assertThat(claimNowCaptor.getValue()).isEqualTo(findNowCaptor.getValue());
+  }
+
+  @Test
+  void claimStuckProcessingPayments_클레임된_건이_없으면_재조회하지_않고_빈_리스트를_반환한다() {
+    when(paymentRepository.claimProcessingPayments(any(), any(), any(), anyInt())).thenReturn(0);
+
+    List<Payment> result = paymentService.claimStuckProcessingPayments();
+
+    assertThat(result).isEmpty();
+    verify(paymentRepository, org.mockito.Mockito.never()).findClaimedProcessingPayments(any());
   }
 }

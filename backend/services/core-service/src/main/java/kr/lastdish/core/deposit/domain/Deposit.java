@@ -41,7 +41,7 @@ public class Deposit {
   }
 
   public void use(BigDecimal amount) {
-    validatePositiveAmount(amount);
+    validateNonNegativeAmount(amount);
 
     if (this.balance.compareTo(amount) < 0) {
       throw new InsufficientBalanceException(this.memberId, this.balance, amount);
@@ -69,6 +69,13 @@ public class Deposit {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(
           CommonErrorCode.INVALID_INPUT, "금액은 0보다 커야 합니다. amount=" + amount);
+    }
+  }
+
+  private void validateNonNegativeAmount(BigDecimal amount) {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, "금액은 0 이상이어야 합니다. amount=" + amount);
     }
   }
 }

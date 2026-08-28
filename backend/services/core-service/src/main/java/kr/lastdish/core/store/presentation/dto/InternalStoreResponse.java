@@ -23,7 +23,8 @@ public record InternalStoreResponse(
     BigDecimal longitude,
     Category category,
     List<DayOfWeek> holidays,
-    InternalDishResponse dish) {
+    InternalDishResponse dish,
+    boolean deleted) {
 
   public static InternalStoreResponse from(InternalStoreResult store) {
     return new InternalStoreResponse(
@@ -40,6 +41,7 @@ public record InternalStoreResponse(
         store.longitude(),
         store.category(),
         store.holidays(),
-        store.dish() == null ? null : InternalDishResponse.from(store.dish()));
+        store.dish() == null ? null : InternalDishResponse.from(store.dish()),
+        store.deleted());
   }
 }

@@ -46,12 +46,12 @@ public class SettlementBatchConfig {
   @Bean
   public Step monthlySettlementStep() {
     return new StepBuilder("monthlySettlementStep", jobRepository)
-            .<Long, SettlementProcessResult>chunk(1)
-            .transactionManager(transactionManager)
-            .reader(monthlySettlementTargetReader)
-            .processor(monthlySettlementItemProcessor)
-            .writer(monthlySettlementItemWriter)
-            .listener(monthlySettlementItemWriter)
-            .build();
+        .<Long, SettlementProcessResult>chunk(1)
+        .transactionManager(transactionManager)
+        .reader(monthlySettlementTargetReader)
+        .processor(monthlySettlementItemProcessor)
+        .writer(monthlySettlementItemWriter)
+        .listener(monthlySettlementItemWriter)
+        .build();
   }
 }

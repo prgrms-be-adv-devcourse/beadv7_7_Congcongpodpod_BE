@@ -22,10 +22,14 @@ import org.springframework.web.client.RestClientResponseException;
 public class TossPaymentGateway implements PgPaymentGateway {
 
   private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
-  private static final String TOSS_PAYMENT_INQUIRY_URL =
+  // paymentKey로 조회 - confirm 응답 실패 직후 즉시 재확인
+  private static final String TOSS_PAYMENT_KEY_STATUS_URL =
       "https://api.tosspayments.com/v1/payments/";
+  // orderId로 조회 - PROCESSING 상태로 남음 재조회 배치
+  private static final String TOSS_ORDER_STATUS_URL =
+      "https://api.tosspayments.com/v1/payments/orders/";
   private static final int MAX_FAILURE_MESSAGE_LENGTH = 500;
-  private static final long INQUIRY_RETRY_DELAY_MS = 700L;
+  private static final long STATUS_CHECK_RETRY_DELAY_MS = 700L;
 
   private final PaymentLogRepository paymentLogRepository;
   private final RestClient restClient;
@@ -86,39 +90,37 @@ public class TossPaymentGateway implements PgPaymentGateway {
           paymentKey, code, truncate(message, MAX_FAILURE_MESSAGE_LENGTH));
 
     } catch (Exception e) {
-      // 타임아웃 등 Toss 응답 자체를 못 받은 경우 -> 조회 API로 재확인
+      // 타임아웃 등 Toss 응답 자체를 못 받은 경우 -> paymentKey 조회 API로 재확인
       log.warn(
           "Toss 승인 응답 수신 실패, 결제 조회 API로 상태를 재확인합니다. paymentId={}, paymentKey={}",
           paymentId,
           paymentKey,
           e);
-      return checkPaymentStatus(paymentId, paymentKey);
+      return checkPaymentStatusByPaymentKey(paymentId, paymentKey);
     }
   }
 
-  private PgApprovalResult checkPaymentStatus(Long paymentId, String paymentKey) {
-    PgApprovalResult result = tryInquiry(paymentKey);
+  private PgApprovalResult checkPaymentStatusByPaymentKey(Long paymentId, String paymentKey) {
+    PgApprovalResult result = tryCheckStatusByPaymentKey(paymentKey);
     if (result != null) {
       return result;
     }
 
-    log.warn("결제 조회 1차 실패, {}ms 후 재시도합니다. paymentKey={}", INQUIRY_RETRY_DELAY_MS, paymentKey);
+    log.warn("결제 조회 1차 실패, {}ms 후 재시도합니다. paymentKey={}", STATUS_CHECK_RETRY_DELAY_MS, paymentKey);
     try {
-      Thread.sleep(INQUIRY_RETRY_DELAY_MS);
+      Thread.sleep(STATUS_CHECK_RETRY_DELAY_MS);
     } catch (InterruptedException ie) {
       Thread.currentThread().interrupt();
     }
 
-    result = tryInquiry(paymentKey);
+    result = tryCheckStatusByPaymentKey(paymentKey);
     if (result != null) {
       return result;
     }
 
-    // 재시도까지 실패 -> UNKNOWN으로 저장. 추후 재조회 배치가 찾아낼 수 있도록 함.
+    // 재시도까지 실패 시 UNKNOWN으로 저장
     log.error(
-        "CRITICAL: Toss 결제 조회마저 실패했습니다. 수동 확인이 필요합니다. paymentId={}, paymentKey={}",
-        paymentId,
-        paymentKey);
+        "Toss 결제 조회마저 실패했습니다. 수동 확인이 필요합니다. paymentId={}, paymentKey={}", paymentId, paymentKey);
 
     paymentLogRepository.save(
         PaymentLog.createResponseLog(
@@ -129,23 +131,20 @@ public class TossPaymentGateway implements PgPaymentGateway {
             null,
             null,
             "UNKNOWN",
-            "Toss 승인 응답 및 조회 API 응답을 모두 받지 못했습니다. 수동/배치 재확인이 필요합니다.",
+            "Toss 승인 응답 및 조회 API 응답을 모두 받지 못했습니다. 재확인이 필요합니다.",
             0,
             "UNKNOWN"));
 
     return PgApprovalResult.unknown(paymentKey, "결제 상태 확인 중 네트워크 오류가 반복되었습니다.");
   }
 
-  /**
-   * Toss 조회 API 호출 - 성공적으로 상태를 확정할 수 있으면 결과를 반환한다. - 통신 자체가 실패하면 null을 반환해 재시도/최종 UNKNOWN 판단을 호출부에
-   * 맡긴다.
-   */
-  private PgApprovalResult tryInquiry(String paymentKey) {
+  // paymentKey로 Toss 조회 API 호출 후 최종 상태 확정
+  private PgApprovalResult tryCheckStatusByPaymentKey(String paymentKey) {
     try {
       String rawJson =
           restClient
               .get()
-              .uri(TOSS_PAYMENT_INQUIRY_URL + paymentKey)
+              .uri(TOSS_PAYMENT_KEY_STATUS_URL + paymentKey)
               .header("Authorization", buildAuthorizationHeader())
               .retrieve()
               .body(String.class);
@@ -176,5 +175,68 @@ public class TossPaymentGateway implements PgPaymentGateway {
     String encoded =
         Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
     return "Basic " + encoded;
+  }
+
+  // orderId로 Toss 조회 API 호출 - PROCESSING로 남은 건 재조회
+  @Override
+  public PgApprovalResult checkStatus(String merchantOrderId) {
+    try {
+      String rawJson =
+          restClient
+              .get()
+              .uri(TOSS_ORDER_STATUS_URL + merchantOrderId)
+              .header("Authorization", buildAuthorizationHeader())
+              .retrieve()
+              .body(String.class);
+
+      TossConfirmResponse response = objectMapper.readValue(rawJson, TossConfirmResponse.class);
+
+      if (!"DONE".equals(response.status())) {
+        log.warn(
+            "Toss 재조회 응답이 200인데 status가 DONE이 아닙니다. status={}, merchantOrderId={}",
+            response.status(),
+            merchantOrderId);
+        return PgApprovalResult.unknown(
+            response.paymentKey(), "예상치 못한 status 값입니다. status=" + response.status());
+      }
+
+      return PgApprovalResult.success(
+          response.paymentKey(),
+          response.totalAmount(),
+          response.method(),
+          response.card() != null ? response.card().number() : null,
+          response.card() != null ? response.card().issuerCode() : null);
+
+    } catch (RestClientResponseException e) {
+      return classifyStatusErrorResponse(merchantOrderId, e);
+
+    } catch (Exception e) {
+      log.warn("Toss 재조회 API 통신 실패. merchantOrderId={}", merchantOrderId, e);
+      return PgApprovalResult.unknown(null, "재조회 중 네트워크 오류가 발생했습니다.");
+    }
+  }
+
+  // 404(NOT_FOUND_PAYMENT)는 threshold(40분) 경과 시 최종 실패 확정
+  private PgApprovalResult classifyStatusErrorResponse(
+      String merchantOrderId, RestClientResponseException e) {
+    int statusCode = e.getStatusCode().value();
+
+    if (statusCode == 404) {
+      log.info("재조회 결과 404 - threshold 경과 시 최종 미승인으로 확정. merchantOrderId={}", merchantOrderId);
+      return PgApprovalResult.failure(
+          null, "NOT_FOUND_AFTER_THRESHOLD", "재조회 threshold 경과 후에도 조회되지 않아 최종 실패로 확정합니다.");
+    }
+
+    if (statusCode == 429 || statusCode >= 500) {
+      log.warn("Toss 재조회 API 일시 장애(status={}). merchantOrderId={}", statusCode, merchantOrderId);
+      return PgApprovalResult.unknown(null, "Toss 재조회 API 일시 장애. status=" + statusCode);
+    }
+
+    TossErrorResponse error = e.getResponseBodyAs(TossErrorResponse.class);
+    String message = error != null && error.message() != null ? error.message() : e.getMessage();
+    log.warn(
+        "Toss 재조회 API 예상치 못한 오류 응답. merchantOrderId={}, status={}", merchantOrderId, statusCode);
+    return PgApprovalResult.unknown(
+        null, truncate("재조회 API 오류: " + message, MAX_FAILURE_MESSAGE_LENGTH));
   }
 }

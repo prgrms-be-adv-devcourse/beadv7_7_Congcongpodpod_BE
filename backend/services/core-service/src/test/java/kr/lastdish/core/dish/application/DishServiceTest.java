@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
 import kr.lastdish.common.event.DomainEvent;
 import kr.lastdish.common.outbox.application.OutboxEventWriter;
@@ -230,24 +229,6 @@ class DishServiceTest {
     assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
   }
 
-  @Test
-  void 매장_마감으로_판매를_종료하면_재고를_0으로_초기화하고_상태_이벤트를_기록한다() {
-    Dish dish = createDish(10L);
-    ReflectionTestUtils.setField(dish, "id", 10L);
-    when(dishRepository.findWithLockByStoreIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(dish));
-    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
-    dishService.closeSaleByStoreId(1L);
-
-    assertThat(dish.getStockQuantity()).isZero();
-    assertThat(dish.getDishStatus()).isEqualTo(kr.lastdish.core.dish.domain.DishStatus.SOLD_OUT);
-    List<DomainEvent> events = captureEvents(eventCaptor);
-    DishStateChangedEvent event = findEvent(events, DishStateChangedEvent.class);
-    assertThat(event.payload().available()).isFalse();
-    assertThat(event.payload().stockQuantity()).isZero();
-    assertThat(events).anyMatch(DishUpdatedEvent.class::isInstance);
-  }
-
   private List<DomainEvent> captureEvents(ArgumentCaptor<DomainEvent> eventCaptor) {
     verify(outboxEventWriter, atLeastOnce()).append(eventCaptor.capture());
     return eventCaptor.getAllValues();
@@ -269,7 +250,21 @@ class DishServiceTest {
     DishResponse response = dishService.adjustStock(1L, 5L);
 
     assertThat(response.stockQuantity()).isEqualTo(15L);
-    then(outboxEventWriter).should().append(any());
+  }
+
+  @Test
+  void 판매자가_재고를_조정하면_Dish_수정_이벤트를_기록한다() {
+    Dish dish = createDish(10L);
+    ReflectionTestUtils.setField(dish, "id", 1L);
+    given(dishRepository.findWithLockByIdAndIsDeletedFalse(1L)).willReturn(dish);
+    ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+
+    dishService.adjustStock(1L, 5L);
+
+    List<DomainEvent> events = captureEvents(eventCaptor);
+    DishUpdatedEvent event = findEvent(events, DishUpdatedEvent.class);
+    assertThat(event.dishId()).isEqualTo(1L);
+    assertThat(event.payload().storeId()).isEqualTo(1L);
   }
 
   @Test
@@ -280,7 +275,6 @@ class DishServiceTest {
     DishResponse response = dishService.adjustStock(1L, -4L);
 
     assertThat(response.stockQuantity()).isEqualTo(6L);
-    then(outboxEventWriter).should().append(any());
   }
 
   @Test

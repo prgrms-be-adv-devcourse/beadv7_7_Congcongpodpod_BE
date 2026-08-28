@@ -54,8 +54,9 @@ export function MapCanvas({ stores, center, userLocation = center, cameraCommand
         const settledCamera = {
           latitude, longitude, zoom: zoom ?? camera.current.zoom, bearing: nextBearing,
           bounds: {
-            southWest: { latitude: region.latitude - region.latitudeDelta / 2, longitude: region.longitude - region.longitudeDelta / 2 },
-            northEast: { latitude: region.latitude + region.latitudeDelta / 2, longitude: region.longitude + region.longitudeDelta / 2 },
+            // Naver SDK region 좌표는 카메라 중심이 아니라 이미 화면의 남서(SW) 지점입니다.
+            southWest: { latitude: region.latitude, longitude: region.longitude },
+            northEast: { latitude: region.latitude + region.latitudeDelta, longitude: region.longitude + region.longitudeDelta },
           },
         };
         camera.current = settledCamera;

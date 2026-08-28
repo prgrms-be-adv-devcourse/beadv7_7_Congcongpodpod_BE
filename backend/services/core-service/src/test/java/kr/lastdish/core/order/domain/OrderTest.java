@@ -12,6 +12,39 @@ import org.junit.jupiter.api.Test;
 class OrderTest {
 
   @Test
+  void 사용_포인트를_제외한_금액을_사용_예치금으로_계산한다() {
+    Order order = createOrder(BigDecimal.valueOf(3_000));
+
+    assertThat(order.getTotalPrice()).isEqualByComparingTo("10000");
+    assertThat(order.getUsedPoint()).isEqualByComparingTo("3000");
+    assertThat(order.getUsedDeposit()).isEqualByComparingTo("7000");
+  }
+
+  @Test
+  void 주문의_픽업_시간으로_마감_일시를_계산한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 20, 12, 0);
+
+    assertThat(Order.calculatePickupDeadline(now, LocalTime.of(18, 0), LocalTime.of(19, 0)))
+        .isEqualTo(LocalDateTime.of(2026, 8, 20, 19, 0));
+  }
+
+  @Test
+  void 오늘_픽업_종료_후에는_다음날_마감_일시를_계산한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 20, 21, 0);
+
+    assertThat(Order.calculatePickupDeadline(now, LocalTime.of(10, 0), LocalTime.of(20, 0)))
+        .isEqualTo(LocalDateTime.of(2026, 8, 21, 20, 0));
+  }
+
+  @Test
+  void 자정을_넘는_픽업은_종료_시간을_다음날로_계산한다() {
+    LocalDateTime now = LocalDateTime.of(2026, 8, 20, 23, 30);
+
+    assertThat(Order.calculatePickupDeadline(now, LocalTime.of(23, 0), LocalTime.of(1, 0)))
+        .isEqualTo(LocalDateTime.of(2026, 8, 21, 1, 0));
+  }
+
+  @Test
   void paymentCanOnlyTransitionFromPendingToCompleted() {
     Order order = createOrder();
 
@@ -83,6 +116,10 @@ class OrderTest {
   }
 
   private Order createOrder() {
+    return createOrder(BigDecimal.ZERO);
+  }
+
+  private Order createOrder(BigDecimal usedPoint) {
     return Order.create(
         1L,
         20L,
@@ -93,6 +130,7 @@ class OrderTest {
         2L,
         BigDecimal.valueOf(5_000),
         BigDecimal.valueOf(5_000),
+        usedPoint,
         LocalTime.of(18, 0),
         LocalTime.of(19, 0),
         LocalDateTime.of(2026, 8, 10, 19, 0));

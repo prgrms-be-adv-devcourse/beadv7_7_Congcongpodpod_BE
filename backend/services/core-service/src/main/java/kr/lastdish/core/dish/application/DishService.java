@@ -121,6 +121,7 @@ public class DishService {
     }
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
+    appendUpdatedEvent(dish);
 
     return DishResponse.from(dish);
   }
@@ -160,20 +161,6 @@ public class DishService {
 
     appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
     appendUpdatedEvent(dish);
-  }
-
-  @Transactional
-  public void closeSaleByStoreId(Long storeId) {
-    dishRepository
-        .findWithLockByStoreIdAndIsDeletedFalse(storeId)
-        .ifPresent(
-            dish -> {
-              boolean availableBefore = dish.isAvailable();
-              Long stockQuantityBefore = dish.getStockQuantity();
-              dish.closeSale();
-              appendStateEventIfChanged(dish, availableBefore, stockQuantityBefore);
-              appendUpdatedEvent(dish);
-            });
   }
 
   @Transactional
