@@ -25,7 +25,8 @@ public record OrderResponse(
     BigDecimal usedPoint,
     BigDecimal usedDeposit,
     LocalTime pickupStartAt,
-    LocalTime pickupEndAt) {
+    LocalTime pickupEndAt,
+    String pickupCode) {
 
   public static OrderResponse from(OrderResult result) {
     return from(result, null);
@@ -54,6 +55,7 @@ public record OrderResponse(
         result.usedPoint(),
         result.usedDeposit(),
         result.pickupStartAt(),
-        result.pickupEndAt());
+        result.pickupEndAt(),
+        result.pickupCode());
   }
 }
