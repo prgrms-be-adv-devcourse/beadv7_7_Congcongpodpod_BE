@@ -12,7 +12,7 @@ Gateway Service는 외부 요청의 단일 진입점입니다. Spring Cloud Gate
 | Core Service | `/api/v1/carts/**`, `/orders/**`, `/stores/**`, `/dishes/**`, `/payments/**`, `/settlements/**`, `/deposits/**`, `/levels/**`, `/points/**`, `/favorites/**`, `/locations/**` |
 | OpenAPI | `/openapi/{member-service|core-service|payment-service|ai-service}` |
 
-실제 경로 원본은 `dev/local/config-server/config/gateway-service.yml`입니다.
+실제 경로 원본은 `dev/local/config-server/gateway-service.yml`입니다.
 
 ## 보안 경계
 

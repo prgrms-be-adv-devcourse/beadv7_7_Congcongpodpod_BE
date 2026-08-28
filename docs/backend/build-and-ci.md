@@ -15,7 +15,7 @@ docker compose --env-file dev/.env --file dev/compose.yaml ps
 curl -fsS http://localhost:8080/actuator/health
 ```
 
-호스트 포트는 Gateway `8080`, Member `8081`, Core `8082`, Payment `8083`, AI `8084`, Config Server `8888`입니다. 로컬 Config는 `dev/local/config-server/config`을 사용합니다.
+호스트 포트는 Gateway `8080`, Member `8081`, Core `8082`, Payment `8083`, AI `8084`, Config Server `8888`입니다. 로컬 Config는 `dev/local/config-server`를 사용합니다.
 
 ```bash
 docker compose --env-file dev/.env --file dev/compose.yaml logs -f

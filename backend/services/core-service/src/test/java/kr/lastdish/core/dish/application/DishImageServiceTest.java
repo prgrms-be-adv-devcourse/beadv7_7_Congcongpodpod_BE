@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Map;
 import java.util.Optional;
 import kr.lastdish.common.api.exception.BusinessException;
@@ -149,6 +150,8 @@ class DishImageServiceTest {
     assertThat(result.thumbnailUrl()).isEqualTo("https://example.com/download");
     assertThat(result.dishId()).isEqualTo(response.dishId());
     assertThat(result.dishName()).isEqualTo(response.dishName());
+    assertThat(result.pickupStartTime()).isEqualTo(response.pickupStartTime());
+    assertThat(result.pickupEndTime()).isEqualTo(response.pickupEndTime());
   }
 
   @Test
@@ -194,6 +197,8 @@ class DishImageServiceTest {
         10L,
         "ON_SALE",
         BigDecimal.valueOf(10_000),
-        BigDecimal.valueOf(7_000));
+        BigDecimal.valueOf(7_000),
+        LocalTime.of(18, 0),
+        LocalTime.of(21, 30));
   }
 }

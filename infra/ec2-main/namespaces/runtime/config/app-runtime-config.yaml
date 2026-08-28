@@ -1,0 +1,22 @@
+# App 서비스가 환경변수로 사용하는 비밀이 아닌 설정입니다. 변경 후 Deployment rollout이 필요합니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-runtime-config
+  namespace: app
+data:
+  MEMBER_DB_URL: jdbc:postgresql://10.30.2.93:5432/member_db
+  CORE_DB_URL: jdbc:postgresql://10.30.2.93:5433/core_db
+  PAYMENT_DB_URL: jdbc:postgresql://10.30.2.93:5433/payment_db
+  AI_DB_URL: jdbc:postgresql://10.30.2.93:5433/ai_db
+  ELASTICSEARCH_URL: http://10.30.2.93:9200
+  ELASTICSEARCH_USERNAME: elastic
+  REDIS_HOST: redis.data.svc.cluster.local
+  REDIS_PORT: "6379"
+  REDIS_USERNAME: default
+  KAFKA_BOOTSTRAP_SERVERS: kafka.data.svc.cluster.local:9092
+  S3_ENABLED: "true"
+  S3_BUCKET: team03-s3-lastdish
+  AWS_REGION: ap-northeast-2
+  S3_PRESIGNED_URL_EXPIRATION: 5m
+  S3_MAX_UPLOAD_SIZE: 10MB
