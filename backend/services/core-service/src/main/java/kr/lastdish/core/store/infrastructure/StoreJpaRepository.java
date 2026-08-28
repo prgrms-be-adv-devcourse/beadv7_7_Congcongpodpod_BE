@@ -10,6 +10,7 @@ import kr.lastdish.core.store.domain.Store;
 import kr.lastdish.core.store.domain.StoreStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,10 @@ import org.springframework.data.repository.query.Param;
 public interface StoreJpaRepository extends JpaRepository<Store, Long> {
   Optional<Store> findByIdAndDeletedFalse(Long storeId);
 
+  // holidays를 함께 가져온다. 호출부(StoreQueryService.toSnapshot)가 매장마다 이 컬렉션을 읽는데,
+  // 지연 로딩이면 매장 수만큼 SELECT가 더 나간다. 주문 목록 조회에서 매장 31개에 34쿼리가
+  // 나가던 원인이다(실측 2026-08-28). 목록 조회라 페이징이 없어 컬렉션 fetch join이 안전하다.
+  @EntityGraph(attributePaths = "holidays")
   List<Store> findAllByIdInAndDeletedFalse(List<Long> storeIds);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
