@@ -21,8 +21,12 @@ public class StoreSearchResult {
   public static class ScoreBreakdown {
     private double esScore;
     private double distanceScore;
+    private double rawDistanceKm;
     private double deadlineScore;
-    private double discountRateScore;
+    private double priceScore;
     private double personalizationScore;
+    private double storeNameSimScore;
+    private double dishNameSimScore;
+    private double descriptionSimScore;
   }
 }

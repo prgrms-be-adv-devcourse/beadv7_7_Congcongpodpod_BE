@@ -157,7 +157,7 @@ Gateway는 자신이 발생시킨 인증, 권한, 라우팅, 연결과 타임아
 ## 설정과 관측성
 
 - Config Server가 환경별 Spring 설정을 제공합니다.
-- 로컬 Config 원본은 `dev/local/config-server/config/`입니다.
+- 로컬 Config 원본은 `dev/local/config-server/`입니다.
 - Actuator health와 Prometheus endpoint를 서비스 점검에 사용합니다.
 - 요청 ID는 Gateway와 MVC 필터를 거쳐 로그와 응답에 연결됩니다.
 - Gateway 통합 Swagger는 Member, Core, Payment, AI OpenAPI를 한 화면에서 제공합니다.

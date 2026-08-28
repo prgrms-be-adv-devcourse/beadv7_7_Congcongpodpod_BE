@@ -67,7 +67,6 @@ public class StoreQueryService {
       // 현재 시각이 픽업 가능 시간 내인지 일반 구간과 자정 넘김 구간으로 나눠 확인한다.
       dishBool.filter(PickupTimeQueryFactory.currentlyAvailable(LocalTime.now(clock)));
 
-      // Nested Query 생성 및 메인 쿼리에 추가
       NestedQuery nestedQuery =
           NestedQuery.of(
               n ->

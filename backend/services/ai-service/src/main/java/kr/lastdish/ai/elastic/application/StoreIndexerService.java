@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
@@ -40,6 +41,13 @@ public class StoreIndexerService {
   private final EmbeddingService embeddingService;
   private final ElasticsearchOperations elasticsearchOperations;
 
+  private static final String STATUS_ONLY_EVENT = "STORE_STATUS_CHANGED";
+
+  // 필드 배열 인덱스 고정 순서: 0=가게명, 1=메뉴명, 2=설명
+  private static final int IDX_STORE_NAME = 0;
+  private static final int IDX_DISH_NAME = 1;
+  private static final int IDX_DESCRIPTION = 2;
+
   public void renewStoreIndex(Long storeId) {
     renewStoreIndex(storeId, null);
   }
@@ -69,13 +77,9 @@ public class StoreIndexerService {
           repository.save(document);
           stopWatch.stop();
 
-          //          log.info("Store 단건 색인 갱신 완료. storeId={}\n{}", storeId,
-          // stopWatch.prettyPrint());
           log.info("Store 단건 색인 갱신 완료. storeId={}", storeId);
         },
-        () -> {
-          deleteStoreIndex(storeId);
-        });
+        () -> deleteStoreIndex(storeId));
   }
 
   public void deleteStoreIndex(Long storeId) {
@@ -90,7 +94,6 @@ public class StoreIndexerService {
   }
 
   public void syncUpdatedStores(Instant from, Instant to) {
-    // 1. Core API로부터 변경된 매장 데이터 조회
     List<InternalStoreResponse> updatedStores =
         coreInternalApiClient.fetchStoresUpdatedWithin(from, to);
 
@@ -98,7 +101,7 @@ public class StoreIndexerService {
       return;
     }
 
-    // 2. 삭제된 매장은 tombstone으로 처리해 기존 색인을 제거한다.
+    // 삭제된 매장은 tombstone으로 처리해 기존 색인을 제거
     updatedStores.stream()
         .filter(InternalStoreResponse::deleted)
         .map(InternalStoreResponse::storeId)
@@ -110,8 +113,7 @@ public class StoreIndexerService {
       return;
     }
 
-    // 3. [from, to] 구간의 활성 매장 전체를 대상으로 처리한다.
-    //    일부만 선별하고 watermark가 to로 전진하면 나머지가 영영 누락되므로 limit을 두지 않는다.
+    // [from, to] 구간의 활성 매장 전체를 대상으로 처리
     List<Long> storeIds = activeStores.stream().map(InternalStoreResponse::storeId).toList();
     Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
 
@@ -119,21 +121,36 @@ public class StoreIndexerService {
         StreamSupport.stream(existingDocs.spliterator(), false)
             .collect(Collectors.toMap(StoreDocument::getStoreId, doc -> doc));
 
-    // 4. 폴링은 이벤트 타입 정보가 없으므로 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
+    // 폴링은 이벤트 타입 정보가 없으므로 필드별 텍스트 해시 비교로 재임베딩 여부 판단 후 매핑
     List<StoreDocument> documents =
         activeStores.stream()
             .map(res -> mapToDocument(res, existingMap.get(res.storeId()), null))
             .toList();
 
-    // 5. Bulk 색인 저장
     repository.saveAll(documents);
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
 
-  private static final String STATUS_ONLY_EVENT = "STORE_STATUS_CHANGED";
+  /** 가게명/메뉴명/설명 3개 필드의 임베딩 텍스트를 조립 */
+  private String[] buildFieldTexts(String storeName, InternalDishResponse dish) {
+    String storeNameText = "가게: " + nullToEmpty(storeName);
+    String dishNameText = dish != null ? "메뉴: " + nullToEmpty(dish.dishName()) : "";
+    String descriptionText = dish != null ? nullToEmpty(dish.description()) : "";
+    return new String[] {storeNameText, dishNameText, descriptionText};
+  }
 
-  private StoreDocument.DishItem mapToDishItem(InternalDishResponse d, StringBuilder textBuilder) {
-    appendDishText(d.dishName(), d.description(), textBuilder);
+  private String[] buildFieldTexts(String storeName, TestStoreIndexRequest.DishRequest dish) {
+    String storeNameText = "가게: " + nullToEmpty(storeName);
+    String dishNameText = dish != null ? "메뉴: " + nullToEmpty(dish.dishName()) : "";
+    String descriptionText = dish != null ? nullToEmpty(dish.description()) : "";
+    return new String[] {storeNameText, dishNameText, descriptionText};
+  }
+
+  private String nullToEmpty(String s) {
+    return s == null ? "" : s;
+  }
+
+  private StoreDocument.DishItem mapToDishItem(InternalDishResponse d) {
     return StoreDocument.DishItem.builder()
         .dishId(d.dishId())
         .dishName(d.dishName())
@@ -150,9 +167,7 @@ public class StoreIndexerService {
         .build();
   }
 
-  private StoreDocument.DishItem mapToDishItem(
-      TestStoreIndexRequest.DishRequest d, StringBuilder textBuilder) {
-    appendDishText(d.dishName(), d.description(), textBuilder);
+  private StoreDocument.DishItem mapToDishItem(TestStoreIndexRequest.DishRequest d) {
     return StoreDocument.DishItem.builder()
         .dishId(d.dishId())
         .dishName(d.dishName())
@@ -167,58 +182,16 @@ public class StoreIndexerService {
         .pickupEndTime(d.pickupEndTime())
         .pickupSpansMidnight(d.pickupStartTime().isAfter(d.pickupEndTime()))
         .build();
-  }
-
-  private void appendDishText(String dishName, String description, StringBuilder textBuilder) {
-    textBuilder
-        .append("메뉴: ")
-        .append(dishName)
-        .append(" ")
-        .append(description != null ? description : "")
-        .append(" ");
   }
 
   private StoreDocument mapToDocument(
       InternalStoreResponse res, StoreDocument existing, String eventType) {
-    StringBuilder textBuilder = new StringBuilder();
-    textBuilder.append("가게: ").append(res.storeName()).append(" ");
+    String[] texts = buildFieldTexts(res.storeName(), res.dish());
 
     List<StoreDocument.DishItem> dishItems =
-        res.dish() != null
-            ? List.of(mapToDishItem(res.dish(), textBuilder))
-            : Collections.emptyList();
+        res.dish() != null ? List.of(mapToDishItem(res.dish())) : Collections.emptyList();
 
-    String embeddingText = textBuilder.toString();
-    List<Float> vectorList;
-    String embeddingHash;
-
-    boolean hasValidExistingVector =
-        existing != null && existing.getVector() != null && !existing.getVector().isEmpty();
-
-    if (STATUS_ONLY_EVENT.equals(eventType) && hasValidExistingVector) {
-      // 영업 상태만 바뀌는 이벤트는 텍스트에 영향 없음 - 단, 기존 벡터가 유효할 때만 재사용
-      vectorList = existing.getVector();
-      embeddingHash = existing.getEmbeddingSourceHash();
-      log.info("상태 변경 이벤트 - 재임베딩 스킵. storeId={}", res.storeId());
-    } else {
-      embeddingHash = hashText(embeddingText);
-
-      if (hasValidExistingVector && embeddingHash.equals(existing.getEmbeddingSourceHash())) {
-        // 텍스트 불변 + 기존 벡터가 실제로 존재할 때만 재사용
-        vectorList = existing.getVector();
-        log.info("임베딩 텍스트 변경 없음 - 재임베딩 스킵. storeId={}", res.storeId());
-      } else {
-        // 텍스트가 바뀌었거나, 이전에 임베딩이 비어있었던 경우 재시도
-        vectorList = embeddingService.getEmbeddingList(embeddingText);
-        if (existing == null) {
-          log.info("최초 색인(신규 매장 또는 부트스트랩 백필). storeId={}", res.storeId());
-        } else if (!hasValidExistingVector) {
-          log.info("이전 임베딩 실패 이력 감지 - 재시도 수행. storeId={}", res.storeId());
-        } else {
-          log.info("임베딩 텍스트 변경 감지 - 재임베딩 수행. storeId={}", res.storeId());
-        }
-      }
-    }
+    FieldVectorResult vectors = resolveFieldVectors(texts, existing, eventType, res.storeId());
 
     return StoreDocument.builder()
         .storeId(res.storeId())
@@ -230,9 +203,74 @@ public class StoreIndexerService {
         .location(new GeoPoint(res.latitude().doubleValue(), res.longitude().doubleValue()))
         .category(res.category())
         .dishes(dishItems)
-        .vector(vectorList)
-        .embeddingSourceHash(embeddingHash)
+        .storeNameVector(vectors.vectors[IDX_STORE_NAME])
+        .storeNameHash(vectors.hashes[IDX_STORE_NAME])
+        .dishNameVector(vectors.vectors[IDX_DISH_NAME])
+        .dishNameHash(vectors.hashes[IDX_DISH_NAME])
+        .descriptionVector(vectors.vectors[IDX_DESCRIPTION])
+        .descriptionHash(vectors.hashes[IDX_DESCRIPTION])
         .build();
+  }
+
+  private record FieldVectorResult(List<Float>[] vectors, String[] hashes) {}
+
+  /** 가게명/메뉴명/설명 3개 필드 중 텍스트가 바뀐 필드만 골라 임베딩 API를 한 번의 배치 호출로 재생성, 바뀌지 않은 필드는 기존 벡터를 그대로 재사용해서 호출 */
+  @SuppressWarnings("unchecked")
+  private FieldVectorResult resolveFieldVectors(
+      String[] texts, StoreDocument existing, String eventType, Long storeId) {
+
+    List<Float>[] existingVectors = new List[3];
+    String[] existingHashes = new String[3];
+    if (existing != null) {
+      existingVectors[IDX_STORE_NAME] = existing.getStoreNameVector();
+      existingVectors[IDX_DISH_NAME] = existing.getDishNameVector();
+      existingVectors[IDX_DESCRIPTION] = existing.getDescriptionVector();
+      existingHashes[IDX_STORE_NAME] = existing.getStoreNameHash();
+      existingHashes[IDX_DISH_NAME] = existing.getDishNameHash();
+      existingHashes[IDX_DESCRIPTION] = existing.getDescriptionHash();
+    }
+
+    boolean statusOnlyEvent = STATUS_ONLY_EVENT.equals(eventType);
+
+    List<Float>[] resultVectors = new List[3];
+    String[] resultHashes = new String[3];
+
+    List<Integer> reembedIndices = new ArrayList<>();
+    List<String> reembedTexts = new ArrayList<>();
+
+    for (int i = 0; i < 3; i++) {
+      boolean hasValidExisting = existingVectors[i] != null && !existingVectors[i].isEmpty();
+      String newHash = hashText(texts[i]);
+
+      if (statusOnlyEvent && hasValidExisting) {
+        resultVectors[i] = existingVectors[i];
+        resultHashes[i] = existingHashes[i];
+        continue;
+      }
+
+      if (hasValidExisting && newHash.equals(existingHashes[i])) {
+        // 해당 필드 텍스트 변경 없음 - 재임베딩 스킵
+        resultVectors[i] = existingVectors[i];
+        resultHashes[i] = existingHashes[i];
+        continue;
+      }
+
+      // 텍스트가 바뀌었거나, 이전에 임베딩이 비어있었던 필드만 재임베딩 대상으로 모은다
+      resultHashes[i] = newHash;
+      reembedIndices.add(i);
+      reembedTexts.add(texts[i]);
+    }
+
+    if (!reembedIndices.isEmpty()) {
+      log.info("필드별 재임베딩 대상 필드 수={} (배치 1회 호출). storeId={}", reembedIndices.size(), storeId);
+      List<List<Float>> newVectors = embeddingService.getEmbeddingBatch(reembedTexts);
+      for (int i = 0; i < reembedIndices.size(); i++) {
+        int fieldIndex = reembedIndices.get(i);
+        resultVectors[fieldIndex] = i < newVectors.size() ? newVectors.get(i) : null;
+      }
+    }
+
+    return new FieldVectorResult(resultVectors, resultHashes);
   }
 
   private String hashText(String text) {
@@ -241,65 +279,42 @@ public class StoreIndexerService {
       byte[] hashBytes = digest.digest(text.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(hashBytes);
     } catch (NoSuchAlgorithmException e) {
-      // SHA-256은 JDK 표준 알고리즘이라 정상 환경에서는 발생하지 않음
       throw new IllegalStateException("해시 알고리즘을 사용할 수 없습니다.", e);
     }
   }
 
-  public void indexTestStoresBulk(List<TestStoreIndexRequest> requests) {
-    if (requests == null || requests.isEmpty()) {
-      return;
-    }
-
-    for (TestStoreIndexRequest request : requests) {
-      indexTestStore(request);
-    }
-  }
-
-  public void indexTestStore(TestStoreIndexRequest req) {
-    StopWatch stopWatch = new StopWatch("TestStoreSingleIndexing-" + req.storeId());
-    stopWatch.start("1. 텍스트 조립");
-
-    StringBuilder textBuilder = new StringBuilder();
-    textBuilder.append("가게: ").append(req.storeName()).append(" ");
-
-    List<StoreDocument.DishItem> dishItems =
-        req.dishes() == null
-            ? Collections.emptyList()
-            : req.dishes().stream().map(d -> mapToDishItem(d, textBuilder)).toList();
-
-    String embeddingText = textBuilder.toString();
-    stopWatch.stop();
-
-    stopWatch.start("2. OpenAI 임베딩 생성 (API 통신)");
-    List<Float> vectorList = embeddingService.getEmbeddingList(embeddingText);
-    stopWatch.stop();
-
-    stopWatch.start("3. ES Document 생성 및 Save");
-    StoreDocument document =
-        StoreDocument.builder()
-            .storeId(req.storeId())
-            .storeName(req.storeName())
-            .storeAddress(req.storeAddress())
-            .openTime(req.openTime())
-            .closeTime(req.closeTime())
-            .status(req.status())
-            .location(new GeoPoint(req.latitude(), req.longitude()))
-            .category(req.category())
-            .dishes(dishItems)
-            .vector(vectorList)
-            .embeddingSourceHash(hashText(embeddingText))
-            .build();
-
-    repository.save(document);
-    stopWatch.stop();
-    log.info("[TEST] Store 색인 완료. storeId={}\n{}", req.storeId(), stopWatch.prettyPrint());
-  }
-
+  /** 가게명/메뉴명/설명 3개 벡터 필드 중 하나라도 없는 문서를 찾아 재시도 */
   public void retryFailedEmbeddings() {
     NativeQuery query =
         NativeQuery.builder()
-            .withQuery(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field("vector")))))
+            .withQuery(
+                q ->
+                    q.bool(
+                        b ->
+                            b.should(
+                                    s ->
+                                        s.bool(
+                                            sb ->
+                                                sb.mustNot(
+                                                    mn ->
+                                                        mn.exists(
+                                                            e -> e.field("storeNameVector")))))
+                                .should(
+                                    s ->
+                                        s.bool(
+                                            sb ->
+                                                sb.mustNot(
+                                                    mn ->
+                                                        mn.exists(e -> e.field("dishNameVector")))))
+                                .should(
+                                    s ->
+                                        s.bool(
+                                            sb ->
+                                                sb.mustNot(
+                                                    mn ->
+                                                        mn.exists(
+                                                            e -> e.field("descriptionVector")))))
+                                .minimumShouldMatch("1")))
             .withPageable(org.springframework.data.domain.PageRequest.of(0, 500))
             .build();
 
