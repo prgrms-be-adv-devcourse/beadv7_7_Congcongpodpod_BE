@@ -112,7 +112,7 @@ class OrderCreationQueryCountTests {
    *
    * <p>이 값이 틀렸다고 나오면 먼저 출력된 목록을 본다. 업무 로직이 늘어 정당하게 증가한 것이면 숫자를 올리고, 아래 두 검사에 걸린 것이면 되돌린다.
    */
-  private static final int 주문_생성_쿼리_수 = 17;
+  private static final int 주문_생성_쿼리_수 = 16;
 
   @Test
   void 주문_생성_쿼리_수가_늘지_않는다() {
@@ -141,6 +141,21 @@ class OrderCreationQueryCountTests {
     assertThat(RECORDED.stream().filter(sql -> 요약한다(sql).equals("select outbox_events")))
         .as("이벤트 기록은 INSERT만 나가야 한다")
         .isEmpty();
+  }
+
+  @Test
+  void 같은_매장을_두_번_읽지_않는다() {
+    Long cartItemId = 준비한다();
+
+    recording = true;
+    orderFacade.payAndCreateOrder(MEMBER_ID, cartItemId, 0L, BigDecimal.ZERO);
+    recording = false;
+
+    // 영업 여부를 확인하며 이미 읽은 매장이다. 주인을 찾을 때 PK 조회를 쓰면 1차 캐시에서 나온다.
+    // 파생 쿼리나 JPQL로 바꾸면 캐시를 못 타서 SELECT가 하나 더 붙는다.
+    assertThat(RECORDED.stream().filter(sql -> 요약한다(sql).equals("select stores")))
+        .as("매장은 한 번만 읽어야 한다")
+        .hasSize(1);
   }
 
   @Test
