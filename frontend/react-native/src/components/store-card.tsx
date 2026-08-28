@@ -5,7 +5,7 @@ import { OptimizedImage as Image } from '@/components/optimized-image';
 import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
 import { getStoreImageSource } from '@/lib/food-image';
 import { getStoreCategoryVisual } from '@/lib/store-category';
-import { formatCheapestDishOffer } from '@/lib/store-pricing';
+import { formatCheapestDishOffer, formatStoreOperatingHours } from '@/lib/store-pricing';
 import type { Store } from '@/types/store';
 
 type Props = { store: Store; onPress?: () => void; favorite?: boolean; compact?: boolean };
@@ -22,7 +22,7 @@ export function StoreCard({ store, onPress, favorite, compact = false }: Props) 
           <Text numberOfLines={1} style={styles.title}>{store.storeName}</Text>
           {favorite ? <Ionicons name="heart" size={18} color={colors.green700} /> : null}
         </View>
-        <Text style={styles.time}>{getStoreCategoryVisual(store.category).label} · {store.closeTime ? `${store.closeTime.slice(0, 5)} 마감` : '오늘 픽업'}</Text>
+        <Text style={styles.time}>{getStoreCategoryVisual(store.category).label} · {formatStoreOperatingHours(store)}</Text>
         <Text numberOfLines={1} style={styles.address}>{store.address || '주소 정보 없음'}</Text>
         <Text numberOfLines={1} style={styles.price}>{formatCheapestDishOffer(store)}</Text>
       </View>

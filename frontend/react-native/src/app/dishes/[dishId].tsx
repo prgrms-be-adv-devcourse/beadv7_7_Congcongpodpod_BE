@@ -19,6 +19,7 @@ import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { getDishImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
 import { getStoreCategoryVisual } from '@/lib/store-category';
+import { formatDishPickupWindow } from '@/lib/store-pricing';
 import { getDish, getStore } from '@/lib/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
@@ -85,7 +86,7 @@ export default function DishDetail() {
   const cartQuantity = cartItem?.dishId === dish.dishId ? cartItem.cartQuantity : 0;
   const atStockLimit = !soldOut && cartQuantity >= dish.quantity;
   const primaryLabel = soldOut ? '품절된 상품이에요' : atStockLimit ? `재고 ${dish.quantity}개를 모두 담았어요` : !member ? '로그인 후 담기' : cartQuantity ? '1개 더 담기' : `${dish.discountPrice.toLocaleString()}원 담기`;
-  const pickupTime = store?.closeTime ? `오늘 ${store.closeTime.slice(0, 5)}까지` : '오늘 매장 마감 전까지';
+  const pickupTime = formatDishPickupWindow(dish);
   const heroHeight = contentWidth * 3 / 4;
   const commitAdd = async () => {
     try {

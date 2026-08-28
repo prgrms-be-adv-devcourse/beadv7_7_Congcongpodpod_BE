@@ -29,7 +29,10 @@ test('지도 앱·웹이 동일한 화면 경계를 전달한다', () => {
   assert.match(nativeMap, /southWest: \{ latitude: region\.latitude, longitude: region\.longitude \}/);
   assert.match(nativeMap, /northEast: \{ latitude: region\.latitude \+ region\.latitudeDelta, longitude: region\.longitude \+ region\.longitudeDelta \}/);
   assert.match(source('src/components/map-canvas.web.tsx'), /getBounds\(\)[\s\S]*southWest[\s\S]*northEast/);
-  assert.match(source('src/app/(tabs)/index.tsx'), /reload\(next, false, next\.bounds\)/);
+  const home = source('src/app/(tabs)/index.tsx');
+  assert.match(home, /reload\(next, false, next\.bounds\)/);
+  assert.match(home, /reload\(target, false, target\.bounds\)/);
+  assert.match(home, /availabilitySegment: \{ width: 44, height: 44/);
   const storesApi = source('src/lib/stores.ts');
   assert.match(storesApi, /\/ai\/stores\/nearby/);
   assert.match(storesApi, /hasAvailableDish: String\(hasAvailableDish\)/);

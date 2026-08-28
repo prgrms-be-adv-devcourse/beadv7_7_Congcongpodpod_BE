@@ -21,7 +21,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { getStoreCategoryVisual, STORE_CATEGORY_KEYS } from '@/lib/store-category';
 import { getStoreProfileImageSource } from '@/lib/food-image';
 import { showLoginRequired } from '@/lib/login-required';
-import { formatCheapestDishOffer, getCheapestDish, storeMatchesAvailability } from '@/lib/store-pricing';
+import { formatCheapestDishOffer, formatDishPickupWindow, formatStoreOperatingHours, getCheapestDish, storeMatchesAvailability } from '@/lib/store-pricing';
 import { searchStores as searchAllStores } from '@/lib/stores';
 import { radiusForBounds } from '@/lib/map-viewport';
 import { useAuth } from '@/providers/auth-provider';
@@ -71,6 +71,9 @@ export default function HomeScreen() {
   const [mapControlsHidden, setMapControlsHidden] = useState(false);
   const loadedCenter = useRef<Coordinate>(location);
   const loadedViewport = useRef<CameraState>({ ...location, zoom: 14.5, bearing: 0 });
+  const mapCameraRef = useRef(mapCamera);
+  const previousAvailabilityMode = useRef(availabilityMode);
+  const availabilityRequestId = useRef(0);
   const viewportInitialized = useRef(false);
   const searchOrigin = useRef<Coordinate>(location);
   const programmaticCameraUntil = useRef(0);
@@ -78,6 +81,29 @@ export default function HomeScreen() {
   const sheetVisibleHeight = useRef(new Animated.Value(130)).current;
   const mapControlsOpacity = useRef(new Animated.Value(1)).current;
   const searchExpansion = useSharedValue(0);
+  mapCameraRef.current = mapCamera;
+
+  const reloadCurrentAvailability = useCallback(async () => {
+    const requestId = ++availabilityRequestId.current;
+    const target = mapCameraRef.current;
+    setAreaRefreshing(true);
+    try {
+      await reload(target, false, target.bounds);
+      if (requestId !== availabilityRequestId.current) return;
+      loadedCenter.current = target;
+      loadedViewport.current = target;
+      viewportInitialized.current = true;
+      setPendingCenter(null);
+    } finally {
+      if (requestId === availabilityRequestId.current) setAreaRefreshing(false);
+    }
+  }, [reload]);
+
+  useEffect(() => {
+    if (previousAvailabilityMode.current === availabilityMode) return;
+    previousAvailabilityMode.current = availabilityMode;
+    void reloadCurrentAvailability();
+  }, [availabilityMode, reloadCurrentAvailability]);
 
   useEffect(() => {
     Animated.timing(mapControlsOpacity, { toValue: mapControlsHidden ? 0 : 1, duration: 140, useNativeDriver: true }).start();
@@ -291,8 +317,8 @@ export default function HomeScreen() {
           <View style={styles.availabilityButton}>
             {availabilityModes.map(({ key, label, icon }, index) => {
               const active = availabilityMode === key;
-              return <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${label} 매장 보기`} onPress={() => { setAvailabilityMode(key); setSelected(null); void Haptics.selectionAsync(); }} style={({ pressed }) => [styles.availabilitySegment, index > 0 && styles.availabilitySegmentBorder, active && styles.availabilitySegmentActive, pressed && styles.availabilityPressed]}>
-                <Ionicons name={icon} size={18} color={active ? colors.white : colors.ink700}/><Text style={[styles.availabilityText, active && styles.availabilityTextActive]}>{label}</Text>
+              return <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: active, busy: areaRefreshing }} accessibilityLabel={`${label} 매장 보기`} onPress={() => { setSelected(null); if (active) void reloadCurrentAvailability(); else setAvailabilityMode(key); void Haptics.selectionAsync(); }} style={({ pressed }) => [styles.availabilitySegment, index > 0 && styles.availabilitySegmentBorder, active && styles.availabilitySegmentActive, pressed && styles.availabilityPressed]}>
+                <Ionicons name={icon} size={15} color={active ? colors.white : colors.ink700}/><Text style={[styles.availabilityText, active && styles.availabilityTextActive]}>{label}</Text>
               </Pressable>;
             })}
           </View>
@@ -387,7 +413,7 @@ function HomeStoreSheet({ bottomOffset, stores, location, selected, refreshing, 
     <View accessibilityLabel="주변 매장 목록 높이 조절" accessibilityRole="adjustable" style={styles.storeSheetHandleArea} {...panResponder.panHandlers}><View style={styles.storeSheetHandle}/></View>
     {selected ? <Pressable accessibilityHint="매장 상세 미리보기를 펼칩니다" onPress={() => snapTo(2)} style={({ pressed }) => [styles.selectedStore, pressed && styles.pressed]}>
       <Image accessibilityLabel={`${selected.storeName} 프로필 이미지`} source={getStoreProfileImageSource(selected)} style={styles.selectedStoreImage}/>
-      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {selected.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{getCheapestDish(selected) ? `${getCheapestDish(selected)!.dishName} · ${formatCheapestDishOffer(selected)}` : selected.address}</Text></View>
+      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {formatStoreOperatingHours(selected)}</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{getCheapestDish(selected) ? `${formatDishPickupWindow(getCheapestDish(selected))} · ${formatCheapestDishOffer(selected)}` : selected.address}</Text></View>
       <Pressable accessibilityLabel="매장 선택 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); onClearSelection(); }} style={styles.selectedStoreClose}><Ionicons name="close" size={18} color={colors.ink700}/></Pressable>
     </Pressable> : <Pressable accessibilityRole="button" onPress={() => snapTo(level === 2 ? 1 : 2)} style={styles.storeSheetHeading}>
       <View><Text style={styles.storeSheetTitle}>주변 매장</Text><Text style={styles.storeSheetMeta}>내 위치 가까운 순 · {stores.length}곳</Text></View>
@@ -410,7 +436,7 @@ function HomeStorePanel({ bottomInset, stores, location, selected, refreshing, o
   return <View style={styles.desktopStorePanel}>
     {selected ? <View style={styles.selectedStore}>
       <Image accessibilityLabel={`${selected.storeName} 프로필 이미지`} source={getStoreProfileImageSource(selected)} style={styles.selectedStoreImage}/>
-      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {selected.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{getCheapestDish(selected) ? `${getCheapestDish(selected)!.dishName} · ${formatCheapestDishOffer(selected)}` : selected.address}</Text></View>
+      <View style={styles.selectedStoreCopy}><Text numberOfLines={1} style={styles.storeRowName}>{selected.storeName}</Text><Text style={styles.storeRowMeta}>{getStoreCategoryVisual(selected.category).label} · {formatStoreOperatingHours(selected)}</Text><Text numberOfLines={1} style={styles.selectedStoreAddress}>{getCheapestDish(selected) ? `${formatDishPickupWindow(getCheapestDish(selected))} · ${formatCheapestDishOffer(selected)}` : selected.address}</Text></View>
       <Pressable accessibilityLabel="매장 선택 닫기" hitSlop={8} onPress={onClearSelection} style={styles.selectedStoreClose}><Ionicons name="close" size={18} color={colors.ink700}/></Pressable>
     </View> : <View style={styles.storeSheetHeading}>
       <View><Text style={styles.storeSheetTitle}>주변 매장</Text><Text style={styles.storeSheetMeta}>현재 지도 범위 · {stores.length}곳</Text></View>
@@ -432,7 +458,7 @@ function HomeStorePanel({ bottomInset, stores, location, selected, refreshing, o
 function SelectedStoreDetail({ store, distance }: { store: Store; distance: number }) {
   return <View style={styles.selectedDetail}>
     <View style={styles.selectedDetailTop}><View><Text style={styles.selectedDetailEyebrow}>매장 미리보기</Text><Text style={styles.selectedDetailTitle}>오늘 픽업 가능한 상품</Text></View><Text style={styles.selectedDetailDistance}>{distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}</Text></View>
-    {store.dishes.slice(0, 3).map((dish) => <View key={dish.dishId} style={styles.previewDish}><View style={styles.previewDishIcon}><Ionicons name="restaurant-outline" size={17} color={colors.ink700}/></View><View style={styles.previewDishCopy}><Text numberOfLines={1} style={styles.previewDishName}>{dish.dishName}</Text><Text style={styles.previewDishMeta}>남은 수량 {dish.quantity}개</Text></View><Text style={styles.previewDishPrice}>{dish.discountPrice.toLocaleString()}원</Text></View>)}
+    {store.dishes.slice(0, 3).map((dish) => <View key={dish.dishId} style={styles.previewDish}><View style={styles.previewDishIcon}><Ionicons name="restaurant-outline" size={17} color={colors.ink700}/></View><View style={styles.previewDishCopy}><Text numberOfLines={1} style={styles.previewDishName}>{dish.dishName}</Text><Text style={styles.previewDishMeta}>{formatDishPickupWindow(dish)} · {dish.quantity}개 남음</Text></View><Text style={styles.previewDishPrice}>{dish.discountPrice.toLocaleString()}원</Text></View>)}
     {!store.dishes.length ? <Text style={styles.noPreviewDish}>등록된 마감 할인 상품을 매장 상세에서 확인해보세요.</Text> : null}
     <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/stores/[storeId]', params: { storeId: String(store.storeId), origin: '/' } })} style={({ pressed }) => [styles.detailButton, pressed && styles.pressed]}><Text style={styles.detailButtonText}>매장 상세 보기</Text><Ionicons name="arrow-forward" size={17} color={colors.white}/></Pressable>
   </View>;
@@ -442,7 +468,7 @@ function HomeStoreRow({ store, distance, onPress }: { store: Store; distance: nu
   const category = getStoreCategoryVisual(store.category);
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.storeRow, pressed && styles.pressed]}>
     <Image accessibilityLabel={`${store.storeName} 프로필 이미지`} source={getStoreProfileImageSource(store)} style={styles.storeRowImage}/>
-    <View style={styles.storeRowCopy}><Text numberOfLines={1} style={styles.storeRowName}>{store.storeName}</Text><Text style={styles.storeRowMeta}>{category.label} · {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`} · {store.closeTime?.slice(0, 5) ?? '오늘'} 마감</Text><Text style={styles.storeRowPrice}>{formatCheapestDishOffer(store)}</Text></View>
+    <View style={styles.storeRowCopy}><Text numberOfLines={1} style={styles.storeRowName}>{store.storeName}</Text><Text style={styles.storeRowMeta}>{category.label} · {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`} · {getCheapestDish(store) ? formatDishPickupWindow(getCheapestDish(store)) : formatStoreOperatingHours(store)}</Text><Text style={styles.storeRowPrice}>{formatCheapestDishOffer(store)}</Text></View>
     <Ionicons name="chevron-forward" size={17} color={colors.ink400}/>
   </Pressable>;
 }
@@ -484,18 +510,18 @@ const styles = StyleSheet.create({
   areaRefreshText: { color: colors.green700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
   mapActionStack: { position: 'absolute', right: 14, alignItems: 'center', gap: 9, zIndex: 12 },
   availabilityAction: { position: 'absolute', left: 14, zIndex: 12 },
-  availabilityButton: { width: 64, overflow: 'hidden', borderRadius: radius.control, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.control },
-  availabilitySegment: { height: 54, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  availabilityButton: { width: 44, overflow: 'hidden', borderRadius: radius.control, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.control },
+  availabilitySegment: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', gap: 1 },
   availabilitySegmentBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   availabilitySegmentActive: { backgroundColor: colors.green500 },
   availabilityPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
-  availabilityText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 11, fontWeight: '900' },
-  availabilityTextActive: { color: colors.white, fontFamily: fonts.body, fontSize: 12, fontWeight: '900' },
-  mapControls: { width: 42, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
+  availabilityText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 9, lineHeight: 11, fontWeight: '900' },
+  availabilityTextActive: { color: colors.white },
+  mapControls: { width: 44, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compass: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },
   compassRose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   compassNorth: { position: 'absolute', top: -1, color: '#E2473E', fontFamily: fonts.body, fontSize: 9, fontWeight: '900' },
-  control: { width: 42, height: 40, alignItems: 'center', justifyContent: 'center' },
+  control: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   controlLine: { height: 1, backgroundColor: colors.line },
   controlPressed: { backgroundColor: colors.green50 },
   recenter: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, ...shadow.control },

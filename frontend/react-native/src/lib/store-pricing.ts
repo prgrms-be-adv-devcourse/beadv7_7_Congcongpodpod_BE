@@ -48,3 +48,23 @@ export function formatCheapestDishOffer(store: Pick<Store, 'dishes'>) {
   const rate = getDishDiscountRate(dish);
   return `${rate > 0 ? `${rate}% · ` : ''}${dish.discountPrice.toLocaleString()}원부터`;
 }
+
+const formatTime = (value?: string) => value?.slice(0, 5);
+
+export function formatStoreOperatingHours(store: Pick<Store, 'openTime' | 'closeTime'>) {
+  const open = formatTime(store.openTime);
+  const close = formatTime(store.closeTime);
+  if (open && close) return `운영 ${open}–${close}`;
+  if (open) return `${open}부터 운영`;
+  if (close) return `${close}까지 운영`;
+  return '운영시간 확인';
+}
+
+export function formatDishPickupWindow(dish?: Pick<Dish, 'pickupStartTime' | 'pickupEndTime'>) {
+  const start = formatTime(dish?.pickupStartTime);
+  const end = formatTime(dish?.pickupEndTime);
+  if (start && end) return `픽업 ${start}–${end}`;
+  if (start) return `픽업 ${start}부터`;
+  if (end) return `픽업 ${end}까지`;
+  return '픽업시간 확인';
+}
