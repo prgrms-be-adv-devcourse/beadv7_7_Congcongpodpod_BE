@@ -404,18 +404,39 @@ class OrderServiceTest {
   @DisplayName("상태 조건으로 회원 주문 목록을 조회한다")
   void getMyOrders_success() {
     Long memberId = 1L;
-    OrderStatus status = OrderStatus.RESERVED;
+    OrderStatus status = OrderStatus.PICKUP_READY;
     Pageable pageable = PageRequest.of(0, 20);
     Order order = mock(Order.class);
     Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
 
+    when(order.getStatus()).thenReturn(OrderStatus.PICKUP_READY);
+    when(order.getPickupCode()).thenReturn("123456");
     when(orderRepository.findAllByMemberIdAndStatus(memberId, status, pageable)).thenReturn(orders);
 
     Page<OrderResult> response = orderService.getMyOrders(memberId, status, pageable);
 
     assertThat(response.getTotalElements()).isEqualTo(1);
     assertThat(response.getContent()).hasSize(1);
+    assertThat(response.getContent().getFirst().pickupCode()).isEqualTo("123456");
     verify(orderRepository, times(1)).findAllByMemberIdAndStatus(memberId, status, pageable);
+  }
+
+  @Test
+  @DisplayName("픽업 대기 상태가 아니면 회원 주문 목록에 픽업 코드를 노출하지 않는다")
+  void getMyOrders_hidesPickupCodeWhenNotPickupReady() {
+    Long memberId = 1L;
+    OrderStatus status = OrderStatus.RESERVED;
+    Pageable pageable = PageRequest.of(0, 20);
+    Order order = mock(Order.class);
+
+    when(order.getStatus()).thenReturn(OrderStatus.RESERVED);
+    when(orderRepository.findAllByMemberIdAndStatus(memberId, status, pageable))
+        .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+    Page<OrderResult> response = orderService.getMyOrders(memberId, status, pageable);
+
+    assertThat(response.getContent().getFirst().pickupCode()).isNull();
+    verify(order, never()).getPickupCode();
   }
 
   @Test
