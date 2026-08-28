@@ -37,8 +37,10 @@ echo "수집한 로그 줄: $total_lines"
 # method/pathPattern/status/durationMs는 필드가 아니라 message 문자열 안에 있어 파싱한다.
 extract() {
   if command -v jq >/dev/null 2>&1; then
-    jq -r --arg tag "$run_tag" '
-      select(type == "object")
+    # -R + fromjson? : JSON이 아닌 줄(기동 로그 등)이 섞여도 멈추지 않고 건너뛴다.
+    jq -rR --arg tag "$run_tag" '
+      fromjson?
+      | select(type == "object")
       | select(.queryCount != null)
       | select((.requestId // "") | startswith($tag))
       | (.message | capture("method=(?<method>[A-Z]+), pathPattern=(?<path>[^,]+), status=(?<status>[0-9]+), durationMs=(?<ms>[0-9]+)")) as $m
