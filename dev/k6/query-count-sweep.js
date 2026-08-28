@@ -19,7 +19,7 @@ import {
   resetRequestCount,
   setRequestIdPrefix,
 } from './lib/api.js';
-import { EXCLUDED, readOnlySweep, scalePairs } from './lib/api-catalog.js';
+import { EXCLUDED, aiSearchBody, readOnlySweep, scalePairs } from './lib/api-catalog.js';
 import { ORDER_WINDOW, businessHourNow, dishIdFor, storeIdFor } from './lib/config.js';
 import {
   buyerPurchase,
@@ -79,8 +79,13 @@ export default function () {
 
   const ctx = { storeId, dishId, orderId: order ? order.orderId : null };
   if (!ctx.orderId) {
-    console.warn('주문 생성이 실패해 주문 상세·픽업코드 구간을 건너뜁니다.');
+    console.warn('주문 생성이 실패해 주문 상세 구간을 건너뜁니다.');
   }
+
+  // 픽업코드 조회는 주문이 PICKUP_READY일 때만 200이다. 위 sellerHandleOrder가
+  // 수락과 픽업 완료를 한 번에 끝내버려서 그 주문으로는 잴 수 없다(드라이런에서 404 확인).
+  // 그래서 주문을 하나 더 만들어 수락까지만 하고 재고, 잰 뒤 픽업으로 정리한다.
+  measurePickupCode(sessions, { storeId, dishId });
 
   // 2단계 — 흐름이 지나가지 않는 읽기 API.
   for (const [step, path, actor] of readOnlySweep(ctx)) {
@@ -90,7 +95,7 @@ export default function () {
     }
     apiGet(step, path, sessions[actor].token);
   }
-  apiSend('sweep_ai_search', 'POST', '/ai/search', sessions.buyer.token, { keyword: '치킨' });
+  apiSend('sweep_ai_search', 'POST', '/ai/search', sessions.buyer.token, aiSearchBody());
 
   // 정산 상세는 목록이 비어 있으면 부를 수 없다. 건너뛴 사실을 남긴다.
   const settlements = dataOf(
@@ -112,18 +117,56 @@ export default function () {
   }
 
   console.log(`--- 스윕 완료: 총 HTTP 호출 ${getRequestCount()}회 ---`);
+  emitTrail();
+}
+
+// 주문을 하나 더 만들어 수락까지만 하고 픽업코드를 잰 뒤, 픽업으로 정리한다.
+// 남는 주문을 만들지 않으려고 반드시 픽업까지 끝낸다.
+function measurePickupCode(sessions, target) {
+  const extra = buyerPurchase(sessions.buyer, target);
+  if (!extra || !extra.orderId) {
+    console.warn('[sweep_order_pickup_code] 추가 주문 생성 실패로 건너뜁니다.');
+    return;
+  }
+
+  const accepted = dataOf(
+    apiSend('sweep_pickup_code_accept', 'POST', `/orders/${extra.orderId}/accept`, sessions.seller.token, null),
+  );
+  if (!accepted) {
+    console.warn(`[sweep_order_pickup_code] 주문 ${extra.orderId} 수락 실패로 건너뜁니다.`);
+    return;
+  }
+
+  apiGet('sweep_order_pickup_code', `/orders/${extra.orderId}/pickupCode`, sessions.buyer.token);
+
+  // 정리 — PICKUP_READY로 남겨두지 않는다.
+  apiSend('sweep_pickup_code_cleanup', 'PATCH', `/orders/${extra.orderId}/pickup`, sessions.seller.token, {
+    status: 'PICKED_UP',
+  });
+}
+
+// handleSummary는 VU와 다른 컨텍스트에서 돌아 모듈 상태(requestTrail)를 보지 못한다.
+// 드라이런에서 index.tsv가 헤더만 남는 것으로 확인했다. 그래서 VU 안에서 직접 찍고,
+// 로그에서 뽑아 쓴다(구현계획 §6도 어차피 로그 기반 파이프라인이다).
+//
+// 구분자가 탭이면 k6 기본 logfmt가 \t로 이스케이프해 버려 그대로 못 쓴다(드라이런에서 확인).
+// 파이프는 이스케이프되지 않아 --log-format 무엇이든 살아남는다.
+function emitTrail() {
+  const trail = getRequestTrail();
+  console.log(`QCS_TRAIL_BEGIN ${RUN_TAG} rows=${trail.length}`);
+  for (const r of trail) {
+    console.log(`QCS_TRAIL|${r.requestId}|${r.step}|${r.status}|${r.durationMs}|${r.url}`);
+  }
+  console.log('QCS_TRAIL_END');
 }
 
 export function handleSummary() {
-  const trail = getRequestTrail();
   return {
-    stdout: `요청 ${trail.length}건의 번호 대응표를 남겼습니다: ${RUN_TAG}-index.tsv\n`,
-    // 로그 쪽 queryCount와 조인할 열쇠. requestId → 구간 이름.
-    [`/results/${RUN_TAG}-index.tsv`]:
-      'requestId\tstep\tstatus\tdurationMs\turl\n' +
-      trail.map((r) => [r.requestId, r.step, r.status, r.durationMs, r.url].join('\t')).join('\n') +
-      '\n',
-    // 미측정으로 남긴 API와 그 이유. 산출물 표에 함께 싣는다.
+    stdout:
+      `요청 번호 대응표는 k6 콘솔 로그의 QCS_TRAIL 줄에 있습니다.\n` +
+      `  ./k6.sh query-count-sweep ... --log-format=raw 2>&1 | tee results/${RUN_TAG}-k6.log\n` +
+      `  grep '^QCS_TRAIL|' results/${RUN_TAG}-k6.log | cut -d'|' -f2- > results/${RUN_TAG}-index.psv\n`,
+    // 미측정으로 남긴 API와 그 이유. init 컨텍스트의 상수라 여기서 쓸 수 있다.
     [`/results/${RUN_TAG}-excluded.json`]: JSON.stringify(EXCLUDED, null, 2),
   };
 }

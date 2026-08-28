@@ -20,6 +20,12 @@ export const EXCLUDED = [
   { api: 'PATCH /notifications/read-all', reason: '대량 상태 변경. 되돌릴 수 없다' },
   { api: 'GET /notifications/stream (SSE)', reason: 'SSE. 끊길 때까지 완료 로그가 없다' },
   { api: 'POST /dishes/images/presigned-url', reason: '업로드용 발급. 쓰기 성격' },
+  {
+    api: 'GET /dishes/{id}/image/presigned-url',
+    reason:
+      '시드 상품은 thumbnail_url이 비어 있어 400 IMG008로 끝난다(2026-08-28 드라이런 확인). '
+      + '재려면 이미지를 먼저 업로드해야 하는데 그것이 데이터를 바꾼다',
+  },
   { api: '/internal/v1/**', reason: '게이트웨이 라우트 없음(anyExchange().denyAll())' },
 ];
 
@@ -36,17 +42,27 @@ export function readOnlySweep(ctx) {
     ['sweep_favorites_list', '/favorites', 'buyer'],
     ['sweep_favorite_status', `/favorites/${ctx.storeId}`, 'buyer'],
     ['sweep_order_detail', `/orders/${ctx.orderId}`, 'buyer'],
-    ['sweep_order_pickup_code', `/orders/${ctx.orderId}/pickupCode`, 'buyer'],
     ['sweep_seller_my_dish', `/stores/${ctx.storeId}/dish`, 'seller'],
     ['sweep_seller_my_dishes', `/stores/${ctx.storeId}/dishes`, 'seller'],
-    ['sweep_dish_image_url', `/dishes/${ctx.dishId}/image/presigned-url`, 'buyer'],
     [
       'sweep_ai_nearby',
       `/ai/stores/nearby?latitude=${SEED.latitude}&longitude=${SEED.longitude}&radiusKm=${PAGE.nearbyRadiusKm}`,
       'buyer',
     ],
-    ['sweep_geocode', '/locations/geocode?query=강남대로', 'buyer'],
+    // 한글 질의는 인코딩이 필요하고, 지오코딩이 실제로 찾을 수 있는 주소여야 한다.
+    // '강남대로'만으로는 404 GEO001이 떨어진다 — 번지까지 준다(2026-08-28 드라이런에서 200 확인).
+    ['sweep_geocode', `/locations/geocode?query=${encodeURIComponent('강남대로 396')}`, 'buyer'],
   ];
+}
+
+// POST /ai/search의 본문. StoreSearchRequest는 query·latitude·longitude가 필수다.
+export function aiSearchBody() {
+  return {
+    query: '치킨',
+    latitude: SEED.latitude,
+    longitude: SEED.longitude,
+    radiusKm: PAGE.nearbyRadiusKm,
+  };
 }
 
 // 항목 수에 비례해 쿼리가 느는지 보기 위한 짝. [이름, 작은 쪽, 큰 쪽, actor]
