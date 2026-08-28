@@ -219,14 +219,12 @@ class OrderServiceTest {
   @Test
   @DisplayName("결제 대기 주문을 결제 완료로 변경한다")
   void completePayment_success() {
-    Long orderId = 1L;
     Order order = mock(Order.class);
 
-    when(orderRepository.findByIdAndIsDeletedFalse(orderId)).thenReturn(order);
+    orderService.completePayment(order);
 
-    orderService.completePayment(orderId);
-
-    verify(orderRepository, times(1)).findByIdAndIsDeletedFalse(orderId);
+    // 호출부가 넘긴 엔티티를 그대로 쓴다. ID로 다시 찾지 않는다.
+    verify(orderRepository, never()).findByIdAndIsDeletedFalse(any());
     verify(order, times(1)).paymentSuccess();
   }
 

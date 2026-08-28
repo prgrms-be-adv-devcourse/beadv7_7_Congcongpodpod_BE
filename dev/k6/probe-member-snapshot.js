@@ -62,7 +62,7 @@ export default function () {
   const unknown = [];
   const insufficientBalance = [];
 
-  console.log(`member_snapshots 확인: seller${String(FROM).padStart(3, '0')} ~ seller${String(TO).padStart(3, '0')}`);
+  console.log(`member_snapshots 확인: seller${String(FROM).padStart(4, '0')} ~ seller${String(TO).padStart(4, '0')}`);
 
   for (let accountNo = FROM; accountNo <= TO; accountNo += 1) {
     const loginResponse = http.post(
@@ -121,7 +121,7 @@ export default function () {
       unknown.push(accountNo);
       seedPrerequisiteReady.add(false);
       console.warn(
-        `seller${String(accountNo).padStart(3, '0')} 판정 불가: status=${probeResponse.status} code=${code} body=${String(probeResponse.body).slice(0, 200)}`,
+        `seller${String(accountNo).padStart(4, '0')} 판정 불가: status=${probeResponse.status} code=${code} body=${String(probeResponse.body).slice(0, 200)}`,
       );
     }
   }

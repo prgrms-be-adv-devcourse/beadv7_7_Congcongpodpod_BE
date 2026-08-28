@@ -161,7 +161,7 @@ function collectBuyers() {
       balanceSum += balance;
       if (balance < 0) {
         negativeBalance += 1;
-        console.error(`음수 예치금: seller${String(accountNo).padStart(3, '0')} balance=${balance}`);
+        console.error(`음수 예치금: seller${String(accountNo).padStart(4, '0')} balance=${balance}`);
       }
     }
     cartItemSum += (session.cartItems || []).length;

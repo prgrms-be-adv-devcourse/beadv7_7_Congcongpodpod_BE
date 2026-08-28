@@ -15,11 +15,39 @@ export function getRequestCount() {
   return requestCount;
 }
 
+// 요청마다 고유한 X-Request-Id를 붙여 서버 로그의 queryCount와 1:1로 잇기 위한 상태.
+// 접두사를 정하지 않으면 헤더를 붙이지 않는다 — 기존 시나리오의 동작은 그대로다.
+let requestIdPrefix = null;
+let requestIdSeq = 0;
+const requestTrail = [];
+
+// Gateway가 인바운드 X-Request-Id를 형식 검증 후 그대로 전파한다.
+// RequestIdSupport.VALID_FORMAT = ^[A-Za-z0-9._-]{1,64}$ 이고 뒤에 -0001이 붙으므로
+// 접두사는 55자로 제한한다. (2026-08-28 운영에서 왕복 확인함)
+export function setRequestIdPrefix(prefix) {
+  if (prefix && !/^[A-Za-z0-9._-]{1,55}$/.test(prefix)) {
+    throw new Error(`X-Request-Id 접두사는 [A-Za-z0-9._-] 55자 이하여야 합니다: ${prefix}`);
+  }
+  requestIdPrefix = prefix || null;
+  requestIdSeq = 0;
+  requestTrail.length = 0;
+}
+
+// 요청 번호 → 구간 이름 대응표. 로그 쪽 queryCount와 조인할 때 쓴다.
+export function getRequestTrail() {
+  return requestTrail;
+}
+
 // 토큰이 있으면 Bearer 헤더를 붙인다. 공개 조회는 토큰 없이 보낸다.
 export function authHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+  // apiGet·apiSend·apiBatchGet이 전부 이 함수를 지나가므로 배치 안의 개별 요청도 각자 번호를 받는다.
+  if (requestIdPrefix) {
+    requestIdSeq += 1;
+    headers['X-Request-Id'] = `${requestIdPrefix}-${String(requestIdSeq).padStart(4, '0')}`;
   }
   return headers;
 }
@@ -105,6 +133,18 @@ export function infrastructureFailureOf(response) {
 // 응답 하나를 검사하고 호출 수에 반영한다. 응답시간 기록 여부는 호출부가 정한다.
 function observe(step, response, recordDuration) {
   requestCount += 1;
+
+  // 응답 헤더에서 되읽는다 — 우리가 보낸 값이 무시됐다면 여기서 다른 값이 나오므로 그 자체가 검증이다.
+  if (requestIdPrefix) {
+    requestTrail.push({
+      requestId: response.headers['X-Request-Id'] || null,
+      step,
+      url: response.url,
+      status: response.status,
+      durationMs: Math.round(response.timings.duration),
+    });
+  }
+
   infrastructureFailures.add(infrastructureFailureOf(response));
   if (recordDuration) {
     stepTrend(step).add(response.timings.duration);

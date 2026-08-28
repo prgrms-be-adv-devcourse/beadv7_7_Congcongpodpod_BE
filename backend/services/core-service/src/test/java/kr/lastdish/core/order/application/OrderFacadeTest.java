@@ -94,7 +94,7 @@ class OrderFacadeTest {
 
     OrderResult expectedResponse = mock(OrderResult.class);
 
-    when(orderService.completePayment(10L)).thenReturn(expectedResponse);
+    when(orderService.completePayment(order)).thenReturn(expectedResponse);
     when(storeFacade.getStoreOwnerMemberId(1L)).thenReturn(20L);
 
     // when
@@ -128,7 +128,7 @@ class OrderFacadeTest {
     inOrder.verify(pointService).use(memberId, 10L, BigDecimal.valueOf(3_000));
     inOrder.verify(depositFacade).use(memberId, 10L, BigDecimal.valueOf(7_000));
 
-    inOrder.verify(orderService).completePayment(10L);
+    inOrder.verify(orderService).completePayment(order);
     inOrder.verify(cartFacade).removeOrderedItem(memberId, cartItemId);
     inOrder.verify(storeFacade).getStoreOwnerMemberId(1L);
     inOrder.verify(orderNotificationEventWriter).appendCreated(order, 20L);
@@ -164,7 +164,7 @@ class OrderFacadeTest {
     verify(dishFacade).decreaseStock(100L, 2L);
     verify(pointService).use(memberId, 10L, usedPoint);
     verifyNoInteractions(depositFacade);
-    verify(orderService, never()).completePayment(anyLong());
+    verify(orderService, never()).completePayment(any(Order.class));
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
 
@@ -204,7 +204,7 @@ class OrderFacadeTest {
         .createOrder(memberId, memberInfo, cartItem, BigDecimal.ZERO, pickupDeadline);
     verify(dishFacade).decreaseStock(cartItem.dishId(), cartItem.quantity());
     verifyNoInteractions(pointService, depositFacade);
-    verify(orderService, never()).completePayment(anyLong());
+    verify(orderService, never()).completePayment(any(Order.class));
     verify(cartFacade, never()).removeOrderedItem(anyLong(), anyLong());
   }
 

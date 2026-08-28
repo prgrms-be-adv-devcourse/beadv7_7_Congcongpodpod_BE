@@ -46,3 +46,7 @@ logging:
 
 request-log:
   skip-successful-actuator-calls: ${SKIP_SUCCESSFUL_ACTUATOR_LOGS:true}
+  # 요청 1건이 실행한 SQL 문의 수를 완료 로그에 queryCount로 남긴다(#422·PR #423).
+  # SQL 한 문장마다 ThreadLocal 접근이 있어 상시 운전할 성격이 아니다 — 측정할 때만 켜고 끝나면 끈다.
+  # @ConditionalOnProperty가 기동 시 1회만 평가되므로 켜고 끄려면 파드 롤아웃이 필요하다.
+  count-sql-statements: ${COUNT_SQL_STATEMENTS:false}

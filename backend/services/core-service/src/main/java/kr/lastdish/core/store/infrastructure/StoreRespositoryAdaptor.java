@@ -29,6 +29,22 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
+  public Optional<Long> findOwnerMemberId(Long storeId) {
+    /*
+     * 파생 쿼리(findByIdAndDeletedFalse)나 JPQL이 아니라 PK 조회를 쓴다.
+     * PK 조회만 1차 캐시를 타므로, 같은 트랜잭션에서 이미 읽은 매장이면 SQL이 아예 나가지 않는다.
+     * 주문 생성은 앞서 영업 여부를 확인하며 매장을 이미 읽어 둔다(2026-08-28 실측: 여기서 1쿼리 절약).
+     * 캐시에 없으면 평소처럼 한 번 조회하므로 어느 경우에도 손해가 없다.
+     *
+     * PK 조회는 삭제 여부를 걸러 주지 않으므로 직접 확인한다.
+     */
+    return storeJpaRepository
+        .findById(storeId)
+        .filter(store -> !store.isDeleted())
+        .map(Store::getMemberId);
+  }
+
+  @Override
   public List<Store> findAllByIdIn(List<Long> storeIds) {
     return storeJpaRepository.findAllByIdInAndDeletedFalse(storeIds);
   }
