@@ -78,6 +78,8 @@ class DishServiceTest {
     assertThat(replacement.getStoreId()).isEqualTo(dish.getStoreId());
     assertThat(replacement.getStockQuantity()).isEqualTo(1L);
     assertThat(response.stockQuantity()).isEqualTo(1L);
+    assertThat(response.pickupStartTime()).isEqualTo(request.pickupStartTime());
+    assertThat(response.pickupEndTime()).isEqualTo(request.pickupEndTime());
     verify(outboxEventWriter, never()).append(any(DishStateChangedEvent.class));
     verify(outboxEventWriter).append(any(DishCreatedEvent.class));
   }
