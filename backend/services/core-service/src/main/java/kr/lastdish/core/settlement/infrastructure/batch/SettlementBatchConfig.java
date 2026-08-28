@@ -24,11 +24,11 @@ public class SettlementBatchConfig {
   private final MonthlySettlementItemWriter monthlySettlementItemWriter;
 
   public SettlementBatchConfig(
-          JobRepository jobRepository,
-          @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
-          MonthlySettlementTargetReader monthlySettlementTargetReader,
-          MonthlySettlementItemProcessor monthlySettlementItemProcessor,
-          MonthlySettlementItemWriter monthlySettlementItemWriter) {
+      JobRepository jobRepository,
+      @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
+      MonthlySettlementTargetReader monthlySettlementTargetReader,
+      MonthlySettlementItemProcessor monthlySettlementItemProcessor,
+      MonthlySettlementItemWriter monthlySettlementItemWriter) {
     this.jobRepository = jobRepository;
     this.transactionManager = transactionManager;
     this.monthlySettlementTargetReader = monthlySettlementTargetReader;
@@ -39,8 +39,8 @@ public class SettlementBatchConfig {
   @Bean
   public Job monthlySettlementJob() {
     return new JobBuilder("monthlySettlementJob", jobRepository)
-            .start(monthlySettlementStep())
-            .build();
+        .start(monthlySettlementStep())
+        .build();
   }
 
   @Bean
