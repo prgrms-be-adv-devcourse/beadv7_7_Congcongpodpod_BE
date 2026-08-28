@@ -25,9 +25,8 @@ public class EmbeddingService {
   }
 
   /**
-   * 여러 텍스트를 한 번의 API 호출로 임베딩, 색인 시 필드별로 바뀐 텍스트만 모아서 이 메서드를 한 번 호출
-   * 배치 호출 자체가 실패하면 모든 위치에 null을 채워 반환하고,
-   * 색인 자체가 막히지 않도록, 예외를 상위로 던지지 않음
+   * 여러 텍스트를 한 번의 API 호출로 임베딩, 색인 시 필드별로 바뀐 텍스트만 모아서 이 메서드를 한 번 호출 배치 호출 자체가 실패하면 모든 위치에 null을 채워
+   * 반환하고, 색인 자체가 막히지 않도록, 예외를 상위로 던지지 않음
    */
   public List<List<Float>> getEmbeddingBatch(List<String> texts) {
     if (texts == null || texts.isEmpty()) {
