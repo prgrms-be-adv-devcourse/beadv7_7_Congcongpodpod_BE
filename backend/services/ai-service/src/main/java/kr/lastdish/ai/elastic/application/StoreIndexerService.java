@@ -214,9 +214,7 @@ public class StoreIndexerService {
 
   private record FieldVectorResult(List<Float>[] vectors, String[] hashes) {}
 
-  /**
-   * 가게명/메뉴명/설명 3개 필드 중 텍스트가 바뀐 필드만 골라 임베딩 API를 한 번의 배치 호출로 재생성, 바뀌지 않은 필드는 기존 벡터를 그대로 재사용해서 호출
-   */
+  /** 가게명/메뉴명/설명 3개 필드 중 텍스트가 바뀐 필드만 골라 임베딩 API를 한 번의 배치 호출로 재생성, 바뀌지 않은 필드는 기존 벡터를 그대로 재사용해서 호출 */
   @SuppressWarnings("unchecked")
   private FieldVectorResult resolveFieldVectors(
       String[] texts, StoreDocument existing, String eventType, Long storeId) {

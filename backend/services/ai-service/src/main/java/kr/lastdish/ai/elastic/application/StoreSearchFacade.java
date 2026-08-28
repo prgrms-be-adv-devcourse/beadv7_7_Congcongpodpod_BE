@@ -148,9 +148,7 @@ public class StoreSearchFacade {
     return null;
   }
 
-  /**
-   * "N시까지/전에/이내" 형태의 마지노선 픽업 시각을 추출한다. 오전/오후 표기가 없으면 픽업 특성상 오후로 간주
-   */
+  /** "N시까지/전에/이내" 형태의 마지노선 픽업 시각을 추출한다. 오전/오후 표기가 없으면 픽업 특성상 오후로 간주 */
   private LocalTime detectPickupDeadline(String query) {
     if (query == null || query.isBlank()) {
       return null;
@@ -187,9 +185,7 @@ public class StoreSearchFacade {
     }
   }
 
-  /**
-   * 쿼리에 잔액/예치금을 언급했고, 이미 명시적 금액을 말하지 않았다면 현재 잔액을 예산 상한선으로 채움
-   */
+  /** 쿼리에 잔액/예치금을 언급했고, 이미 명시적 금액을 말하지 않았다면 현재 잔액을 예산 상한선으로 채움 */
   private ParsedSearchCondition applyWalletBalanceIfRequested(
       ParsedSearchCondition cond, String rawQuery, java.math.BigDecimal walletBalance) {
     if (cond.maxPrice() != null || walletBalance == null) {

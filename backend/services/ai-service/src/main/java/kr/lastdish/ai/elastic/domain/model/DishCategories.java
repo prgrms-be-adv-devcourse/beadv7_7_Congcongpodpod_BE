@@ -2,9 +2,7 @@ package kr.lastdish.ai.elastic.domain.model;
 
 import java.util.List;
 
-/**
- * dishes.category에 색인되는 값과 정확히 일치해야 하는 카테고리 목록. ES term filter가 exact match
- */
+/** dishes.category에 색인되는 값과 정확히 일치해야 하는 카테고리 목록. ES term filter가 exact match */
 public final class DishCategories {
 
   public static final List<String> ALL =
