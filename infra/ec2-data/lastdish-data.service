@@ -1,0 +1,17 @@
+[Unit]
+Description=LastDish Data Services (sequential startup)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/database
+ExecStart=/home/ec2-user/database/start-sequential.sh
+RemainAfterExit=yes
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=multi-user.target
