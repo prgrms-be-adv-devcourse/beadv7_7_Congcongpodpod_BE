@@ -16,7 +16,7 @@ cp dev/.env.example dev/.env
 
 `dev.sh`는 Docker를 실행하기 전에 `.env.example` 기준 키 누락·중복과 필수값 공백을 검사합니다. `S3_ENABLED=true`이면 `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`도 필수입니다. 검증 실패 시 오류를 한 번에 표시하고 빌드하지 않습니다.
 
-`dev/.env.example`의 `SPRING_FLYWAY_LOCATIONS`는 개발·시연 seed를 활성화합니다. 전체 초기화 후 Member 1,000명(모두 SELLER 역할), 실제 서울 매장·상품 300개, 주문 300,000건, 정산 30,000건이 동일하게 생성됩니다. Member는 1~1000번 전부 생성되지만 매장·상품은 1~300번 회원에만 있습니다(회원=매장=상품 번호 동일). seed 없이 빈 스키마만 사용하려면 다음처럼 바꿉니다.
+`dev/.env.example`의 `SPRING_FLYWAY_LOCATIONS`는 개발·시연 seed를 활성화합니다. 전체 초기화 후 Member 1,000명(모두 SELLER 역할), 실제 서울 매장·상품 1,000개, 주문 300,000건이 동일하게 생성됩니다. 회원·매장·상품은 번호가 서로 같습니다(회원 N = 매장 N = 상품 N). seed 없이 빈 스키마만 사용하려면 다음처럼 바꿉니다.
 
 시연 서버에서도 Member·Core·Payment Deployment에 같은 `SPRING_FLYWAY_LOCATIONS` 값을 설정한 뒤 DB를 초기화하면 동일한 데이터가 생성됩니다. 운영 환경에는 seed location을 설정하지 않습니다.
 
@@ -24,7 +24,7 @@ cp dev/.env.example dev/.env
 SPRING_FLYWAY_LOCATIONS=classpath:db/migration
 ```
 
-시연 계정은 `seller0001@seed.lastdish.kr`부터 `seller1000@seed.lastdish.kr`까지(4자리)이며 공통 비밀번호는 `LastDish!2026`입니다. 매장·상품이 있는 건 `seller0001`~`seller0300`뿐이고, `seller0301`~`seller1000`은 회원만 존재합니다. 모든 사용자의 최종 예치금은 1조 원이고 주문 사용·환불 원장과 일치합니다. 공개 매장명·주소·좌표는 [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)의 2026-08-20 스냅샷이며, 실제 개인정보 대신 가상 소유자·전화·계좌 정보를 사용합니다.
+시연 계정은 `seller0001@seed.lastdish.kr`부터 `seller1000@seed.lastdish.kr`까지(4자리)이며 공통 비밀번호는 `LastDish!2026`입니다. 1,000개 계정 전부 매장과 상품을 하나씩 가집니다. 모든 사용자의 최종 예치금은 1조 원이고 주문 사용·환불 원장과 일치합니다. 공개 매장명·주소·좌표는 [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)의 2026-08-20 스냅샷이며, 실제 개인정보 대신 가상 소유자·전화·계좌 정보를 사용합니다.
 
 ## 2. 실행
 
