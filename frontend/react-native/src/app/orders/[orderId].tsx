@@ -7,7 +7,7 @@ import { LoadingState } from '@/components/loading-state';
 import { showAppAlert } from '@/lib/app-overlay';
 import { Page } from '@/components/page';
 import { colors, fonts, radius } from '@/constants/theme';
-import { cancelOrder, getOrder, getPickupCode, type CustomerOrder } from '@/lib/orders';
+import { cancelOrder, getOrder, type CustomerOrder } from '@/lib/orders';
 import { subscribeOrderStateChanged } from '@/lib/order-events';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 
@@ -18,7 +18,7 @@ const statusTitle=(status:string)=>status==='PICKED_UP'?'픽업이 완료됐어�
 export default function OrderDetail(){
   const {orderId}=useLocalSearchParams<{orderId:string}>(); const id=Number(orderId); const [order,setOrder]=useState<CustomerOrder|null>(null); const [code,setCode]=useState(''); const [failed,setFailed]=useState(false);
   const closeToOrders=()=>router.replace('/orders');
-  const load=useCallback(async()=>{setFailed(false);try{const row=await getOrder(id);setOrder(row);if(row.status==='PICKUP_READY'){try{setCode((await getPickupCode(id)).pickupCode);}catch{setCode('');}}else setCode('');}catch{setFailed(true)}},[id]);
+  const load=useCallback(async()=>{setFailed(false);try{const row=await getOrder(id);setOrder(row);setCode(row.status==='PICKUP_READY' ? row.pickupCode ?? '' : '');}catch{setFailed(true)}},[id]);
   useEffect(()=>{void load()},[load]);
   useEffect(()=>subscribeOrderStateChanged((event)=>{if(!event.orderId||event.orderId===id)void load()}),[id,load]);
   const {refreshing,onRefresh}=usePullToRefresh(load);

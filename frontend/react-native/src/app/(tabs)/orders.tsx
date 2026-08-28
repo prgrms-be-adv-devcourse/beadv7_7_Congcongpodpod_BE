@@ -14,7 +14,7 @@ import { colors, fonts, radius, shadow } from '@/constants/theme';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { getDishImageSource } from '@/lib/food-image';
-import { getMyOrders, getPickupCode, type CustomerOrder, type OrderStatus } from '@/lib/orders';
+import { getMyOrders, type CustomerOrder, type OrderStatus } from '@/lib/orders';
 import { subscribeOrderStateChanged } from '@/lib/order-events';
 import { showLoginRequired } from '@/lib/login-required';
 import { useAuth } from '@/providers/auth-provider';
@@ -52,11 +52,7 @@ export default function Orders() {
     try {
       const rows = await getMyOrders(force);
       setOrders(rows);
-      const values = await Promise.all(rows.filter((order) => order.status === 'PICKUP_READY').map(async (order) => {
-        try { return [order.orderId, (await getPickupCode(order.orderId)).pickupCode] as const; }
-        catch { return [order.orderId, ''] as const; }
-      }));
-      setCodes(Object.fromEntries(values));
+      setCodes(Object.fromEntries(rows.flatMap((order) => order.pickupCode ? [[order.orderId, order.pickupCode]] : [])));
     } catch {
       setFailed(true);
     } finally {
