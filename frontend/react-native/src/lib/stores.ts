@@ -1,5 +1,6 @@
 import { api } from './api';
 import { cachedQuery } from './query-cache';
+import type { StoreAvailabilityMode } from '@/providers/store-availability-provider';
 import type { Dish, Store } from '@/types/store';
 
 type ApiDish = {
@@ -62,11 +63,11 @@ const unwrapData = <T,>(value: T | Envelope<T>): T =>
 const unwrapList = <T,>(value: Page<T>): T[] =>
   Array.isArray(value) ? value : value.stores ?? value.content ?? [];
 
-async function getAllNearbyStorePages(latitude: number, longitude: number, radiusKm: number, size: number, hasAvailableDish: boolean, signal?: AbortSignal) {
+async function getAllNearbyStorePages(latitude: number, longitude: number, radiusKm: number, size: number, pickupFilter: StoreAvailabilityMode, signal?: AbortSignal) {
   const fetchPage = async (page: number) => {
     const query = new URLSearchParams({
       latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm),
-      hasAvailableDish: String(hasAvailableDish), page: String(page), size: String(size),
+      pickupFilter, page: String(page), size: String(size),
     });
     return unwrapData(await api<ApiStore[] | Envelope<ApiStore[]>>(`/ai/stores/nearby?${query}`, { signal }));
   };
@@ -119,9 +120,9 @@ const mapStore = (store: ApiStore, hasAvailableDish?: boolean): Store => ({
   })),
 });
 
-export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5, size = 60, hasAvailableDish = true, signal?: AbortSignal) {
-  return (await getAllNearbyStorePages(latitude, longitude, radiusKm, size, hasAvailableDish, signal))
-    .map((store) => mapStore(store, hasAvailableDish));
+export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5, size = 60, pickupFilter: StoreAvailabilityMode = 'NOW', signal?: AbortSignal) {
+  return (await getAllNearbyStorePages(latitude, longitude, radiusKm, size, pickupFilter, signal))
+    .map((store) => mapStore(store, pickupFilter !== 'ALL'));
 }
 
 export async function searchStores(keyword: string, latitude: number, longitude: number) {

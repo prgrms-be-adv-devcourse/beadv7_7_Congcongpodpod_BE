@@ -47,7 +47,7 @@ const distanceKm = (a: Coordinate, b: Coordinate) => {
 
 export default function HomeScreen() {
   const { availabilityMode, setAvailabilityMode } = useStoreAvailability();
-  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(5, availabilityMode === 'NOW');
+  const { stores, loading, error, reload, location, locationResolved, heading } = useNearbyStores(5, availabilityMode, false);
   const { member } = useAuth();
   const { item: cartItem } = useCart();
   const { contentWidth, gutter, isCompact, isDesktopWeb } = useResponsiveLayout();

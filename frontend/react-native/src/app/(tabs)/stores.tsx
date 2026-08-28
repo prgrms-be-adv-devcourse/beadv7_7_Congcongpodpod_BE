@@ -57,7 +57,7 @@ export default function StoresScreen() {
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [category, setCategory] = useState<(typeof categories)[number][0]>('ALL');
   const { availabilityMode, setAvailabilityMode } = useStoreAvailability();
-  const { stores, loading, reload, location } = useNearbyStores(radiusKm, availabilityMode === 'NOW');
+  const { stores, loading, reload, location } = useNearbyStores(radiusKm, availabilityMode);
   const { refreshing, onRefresh } = usePullToRefresh(reload);
   const { contentWidth, gutter } = useResponsiveLayout();
   const { member } = useAuth();
