@@ -7,6 +7,7 @@ import kr.lastdish.common.event.DomainEvent;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Persistable;
 
 /**
  * 발행할 도메인 이벤트를 DB에 저장하는 Outbox 엔티티입니다.
@@ -19,7 +20,7 @@ import lombok.NoArgsConstructor;
     name = "outbox_events",
     indexes = {@Index(name = "idx_outbox_status_occurred_at", columnList = "status, occurred_at")})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class OutboxEvent {
+public class OutboxEvent implements Persistable<UUID> {
 
   /**
    * 이벤트의 고유 식별자입니다.
@@ -100,6 +101,17 @@ public class OutboxEvent {
   private Instant publishedAt;
 
   /**
+   * 아직 DB에 없는 새 이벤트인지 나타냅니다. 컬럼이 아니라 메모리에만 있습니다.
+   *
+   * <p>eventId는 애플리케이션이 직접 정하는 식별자라 저장 전에도 값이 차 있습니다. 그러면 Spring Data는 "식별자가 있으니 기존 행"으로 보고 {@code
+   * save()}에서 {@code merge()}를 부르고, merge는 병합할 원본을 찾으려고 <b>INSERT 앞에 SELECT를 한 번 더</b> 던집니다. 이벤트를
+   * 4건 기록하면 SELECT만 4번이 덤으로 나갑니다(주문 생성 24쿼리 중 4개가 이것이었다, 2026-08-28 실측).
+   *
+   * <p>{@link Persistable}로 "새것인지"를 직접 알려 주면 merge 대신 persist로 가서 INSERT만 나갑니다.
+   */
+  @Transient private boolean newEvent = false;
+
+  /**
    * DomainEvent와 직렬화된 payload로 새로운 OutboxEvent를 생성합니다.
    *
    * <p>새 이벤트는 아직 발행되지 않았으므로 PENDING 상태로 생성합니다.
@@ -119,7 +131,32 @@ public class OutboxEvent {
     outbox.retryCount = 0;
     outbox.occurredAt = event.occurredAt();
 
+    // 이 자리에서 만든 것만 새 이벤트다. DB에서 읽어 온 것은 @PostLoad가 false로 되돌린다.
+    outbox.newEvent = true;
+
     return outbox;
+  }
+
+  @Override
+  public UUID getId() {
+    return eventId;
+  }
+
+  @Override
+  public boolean isNew() {
+    return newEvent;
+  }
+
+  /**
+   * 저장되었거나 읽어 온 이벤트는 더 이상 새것이 아니다.
+   *
+   * <p>이 표시를 내리지 않으면 이미 있는 행을 persist하려다 제약 위반이 난다. Processor가 발행 상태를 갱신하는 경로가 그렇다 — 그쪽은 읽어 온 엔티티를
+   * 변경 감지로 수정하므로 {@code @PostLoad}가 반드시 걸려야 한다.
+   */
+  @PostPersist
+  @PostLoad
+  private void markNotNew() {
+    this.newEvent = false;
   }
 
   /** 이벤트를 발행 대상으로 선점합니다. */

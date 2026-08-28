@@ -99,8 +99,9 @@ public class OrderService {
     return orderRepository.existsActiveOrderByDishId(dishId);
   }
 
-  public OrderResult completePayment(Long orderId) {
-    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+  // 결제 성공을 주문에 반영한다. 호출부가 방금 만든 주문 엔티티를 그대로 넘긴다 —
+  // ID로 다시 찾으면 파생 쿼리라 1차 캐시를 타지 않고 SELECT가 한 번 더 나간다(2026-08-28 실측).
+  public OrderResult completePayment(Order order) {
     order.paymentSuccess();
     return OrderResult.from(order);
   }

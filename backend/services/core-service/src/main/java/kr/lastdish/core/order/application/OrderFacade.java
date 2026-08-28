@@ -80,7 +80,7 @@ public class OrderFacade {
     }
 
     // 결제 완료 처리
-    OrderResult result = orderService.completePayment(order.getId());
+    OrderResult result = orderService.completePayment(order);
 
     // 주문이 완료된 상품을 장바구니에서 제거
     cartFacade.removeOrderedItem(memberId, cartItemId);

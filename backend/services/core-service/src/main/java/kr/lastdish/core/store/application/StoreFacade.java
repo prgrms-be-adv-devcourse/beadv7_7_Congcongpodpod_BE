@@ -43,7 +43,7 @@ public class StoreFacade {
   }
 
   public Long getStoreOwnerMemberId(Long storeId) {
-    return storeService.getStore(storeId).memberId();
+    return storeService.getStoreOwnerMemberId(storeId);
   }
 
   public List<Long> findSettlementTargetStoreIds() {
