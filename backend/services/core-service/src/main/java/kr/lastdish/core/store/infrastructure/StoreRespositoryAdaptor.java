@@ -29,6 +29,11 @@ public class StoreRespositoryAdaptor implements StoreRepository {
   }
 
   @Override
+  public Optional<Long> findOwnerMemberId(Long storeId) {
+    return storeJpaRepository.findOwnerMemberIdById(storeId);
+  }
+
+  @Override
   public List<Store> findAllByIdIn(List<Long> storeIds) {
     return storeJpaRepository.findAllByIdInAndDeletedFalse(storeIds);
   }

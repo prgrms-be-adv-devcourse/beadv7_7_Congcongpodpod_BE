@@ -160,6 +160,14 @@ public class StoreService {
     return StoreResult.from(findStore(storeId));
   }
 
+  // 매장 주인의 memberId만 읽는다. 알림 수신자를 정할 때처럼 매장 상세가 필요 없는 호출에 쓴다.
+  public Long getStoreOwnerMemberId(Long storeId) {
+    return storeRepository
+        .findOwnerMemberId(storeId)
+        .orElseThrow(
+            () -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND, "매장을 찾을 수 없습니다."));
+  }
+
   // 매장 정산 계좌
   public PayoutAccountResult getPayoutAccount(Long storeId, Long memberId) {
     getOwnedStore(storeId, memberId);

@@ -71,6 +71,17 @@ public interface StoreJpaRepository extends JpaRepository<Store, Long> {
       @Param("status") StoreStatus status,
       @Param("category") Category category);
 
+  // 매장 주인의 memberId 하나만 읽는다. 엔티티를 통째로 가져오면 StoreResult를 만드는 과정에서
+  // holidays까지 지연 로딩돼 조회 1건에 SELECT가 2개 나간다(주문 생성 24쿼리 중 2개, 2026-08-28 실측).
+  @Query(
+      """
+      SELECT store.memberId
+      FROM Store store
+      WHERE store.id = :storeId
+        AND store.deleted = false
+      """)
+  Optional<Long> findOwnerMemberIdById(@Param("storeId") Long storeId);
+
   @Query(
       """
         SELECT store.id
