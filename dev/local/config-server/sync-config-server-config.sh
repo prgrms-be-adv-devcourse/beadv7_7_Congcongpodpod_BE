@@ -8,7 +8,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source_dir="${script_dir}/config"
+source_dir="$script_dir"
 config_server_root="$(cd "$1" && pwd)"
 files=(
   application.yml
