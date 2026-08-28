@@ -37,7 +37,7 @@ export const options = {
 export function setup() {
   const business = businessHourNow();
   console.log('재고 변경 방식: PATCH /dishes/{id}/stock');
-  console.log(`구매자 seller${String(BUYER_ACCOUNT).padStart(3, '0')} → 매장 ${storeIdFor(SELLER_ACCOUNT)} 주문`);
+  console.log(`구매자 seller${String(BUYER_ACCOUNT).padStart(4, '0')} → 매장 ${storeIdFor(SELLER_ACCOUNT)} 주문`);
   console.log(`현재 영업 시각: ${business.label}`);
 
   // 시드 매장은 09:00~22:00 영업이고 시드 상품의 픽업 마감이 21:30이다. 그 밖에서는 주문 생성이 실패한다.

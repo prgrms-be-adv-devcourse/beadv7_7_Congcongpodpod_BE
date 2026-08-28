@@ -14,10 +14,12 @@ export const API = `${BASE_URL}/api/v1`;
 export const REQUEST_TIMEOUT = __ENV.REQUEST_TIMEOUT || '10s';
 
 export const SEED = {
-  // dev/README.md:27 — seller001~seller300, 공통 비밀번호
+  // dev/README.md:27은 3자리(seller001)로 문서화돼 있지만 실제 시드는 4자리다.
+  // member-service 커밋 a7f6f0ca(2026-08-27)에서 회원 1~1000 전체를 4자리(seller0001)로
+  // 바꿨다(100번/1000번 회원 고유키 충돌 해결). accountEmail()도 이를 따른다.
   password: __ENV.SEED_PASSWORD || 'LastDish!2026',
   emailDomain: 'seed.lastdish.kr',
-  accountCount: 300,
+  accountCount: Number(__ENV.SEED_ACCOUNT_COUNT || 300),
   // 회원 1~150만 예치금 10,000,000. 151~300은 0이라 주문이 실패한다.
   fundedAccountCount: 150,
   // 매장 시드 영업시간. Store.isOpenAt / calculatePickupDeadline이 주문 가능 시각을 09:00~21:30으로 제한한다.
@@ -63,9 +65,9 @@ export const PAGE = {
   myOrdersSize: 50,
 };
 
-// 시드 계정 번호 → 로그인 이메일
+// 시드 계정 번호 → 로그인 이메일. 회원 1~1000 전체가 4자리 형식이다(SEED 주석 참고).
 export function accountEmail(accountNo) {
-  return `seller${String(accountNo).padStart(3, '0')}@${SEED.emailDomain}`;
+  return `seller${String(accountNo).padStart(4, '0')}@${SEED.emailDomain}`;
 }
 
 // 시드는 회원 = 매장 = 상품이 모두 같은 번호다.
