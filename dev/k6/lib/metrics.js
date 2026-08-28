@@ -34,8 +34,22 @@ export const STEPS = [
   'lifecycle_dish_create',
 ];
 
+// 전 API 쿼리 수 스윕 전용 구간(query-count-sweep.js). 흐름(flow.js)이 지나가지 않는 API만 여기 있다.
+export const SWEEP_STEPS = [
+  'sweep_notifications', 'sweep_notifications_unread',
+  'sweep_points_balance', 'sweep_points_history',
+  'sweep_deposit_history', 'sweep_level_info',
+  'sweep_favorites_list', 'sweep_favorite_status',
+  'sweep_order_detail', 'sweep_order_pickup_code',
+  'sweep_seller_my_dish', 'sweep_seller_my_dishes',
+  'sweep_dish_image_url',
+  'sweep_settlements_list', 'sweep_settlement_detail',
+  'sweep_ai_nearby', 'sweep_ai_search', 'sweep_geocode',
+  'sweep_scale_small', 'sweep_scale_large',
+];
+
 const trends = {};
-for (const step of STEPS) {
+for (const step of STEPS.concat(SWEEP_STEPS)) {
   trends[step] = new Trend(`step_${step}`, true);
 }
 
