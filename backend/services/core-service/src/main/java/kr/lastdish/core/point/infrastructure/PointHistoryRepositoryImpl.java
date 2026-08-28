@@ -2,6 +2,7 @@ package kr.lastdish.core.point.infrastructure;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import kr.lastdish.core.point.domain.PointHistory;
 import kr.lastdish.core.point.domain.PointHistoryRepository;
 import kr.lastdish.core.point.domain.PointType;
@@ -29,6 +30,11 @@ public class PointHistoryRepositoryImpl implements PointHistoryRepository {
   @Override
   public boolean existsByOrderIdAndType(Long orderId, PointType type) {
     return pointHistoryJpaRepository.existsByOrderIdAndType(orderId, type);
+  }
+
+  @Override
+  public Optional<PointHistory> findByOrderIdAndType(Long orderId, PointType type) {
+    return pointHistoryJpaRepository.findByOrderIdAndType(orderId, type);
   }
 
   @Override

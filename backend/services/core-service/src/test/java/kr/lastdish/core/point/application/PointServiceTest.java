@@ -232,4 +232,71 @@ class PointServiceTest {
     assertThatThrownBy(() -> pointService.use(1L, 200L, new BigDecimal("300")))
         .isInstanceOf(InsufficientPointException.class);
   }
+
+  @Test
+  void refund_사용_내역이_있고_환불된_적_없으면_사용한_만큼_재적립하고_REFUND_이력을_남긴다() {
+    Point point = Point.createDefault(1L);
+    point.earn(new BigDecimal("5000"));
+    point.use(new BigDecimal("2000"));
+
+    PointHistory useHistory =
+        PointHistory.recordUse(1L, 200L, new BigDecimal("2000"), new BigDecimal("3000"));
+
+    given(pointHistoryRepository.findByOrderIdAndType(200L, PointType.USE))
+        .willReturn(Optional.of(useHistory));
+    given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.REFUND)).willReturn(false);
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.save(any(PointHistory.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    PointTransactionResult result = pointService.refund(1L, 200L);
+
+    assertThat(point.getBalance()).isEqualByComparingTo(new BigDecimal("5000"));
+    assertThat(result.amount()).isEqualByComparingTo(new BigDecimal("2000"));
+
+    ArgumentCaptor<PointHistory> captor = ArgumentCaptor.forClass(PointHistory.class);
+    verify(pointHistoryRepository).save(captor.capture());
+    PointHistory saved = captor.getValue();
+    assertThat(saved.getType()).isEqualTo(PointType.REFUND);
+    assertThat(saved.getOrderId()).isEqualTo(200L);
+    assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("2000"));
+    assertThat(saved.getBalanceAfter()).isEqualByComparingTo(new BigDecimal("5000"));
+    assertThat(saved.getRemainingAmount()).isEqualByComparingTo(new BigDecimal("2000"));
+  }
+
+  @Test
+  void refund_해당_주문의_사용_내역이_없으면_예외가_발생하고_저장되지_않는다() {
+    Point point = Point.createDefault(1L);
+
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.REFUND)).willReturn(false);
+    given(pointHistoryRepository.findByOrderIdAndType(200L, PointType.USE))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> pointService.refund(1L, 200L)).isInstanceOf(BusinessException.class);
+
+    verify(pointHistoryRepository, never()).save(any());
+  }
+
+  @Test
+  void refund_이미_환불_처리된_주문이면_예외가_발생하고_중복_저장되지_않는다() {
+    Point point = Point.createDefault(1L);
+
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.of(point));
+    given(pointHistoryRepository.existsByOrderIdAndType(200L, PointType.REFUND)).willReturn(true);
+
+    assertThatThrownBy(() -> pointService.refund(1L, 200L)).isInstanceOf(BusinessException.class);
+
+    verify(pointHistoryRepository, never()).save(any());
+  }
+
+  @Test
+  void refund_Point_자체가_존재하지_않으면_예외가_발생한다() {
+    given(pointRepository.findWithLockByMemberId(1L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> pointService.refund(1L, 200L))
+        .isInstanceOf(PointNotFoundException.class);
+
+    verify(pointHistoryRepository, never()).save(any());
+  }
 }

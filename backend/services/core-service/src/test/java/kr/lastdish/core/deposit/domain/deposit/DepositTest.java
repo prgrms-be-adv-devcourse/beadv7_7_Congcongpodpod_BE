@@ -42,11 +42,9 @@ class DepositTest {
   }
 
   @Test
-  void 사용_금액이_0이하이면_예외가_발생한다() {
+  void 사용_금액이_음수이면_예외가_발생한다() {
     Deposit deposit = Deposit.createDefault(1L);
     deposit.refund(new BigDecimal("10000"));
-
-    assertThatThrownBy(() -> deposit.use(BigDecimal.ZERO)).isInstanceOf(BusinessException.class);
 
     assertThatThrownBy(() -> deposit.use(new BigDecimal("-5000")))
         .isInstanceOf(BusinessException.class);

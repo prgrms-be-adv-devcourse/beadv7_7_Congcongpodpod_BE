@@ -8,6 +8,7 @@ project_root="$(cd -- "$script_dir/.." && pwd)"
 env_file="$script_dir/.env"
 env_example_file="$script_dir/.env.example"
 compose_file="$script_dir/compose.yaml"
+config_server_config_dir="$project_root/dev/local/config-server"
 log_dir="$script_dir/logs"
 run_timestamp="$(date '+%Y%m%d-%H%M%S')"
 dev_command="${LASTDISH_DEV_COMMAND:-./dev/dev.sh}"
@@ -475,6 +476,31 @@ validate_env() {
   if [[ ${#errors[@]} -gt 0 ]]; then
     echo "[환경변수 오류] dev/.env를 확인하세요:" >&2
     printf '  - %s\n' "${errors[@]}" >&2
+    return 2
+  fi
+}
+
+validate_config_server_files() {
+  local required_files=(
+    application.yml
+    member-service.yml
+    core-service.yml
+    payment-service.yml
+    ai-service.yml
+    gateway-service.yml
+  )
+  local file
+  local missing_files=()
+
+  for file in "${required_files[@]}"; do
+    if [[ ! -f "$config_server_config_dir/$file" ]]; then
+      missing_files+=("$file")
+    fi
+  done
+
+  if [[ ${#missing_files[@]} -gt 0 ]]; then
+    echo "[Config Server 오류] 필수 설정 파일이 없습니다: $config_server_config_dir" >&2
+    printf '  - %s\n' "${missing_files[@]}" >&2
     return 2
   fi
 }
@@ -1072,6 +1098,7 @@ case "$command" in
 esac
 
 # up 대상은 Docker를 호출하기 전에 검증하여 오타가 빌드나 컨테이너 변경으로 이어지지 않게 합니다.
+validate_config_server_files
 validate_services "$@"
 
 # 빌드 전 현재 LastDish Compose 컨테이너가 참조하는 이미지 ID를 기록합니다.

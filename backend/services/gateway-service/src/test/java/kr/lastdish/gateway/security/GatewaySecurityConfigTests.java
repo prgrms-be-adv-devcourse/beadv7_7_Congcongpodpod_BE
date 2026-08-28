@@ -78,6 +78,11 @@ class GatewaySecurityConfigTests {
   }
 
   @Test
+  void aiNearbyStoresRouteAllowsGetRequestsWithoutAuthentication() {
+    webTestClient.get().uri("/api/v1/ai/stores/nearby").exchange().expectStatus().isOk();
+  }
+
+  @Test
   void myStoreRouteRejectsRequestsWithoutAuthentication() {
     webTestClient.get().uri("/api/v1/stores/mine").exchange().expectStatus().isUnauthorized();
   }
@@ -410,6 +415,7 @@ class GatewaySecurityConfigTests {
           .andRoute(POST("/api/v1/stores/1/dishes"), request -> ok().build())
           .andRoute(POST("/api/v1/ai/classify"), request -> ok().build())
           .andRoute(POST("/api/v1/ai/search"), request -> ok().build())
+          .andRoute(GET("/api/v1/ai/stores/nearby"), request -> ok().build())
           .andRoute(GET("/api/v1/locations/geocode"), request -> ok().build())
           .andRoute(GET("/api/v1/notifications"), request -> ok().build())
           .andRoute(POST("/api/v1/deposits/test"), request -> ok().build());

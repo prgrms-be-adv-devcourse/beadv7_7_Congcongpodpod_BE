@@ -189,7 +189,7 @@ services:
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
     volumes:
-      - ./local/config-server/config:/config:ro
+      - ./local/config-server:/config:ro
     # Main EC2 Deployment의 메모리 상한과 동일합니다.
     mem_limit: 320m
     ports:
@@ -253,7 +253,9 @@ services:
       SPRINGDOC_ENABLED: "true"
       SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/seed}
       CONFIG_SERVER_URL: http://config-server:8888
-      CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db
+      CORE_DB_URL: jdbc:postgresql://core-db:5432/core_db?reWriteBatchedInserts=true
+      NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
+      NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
       CORE_DB_USERNAME: core
       CORE_DB_PASSWORD: core_local_password
       MEMBER_SERVICE_BASE_URL: http://member-service:8080
@@ -333,6 +335,7 @@ services:
       SPRING_PROFILES_ACTIVE: local
       SPRINGDOC_ENABLED: "true"
       CONFIG_SERVER_URL: http://config-server:8888
+      SERVICES_CORE_BASE_URL: http://core-service:8080
       AI_DB_URL: jdbc:postgresql://core-db:5432/ai_db
       AI_DB_USERNAME: ai
       AI_DB_PASSWORD: ai_local_password
@@ -354,13 +357,15 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in dev/.env}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
-
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx640m"
 
     depends_on:
       config-server:
         condition: service_healthy
       core-db:
         condition: service_healthy
+      core-service:
+        condition: service_started
       database-initializer:
         condition: service_completed_successfully
       redis:
@@ -371,7 +376,7 @@ services:
         condition: service_healthy
     ports:
       - "8084:8080"
-    mem_limit: 512m
+    mem_limit: 1024m
 
   gateway-service:
     build:

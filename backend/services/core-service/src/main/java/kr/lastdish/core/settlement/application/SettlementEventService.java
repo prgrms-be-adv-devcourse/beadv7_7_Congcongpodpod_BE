@@ -11,6 +11,7 @@ import kr.lastdish.core.settlement.domain.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -40,6 +41,7 @@ public class SettlementEventService {
    * 정산 계좌 미등록의 경우 정산하지 않고 로그만 출력하여 관리 -> 계좌 미등록 상태가 유지된다면 재시도 시 실패
    */
 
+  @Transactional(propagation = Propagation.MANDATORY)
   public SettlementProcessResult processMonthlySettlement(Long storeId, YearMonth settlementMonth) {
     Settlement settlement =
         settlementRepository.findByStoreIdAndSettlementMonth(storeId, settlementMonth).orElse(null);
@@ -47,6 +49,12 @@ public class SettlementEventService {
     if (settlement == null) {
       return SettlementProcessResult.skipped(storeId, null, "정산 정보를 찾을 수 없습니다.");
     }
+
+    return processMonthlySettlement(settlement);
+  }
+
+  private SettlementProcessResult processMonthlySettlement(Settlement settlement) {
+    Long storeId = settlement.getStoreId();
 
     SettlementStatus initialStatus = settlement.getSettlementStatus();
 
@@ -85,12 +93,25 @@ public class SettlementEventService {
     } catch (Exception exception) {
       String failureReason = extractFailureReason(exception);
 
-      // Accumulating -> Processing 전환 중 오류 시 Accumulating 상태로 남음, 상태 변경 시 오류 발생 해소 (누적 중 상태는 failed
-      // 처리 불가)
-      saveFailureIfProcessing(settlement.getId(), failureReason);
+      // 정상 처리와 동일한 Chunk 트랜잭션 안에서 실패 상태를 저장한다.
+      // PROCESSING 전환 전 실패했다면 기존 상태를 유지하여 다음 실행에서 다시 시도한다.
+      if (settlement.getSettlementStatus() == SettlementStatus.PROCESSING) {
+        settlement.fail(normalizeFailureReason(failureReason));
+      }
 
       return SettlementProcessResult.failed(storeId, settlement.getId(), failureReason);
     }
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
+  public SettlementProcessResult processMonthlySettlement(Long settlementId) {
+    Settlement settlement = settlementRepository.findById(settlementId).orElse(null);
+
+    if (settlement == null) {
+      return SettlementProcessResult.skipped(null, settlementId, "정산 정보를 찾을 수 없습니다.");
+    }
+
+    return processMonthlySettlement(settlement);
   }
 
   @Transactional(readOnly = true)
@@ -109,15 +130,8 @@ public class SettlementEventService {
     return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
   }
 
-  private void saveFailureIfProcessing(Long settlementId, String failureReason) {
-    SettlementStatus currentStatus =
-        settlementRepository
-            .findById(settlementId)
-            .map(Settlement::getSettlementStatus)
-            .orElse(null);
-
-    if (currentStatus == SettlementStatus.PROCESSING) {
-      settlementTransactionalManager.fail(settlementId, failureReason);
-    }
+  private String normalizeFailureReason(String failureReason) {
+    String reason = failureReason == null ? "알 수 없는 정산 처리 오류" : failureReason;
+    return reason.substring(0, Math.min(reason.length(), 300));
   }
 }
