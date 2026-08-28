@@ -1,0 +1,138 @@
+name: lastdish-observability
+
+services:
+  ssh-tunnel:
+    image: alpine:3.22
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 64m
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        apk add --no-cache openssh-client
+        exec ssh -NT \
+        -i /run/secrets/ec2-main-tunnel \
+        -o UserKnownHostsFile=/run/secrets/known_hosts \
+        -o StrictHostKeyChecking=yes \
+        -o ExitOnForwardFailure=yes \
+        -o ServerAliveInterval=30 \
+        -o ServerAliveCountMax=3 \
+        -L 0.0.0.0:16443:127.0.0.1:6443 \
+        -L 0.0.0.0:19100:127.0.0.1:9100 \
+        -L 0.0.0.0:19187:10.30.2.93:9187 \
+        -L 0.0.0.0:19188:10.30.2.93:9188 \
+        -L 0.0.0.0:19189:10.30.2.93:9189 \
+        -L 0.0.0.0:19190:10.30.2.93:9190 \
+        -L 0.0.0.0:19114:10.30.2.93:9114 \
+        -L 0.0.0.0:19101:10.30.2.93:9100 \
+        -L 0.0.0.0:18080:10.30.2.93:8080 \
+        ec2-user@ssh.lastdish.kr
+    volumes:
+      - ./secrets/ssh/ec2-main-tunnel:/run/secrets/ec2-main-tunnel:ro,Z
+      - ./secrets/ssh/known_hosts:/run/secrets/known_hosts:ro,Z
+
+  prometheus:
+    image: prom/prometheus:v3.13.1
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 3g
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=120GB
+      - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./secrets/kubernetes:/etc/prometheus/kubernetes:ro,Z
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:19090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      ssh-tunnel:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  loki:
+    image: grafana/loki:3.7.0
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 2g
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    healthcheck:
+      test: ["CMD", "/usr/bin/loki", "-version"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 1g
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_DEFAULT_LANGUAGE: ko-KR
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1s
+      GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN:-grafana.lastdish.kr}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.lastdish.kr}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 256m
+    environment:
+      LOKI_BASIC_AUTH_USER: ${LOKI_BASIC_AUTH_USER:?LOKI_BASIC_AUTH_USER is required}
+      LOKI_BASIC_AUTH_HASH: ${LOKI_BASIC_AUTH_HASH:?LOKI_BASIC_AUTH_HASH is required}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web/dist:/srv/lastdish:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    depends_on:
+      grafana:
+        condition: service_healthy
+
+volumes:
+  prometheus-data:
+  loki-data:
+  grafana-data:
+  caddy-data:
+  caddy-config:

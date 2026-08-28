@@ -1,0 +1,1180 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "서비스 로그 열기 ↗",
+      "tooltip": "Loki 로그 대시보드를 새 탭에서 엽니다.",
+      "type": "link",
+      "url": "/d/lastdish-service-logs/service-logs?var-namespace=platform&var-application=config-server"
+    }
+  ],
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "서비스 상태",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": [],
+      "description": "서비스와 주요 의존성의 현재 상태 및 Pod 재시작 여부를 빠르게 확인하는 영역입니다."
+    },
+    {
+      "id": 101,
+      "type": "row",
+      "title": "애플리케이션 리소스",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "panels": [],
+      "description": "서비스 Pod의 CPU·메모리·JVM·요청 처리 지표입니다. 배포 직후 급증과 지속적인 한도 근접 여부를 확인합니다."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 500,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "{application=\"config-server\"} !~ \"(?i)(org.apache.kafka|SubscriptionState|ConsumerCoordinator|KafkaMessageListener|partitions assigned|Found no committed offset|Resetting offset)\" | json | message != \"\" | line_format \"[{{if .log_level}}{{.log_level}}{{else}}INFO{{end}}] {{.message}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Config Server 실시간 로그",
+      "type": "logs",
+      "description": "최신 서비스 로그를 실시간으로 확인합니다."
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "설정 서버 상태",
+      "description": "Prometheus scrape 상태입니다. 1이면 정상입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 16,
+        "x": 0,
+        "y": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "wideLayout": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "max(up{job=\"kubernetes-spring-pods\",application=\"config-server\"})",
+          "legendFormat": "config-server",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "CPU 사용률(%) 및 사용량(mCPU)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*\\(mCPU\\).*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mcores"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    4,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * sum((rate(container_cpu_usage_seconds_total{namespace=\"platform\",pod=~\"config-server-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=\"platform\",pod=~\"config-server-.*\",container!=\"\",image!=\"\"} < 60))) / sum(kube_pod_container_resource_limits{namespace=\"platform\",pod=~\"config-server-.*\",resource=\"cpu\",unit=\"core\"})",
+          "legendFormat": "CPU 사용률 (Limit 기준 %)",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum((rate(container_cpu_usage_seconds_total{namespace=\"platform\",pod=~\"config-server-.*\",container!=\"\",image!=\"\"}[30s]) and on(namespace,pod,container) (time() - container_last_seen{namespace=\"platform\",pod=~\"config-server-.*\",container!=\"\",image!=\"\"} < 60))) * 1000",
+          "legendFormat": "실제 사용량 (mCPU)",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform\",pod=~\"config-server-.*\",resource=\"cpu\",unit=\"core\"}) * 1000",
+          "legendFormat": "예약량 (mCPU)",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform\",pod=~\"config-server-.*\",resource=\"cpu\",unit=\"core\"}) * 1000",
+          "legendFormat": "최대할당 Limit (mCPU)",
+          "range": true
+        }
+      ],
+      "description": "컨테이너에 할당된 CPU Limit 기준 사용률(%)과 실제 사용량(mCPU)을 함께 표시합니다."
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "메모리 사용량과 상한",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum((container_memory_working_set_bytes{namespace=\"platform\",pod=~\"config-server-.*\",container!=\"\",image!=\"\"} and on(namespace,pod,container) (time() - container_last_seen{namespace=\"platform\",pod=~\"config-server-.*\",container!=\"\",image!=\"\"} < 60)))",
+          "legendFormat": "사용량",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform\",pod=~\"config-server-.*\",resource=\"memory\",unit=\"byte\"})",
+          "legendFormat": "상한",
+          "range": true
+        }
+      ],
+      "description": "Pod working set과 OOM 종료 기준인 memory limit을 비교합니다. 사용량이 상한에 계속 근접하면 메모리 누수·JVM 설정·limit을 점검합니다."
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "JVM 힙 사용량",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(jvm_memory_used_bytes{job=\"kubernetes-spring-pods\",application=\"config-server\",area=\"heap\"})",
+          "legendFormat": "힙 사용량",
+          "range": true
+        }
+      ],
+      "description": "JVM heap 사용량입니다. Pod 전체 메모리가 아니며, 지속 상승 후 GC에도 회복되지 않으면 메모리 누수를 의심합니다."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Pod 재시작 횟수",
+      "description": "platform namespace의 config-server Pod만 집계합니다. Redis·Kafka 등 data namespace Pod는 포함하지 않습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "vertical",
+        "wideLayout": false,
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"platform\",pod=~\"config-server-.*\"})",
+          "legendFormat": "Config Server",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "type": "row",
+      "title": "EC2 전체 자원",
+      "description": "Main/Data EC2의 자원 사용률·잔여 용량·파일 디스크립터·Load Average·네트워크 상태를 한 영역에서 확인합니다.",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "panels": []
+    },
+    {
+      "id": 110,
+      "type": "bargauge",
+      "title": "Main EC2 자원 사용률",
+      "description": "CPU·RAM·디스크 사용률·디스크 여유율·CPU I/O 대기율·Swap 사용률을 하나의 가로 막대 패널로 표시합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 18,
+        "x": 0,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "디스크 여유율"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 10
+                    },
+                    {
+                      "color": "green",
+                      "value": 20
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Swap"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 12,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * (1 - avg (rate(node_cpu_seconds_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mode=\"idle\"}[30s])))",
+          "legendFormat": "CPU",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"} / node_memory_MemTotal_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"})",
+          "legendFormat": "RAM",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})",
+          "legendFormat": "루트 디스크",
+          "range": true
+        },
+        {
+          "refId": "D",
+          "editorMode": "code",
+          "expr": "100 * avg (rate(node_cpu_seconds_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mode=\"iowait\"}[30s]))",
+          "legendFormat": "CPU I/O 대기",
+          "range": true
+        },
+        {
+          "refId": "E",
+          "editorMode": "code",
+          "expr": "100 * node_filesystem_avail_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"}",
+          "legendFormat": "디스크 여유율",
+          "range": true
+        },
+        {
+          "refId": "F",
+          "editorMode": "code",
+          "expr": "100 * (node_memory_SwapTotal_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"} - node_memory_SwapFree_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}) / clamp_min(node_memory_SwapTotal_bytes{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}, 1)",
+          "legendFormat": "Swap",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1116,
+      "type": "stat",
+      "title": "Main EC2 열린 파일 디스크립터 수",
+      "description": "현재 커널에 할당된 파일 디스크립터 수입니다. 지속 상승하면 연결·파일 누수를 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10000
+              },
+              {
+                "color": "red",
+                "value": 50000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "node_filefd_allocated{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "열린 FD",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1118,
+      "type": "timeseries",
+      "title": "Main EC2 CPU Load Average",
+      "description": "실행 중이거나 CPU를 기다리는 작업 수입니다. 2 vCPU 서버에서 5분 Load가 2 이상 지속되면 CPU 경합을 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 22
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "node_load1{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "1분",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "node_load5{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "5분",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "node_load15{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\"}",
+          "legendFormat": "15분",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1119,
+      "type": "timeseries",
+      "title": "Main EC2 네트워크 송수신",
+      "description": "Loopback을 제외한 초당 네트워크 수신·송신량입니다. 서비스 트래픽과 DB·Exporter 통신 증가를 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 22
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_receive_bytes_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "수신",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_transmit_bytes_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "송신",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 1120,
+      "type": "timeseries",
+      "title": "Main EC2 네트워크 오류·드롭",
+      "description": "초당 네트워크 오류와 드롭 수입니다. 0보다 큰 값이 지속되면 보안 그룹·MTU·NIC·호스트 부하를 점검합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 22
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_receive_errs_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s])) + sum(rate(node_network_receive_drop_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "수신 오류·드롭",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(node_network_transmit_errs_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s])) + sum(rate(node_network_transmit_drop_total{job=\"main-node-exporter\",server=\"Main EC2\",instance=\"ssh-tunnel:19100\",device!=\"lo\"}[30s]))",
+          "legendFormat": "송신 오류·드롭",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "Spring 애플리케이션 상세 지표",
+      "description": "HTTP 오류·응답시간, JVM GC·스레드을 서비스 단위로 추적합니다.",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "panels": []
+    },
+    {
+      "id": 301,
+      "type": "timeseries",
+      "title": "HTTP 4xx·5xx 비율",
+      "description": "Actuator를 제외한 전체 HTTP 요청 중 4xx와 5xx가 차지하는 비율입니다. 4xx 증가는 요청·인증 문제, 5xx 증가는 서버 내부 실패를 우선 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 49
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx 비율"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx 비율"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "100 * (sum(rate(http_server_requests_seconds_count{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\",status=~\"4..\"}[1m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\"}[1m])), 0.000001)",
+          "legendFormat": "4xx 비율",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "100 * (sum(rate(http_server_requests_seconds_count{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\",status=~\"5..\"}[1m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\"}[1m])), 0.000001)",
+          "legendFormat": "5xx 비율",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 302,
+      "type": "timeseries",
+      "title": "HTTP 응답시간 평균·p95·p99",
+      "description": "평균은 전체 경향, p95·p99는 느린 상위 요청의 지연을 보여줍니다. p95·p99는 histogram 활성화 이후 수집된 요청부터 계산됩니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 49
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "평균"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p99"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\"}[1m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\"}[1m])), 0.000001)",
+          "legendFormat": "평균",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\"}[1m])))",
+          "legendFormat": "p95",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"kubernetes-spring-pods\",application=\"config-server\",uri!~\"/actuator.*\"}[1m])))",
+          "legendFormat": "p99",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 303,
+      "type": "timeseries",
+      "title": "JVM GC 발생률·정지시간",
+      "description": "GC 발생 횟수/초와 GC 때문에 애플리케이션이 멈춘 시간(ms/초)입니다. 두 값이 함께 증가하면 할당량·힙·GC 설정을 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 57
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GC 정지시간(ms/초)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: ms/초"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{application=\"config-server\"}[1m]))",
+          "legendFormat": "GC 횟수/초",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{application=\"config-server\"}[1m])) * 1000",
+          "legendFormat": "GC 정지시간(ms/초)",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 304,
+      "type": "timeseries",
+      "title": "JVM 스레드 수",
+      "description": "현재 실행 중인 Live, 백그라운드 Daemon, 시작 이후 Peak 스레드 수입니다. 지속적인 증가는 스레드 누수나 과도한 동시 처리를 의심합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 57
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "max(jvm_threads_live_threads{application=\"config-server\"})",
+          "legendFormat": "Live",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "max(jvm_threads_daemon_threads{application=\"config-server\"})",
+          "legendFormat": "Daemon",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "max(jvm_threads_peak_threads{application=\"config-server\"})",
+          "legendFormat": "Peak",
+          "range": true
+        }
+      ]
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 42,
+  "tags": [
+    "lastdish",
+    "config"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "설정 서버",
+  "uid": "lastdish-config-server",
+  "version": 2
+}
