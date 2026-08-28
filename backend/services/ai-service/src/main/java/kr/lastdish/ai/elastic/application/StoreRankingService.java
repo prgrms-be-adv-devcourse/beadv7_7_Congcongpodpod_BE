@@ -120,7 +120,7 @@ public class StoreRankingService {
             .rawDistanceKm(distanceKm)
             .deadlineScore(normDeadline)
             .priceScore(normPrice)
-            .personalizationScore(0.0) // 개인화 미사용 - 항상 0
+            .personalizationScore(0.0) // 개인화 미사용
             .storeNameSimScore(normStoreNameSim)
             .dishNameSimScore(normDishNameSim)
             .descriptionSimScore(normDescriptionSim)
@@ -198,7 +198,7 @@ public class StoreRankingService {
     return 6371.0 * c;
   }
 
-  /** 매장 내 판매 중인 메뉴들 중 실구매가(할인가 우선, 없으면 정가) 최저값을 반환한다. 메뉴가 없거나 가격 정보가 전혀 없으면 MAX_VALUE. */
+  /** 매장 내 판매 중인 메뉴들 중 실구매가 최저값을 반환, 메뉴가 없거나 가격 정보가 전혀 없으면 MAX_VALUE. */
   private double extractMinPrice(List<StoreDocument.DishItem> dishes) {
     if (dishes == null || dishes.isEmpty()) return Double.MAX_VALUE;
 
@@ -215,7 +215,7 @@ public class StoreRankingService {
         .orElse(Double.MAX_VALUE);
   }
 
-  /** 판매중/재고>0인 메뉴 중 가장 이른 pickupEndTime까지 남은 분을 반환한다. 해당 메뉴가 없으면 MAX_VALUE. */
+  /** 판매중/재고>0인 메뉴 중 가장 이른 pickupEndTime까지 남은 분을 반환, 해당 메뉴가 없으면 MAX_VALUE. */
   private double extractMinutesUntilEarliestPickupEnd(List<StoreDocument.DishItem> dishes) {
     if (dishes == null || dishes.isEmpty()) return Double.MAX_VALUE;
     java.time.LocalTime now = java.time.LocalTime.now();

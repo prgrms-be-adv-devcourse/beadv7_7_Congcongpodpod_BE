@@ -37,7 +37,6 @@ public class StoreDocument {
 
   @GeoPointField private GeoPoint location;
 
-  // 1536 차원 (OpenAI text-embedding-3-small 등) Vector 필드 추가
   @Field(type = FieldType.Dense_Vector, dims = 1536, index = true, similarity = "cosine")
   private List<Float> storeNameVector;
 

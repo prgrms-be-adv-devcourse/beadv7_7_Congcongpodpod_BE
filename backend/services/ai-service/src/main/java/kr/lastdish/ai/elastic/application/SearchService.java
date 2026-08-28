@@ -121,10 +121,7 @@ public class SearchService {
                                       .lte(cond.maxPrice().doubleValue())))));
     }
 
-    // 희망 픽업 시각(pickupDeadline): "이 시각 이전에 픽업하고 싶다"는 의도이므로
-    // 픽업 시작 시각이 이미 그 이전이어야 함
-    // 기존 pickupEndTime >= now 필터와 AND로 결합되어
-    // "픽업 가능 구간이 [now, pickupDeadline]과 겹친다"를 표현
+    // 희망 픽업 시각(pickupDeadline): "이 시각 이전에 픽업하고 싶다"는 의도이므로 픽업 시작 시각이 이미 그 이전
     if (cond.pickupDeadline() != null) {
       availableDishBool.filter(PickupTimeQueryFactory.startsByDeadline(now, cond.pickupDeadline()));
     }
@@ -149,13 +146,12 @@ public class SearchService {
     boolean hasQuery = cond.rawIntent() != null && !cond.rawIntent().isBlank();
 
     if (hasQuery) {
-      // 4-1. 가게 이름 검색 (Should)
+      // 4-1. 가게 이름 검색
       MultiMatchQuery storeMatch =
           MultiMatchQuery.of(m -> m.fields("storeName^1.5").query(cond.rawIntent()));
       mainBool.should(Query.of(q -> q.multiMatch(storeMatch)));
 
-      // 4-2. 메뉴 이름/설명 텍스트 검색 (Should) - 판매 가능 조건(availableDishFilter)과는
-      //      완전히 분리된 별도 nested 쿼리. 매장명만 일치해도 재고/판매상태 필터를 우회할 수 없다.
+      // 4-2. 메뉴 이름/설명 텍스트 검색 판매 가능 조건과는 완전히 분리된 별도 nested 쿼리. 매장명만 일치해도 재고/판매상태 필터를 우회 불가능
       NestedQuery dishTextQuery =
           NestedQuery.of(
               n ->

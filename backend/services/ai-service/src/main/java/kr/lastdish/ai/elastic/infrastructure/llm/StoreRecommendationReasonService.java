@@ -29,7 +29,7 @@ public class StoreRecommendationReasonService {
 
   private static final long TIMEOUT_MS = 3000;
 
-  // 폴백 문장에서 배지 하나당 붙일 짧은 근거 조각. 여러 배지가 있으면 자연스럽게 이어붙인다.
+  // 폴백 문장에서 배지 하나당 붙일 짧은 근거, 여러 배지가 있으면 자연스럽게 이어붙암
   private static final Map<String, String> BADGE_PHRASES =
       Map.of(
           "가장 가까움", "가장 가까운 위치",
@@ -42,7 +42,7 @@ public class StoreRecommendationReasonService {
   private final ChatModel chatModel;
   private final ExecutorService recommendationReasonExecutor;
 
-  /** 상위 랭킹 결과에 대해 RAG 기반 추천 이유를 생성해 채워 넣는다. LLM 실패/타임아웃 시 배지 기반 기본 문장으로 대체한다 (검색 자체는 절대 막지 않음). */
+  /** 상위 랭킹 결과에 대해 RAG 기반 추천 이유를 생성, LLM 실패/타임아웃 시 배지 기반 기본 문장으로 대체 */
   public void assignReasons(List<StoreSearchResult> topResults, String rawIntent) {
     if (topResults == null || topResults.isEmpty()) {
       return;
@@ -116,7 +116,7 @@ public class StoreRecommendationReasonService {
         result.getBadges());
   }
 
-  /** 정가 대비 할인율(%)을 계산한다. 가격 정보가 없거나 정가가 0이면 null. */
+  /** 정가 대비 할인율을 계산 */
   private Double calculateDiscountRate(StoreResponse.CheapestDishResponse dish) {
     if (dish == null || dish.dishPrice() == null || dish.discountPrice() == null) {
       return null;
@@ -136,8 +136,6 @@ public class StoreRecommendationReasonService {
       String rawIntent,
       List<StoreReasonPromptItem> items,
       BeanOutputConverter<RecommendationReasonResponse> converter) {
-    // 프롬프트는 짧게 유지하되, "왜 이 매장인지"가 각 아이템의 구체적인 수치(거리 km, 할인율 %,
-    // 필드별 유사도)에 근거하도록만 핵심 규칙 몇 줄로 압축했다.
     String templateText =
         """
                             당신은 음식 배달 앱의 추천 이유 작성 도우미입니다.
@@ -166,7 +164,6 @@ public class StoreRecommendationReasonService {
             "format", converter.getFormat()));
   }
 
-  /** LLM 실패/타임아웃 시 배지 기반으로 문장을 조립한다. 배지가 여러 개면 전부 이어붙인다. */
   private String buildDefaultReason(StoreSearchResult result) {
     List<String> badges = result.getBadges();
     if (badges == null || badges.isEmpty()) {

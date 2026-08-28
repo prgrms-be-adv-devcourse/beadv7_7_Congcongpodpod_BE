@@ -2,7 +2,7 @@ package kr.lastdish.ai.elastic.infrastructure.embedding;
 
 import java.util.List;
 
-/** 필드별 벡터 유사도(코사인 유사도)를 계산하는 유틸리티. */
+/** 필드별 벡터의 코사인 유사도를 계산 */
 public final class VectorSimilarityUtils {
 
   private VectorSimilarityUtils() {}

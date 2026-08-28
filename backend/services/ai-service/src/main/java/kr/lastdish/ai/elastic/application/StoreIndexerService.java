@@ -101,7 +101,7 @@ public class StoreIndexerService {
       return;
     }
 
-    // 삭제된 매장은 tombstone으로 처리해 기존 색인을 제거한다.
+    // 삭제된 매장은 tombstone으로 처리해 기존 색인을 제거
     updatedStores.stream()
         .filter(InternalStoreResponse::deleted)
         .map(InternalStoreResponse::storeId)
@@ -113,8 +113,7 @@ public class StoreIndexerService {
       return;
     }
 
-    // [from, to] 구간의 활성 매장 전체를 대상으로 처리한다.
-    // 일부만 선별하고 watermark가 to로 전진하면 나머지가 영영 누락되므로 limit을 두지 않는다.
+    // [from, to] 구간의 활성 매장 전체를 대상으로 처리
     List<Long> storeIds = activeStores.stream().map(InternalStoreResponse::storeId).toList();
     Iterable<StoreDocument> existingDocs = repository.findAllById(storeIds);
 
@@ -132,7 +131,7 @@ public class StoreIndexerService {
     log.info("Polling 기반 Store 색인 동기화 완료. count={}", documents.size());
   }
 
-  /** 가게명/메뉴명/설명 3개 필드의 임베딩 텍스트를 조립한다. 메뉴는 매장당 1개 고정을 전제로 한다. */
+  /** 가게명/메뉴명/설명 3개 필드의 임베딩 텍스트를 조립 */
   private String[] buildFieldTexts(String storeName, InternalDishResponse dish) {
     String storeNameText = "가게: " + nullToEmpty(storeName);
     String dishNameText = dish != null ? "메뉴: " + nullToEmpty(dish.dishName()) : "";
@@ -216,9 +215,7 @@ public class StoreIndexerService {
   private record FieldVectorResult(List<Float>[] vectors, String[] hashes) {}
 
   /**
-   * 가게명/메뉴명/설명 3개 필드 중 텍스트가 바뀐 필드만 골라 임베딩 API를 한 번의 배치 호출로 재생성한다. 바뀌지 않은 필드는 기존 벡터를 그대로 재사용해서 호출
-   * 비용/횟수를 최소화한다. 영업 상태만 바뀐 이벤트(STATUS_ONLY_EVENT)면 텍스트 자체가 안 바뀌었다고 보고, 기존 벡터가 유효한 필드는 전부
-   * 재사용한다(필드별로 독립 판단 - 예: 설명만 비어있었다면 설명만 재시도).
+   * 가게명/메뉴명/설명 3개 필드 중 텍스트가 바뀐 필드만 골라 임베딩 API를 한 번의 배치 호출로 재생성, 바뀌지 않은 필드는 기존 벡터를 그대로 재사용해서 호출
    */
   @SuppressWarnings("unchecked")
   private FieldVectorResult resolveFieldVectors(
@@ -284,12 +281,11 @@ public class StoreIndexerService {
       byte[] hashBytes = digest.digest(text.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(hashBytes);
     } catch (NoSuchAlgorithmException e) {
-      // SHA-256은 JDK 표준 알고리즘이라 정상 환경에서는 발생하지 않음
       throw new IllegalStateException("해시 알고리즘을 사용할 수 없습니다.", e);
     }
   }
 
-  /** 가게명/메뉴명/설명 3개 벡터 필드 중 하나라도 없는 문서를 찾아 재시도한다 (기존 polling 구조 확장). */
+  /** 가게명/메뉴명/설명 3개 벡터 필드 중 하나라도 없는 문서를 찾아 재시도 */
   public void retryFailedEmbeddings() {
     NativeQuery query =
         NativeQuery.builder()
