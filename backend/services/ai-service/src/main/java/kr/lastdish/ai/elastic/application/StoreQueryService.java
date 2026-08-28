@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.LocalTime;
 import java.util.List;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
+import kr.lastdish.ai.elastic.domain.model.PickupFilter;
 import kr.lastdish.ai.elastic.presentation.dto.StoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -31,7 +32,7 @@ public class StoreQueryService {
       Double latitude,
       Double longitude,
       Double radiusKm,
-      Boolean hasAvailableDish,
+      PickupFilter pickupFilter,
       int page,
       int size) {
 
@@ -49,8 +50,9 @@ public class StoreQueryService {
                             .distanceType(GeoDistanceType.Arc)
                             .location(location))));
 
-    // 2. hasAvailableDish = true 인 경우 세부 조건 적용
-    if (Boolean.TRUE.equals(hasAvailableDish)) {
+    // 2. pickupFilter에 따라 매장 상태/상품 조건을 다르게 적용
+    //    ALL은 상품 조건 없이 위치 필터만 적용
+    if (pickupFilter == PickupFilter.NOW || pickupFilter == PickupFilter.TODAY) {
       // 2-1. 매장 상태가 OPEN
       mainBool.filter(Query.of(q -> q.term(t -> t.field("status").value("OPEN"))));
 
@@ -64,8 +66,14 @@ public class StoreQueryService {
       // 상품 상태 ON_SALE
       dishBool.filter(Query.of(q -> q.term(t -> t.field("dishes.dishStatus").value("ON_SALE"))));
 
-      // 현재 시각이 픽업 가능 시간 내인지 일반 구간과 자정 넘김 구간으로 나눠 확인한다.
-      dishBool.filter(PickupTimeQueryFactory.currentlyAvailable(LocalTime.now(clock)));
+      LocalTime now = LocalTime.now(clock);
+      if (pickupFilter == PickupFilter.NOW) {
+        // NOW: 현재 시각이 픽업 가능 구간 내인지 확인
+        dishBool.filter(PickupTimeQueryFactory.currentlyAvailable(now));
+      } else {
+        // TODAY: 픽업 마감이 아직 지나지 않은 상품까지 포함
+        dishBool.filter(PickupTimeQueryFactory.notExpired(now));
+      }
 
       NestedQuery nestedQuery =
           NestedQuery.of(

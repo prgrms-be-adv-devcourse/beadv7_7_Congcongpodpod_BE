@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import kr.lastdish.ai.elastic.domain.document.StoreDocument;
 import kr.lastdish.ai.elastic.domain.model.ParsedSearchCondition;
+import kr.lastdish.ai.elastic.domain.model.PickupFilter;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
@@ -66,12 +67,47 @@ class SearchServicePickupTimeTest {
     when(searchHits.stream()).thenReturn(Stream.empty());
     StoreQueryService storeQueryService = new StoreQueryService(operations, KST_23_CLOCK);
 
-    storeQueryService.getStoresByLocation(37.5, 127.0, 3.0, true, 0, 10);
+    // hasAvailableDish=true는 "현재 픽업 가능 시간 내"를 의미했으므로 PickupFilter.NOW로 대응한다.
+    storeQueryService.getStoresByLocation(37.5, 127.0, 3.0, PickupFilter.NOW, 0, 10);
 
     ArgumentCaptor<NativeQuery> queryCaptor = ArgumentCaptor.forClass(NativeQuery.class);
     verify(operations).search(queryCaptor.capture(), eq(StoreDocument.class));
     assertThat(queryCaptor.getValue().getQuery().toString())
         .contains("pickupSpansMidnight", "23:00:00");
+  }
+
+  @Test
+  void 주변_매장_검색_TODAY_필터도_자정을_넘는_픽업_구간을_별도_조건으로_검색한다() {
+    ElasticsearchOperations operations = mock(ElasticsearchOperations.class);
+    @SuppressWarnings("unchecked")
+    SearchHits<StoreDocument> searchHits = mock(SearchHits.class);
+    when(operations.search(any(NativeQuery.class), eq(StoreDocument.class))).thenReturn(searchHits);
+    when(searchHits.stream()).thenReturn(Stream.empty());
+    StoreQueryService storeQueryService = new StoreQueryService(operations, KST_23_CLOCK);
+
+    storeQueryService.getStoresByLocation(37.5, 127.0, 3.0, PickupFilter.TODAY, 0, 10);
+
+    ArgumentCaptor<NativeQuery> queryCaptor = ArgumentCaptor.forClass(NativeQuery.class);
+    verify(operations).search(queryCaptor.capture(), eq(StoreDocument.class));
+    assertThat(queryCaptor.getValue().getQuery().toString())
+        .contains("pickupSpansMidnight", "23:00:00");
+  }
+
+  @Test
+  void 주변_매장_검색_ALL_필터는_dishes_중첩_조건_없이_위치_필터만_적용한다() {
+    ElasticsearchOperations operations = mock(ElasticsearchOperations.class);
+    @SuppressWarnings("unchecked")
+    SearchHits<StoreDocument> searchHits = mock(SearchHits.class);
+    when(operations.search(any(NativeQuery.class), eq(StoreDocument.class))).thenReturn(searchHits);
+    when(searchHits.stream()).thenReturn(Stream.empty());
+    StoreQueryService storeQueryService = new StoreQueryService(operations, KST_23_CLOCK);
+
+    storeQueryService.getStoresByLocation(37.5, 127.0, 3.0, PickupFilter.ALL, 0, 10);
+
+    ArgumentCaptor<NativeQuery> queryCaptor = ArgumentCaptor.forClass(NativeQuery.class);
+    verify(operations).search(queryCaptor.capture(), eq(StoreDocument.class));
+    String query = queryCaptor.getValue().getQuery().toString();
+    assertThat(query).doesNotContain("pickupSpansMidnight", "dishes.stockQuantity");
   }
 
   @Test
