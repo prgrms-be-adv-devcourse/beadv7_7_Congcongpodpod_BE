@@ -2,6 +2,7 @@ package kr.lastdish.core.dish.presentation.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import kr.lastdish.core.dish.domain.Dish;
 
 public record DishResponse(
@@ -15,7 +16,9 @@ public record DishResponse(
     Long stockQuantity,
     String dishStatus,
     BigDecimal dishPrice,
-    BigDecimal discountPrice) {
+    BigDecimal discountPrice,
+    LocalTime pickupStartTime,
+    LocalTime pickupEndTime) {
   public static DishResponse from(Dish dish) {
     return new DishResponse(
         dish.getId(),
@@ -28,7 +31,9 @@ public record DishResponse(
         dish.getStockQuantity(),
         dish.getDishStatus().name(),
         dish.getDishPrice(),
-        dish.getDiscountPrice());
+        dish.getDiscountPrice(),
+        dish.getPickupStartTime(),
+        dish.getPickupEndTime());
   }
 
   public DishResponse withThumbnailUrl(String thumbnailUrl) {
@@ -43,6 +48,8 @@ public record DishResponse(
         stockQuantity,
         dishStatus,
         dishPrice,
-        discountPrice);
+        discountPrice,
+        pickupStartTime,
+        pickupEndTime);
   }
 }

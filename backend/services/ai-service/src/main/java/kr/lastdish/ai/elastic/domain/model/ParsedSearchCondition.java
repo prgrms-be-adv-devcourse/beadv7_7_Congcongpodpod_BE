@@ -10,5 +10,5 @@ public record ParsedSearchCondition(
     Double maxDistanceKm, // 검색 반경
     LocalTime pickupDeadline, // 희망 픽업 시각
     String category, // 카테고리
-    String rawIntent // kNN/Match 검색에 사용할 키워드/의도 문장 (예: "든든한 저녁")
-    ) {}
+    String rawIntent, // kNN/Match 검색에 사용할 키워드/의도 문장 (예: "든든한 저녁")
+    Boolean isFoodRelated) {}

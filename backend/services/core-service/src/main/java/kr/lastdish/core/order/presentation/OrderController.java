@@ -3,6 +3,7 @@ package kr.lastdish.core.order.presentation;
 import jakarta.validation.Valid;
 import kr.lastdish.common.api.response.ApiResponse;
 import kr.lastdish.core.order.application.OrderFacade;
+import kr.lastdish.core.order.application.OrderQueryFacade;
 import kr.lastdish.core.order.application.OrderService;
 import kr.lastdish.core.order.domain.OrderStatus;
 import kr.lastdish.core.order.presentation.dto.request.OrderCreateRequest;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/orders")
 public class OrderController {
   private final OrderFacade orderFacade;
+  private final OrderQueryFacade orderQueryFacade;
   private final OrderService orderService;
 
   @PostMapping("/cartItems/{cartItemId}")
@@ -77,7 +79,7 @@ public class OrderController {
   @GetMapping("/{orderId}")
   public ApiResponse<OrderResponse> getEachOrder(
       @RequestHeader("X-Authenticated-Member-Id") Long memberId, @PathVariable Long orderId) {
-    return ApiResponse.ok(OrderResponse.from(orderService.getEachOrder(memberId, orderId)));
+    return ApiResponse.ok(OrderResponse.from(orderQueryFacade.getEachOrder(memberId, orderId)));
   }
 
   @GetMapping("/{orderId}/pickupCode")
@@ -92,7 +94,7 @@ public class OrderController {
       @RequestParam(required = false) OrderStatus status,
       @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
     return ApiResponse.ok(
-        orderService.getMyOrders(memberId, status, pageable).map(OrderResponse::from));
+        orderQueryFacade.getMyOrders(memberId, status, pageable).map(OrderResponse::from));
   }
 
   @GetMapping("/stores/{storeId}")

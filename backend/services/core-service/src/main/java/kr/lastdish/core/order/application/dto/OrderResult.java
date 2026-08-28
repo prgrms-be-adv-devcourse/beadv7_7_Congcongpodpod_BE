@@ -23,7 +23,8 @@ public record OrderResult(
     BigDecimal usedPoint,
     BigDecimal usedDeposit,
     LocalTime pickupStartAt,
-    LocalTime pickupEndAt) {
+    LocalTime pickupEndAt,
+    String pickupCode) {
   public static OrderResult from(Order order) {
     return new OrderResult(
         order.getId(),
@@ -42,6 +43,7 @@ public record OrderResult(
         order.getUsedPoint(),
         order.getUsedDeposit(),
         order.getPickupStartAt(),
-        order.getPickupEndAt());
+        order.getPickupEndAt(),
+        order.getStatus() == OrderStatus.PICKUP_READY ? order.getPickupCode() : null);
   }
 }
