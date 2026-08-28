@@ -50,7 +50,7 @@ class SearchServicePickupTimeTest {
     SearchService searchService = new SearchService(operations, KST_23_CLOCK);
 
     searchService.searchStoresAndDishes(
-        new ParsedSearchCondition(null, null, null, null, null), null, List.of());
+        new ParsedSearchCondition(null, null, null, null, null, null), null, List.of());
 
     ArgumentCaptor<NativeQuery> queryCaptor = ArgumentCaptor.forClass(NativeQuery.class);
     verify(operations).search(queryCaptor.capture(), eq(StoreDocument.class));
@@ -120,7 +120,9 @@ class SearchServicePickupTimeTest {
     SearchService searchService = new SearchService(operations, KST_23_CLOCK);
 
     searchService.searchStoresAndDishes(
-        new ParsedSearchCondition(null, null, LocalTime.of(1, 0), null, null), null, List.of());
+        new ParsedSearchCondition(null, null, LocalTime.of(1, 0), null, null, null),
+        null,
+        List.of());
 
     ArgumentCaptor<NativeQuery> queryCaptor = ArgumentCaptor.forClass(NativeQuery.class);
     verify(operations).search(queryCaptor.capture(), eq(StoreDocument.class));

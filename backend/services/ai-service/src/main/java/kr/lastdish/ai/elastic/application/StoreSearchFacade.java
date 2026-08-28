@@ -1,5 +1,6 @@
 package kr.lastdish.ai.elastic.application;
 
+import java.math.BigDecimal;
 import java.time.DateTimeException;
 import java.time.LocalTime;
 import java.util.Comparator;
@@ -28,6 +29,7 @@ import org.springframework.util.StopWatch;
 public class StoreSearchFacade {
 
   private static final int DISPLAY_TOP_N = 100; // 화면에 노출수
+  private static final double MIN_DISPLAY_SCORE = 0.24;
   private static final int REASON_TOP_N = 5; // RAG 추천수
 
   // ===== 투-패스 폴백 판단 기준 =====
@@ -98,7 +100,8 @@ public class StoreSearchFacade {
           "BM25 Fast-Pass 품질 충족(count={}, topScore={}) - LLM 폴백 없이 반환",
           fastHits.size(),
           fastHits.isEmpty() ? 0.0 : fastHits.get(0).getScore());
-      return finalizeResults(fastHits, userLocation, fastCond, stopWatch, true, null);
+      return finalizeResults(
+          fastHits, userLocation, fastCond, stopWatch, true, null, request.getWalletBalance());
     }
 
     log.info("BM25 Fast-Pass 품질 미달(count={}) - LLM 파싱 + 벡터 검색으로 폴백", fastHits.size());
@@ -122,7 +125,8 @@ public class StoreSearchFacade {
     stopWatch.stop();
 
     // 단순 키워드 경로는 지연시간 최소화가 목적이므로 RAG 추천 이유 생성은 생략
-    return finalizeResults(hits, userLocation, simpleCond, stopWatch, false, null);
+    return finalizeResults(
+        hits, userLocation, simpleCond, stopWatch, false, null, request.getWalletBalance());
   }
 
   /** LLM 없이 카테고리/픽업시간을 로컬로 추출해서 채운 검색 조건을 생성 */
@@ -199,7 +203,8 @@ public class StoreSearchFacade {
         cond.maxDistanceKm(),
         cond.pickupDeadline(),
         cond.category(),
-        cond.rawIntent());
+        cond.rawIntent(),
+        cond.isFoodRelated());
   }
 
   /** 전체 파이프라인: LLM 조건 파싱 -> 임베딩 -> 하이브리드(BM25+kNN) 검색 -> 랭킹 -> RAG 추천 이유. */
@@ -210,6 +215,11 @@ public class StoreSearchFacade {
     stopWatch.start("2. LLM 파싱");
     ParsedSearchCondition cond = llmParsingService.parseUserQuery(request.getQuery());
     stopWatch.stop();
+
+    if (Boolean.FALSE.equals(cond.isFoodRelated())) {
+      log.info("LLM이 음식/매장 검색과 무관하다고 판단(query=\"{}\") - 빈 결과 반환", request.getQuery());
+      return List.of();
+    }
 
     // 2. 거리 반경 Fallback 처리
     Double effectiveDistance =
@@ -222,7 +232,8 @@ public class StoreSearchFacade {
                 effectiveDistance,
                 cond.pickupDeadline(),
                 cond.category(),
-                cond.rawIntent()),
+                cond.rawIntent(),
+                cond.isFoodRelated()),
             request.getQuery(),
             request.getWalletBalance());
 
@@ -236,7 +247,8 @@ public class StoreSearchFacade {
     List<SearchHit<StoreDocument>> hits =
         searchService.searchStoresAndDishes(finalCond, userLocation, queryVector);
     stopWatch.stop();
-    return finalizeResults(hits, userLocation, finalCond, stopWatch, true, queryVector);
+    return finalizeResults(
+        hits, userLocation, finalCond, stopWatch, true, queryVector, request.getWalletBalance());
   }
 
   /** 랭킹/배지 부여 후, 필요 시 상위 N개에 대해 RAG 추천 이유를 채워 반환 */
@@ -246,14 +258,20 @@ public class StoreSearchFacade {
       ParsedSearchCondition cond,
       StopWatch stopWatch,
       boolean generateReasons,
-      List<Float> queryVector) {
+      List<Float> queryVector,
+      BigDecimal walletBalance) {
 
     boolean deadlineRequested = cond.pickupDeadline() != null;
 
     stopWatch.start("랭킹/배지");
     List<StoreSearchResult> ranked =
-        storeRankingService.rankAndAssignBadges(hits, userLocation, deadlineRequested, queryVector);
-    List<StoreSearchResult> displayResults = ranked.stream().limit(DISPLAY_TOP_N).toList();
+        storeRankingService.rankAndAssignBadges(
+            hits, userLocation, deadlineRequested, queryVector, walletBalance);
+    List<StoreSearchResult> displayResults =
+        ranked.stream()
+            .filter(r -> r.getTotalScore() >= MIN_DISPLAY_SCORE)
+            .limit(DISPLAY_TOP_N)
+            .toList();
     stopWatch.stop();
 
     if (generateReasons) {
