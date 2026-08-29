@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import kr.lastdish.common.api.exception.BusinessException;
+import kr.lastdish.core.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 class OrderTest {
@@ -106,6 +107,46 @@ class OrderTest {
 
     assertThat(order.getStatus()).isEqualTo(OrderStatus.PICKED_UP);
     assertThat(order.getPickupResultAt()).isEqualTo(pickedUpAt);
+  }
+
+  @Test
+  void 픽업_대기_상태에서는_픽업_코드를_볼_수_있다() {
+    Order order = createPickupReadyOrder();
+
+    order.validatePickupCodeReadable();
+  }
+
+  @Test
+  void 수락_전에는_픽업_코드를_볼_수_없고_현재_상태를_알려준다() {
+    Order order = createOrder();
+
+    assertThatThrownBy(order::validatePickupCodeReadable)
+        .isInstanceOf(BusinessException.class)
+        .hasMessageContaining("예약 완료");
+  }
+
+  @Test
+  void 픽업이_끝나면_픽업_코드를_볼_수_없고_현재_상태를_알려준다() {
+    Order order = createPickupReadyOrder();
+    order.completePickup(LocalDateTime.of(2026, 8, 10, 18, 30));
+
+    assertThatThrownBy(order::validatePickupCodeReadable)
+        .isInstanceOf(BusinessException.class)
+        .hasMessageContaining("픽업 완료");
+  }
+
+  /*
+   * "주문이 없다"와 "지금은 볼 수 없다"를 구분하는 것이 이 검증의 목적이다.
+   * 둘을 같은 오류로 뭉개면 호출자가 안내를 나눌 수 없다(이슈 #479).
+   */
+  @Test
+  void 픽업_코드를_볼_수_없는_이유는_주문_부재와_다른_오류다() {
+    Order order = createOrder();
+
+    assertThatThrownBy(order::validatePickupCodeReadable)
+        .isInstanceOf(BusinessException.class)
+        .extracting(failure -> ((BusinessException) failure).getErrorCode())
+        .isEqualTo(ErrorCode.ORDER_PICKUP_CODE_NOT_AVAILABLE);
   }
 
   private Order createPickupReadyOrder() {
