@@ -19,6 +19,7 @@ export const STEPS = [
   'order_create',
   'cart_after_order',
   'order_list',
+  // 팬아웃을 걷어낸 뒤로는 발생하지 않는다. 이전 실행 결과와 나란히 보려고 정의만 남긴다.
   'order_list_stores_batch',
   'order_pickup_codes_batch',
   'seller_stores_for_dish',

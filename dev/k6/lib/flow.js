@@ -35,7 +35,6 @@ export function think() {
   sleep(seconds);
 }
 
-const unique = (values) => Array.from(new Set(values));
 
 // 로그인 1회 + 내 정보 + 장바구니 회원 정보. VU당 최초 1회만 실행한다 (설계 문서 4.1절).
 export function openSession(accountNo) {
@@ -63,14 +62,16 @@ function findCartItem(cart, dishId) {
   return items.length > 0 ? items[0] : null;
 }
 
-// 주문 목록 화면: 목록 1회 + 서로 다른 매장 U회(병렬) + PICKUP_READY 주문의 픽업 코드 P회(병렬).
+// 주문 목록 화면: 목록 1회 + PICKUP_READY 주문의 픽업 코드 P회(병렬).
 // RN이 Promise.all로 보내는 구간이라 http.batch로 옮겼다 (설계 문서 5절).
+//
+// 매장 상세를 매장마다 부르던 구간을 걷어냈다. 앱이 그것을 그만두었기 때문이다 —
+// storeName이 주문 응답에 실려 오고, 매장 이미지는 서버에 필드 자체가 없다.
+// 팬아웃이 있던 시절에는 화면 한 번에 요청이 51개 나갔고 그 구간이 8.19초였다
+// (2026-08-29 실측). 반복이 길어져 42 VU로 목표 도착률을 못 채우는 원인이기도 했다.
 function loadOrderList(session) {
   const page = dataOf(apiGet('order_list', `/orders?page=0&size=${PAGE.myOrdersSize}`, session.token));
   const orders = (page && page.content) || [];
-
-  const storeIds = unique(orders.map((order) => order.storeId));
-  apiBatchGet('order_list_stores_batch', storeIds.map((id) => `/stores/${id}`), session.token);
 
   const pickupReady = orders.filter((order) => order.status === 'PICKUP_READY');
   apiBatchGet(
@@ -79,9 +80,10 @@ function loadOrderList(session) {
     session.token,
   );
 
-  const calls = 1 + storeIds.length + pickupReady.length;
+  const calls = 1 + pickupReady.length;
   metrics.orderListCalls.add(calls);
-  metrics.orderListStoreFanout.add(storeIds.length);
+  // 팬아웃은 0으로 남긴다. 지표를 지우면 이전 실행과 나란히 볼 수 없다.
+  metrics.orderListStoreFanout.add(0);
   metrics.orderListPickupCodeCalls.add(pickupReady.length);
   return calls;
 }
