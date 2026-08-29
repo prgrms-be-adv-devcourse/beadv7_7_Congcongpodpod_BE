@@ -245,12 +245,12 @@ export function sellerHandleOrder(session, knownStoreId) {
   if (!storeId) {
     metrics.sellerOrderNotFound.add(1);
     console.error(`[${session.email}] 내 매장이 없어 매장 주문 처리를 건너뜁니다.`);
-    return null;
+    return { acceptedOrderId: null, pickedUpOrderId: null };
   }
 
   const target = findNewReservedOrder(session, storeId);
   if (!target) {
-    return null;
+    return { acceptedOrderId: null, pickedUpOrderId: null };
   }
   think(); // 11. 주문 수락
 
@@ -276,6 +276,7 @@ export function sellerHandleOrder(session, knownStoreId) {
     target.orderId,
   );
 
+  let pickedUpOrderId = null;
   if (pickupTarget) {
     const pickedUp = dataOf(
       apiSend('order_pickup', 'PATCH', `/orders/${pickupTarget.orderId}/pickup`, session.token, {
@@ -284,8 +285,11 @@ export function sellerHandleOrder(session, knownStoreId) {
     );
     if (pickedUp) {
       metrics.ordersPickedUp.add(1);
+      pickedUpOrderId = pickupTarget.orderId;
     }
   }
 
-  return target.orderId;
+  // 수락과 픽업이 서로 다른 주문이 되었으므로 둘을 따로 알려 준다.
+  // 호출부가 "픽업까지 갔는지"를 확인할 수 있어야 verify-flow가 상태 전이를 검증할 수 있다.
+  return { acceptedOrderId: target.orderId, pickedUpOrderId };
 }
