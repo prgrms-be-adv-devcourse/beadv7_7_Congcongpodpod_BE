@@ -191,8 +191,11 @@ public class OrderService {
     return OrderResult.from(order);
   }
 
+  // 픽업 코드를 조회한다. 실패 이유를 셋으로 나눠 알려 준다 - 주문 없음 / 남의 주문 / 볼 수 없는 상태.
   public PickupCodeResult getPickupCode(Long memberId, Long orderId) {
-    Order order = orderRepository.findPickupAvailableOrder(orderId, memberId);
+    Order order = orderRepository.findByIdAndIsDeletedFalse(orderId);
+    order.validateOwner(memberId);
+    order.validatePickupCodeReadable();
     return PickupCodeResult.from(order);
   }
 
