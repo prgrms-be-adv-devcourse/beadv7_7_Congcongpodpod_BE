@@ -16,9 +16,7 @@ import org.springframework.data.domain.Persistable;
  */
 @Getter
 @Entity
-@Table(
-    name = "outbox_events",
-    indexes = {@Index(name = "idx_outbox_status_occurred_at", columnList = "status, occurred_at")})
+@Table(name = "outbox_events")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OutboxEvent implements Persistable<UUID> {
 

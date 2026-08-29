@@ -3,6 +3,7 @@ package kr.lastdish.common.inbox;
 import kr.lastdish.common.inbox.application.*;
 import kr.lastdish.common.inbox.infrastructure.InboxAggregateVersionRepositoryAdapter;
 import kr.lastdish.common.inbox.infrastructure.InboxClaimRepositoryAdapter;
+import kr.lastdish.common.inbox.infrastructure.InboxCleanupRepositoryAdapter;
 import kr.lastdish.common.inbox.infrastructure.InboxRepositoryAdapter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
@@ -20,6 +21,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
   InboxScheduler.class,
   InboxEventProcessor.class,
   InboxFailureRecorder.class,
+  InboxCleanupService.class,
+  InboxCleanupScheduler.class,
+  InboxCleanupRepositoryAdapter.class,
   InboxRepositoryAdapter.class,
   InboxClaimRepositoryAdapter.class,
   InboxAggregateVersionRepositoryAdapter.class
