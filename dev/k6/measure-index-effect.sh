@@ -47,7 +47,7 @@ run_psql() {
   [[ -n "${DB_PASSWORD:-}" ]] || { echo "DB_PASSWORD가 필요합니다." >&2; exit 2; }
   docker run --rm -i -e PGPASSWORD="$DB_PASSWORD" postgres:16-alpine \
     psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-      -v ON_ERROR_STOP=1 --csv -t -A -c "$1"
+      -v ON_ERROR_STOP=1 -t --csv -c "$1"
 }
 
 # 테이블 스캔 통계와 인덱스 사용 횟수를 한 형식으로 뽑는다.
@@ -82,14 +82,28 @@ case "$cmd" in
 import csv, sys
 
 def load(path):
+    """쉼표 구분과 파이프 구분을 모두 받는다.
+
+    psql에 --csv와 -A를 같이 주면 뒤에 온 -A가 이겨서 파이프로 나온다(2026-08-29에
+    겪음). 인자는 고쳤지만, 이미 찍어 둔 스냅샷을 버리지 않으려고 양쪽 다 읽는다.
+    """
     out = {}
     with open(path, encoding="utf-8") as f:
-        for row in csv.reader(f):
-            if len(row) < 6:
-                continue
-            kind, name = row[0], row[1]
-            nums = [int(v) if v.strip() else 0 for v in row[2:6]]
-            out[(kind, name)] = nums
+        text = f.read()
+    # 첫 줄에 쉼표가 없고 파이프가 있으면 파이프 구분으로 본다.
+    first = next((l for l in text.splitlines() if l.strip()), "")
+    if "," not in first and "|" in first:
+        rows = [l.split("|") for l in text.splitlines() if l.strip()]
+    else:
+        rows = list(csv.reader(text.splitlines()))
+    for row in rows:
+        if len(row) < 6:
+            continue
+        kind, name = row[0].strip(), row[1].strip()
+        nums = [int(v) if v.strip() else 0 for v in row[2:6]]
+        out[(kind, name)] = nums
+    if not out:
+        print(f"경고: {path}에서 아무 줄도 읽지 못했습니다. 형식을 확인하세요.", file=sys.stderr)
     return out
 
 before, after = load(sys.argv[1]), load(sys.argv[2])
