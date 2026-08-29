@@ -12,7 +12,10 @@ import {
 import { loginWithCredentials, seedCredentials } from './accounts.js';
 import { apiBatchGet, apiGet, apiSend, dataOf } from './api.js';
 import * as metrics from './metrics.js';
-import { selectOldestNewReservedOrder } from './order-selection.js';
+import {
+  selectOldestNewReservedOrder,
+  selectOldestPickupReadyOrder,
+} from './order-selection.js';
 import { purchaseTargetOf } from './run-state.js';
 
 let thinkTotal = 0;
@@ -242,12 +245,12 @@ export function sellerHandleOrder(session, knownStoreId) {
   if (!storeId) {
     metrics.sellerOrderNotFound.add(1);
     console.error(`[${session.email}] 내 매장이 없어 매장 주문 처리를 건너뜁니다.`);
-    return null;
+    return { acceptedOrderId: null, pickedUpOrderId: null };
   }
 
   const target = findNewReservedOrder(session, storeId);
   if (!target) {
-    return null;
+    return { acceptedOrderId: null, pickedUpOrderId: null };
   }
   think(); // 11. 주문 수락
 
@@ -256,15 +259,37 @@ export function sellerHandleOrder(session, knownStoreId) {
     metrics.ordersAccepted.add(1);
   }
 
-  apiGet('seller_orders_pickup_ready', `/orders/stores/${storeId}?status=PICKUP_READY`, session.token);
+  const readyPage = dataOf(
+    apiGet('seller_orders_pickup_ready', `/orders/stores/${storeId}?status=PICKUP_READY`, session.token),
+  );
   think(); // 12. 픽업 완료
 
-  const pickedUp = dataOf(
-    apiSend('order_pickup', 'PATCH', `/orders/${target.orderId}/pickup`, session.token, { status: 'PICKED_UP' }),
+  /*
+   * 방금 수락한 주문은 픽업하지 않는다. 실제 서비스에서 PICKUP_READY는 손님이 매장에 올 때까지
+   * 유지되는데, 수락 직후 픽업하면 그 상태가 수 초만 존재해 구매자가 픽업코드를 못 받는다
+   * (2026-08-29 실측: order_pickup_codes_batch 0% — 31건 전부 실패).
+   * 이전 반복에서 수락된 것 중 가장 오래된 것을 픽업하면 처리량은 유지하면서 상태가 남는다.
+   */
+  const pickupTarget = selectOldestPickupReadyOrder(
+    (readyPage && readyPage.content) || [],
+    SEED.newOrderIdMin,
+    target.orderId,
   );
-  if (pickedUp) {
-    metrics.ordersPickedUp.add(1);
+
+  let pickedUpOrderId = null;
+  if (pickupTarget) {
+    const pickedUp = dataOf(
+      apiSend('order_pickup', 'PATCH', `/orders/${pickupTarget.orderId}/pickup`, session.token, {
+        status: 'PICKED_UP',
+      }),
+    );
+    if (pickedUp) {
+      metrics.ordersPickedUp.add(1);
+      pickedUpOrderId = pickupTarget.orderId;
+    }
   }
 
-  return target.orderId;
+  // 수락과 픽업이 서로 다른 주문이 되었으므로 둘을 따로 알려 준다.
+  // 호출부가 "픽업까지 갔는지"를 확인할 수 있어야 verify-flow가 상태 전이를 검증할 수 있다.
+  return { acceptedOrderId: target.orderId, pickedUpOrderId };
 }
