@@ -49,6 +49,10 @@ outbox:
   batch-size: ${OUTBOX_BATCH_SIZE:100}
   max-retries: ${OUTBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${OUTBOX_LOCK_TIMEOUT_SECONDS:60}
+  cleanup:
+    enabled: ${OUTBOX_CLEANUP_ENABLED:true}
+    batch-size: ${OUTBOX_CLEANUP_BATCH_SIZE:1000}
+    fixed-delay-ms: ${OUTBOX_CLEANUP_DELAY_MS:60000}
 
 inbox:
   scheduler:
@@ -57,6 +61,11 @@ inbox:
   batch-size: ${INBOX_BATCH_SIZE:100}
   max-retries: ${INBOX_MAX_RETRIES:5}
   lock-timeout-seconds: ${INBOX_LOCK_TIMEOUT_SECONDS:60}
+  cleanup:
+    enabled: ${INBOX_CLEANUP_ENABLED:true}
+    retention-days: ${INBOX_RETENTION_DAYS:3}
+    batch-size: ${INBOX_CLEANUP_BATCH_SIZE:1000}
+    fixed-delay-ms: ${INBOX_CLEANUP_DELAY_MS:60000}
 
 jwt:
   rsa:

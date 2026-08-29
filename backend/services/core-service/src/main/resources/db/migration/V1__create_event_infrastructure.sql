@@ -20,7 +20,12 @@ CREATE TABLE public.outbox_events (
 );
 
 CREATE INDEX idx_outbox_status_occurred_at
-    ON public.outbox_events (status, occurred_at);
+    ON public.outbox_events (status, occurred_at)
+    WHERE status IN ('PENDING', 'PROCESSING');
+
+CREATE INDEX idx_outbox_published_at
+    ON public.outbox_events (published_at)
+    WHERE status = 'PUBLISHED';
 
 CREATE TABLE public.inbox_events (
     consumer_id character varying(100) NOT NULL,
@@ -44,7 +49,12 @@ CREATE TABLE public.inbox_events (
 );
 
 CREATE INDEX idx_inbox_status_received_at
-    ON public.inbox_events (status, received_at);
+    ON public.inbox_events (status, received_at)
+    WHERE status IN ('RECEIVED', 'PROCESSING');
+
+CREATE INDEX idx_inbox_processed_at
+    ON public.inbox_events (processed_at)
+    WHERE status IN ('PROCESSED', 'SKIPPED');
 
 CREATE INDEX idx_inbox_aggregate_version
     ON public.inbox_events (consumer_id, aggregate_type, aggregate_id, aggregate_version);
@@ -59,4 +69,14 @@ CREATE TABLE public.inbox_aggregate_versions (
         PRIMARY KEY (consumer_id, aggregate_type, aggregate_id),
     CONSTRAINT inbox_aggregate_versions_non_negative_check
         CHECK (last_processed_version >= 0)
+);
+
+ALTER TABLE public.outbox_events SET (
+    autovacuum_vacuum_scale_factor = 0.02,
+    autovacuum_vacuum_threshold = 100
+);
+
+ALTER TABLE public.inbox_events SET (
+    autovacuum_vacuum_scale_factor = 0.05,
+    autovacuum_vacuum_threshold = 100
 );
