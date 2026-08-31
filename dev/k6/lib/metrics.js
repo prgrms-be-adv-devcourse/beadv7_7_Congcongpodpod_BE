@@ -102,3 +102,9 @@ export const stockIterations = new Counter('flow_stock_iterations');
 // 재고 조정 의도량. 최종 재고와 대조해 덮어쓰기 여부를 판정한다 (설계 문서 8.3절).
 export const dishStockDeltaUp = new Counter('flow_dish_stock_delta_up');
 export const dishStockDeltaDown = new Counter('flow_dish_stock_delta_down');
+
+// 주문 거절(ORD006·ORD012)의 원인을 가르기 위한 계측이다.
+// 둘 다 "재검증에서 상태를 읽은 뒤 주문이 도착하기 전"에 상태가 바뀐 결과라,
+// 그 창의 길이와 애초에 의도한 상품을 집었는지를 함께 봐야 원인이 갈린다.
+export const cartItemFallback = new Rate('flow_cart_item_fallback');
+export const orderWindowMs = new Trend('flow_order_window_ms');

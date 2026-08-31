@@ -131,9 +131,12 @@ export function buyerPurchase(session, target) {
   think(); // 5. 주문 화면 이동
 
   const revalidated = dataOf(apiGet('cart_revalidate', '/carts/members', session.token));
+  // 경쟁 창의 시작점. 여기서 읽은 상태가 주문이 도착할 때까지 유효해야 한다.
+  const revalidatedAt = Date.now();
   think(); // 6. 주문 확정
 
-  const cartItem = findCartItem(revalidated, dishId) || added;
+  const found = findCartItem(revalidated, dishId);
+  const cartItem = found || added;
   if (!cartItem || !cartItem.cartItemId) {
     metrics.orderCreateSuccess.add(false);
     console.error(`[${session.email}] 장바구니 항목을 찾지 못해 주문을 건너뜁니다.`);
@@ -146,12 +149,29 @@ export function buyerPurchase(session, target) {
       ? 0
       : cartItem.lastAppliedDishPriceVersion;
 
-  const order = dataOf(
-    apiSend('order_create', 'POST', `/orders/cartItems/${cartItem.cartItemId}`, session.token, {
-      dishPriceVersion,
-    }),
+  // 의도한 상품이 아닌 것을 집었나 - findCartItem이 items[0]으로 폴백한 경우다.
+  metrics.cartItemFallback.add(Boolean(found) && found.dishId !== dishId);
+  // 재검증부터 주문을 보내기 직전까지. think()가 대부분이라 서버 속도와 거의 무관해야 한다.
+  metrics.orderWindowMs.add(Date.now() - revalidatedAt);
+
+  const orderResponse = apiSend(
+    'order_create',
+    'POST',
+    `/orders/cartItems/${cartItem.cartItemId}`,
+    session.token,
+    { dishPriceVersion },
   );
+  const order = dataOf(orderResponse);
   metrics.orderCreateSuccess.add(Boolean(order && order.orderId));
+
+  // 거절되면 누가·무엇을·어떤 버전으로 시도했는지 남긴다.
+  // 장바구니는 계정당 항목 1개를 공유하므로(CartService.addItem의 upsert), 같은 계정을
+  // 두 VU가 동시에 쓰면 한쪽의 항목이 덮어써진다. vu와 account를 함께 찍어야 그걸 센다.
+  if (!(order && order.orderId)) {
+    console.error(
+      `[order_create_reject] status=${orderResponse.status} vu=${__VU} account=${session.email} dishId=${dishId} chosen=${found ? found.dishId : 'added'} cartItemId=${cartItem.cartItemId} version=${dishPriceVersion}`,
+    );
+  }
 
   apiGet('cart_after_order', '/carts/members', session.token);
   loadOrderList(session);
