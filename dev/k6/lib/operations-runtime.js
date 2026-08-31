@@ -1,6 +1,12 @@
 import exec from 'k6/execution';
 
-import { loginWithCredentials, refreshIfExpiring, seedCredentials } from './accounts.js';
+import {
+  loginWithCredentials,
+  refreshIfExpiring,
+  seedAccountNoForVu,
+  seedCredentials,
+} from './accounts.js';
+import { BUYER_ACCOUNT_POOLS } from './config.js';
 import {
   buyerBrowse,
   buyerPurchase,
@@ -81,8 +87,8 @@ export function createOperationsRuntime({ sellerVuLimit, stockVuLimit, calibrati
     return refreshIfExpiring(session);
   }
 
-  function seedSession(startAccount, accountCount, clearCartOnFirstLogin = false) {
-    const accountNo = startAccount + ((__VU - 1) % accountCount);
+  function seedSession(pool, clearCartOnFirstLogin = false) {
+    const accountNo = seedAccountNoForVu(pool.start, pool.count, __VU);
     return sessionFor(seedCredentials(accountNo), clearCartOnFirstLogin);
   }
 
@@ -106,14 +112,14 @@ export function createOperationsRuntime({ sellerVuLimit, stockVuLimit, calibrati
   }
 
   function browseFlow() {
-    const session = seedSession(151, 150);
+    const session = seedSession(BUYER_ACCOUNT_POOLS.browse);
     const target = selectWeightedTarget(currentOrderableTargets(runState.sellers));
     buyerBrowse(session, target);
     metrics.browseIterations.add(1);
   }
 
   function purchaseFlow() {
-    const session = seedSession(1, 150, true);
+    const session = seedSession(BUYER_ACCOUNT_POOLS.purchase, true);
     const candidates = calibration
       ? [calibrationSeller]
       : currentOrderableTargets(accountModel.orderSellerAccounts);

@@ -20,7 +20,9 @@ export const SEED = {
   password: __ENV.SEED_PASSWORD || 'LastDish!2026',
   emailDomain: 'seed.lastdish.kr',
   accountCount: Number(__ENV.SEED_ACCOUNT_COUNT || 300),
-  // 회원 1~150만 예치금 10,000,000. 151~300은 0이라 주문이 실패한다.
+  // probe-member-snapshot 전용 값이다. 부하 경로는 BUYER_ACCOUNT_POOLS를 쓴다.
+  // 2026-08-31 API 실측: 16·200·341·641번 모두 잔액 1조로, 전 계정에 예치금이 있다.
+  // ("151번 이후는 잔액 0"이라던 옛 주석은 더 이상 사실이 아니다)
   fundedAccountCount: 150,
   // 매장 시드 영업시간. Store.isOpenAt / calculatePickupDeadline이 주문 가능 시각을 09:00~21:30으로 제한한다.
   storeOpenTime: '09:00',
@@ -31,6 +33,19 @@ export const SEED = {
   // 남부터미널역 일대 — 시드 매장이 밀집한 좌표
   latitude: 37.4851,
   longitude: 127.0158,
+};
+
+// 구매·조회가 쓰는 시드 계정 대역.
+//
+// 대역 크기는 "구매 VU 수"가 아니라 "전역 VU 상한"보다 커야 한다. seedAccountNoForVu가
+// 나누는 __VU는 시나리오 안 순번이 아니라 테스트 전역에서 유일하게 배정된 번호라,
+// 배경 시나리오가 앞자리를 쓰면 구매 VU의 번호가 그만큼 뒤로 밀린다.
+// 2026-08-31 실측: 420건/분(전역 167)에서 VU 16과 166이 seller0016을 함께 잡아 거절 16건.
+// 301~340은 주문 대상 매장의 주인이라 비운다. 자기 매장에는 주문할 수 없다.
+// 전역 VU 상한은 최대 170(배경 20 + MAX_PURCHASE_VUS 150)이므로 300이면 여유가 있다.
+export const BUYER_ACCOUNT_POOLS = {
+  purchase: { start: 1, count: 300 },
+  browse: { start: 341, count: 200 },
 };
 
 // OrderFacade가 Asia/Seoul로 영업 여부와 픽업 마감을 판단한다. k6 컨테이너는 UTC라 직접 환산한다.
