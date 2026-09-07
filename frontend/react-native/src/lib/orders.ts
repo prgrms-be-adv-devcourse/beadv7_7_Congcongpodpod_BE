@@ -14,15 +14,15 @@ export type CustomerOrder = {
 };
 export type PickupCode = { orderId: number; dishName: string; pickupCode: string; pickupStartAt?: string; pickupEndAt?: string };
 
+// 주문 목록. 매장 정보는 주문 응답에 실려 오므로 매장을 따로 부르지 않는다.
+// 예전에는 매장마다 getStore를 불렀는데, 최근 50건에 서로 다른 매장이 50개까지 들어가
+// 화면 한 번에 요청이 51개 나갔다(2026-08-29 부하 실측: 전체 요청의 79%, 8.19초).
+// storeName은 서버가 주문 응답에 담아 주고, 매장 이미지는 서버에 필드 자체가 없어
+// 그 조회로도 undefined였다 — 화면은 이미 폴백을 갖고 있다.
 export async function getMyOrders(force = false) {
   return cachedQuery('orders:mine', async () => {
-  const page = unwrap(await api<Page<CustomerOrder> | Envelope<Page<CustomerOrder>>>('/orders?page=0&size=50'));
-  const orders = (page.content ?? []).sort((a, b) => b.orderId - a.orderId);
-  const stores = new Map<number, Awaited<ReturnType<typeof getStore>>>();
-  await Promise.all([...new Set(orders.map((order) => order.storeId))].map(async (storeId) => {
-    try { stores.set(storeId, await getStore(storeId)); } catch { /* 주문은 매장 조회 실패와 무관하게 표시한다. */ }
-  }));
-  return orders.map((order) => ({ ...order, storeName: stores.get(order.storeId)?.storeName, storeImageUrl: stores.get(order.storeId)?.profileImageUrl ?? stores.get(order.storeId)?.imageUrl }));
+    const page = unwrap(await api<Page<CustomerOrder> | Envelope<Page<CustomerOrder>>>('/orders?page=0&size=50'));
+    return (page.content ?? []).sort((a, b) => b.orderId - a.orderId);
   }, 6_000, force);
 }
 

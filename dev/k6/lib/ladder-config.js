@@ -8,10 +8,13 @@
 // 실행마다 남는 요약 파일을 나란히 비교한다. 한 칸에서 서버가 무너져도
 // 앞 칸의 결과는 이미 파일로 남아 있다.
 
+import { BUYER_ACCOUNT_POOLS } from './config.js';
+
 const BACKGROUND_VUS = { browse: 14, seller: 5, stock: 1 };
 
-// 구매 계정은 seller001~150 이므로 구매 VU가 150을 넘으면 같은 계정을 두 VU가
-// 동시에 쓰게 되고 refresh token이 서로 덮어쓴다.
+// 한 실행이 띄울 구매 VU의 상한. 계정 겹침을 막는 장치가 아니다 —
+// 계정을 정하는 __VU는 전역 번호라 이 값으로는 겹침을 막을 수 없다.
+// 그 방어는 BUYER_ACCOUNT_POOLS의 대역 크기와 buyer-account-assignment 테스트가 맡는다.
 const MAX_PURCHASE_VUS = 150;
 
 // 1 VU 보정에서 관측한 구매 반복시간(초). maxVUs 산정에만 쓰는 어림값이다.
@@ -69,8 +72,33 @@ function constantVuScenario(exec, vus, totalSeconds, tags) {
   };
 }
 
+// 이 실행이 띄울 전역 VU 수. 계정을 정하는 __VU는 시나리오가 아니라 여기서 나온다.
+export function totalVusFor(orderRate, backgroundScale = 1) {
+  const background = backgroundVusFor(backgroundScale);
+  return (
+    background.browse + background.seller + background.stock + purchaseVuBudget(orderRate)
+  );
+}
+
+// 대역이 전역 VU 상한보다 작으면 나머지 연산이 한 바퀴 돌아 두 VU가 한 계정을 잡는다.
+// 그 상태로 돌리면 장바구니가 서로 덮어써지고, 그 거절이 서버 탓처럼 보인다.
+// 2026-08-31에 그렇게 이틀을 썼다 — 420건/분에서 VU 16과 166이 seller0016을 함께 잡았고
+// 거절 16건이 전부 그 계정 하나에서 났다. 14분을 태운 뒤가 아니라 여기서 끊는다.
+export function assertBuyerPoolsFit(totalVus) {
+  for (const name of Object.keys(BUYER_ACCOUNT_POOLS)) {
+    const pool = BUYER_ACCOUNT_POOLS[name];
+    if (totalVus > pool.count) {
+      fail(
+        `${name} 계정 대역이 부족합니다: 전역 VU ${totalVus} > 대역 ${pool.count}. ` +
+          `lib/config.js의 BUYER_ACCOUNT_POOLS.${name}.count를 늘리세요.`,
+      );
+    }
+  }
+}
+
 export function buildLadderScenarioOptions(settings) {
   const { orderRate, holdMinutes, warmupMinutes, backgroundScale } = settings;
+  assertBuyerPoolsFit(totalVusFor(orderRate, backgroundScale));
   const background = backgroundVusFor(backgroundScale);
   const totalSeconds = Math.round((warmupMinutes + holdMinutes) * 60);
   const scenarios = {};
