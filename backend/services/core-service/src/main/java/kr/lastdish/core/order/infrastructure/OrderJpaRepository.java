@@ -66,19 +66,6 @@ public interface OrderJpaRepository extends JpaRepository<Order, Long> {
       """
       select o
       from Order o
-      where o.id = :orderId
-        and o.memberId = :memberId
-        and o.isDeleted = false
-        and o.pickupCode is not null
-        and o.status  = "PICKUP_READY"
-      """)
-  Optional<Order> findPickupAvailableOrder(
-      @Param("orderId") Long orderId, @Param("memberId") Long memberId);
-
-  @Query(
-      """
-      select o
-      from Order o
       where o.memberId = :memberId
         and o.isDeleted = false
         and (:status is null or o.status = :status)

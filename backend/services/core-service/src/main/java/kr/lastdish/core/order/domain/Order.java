@@ -211,6 +211,22 @@ public class Order {
     }
   }
 
+  /**
+   * 픽업 코드를 보여 줄 수 있는 상태인지 확인한다.
+   *
+   * <p>코드는 매장이 주문을 수락할 때 발급되고 픽업이 끝나면 쓸모가 없어지므로, PICKUP_READY 구간에서만 의미가 있다. 그 밖의 상태는 "주문이 없다"가 아니라
+   * "지금은 볼 수 없다"이므로 현재 상태를 함께 알려 준다 — 호출자가 "아직 접수 전"과 "이미 픽업 완료"를 구분해 안내할 수 있어야 한다.
+   */
+  public void validatePickupCodeReadable() {
+    if (this.status == OrderStatus.PICKUP_READY && this.pickupCode != null) {
+      return;
+    }
+
+    throw new BusinessException(
+        ErrorCode.ORDER_PICKUP_CODE_NOT_AVAILABLE,
+        "픽업 코드를 확인할 수 없는 주문입니다. 현재 상태: " + this.status.getDisplayName());
+  }
+
   public void completePickup(LocalDateTime pickupResultAt) {
     if (pickupResultAt == null) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT, "픽업 완료 시각은 필수입니다.");

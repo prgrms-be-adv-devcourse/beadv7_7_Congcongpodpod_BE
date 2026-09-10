@@ -63,13 +63,6 @@ public class OrderRepositoryImpl implements OrderRepository {
   }
 
   @Override
-  public Order findPickupAvailableOrder(Long orderId, Long memberId) {
-    return orderJpaRepository
-        .findPickupAvailableOrder(orderId, memberId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-  }
-
-  @Override
   public Page<Order> findAllByMemberIdAndStatus(
       Long memberId, OrderStatus status, Pageable pageable) {
     return orderJpaRepository.findAllByMemberIdAndStatus(memberId, status, pageable);

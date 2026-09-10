@@ -21,8 +21,6 @@ public interface OrderRepository {
 
   boolean validateActivePickUpCode(Long storeId, String pickUpCode);
 
-  Order findPickupAvailableOrder(Long orderId, Long memberId);
-
   Page<Order> findAllByMemberIdAndStatus(Long memberId, OrderStatus status, Pageable pageable);
 
   Page<Order> findAllByStoreIdAndStatus(Long storeId, OrderStatus status, Pageable pageable);

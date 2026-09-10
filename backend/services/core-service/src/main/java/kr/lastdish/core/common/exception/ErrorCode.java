@@ -22,7 +22,7 @@ public enum ErrorCode implements ErrorCodeSpec {
   DISH_HAS_ACTIVE_ORDERS(HttpStatus.CONFLICT, "D010", "진행 중인 주문이 있는 상품은 수정할 수 없습니다."),
   INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "DEP001", "예치금 잔액이 부족합니다."),
   ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORD001", "주문을 찾을 수 없습니다."),
-  ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "주문을 취소할 권한이 없습니다."),
+  ORDER_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ORD002", "해당 주문에 접근할 권한이 없습니다."),
   PICKUP_CODE_EXISTS(HttpStatus.CONFLICT, "ORD003", "사용중인 픽업 코드입니다."),
   ORDER_NOT_SELLER(HttpStatus.FORBIDDEN, "ORD004", "주문을 접수할 권한이 없습니다."),
   PICKUP_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ORD005", "픽업 코드 생성에 실패했습니다."),
@@ -33,6 +33,8 @@ public enum ErrorCode implements ErrorCodeSpec {
   ORDER_STORE_CLOSED(HttpStatus.CONFLICT, "ORD010", "매장이 영업 중이 아닙니다."),
   ORDER_PICKUP_DEADLINE_PASSED(HttpStatus.CONFLICT, "ORD011", "상품의 픽업 마감 시간이 지났습니다."),
   ORDER_DISH_PRICE_CHANGED(HttpStatus.CONFLICT, "ORD012", "상품 가격이 변경되었습니다. 다시 확인해 주세요."),
+  ORDER_PICKUP_CODE_NOT_AVAILABLE(
+      HttpStatus.CONFLICT, "ORD013", "픽업 대기 상태의 주문만 픽업 코드를 확인할 수 있습니다."),
   ORDER_MEMBER_SNAPSHOT_NOT_FOUND(
       HttpStatus.SERVICE_UNAVAILABLE, "ORD013", "회원 정보가 아직 동기화되지 않았습니다. 잠시 후 다시 시도해 주세요."),
   INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "PT001", "포인트 잔액이 부족합니다."),
