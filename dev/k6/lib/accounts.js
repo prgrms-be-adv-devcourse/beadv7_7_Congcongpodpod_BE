@@ -5,6 +5,15 @@ import { SEED, accountEmail } from './config.js';
 
 const REFRESH_EARLY_MS = 60 * 1000;
 
+// VU 번호를 시드 계정 번호로 바꾼다.
+//
+// __VU는 테스트 전역에서 유일하므로, 대역 크기가 전역 VU 상한보다 작으면 나머지 연산이
+// 한 바퀴 돌아 서로 다른 VU가 같은 계정을 잡는다. 계정 하나에 장바구니 항목이 하나뿐이라
+// (CartService.addItem의 upsert) 그 순간 한쪽의 항목이 덮어써진다.
+export function seedAccountNoForVu(startAccount, accountCount, vuId) {
+  return startAccount + ((vuId - 1) % accountCount);
+}
+
 // JWT payload의 exp(초)를 k6에서 비교할 수 있는 epoch millisecond로 바꾼다.
 export function decodeJwtExpirationMs(token) {
   const parts = String(token || '').split('.');

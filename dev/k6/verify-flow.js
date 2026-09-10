@@ -5,6 +5,11 @@
 //   매장 사용자 seller002 → 재고 조정 → 주문 수락 → 픽업 완료
 //
 // 자기 매장 주문을 만들지 않기 위해 한 VU가 두 계정의 토큰을 따로 보관한다.
+//
+// 주기를 두 번 돈다. 판매자는 방금 수락한 주문을 픽업하지 않으므로(실제 서비스에서
+// PICKUP_READY는 손님이 올 때까지 유지된다), 1회차는 수락만 하고 2회차에서 1회차 주문을
+// 픽업한다. 한 번만 돌면 PICKED_UP 전이를 한 번도 확인하지 못한다.
+import { check } from 'k6';
 import exec from 'k6/execution';
 import { ORDER_WINDOW, businessHourNow, dishIdFor, storeIdFor } from './lib/config.js';
 import { getRequestCount, resetRequestCount } from './lib/api.js';
@@ -62,15 +67,40 @@ export default function () {
   clearLeftoverCartItem(buyer);
   clearLeftoverCartItem(seller);
 
-  const order = buyerPurchase(buyer, {
-    storeId: storeIdFor(SELLER_ACCOUNT),
-    dishId: dishIdFor(SELLER_ACCOUNT),
-  });
+  const target = { storeId: storeIdFor(SELLER_ACCOUNT), dishId: dishIdFor(SELLER_ACCOUNT) };
+
+  const firstOrder = buyerPurchase(buyer, target);
   const store = sellerAdjustStock(seller, 1);
-  const handledOrderId = sellerHandleOrder(
-    seller,
-    store ? store.storeId : storeIdFor(SELLER_ACCOUNT),
-  );
+  const storeId = store ? store.storeId : storeIdFor(SELLER_ACCOUNT);
+  const firstRound = sellerHandleOrder(seller, storeId);
+
+  // 2회차: 새 주문을 수락하면서 1회차에서 수락해 둔 주문을 픽업한다.
+  clearLeftoverCartItem(buyer);
+  const secondOrder = buyerPurchase(buyer, target);
+  const secondRound = sellerHandleOrder(seller, storeId);
+
+  /*
+   * 검사는 "빈 상태에서 시작한다"를 가정하지 않는다. 이전 실행이 PICKUP_READY 주문을 남기므로
+   * 1회차가 그것을 픽업하는 것이 정상이다(가장 오래된 것부터 처리한다).
+   * 어느 경우에나 성립하는 불변식은 "방금 수락한 주문은 픽업하지 않는다"이다.
+   */
+  check(null, {
+    '1회차: 주문을 수락한다': () => Boolean(firstRound.acceptedOrderId),
+    '1회차: 방금 수락한 주문은 픽업하지 않는다': () =>
+      firstRound.pickedUpOrderId !== firstRound.acceptedOrderId,
+    '2회차: 새 주문을 수락한다': () => Boolean(secondRound.acceptedOrderId),
+    '2회차: 픽업까지 진행된다': () => Boolean(secondRound.pickedUpOrderId),
+    '2회차: 방금 수락한 주문은 픽업하지 않는다': () =>
+      secondRound.pickedUpOrderId !== secondRound.acceptedOrderId,
+  });
+
+  // 남은 주문이 없던 환경에서는 2회차가 1회차 수락분을 집는다. 있으면 그보다 오래된 것이 먼저다.
+  if (secondRound.pickedUpOrderId !== firstRound.acceptedOrderId) {
+    console.log(
+      `2회차 픽업 대상이 1회차 수락분(${firstRound.acceptedOrderId})이 아닙니다: ` +
+        `${secondRound.pickedUpOrderId}. 이전 실행이 남긴 주문이 먼저 처리된 것으로 보입니다.`,
+    );
+  }
 
   const elapsed = Date.now() - startedAt;
   sessionDuration.add(elapsed);
@@ -81,9 +111,12 @@ export default function () {
   console.log(`총 HTTP 호출: ${getRequestCount()}회`);
   console.log(`행동 대기 합계: ${getThinkTotal().toFixed(1)}초`);
   console.log(`세션 시간: ${(elapsed / 1000).toFixed(1)}초`);
-  console.log(`생성한 주문: ${order ? order.orderId : '없음'}`);
-  console.log(`매장이 처리한 주문: ${handledOrderId || '없음'}`);
-  if (order && handledOrderId && order.orderId !== handledOrderId) {
-    console.warn(`생성한 주문과 처리한 주문이 다릅니다: ${order.orderId} vs ${handledOrderId}`);
+  console.log(`생성한 주문: ${firstOrder ? firstOrder.orderId : '없음'} / ${secondOrder ? secondOrder.orderId : '없음'}`);
+  console.log(`1회차 — 수락 ${firstRound.acceptedOrderId || '없음'}, 픽업 ${firstRound.pickedUpOrderId || '없음(정상)'}`);
+  console.log(`2회차 — 수락 ${secondRound.acceptedOrderId || '없음'}, 픽업 ${secondRound.pickedUpOrderId || '없음'}`);
+
+  // 2회차 수락분은 PICKUP_READY로 남는다. 다음 실행이 픽업하거나, 픽업 마감 스케줄러가 정리한다.
+  if (secondRound.acceptedOrderId) {
+    console.log(`PICKUP_READY로 남는 주문: ${secondRound.acceptedOrderId}`);
   }
 }

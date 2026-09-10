@@ -12,7 +12,10 @@ import {
 import { loginWithCredentials, seedCredentials } from './accounts.js';
 import { apiBatchGet, apiGet, apiSend, dataOf } from './api.js';
 import * as metrics from './metrics.js';
-import { selectOldestNewReservedOrder } from './order-selection.js';
+import {
+  selectOldestNewReservedOrder,
+  selectOldestPickupReadyOrder,
+} from './order-selection.js';
 import { purchaseTargetOf } from './run-state.js';
 
 let thinkTotal = 0;
@@ -32,7 +35,6 @@ export function think() {
   sleep(seconds);
 }
 
-const unique = (values) => Array.from(new Set(values));
 
 // 로그인 1회 + 내 정보 + 장바구니 회원 정보. VU당 최초 1회만 실행한다 (설계 문서 4.1절).
 export function openSession(accountNo) {
@@ -60,14 +62,16 @@ function findCartItem(cart, dishId) {
   return items.length > 0 ? items[0] : null;
 }
 
-// 주문 목록 화면: 목록 1회 + 서로 다른 매장 U회(병렬) + PICKUP_READY 주문의 픽업 코드 P회(병렬).
+// 주문 목록 화면: 목록 1회 + PICKUP_READY 주문의 픽업 코드 P회(병렬).
 // RN이 Promise.all로 보내는 구간이라 http.batch로 옮겼다 (설계 문서 5절).
+//
+// 매장 상세를 매장마다 부르던 구간을 걷어냈다. 앱이 그것을 그만두었기 때문이다 —
+// storeName이 주문 응답에 실려 오고, 매장 이미지는 서버에 필드 자체가 없다.
+// 팬아웃이 있던 시절에는 화면 한 번에 요청이 51개 나갔고 그 구간이 8.19초였다
+// (2026-08-29 실측). 반복이 길어져 42 VU로 목표 도착률을 못 채우는 원인이기도 했다.
 function loadOrderList(session) {
   const page = dataOf(apiGet('order_list', `/orders?page=0&size=${PAGE.myOrdersSize}`, session.token));
   const orders = (page && page.content) || [];
-
-  const storeIds = unique(orders.map((order) => order.storeId));
-  apiBatchGet('order_list_stores_batch', storeIds.map((id) => `/stores/${id}`), session.token);
 
   const pickupReady = orders.filter((order) => order.status === 'PICKUP_READY');
   apiBatchGet(
@@ -76,9 +80,10 @@ function loadOrderList(session) {
     session.token,
   );
 
-  const calls = 1 + storeIds.length + pickupReady.length;
+  const calls = 1 + pickupReady.length;
   metrics.orderListCalls.add(calls);
-  metrics.orderListStoreFanout.add(storeIds.length);
+  // 팬아웃은 0으로 남긴다. 지표를 지우면 이전 실행과 나란히 볼 수 없다.
+  metrics.orderListStoreFanout.add(0);
   metrics.orderListPickupCodeCalls.add(pickupReady.length);
   return calls;
 }
@@ -126,9 +131,12 @@ export function buyerPurchase(session, target) {
   think(); // 5. 주문 화면 이동
 
   const revalidated = dataOf(apiGet('cart_revalidate', '/carts/members', session.token));
+  // 경쟁 창의 시작점. 여기서 읽은 상태가 주문이 도착할 때까지 유효해야 한다.
+  const revalidatedAt = Date.now();
   think(); // 6. 주문 확정
 
-  const cartItem = findCartItem(revalidated, dishId) || added;
+  const found = findCartItem(revalidated, dishId);
+  const cartItem = found || added;
   if (!cartItem || !cartItem.cartItemId) {
     metrics.orderCreateSuccess.add(false);
     console.error(`[${session.email}] 장바구니 항목을 찾지 못해 주문을 건너뜁니다.`);
@@ -141,12 +149,29 @@ export function buyerPurchase(session, target) {
       ? 0
       : cartItem.lastAppliedDishPriceVersion;
 
-  const order = dataOf(
-    apiSend('order_create', 'POST', `/orders/cartItems/${cartItem.cartItemId}`, session.token, {
-      dishPriceVersion,
-    }),
+  // 의도한 상품이 아닌 것을 집었나 - findCartItem이 items[0]으로 폴백한 경우다.
+  metrics.cartItemFallback.add(Boolean(found) && found.dishId !== dishId);
+  // 재검증부터 주문을 보내기 직전까지. think()가 대부분이라 서버 속도와 거의 무관해야 한다.
+  metrics.orderWindowMs.add(Date.now() - revalidatedAt);
+
+  const orderResponse = apiSend(
+    'order_create',
+    'POST',
+    `/orders/cartItems/${cartItem.cartItemId}`,
+    session.token,
+    { dishPriceVersion },
   );
+  const order = dataOf(orderResponse);
   metrics.orderCreateSuccess.add(Boolean(order && order.orderId));
+
+  // 거절되면 누가·무엇을·어떤 버전으로 시도했는지 남긴다.
+  // 장바구니는 계정당 항목 1개를 공유하므로(CartService.addItem의 upsert), 같은 계정을
+  // 두 VU가 동시에 쓰면 한쪽의 항목이 덮어써진다. vu와 account를 함께 찍어야 그걸 센다.
+  if (!(order && order.orderId)) {
+    console.error(
+      `[order_create_reject] status=${orderResponse.status} vu=${__VU} account=${session.email} dishId=${dishId} chosen=${found ? found.dishId : 'added'} cartItemId=${cartItem.cartItemId} version=${dishPriceVersion}`,
+    );
+  }
 
   apiGet('cart_after_order', '/carts/members', session.token);
   loadOrderList(session);
@@ -242,12 +267,12 @@ export function sellerHandleOrder(session, knownStoreId) {
   if (!storeId) {
     metrics.sellerOrderNotFound.add(1);
     console.error(`[${session.email}] 내 매장이 없어 매장 주문 처리를 건너뜁니다.`);
-    return null;
+    return { acceptedOrderId: null, pickedUpOrderId: null };
   }
 
   const target = findNewReservedOrder(session, storeId);
   if (!target) {
-    return null;
+    return { acceptedOrderId: null, pickedUpOrderId: null };
   }
   think(); // 11. 주문 수락
 
@@ -256,15 +281,37 @@ export function sellerHandleOrder(session, knownStoreId) {
     metrics.ordersAccepted.add(1);
   }
 
-  apiGet('seller_orders_pickup_ready', `/orders/stores/${storeId}?status=PICKUP_READY`, session.token);
+  const readyPage = dataOf(
+    apiGet('seller_orders_pickup_ready', `/orders/stores/${storeId}?status=PICKUP_READY`, session.token),
+  );
   think(); // 12. 픽업 완료
 
-  const pickedUp = dataOf(
-    apiSend('order_pickup', 'PATCH', `/orders/${target.orderId}/pickup`, session.token, { status: 'PICKED_UP' }),
+  /*
+   * 방금 수락한 주문은 픽업하지 않는다. 실제 서비스에서 PICKUP_READY는 손님이 매장에 올 때까지
+   * 유지되는데, 수락 직후 픽업하면 그 상태가 수 초만 존재해 구매자가 픽업코드를 못 받는다
+   * (2026-08-29 실측: order_pickup_codes_batch 0% — 31건 전부 실패).
+   * 이전 반복에서 수락된 것 중 가장 오래된 것을 픽업하면 처리량은 유지하면서 상태가 남는다.
+   */
+  const pickupTarget = selectOldestPickupReadyOrder(
+    (readyPage && readyPage.content) || [],
+    SEED.newOrderIdMin,
+    target.orderId,
   );
-  if (pickedUp) {
-    metrics.ordersPickedUp.add(1);
+
+  let pickedUpOrderId = null;
+  if (pickupTarget) {
+    const pickedUp = dataOf(
+      apiSend('order_pickup', 'PATCH', `/orders/${pickupTarget.orderId}/pickup`, session.token, {
+        status: 'PICKED_UP',
+      }),
+    );
+    if (pickedUp) {
+      metrics.ordersPickedUp.add(1);
+      pickedUpOrderId = pickupTarget.orderId;
+    }
   }
 
-  return target.orderId;
+  // 수락과 픽업이 서로 다른 주문이 되었으므로 둘을 따로 알려 준다.
+  // 호출부가 "픽업까지 갔는지"를 확인할 수 있어야 verify-flow가 상태 전이를 검증할 수 있다.
+  return { acceptedOrderId: target.orderId, pickedUpOrderId };
 }
