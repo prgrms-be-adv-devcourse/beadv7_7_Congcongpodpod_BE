@@ -53,9 +53,9 @@ export async function clearMemberCart(cartId: number) {
   await api<void>(`/carts/${cartId}`, { method: 'DELETE' });
 }
 
-export async function createOrderFromCartItem(cartItemId: number, dishPriceVersion: number) {
+export async function createOrderFromCartItem(cartItemId: number, dishPriceVersion: number, usedPoint = 0) {
   return unwrap(await api<CustomerOrder | Envelope<CustomerOrder>>(`/orders/cartItems/${cartItemId}`, {
     method: 'POST',
-    body: JSON.stringify({ dishPriceVersion }),
+    body: JSON.stringify({ dishPriceVersion, usedPoint }),
   }));
 }

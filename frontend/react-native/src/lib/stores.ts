@@ -1,5 +1,6 @@
 import { api } from './api';
 import { cachedQuery } from './query-cache';
+import type { StoreAvailabilityMode } from '@/providers/store-availability-provider';
 import type { Dish, Store } from '@/types/store';
 
 type ApiDish = {
@@ -12,6 +13,8 @@ type ApiDish = {
   dishStatus?: string;
   thumbnailUrl?: string | null;
   registeredAt?: string;
+  pickupStartTime?: string;
+  pickupEndTime?: string;
   storeId?: number;
   storeName?: string;
 };
@@ -34,6 +37,21 @@ type ApiStore = {
   coverImageUrl?: string | null;
   profileImageUrl?: string | null;
   dishes?: ApiDish[];
+  cheapestDish?: ApiDish | null;
+};
+
+type AiStoreSearchResult = {
+  store: ApiStore;
+  totalScore?: number;
+  badges?: string[];
+  reason?: string | null;
+};
+
+export type RecommendedStore = {
+  store: Store;
+  totalScore: number;
+  badges: string[];
+  reason: string;
 };
 
 type Envelope<T> = { success?: boolean; data?: T };
@@ -45,18 +63,20 @@ const unwrapData = <T,>(value: T | Envelope<T>): T =>
 const unwrapList = <T,>(value: Page<T>): T[] =>
   Array.isArray(value) ? value : value.stores ?? value.content ?? [];
 
-async function getAllNearbyStorePages(latitude: number, longitude: number, radiusKm: number, size: number, signal?: AbortSignal) {
+async function getAllNearbyStorePages(latitude: number, longitude: number, radiusKm: number, size: number, pickupFilter: StoreAvailabilityMode, signal?: AbortSignal) {
   const fetchPage = async (page: number) => {
     const query = new URLSearchParams({
-      latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm), page: String(page), size: String(size),
+      latitude: String(latitude), longitude: String(longitude), radiusKm: String(radiusKm),
+      pickupFilter, page: String(page), size: String(size),
     });
-    return unwrapData(await api<Page<ApiStore> | Envelope<Page<ApiStore>>>(`/stores/nearby?${query}`, { signal }));
+    return unwrapData(await api<ApiStore[] | Envelope<ApiStore[]>>(`/ai/stores/nearby?${query}`, { signal }));
   };
-  const first = await fetchPage(0);
-  if (Array.isArray(first)) return first;
-  const totalPages = Math.max(1, Number(first.totalPages ?? 1));
-  const stores = [...unwrapList(first)];
-  for (let page = 1; page < totalPages; page += 1) stores.push(...unwrapList(await fetchPage(page)));
+  const stores: ApiStore[] = [];
+  for (let page = 0; page < 200; page += 1) {
+    const batch = await fetchPage(page);
+    stores.push(...batch);
+    if (batch.length < size) break;
+  }
   return [...new Map(stores.map(store => [store.storeId, store])).values()];
 }
 
@@ -70,11 +90,13 @@ const mapDish = (dish: ApiDish): Dish => ({
   status: dish.dishStatus,
   imageUrl: dish.thumbnailUrl ?? undefined,
   registeredAt: dish.registeredAt,
+  pickupStartTime: dish.pickupStartTime,
+  pickupEndTime: dish.pickupEndTime,
   storeId: dish.storeId,
   storeName: dish.storeName,
 });
 
-const mapStore = (store: ApiStore): Store => ({
+const mapStore = (store: ApiStore, hasAvailableDish?: boolean): Store => ({
   storeId: store.storeId,
   memberId: store.memberId,
   storeName: store.storeName,
@@ -84,27 +106,42 @@ const mapStore = (store: ApiStore): Store => ({
   openTime: store.openTime,
   closeTime: store.closeTime,
   status: store.status,
-  hasAvailableDish: store.hasAvailableDish,
+  hasAvailableDish: store.hasAvailableDish ?? hasAvailableDish,
   latitude: Number(store.latitude ?? 0),
   longitude: Number(store.longitude ?? 0),
   coverImageUrl: store.coverImageUrl ?? store.imageUrl ?? store.thumbnailUrl ?? undefined,
   profileImageUrl: store.profileImageUrl ?? store.thumbnailUrl ?? store.imageUrl ?? undefined,
   imageUrl: store.imageUrl ?? store.thumbnailUrl ?? undefined,
-  dishes: (store.dishes ?? []).map(mapDish),
+  dishes: (store.dishes ?? (store.cheapestDish ? [store.cheapestDish] : [])).map((dish) => mapDish({
+    ...dish,
+    storeId: dish.storeId ?? store.storeId,
+    storeName: dish.storeName ?? store.storeName,
+    stockQuantity: dish.stockQuantity,
+  })),
 });
 
-export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5, size = 60, signal?: AbortSignal) {
-  return (await getAllNearbyStorePages(latitude, longitude, radiusKm, size, signal)).map(mapStore);
+export async function getNearbyStores(latitude: number, longitude: number, radiusKm = 5, size = 60, pickupFilter: StoreAvailabilityMode = 'NOW', signal?: AbortSignal) {
+  return (await getAllNearbyStorePages(latitude, longitude, radiusKm, size, pickupFilter, signal))
+    .map((store) => mapStore(store, pickupFilter !== 'ALL'));
 }
 
 export async function searchStores(keyword: string, latitude: number, longitude: number) {
-  const normalized = keyword.trim().toLocaleLowerCase('ko');
-  if (!normalized) return [];
-  return (await getAllNearbyStorePages(latitude, longitude, 500, 100))
-    .map(mapStore)
-    .filter((store) => [store.storeName, store.category, store.address, ...store.dishes.map(dish => dish.dishName)]
-      .some((value) => value.toLocaleLowerCase('ko').includes(normalized)))
-    .slice(0, 8);
+  return (await searchRecommendedStores(keyword, latitude, longitude)).map((result) => result.store).slice(0, 8);
+}
+
+export async function searchRecommendedStores(keyword: string, latitude: number, longitude: number, radiusKm = 5): Promise<RecommendedStore[]> {
+  const query = keyword.trim();
+  if (!query) return [];
+  const results = await api<AiStoreSearchResult[]>('/ai/search', {
+    method: 'POST',
+    body: JSON.stringify({ query, latitude, longitude, radiusKm }),
+  }, { timeoutMs: 30_000 });
+  return results.map((result) => ({
+    store: mapStore(result.store, true),
+    totalScore: Number(result.totalScore ?? 0),
+    badges: result.badges ?? [],
+    reason: result.reason?.trim() || result.badges?.[0] || '검색 조건과 잘 맞는 픽업 상품이에요.',
+  }));
 }
 
 export async function getStore(storeId: number, force = false) {

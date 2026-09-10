@@ -10,9 +10,8 @@ export type OrderStatus = 'RESERVED' | 'PICKUP_READY' | 'PICKED_UP' | 'NO_SHOW' 
 export type CustomerOrder = {
   orderId: number; storeId: number; status: OrderStatus; rejectReason?: string; paymentStatus: string;
   dishId: number; dishName: string; quantity: number; unitPrice: number; totalPrice: number;
-  pickupStartAt?: string; pickupEndAt?: string; storeName?: string; storeImageUrl?: string;
+  pickupStartAt?: string; pickupEndAt?: string; pickupCode?: string; storeName?: string; storeImageUrl?: string;
 };
-export type PickupCode = { orderId: number; dishName: string; pickupCode: string; pickupStartAt?: string; pickupEndAt?: string };
 
 export async function getMyOrders(force = false) {
   return cachedQuery('orders:mine', async () => {
@@ -37,10 +36,6 @@ export async function getOrder(orderId: number) {
     const store = await getStore(order.storeId);
     return { ...order, storeName: store.storeName, storeImageUrl: store.profileImageUrl ?? store.imageUrl };
   } catch { return order; }
-}
-
-export async function getPickupCode(orderId: number) {
-  return unwrap(await api<PickupCode | Envelope<PickupCode>>(`/orders/${orderId}/pickupCode`));
 }
 
 export async function cancelOrder(orderId: number) {

@@ -1,15 +1,17 @@
 import { createContext, type PropsWithChildren, useContext, useMemo, useState } from 'react';
 
+export type StoreAvailabilityMode = 'TODAY' | 'NOW' | 'ALL';
+
 type StoreAvailabilityContextValue = {
-  onlyAvailable: boolean;
-  setOnlyAvailable: (value: boolean) => void;
+  availabilityMode: StoreAvailabilityMode;
+  setAvailabilityMode: (value: StoreAvailabilityMode) => void;
 };
 
 const StoreAvailabilityContext = createContext<StoreAvailabilityContextValue | null>(null);
 
 export function StoreAvailabilityProvider({ children }: PropsWithChildren) {
-  const [onlyAvailable, setOnlyAvailable] = useState(true);
-  const value = useMemo(() => ({ onlyAvailable, setOnlyAvailable }), [onlyAvailable]);
+  const [availabilityMode, setAvailabilityMode] = useState<StoreAvailabilityMode>('NOW');
+  const value = useMemo(() => ({ availabilityMode, setAvailabilityMode }), [availabilityMode]);
   return <StoreAvailabilityContext.Provider value={value}>{children}</StoreAvailabilityContext.Provider>;
 }
 

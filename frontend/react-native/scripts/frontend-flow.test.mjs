@@ -11,13 +11,42 @@ test('구매 핵심 화면이 모두 존재한다', () => {
     .forEach((path) => assert.equal(existsSync(join(root, path)), true, path));
 });
 
+test('목록 탭은 상품을 중심으로 상품 상세에 연결한다', () => {
+  const stores = source('src/app/(tabs)/stores.tsx');
+  assert.match(stores, /ProductStoreCard/);
+  assert.match(stores, /pathname: '\/dishes\/\[dishId\]'/);
+  assert.match(stores, /stores\.flatMap<ProductEntry>/);
+  assert.match(stores, /searchRecommendedStores/);
+  assert.match(stores, /setAvailabilityMode\('TODAY'\)/);
+  assert.match(stores, /useNearbyStores\(radiusKm, availabilityMode\)/);
+  assert.match(stores, /isSimpleKeywordSearch/);
+  assert.match(stores, /nearbyEntries\.filter\(\(entry\) => matchesKeyword\(entry, submittedQuery\)\)/);
+  assert.match(stores, /const currentLocation = await refreshLocation\(\)/);
+  assert.match(stores, /추천 상품/);
+  assert.match(stores, /badges\.length > 0/);
+  assert.match(stores, /\.slice\(0, 4\)/);
+  assert.match(stores, /formatDishPickupWindow\(dish\)/);
+  assert.match(source('src/components/product-store-card.tsx'), /dish\.discountPrice\.toLocaleString/);
+});
+
 test('지도 앱·웹이 동일한 화면 경계를 전달한다', () => {
   const nativeMap = source('src/components/map-canvas.native.tsx');
   assert.match(nativeMap, /southWest: \{ latitude: region\.latitude, longitude: region\.longitude \}/);
   assert.match(nativeMap, /northEast: \{ latitude: region\.latitude \+ region\.latitudeDelta, longitude: region\.longitude \+ region\.longitudeDelta \}/);
   assert.match(source('src/components/map-canvas.web.tsx'), /getBounds\(\)[\s\S]*southWest[\s\S]*northEast/);
-  assert.match(source('src/app/(tabs)/index.tsx'), /reload\(next, false, next\.bounds\)/);
-  assert.match(source('src/lib/stores.ts'), /page < totalPages/);
+  const home = source('src/app/(tabs)/index.tsx');
+  assert.match(home, /reload\(next, false, next\.bounds\)/);
+  assert.match(home, /reload\(target, false, target\.bounds\)/);
+  assert.match(home, /const MAP_CONTROL_SIZE = 44/);
+  assert.match(home, /availabilitySegment: \{ width: MAP_CONTROL_SIZE, height: MAP_CONTROL_SIZE/);
+  assert.match(home, /control: \{ width: MAP_CONTROL_SIZE, height: MAP_CONTROL_SIZE/);
+  const storesApi = source('src/lib/stores.ts');
+  assert.match(storesApi, /\/ai\/stores\/nearby/);
+  assert.match(storesApi, /pickupFilter, page: String\(page\)/);
+  assert.doesNotMatch(storesApi, /hasAvailableDish \? 1 : 0/);
+  assert.match(source('src/hooks/use-nearby-stores.ts'), /pickupFilterRef\.current/);
+  assert.match(storesApi, /batch\.length < size/);
+  assert.match(storesApi, /\/ai\/search/);
 });
 
 test('로그인 제한 탭은 로그인 화면으로 이동한다', () => {
@@ -64,4 +93,15 @@ test('주문 불가 장바구니 상품은 유지하고 결제를 차단한다',
   assert.match(cart, /disabled=\{!availability\?\.orderable\}/);
   assert.match(checkout, /\['ORD007','D001','D003'\]/);
   assert.match(checkout, /router\.replace\('\/cart'\)/);
+  assert.match(checkout, /getPointBalance\(true\)/);
+  assert.match(checkout, /if\(pointError\)/);
+  assert.match(checkout, /createOrderFromCartItem\(serverItem\.cartItemId,dishPriceVersion,usedPoint\)/);
+  assert.match(cartApi, /JSON\.stringify\(\{ dishPriceVersion, usedPoint \}\)/);
+});
+
+test('포인트 내역은 거래 유형으로 증감 부호를 결정한다', () => {
+  const points = source('src/app/points.tsx');
+  assert.match(points, /type === 'EARN' \|\| type === 'REFUND'/);
+  assert.match(points, /isPointIncrease\(item\.type\) \? '\+' : '−'/);
+  assert.match(points, /Math\.abs\(Number\(item\.amount\)\)/);
 });

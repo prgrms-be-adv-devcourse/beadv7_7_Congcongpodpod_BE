@@ -1,8 +1,11 @@
 import { RoundedIcon as Ionicons } from '@/components/rounded-icon';
+import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import type { PropsWithChildren } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, { Easing as ReanimatedEasing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/loading-state';
@@ -10,6 +13,23 @@ import { colors, fonts, radius, shadow, typography } from '@/constants/theme';
 import { type AppAlertRequest, type AppDishReportRequest, type AppNotificationRequest, subscribeAppAlerts, subscribeDishReports, subscribeGlobalLoading, subscribeInAppNotifications } from '@/lib/app-overlay';
 
 const MIN_LOADING_VISIBLE_MS = 160;
+const REPORT_PARTICLES = Array.from({ length: 36 }, (_, index) => ({
+  left: `${4 + ((index * 23) % 92)}%` as `${number}%`,
+  top: 6 + ((index * 31) % 94),
+  size: 2 + (index % 3),
+  drift: (index % 2 === 0 ? -1 : 1) * (5 + (index % 5) * 3),
+  fall: 24 + (index % 6) * 7,
+}));
+const REPORT_LEAVES = Array.from({ length: 18 }, (_, index) => ({
+  left: `${2 + ((index * 41) % 95)}%` as `${number}%`,
+  start: 0.02 + (index % 7) * 0.035,
+  end: 0.82 + (index % 4) * 0.05,
+  size: 16 + (index % 4) * 3,
+  sway: (index % 2 === 0 ? -1 : 1) * (30 + (index % 5) * 11),
+  drift: (index % 2 === 0 ? 1 : -1) * (8 + (index % 4) * 5),
+  rotation: (index % 2 === 0 ? 1 : -1) * (380 + (index % 5) * 80),
+  color: [colors.green300, colors.green500, colors.green700, colors.green900][index % 4],
+}));
 
 function notificationVisual(type?: string) {
   if (type === 'ORDER_CREATED') return { icon: 'storefront-outline' as const, label: '새 주문' };
@@ -27,64 +47,186 @@ function notificationVisual(type?: string) {
 
 function NotificationToast({ notification, onDismiss }: { notification: AppNotificationRequest; onDismiss: (id: number, onDismissed?: () => void) => void }) {
   const motion = useRef(new Animated.Value(0)).current;
+  const swipeX = useSharedValue(0);
+  const { width } = useWindowDimensions();
   const visual = notificationVisual(notification.type);
 
   useEffect(() => {
     Animated.timing(motion, { toValue: 1, duration: 260, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }).start();
   }, [motion]);
 
-  const dismiss = (after?: () => void) => {
-    Animated.timing(motion, { toValue: 0, duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => onDismiss(notification.id, after));
+  const dismiss = (after?: () => void, direction = 0) => {
+    if (direction) swipeX.value = withTiming(direction * Math.max(width + 48, 520), { duration: 140, easing: ReanimatedEasing.out(ReanimatedEasing.cubic) });
+    Animated.timing(motion, { toValue: 0, duration: 140, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => onDismiss(notification.id, after));
   };
 
-  return <Animated.View style={[styles.notificationAnimated, { opacity: motion, transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={() => dismiss(notification.onPress)} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
-      <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={22} color={colors.green700}/><View style={styles.notificationUnread}/></View>
-      <View style={styles.notificationCopy}>
-        <View style={styles.notificationMeta}><Text style={styles.notificationLabel}>{visual.label}</Text><Text style={styles.notificationTime}>방금</Text></View>
-        <Text numberOfLines={1} style={styles.notificationTitle}>{notification.title}</Text>
-        <Text numberOfLines={3} style={styles.notificationMessage}>{notification.message}</Text>
-      </View>
-      <Pressable accessibilityLabel="알림 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); dismiss(); }} style={styles.notificationClose}><Ionicons name="close" size={15} color={colors.ink500}/></Pressable>
-    </Pressable>
+  const removeAfterSwipe = () => onDismiss(notification.id);
+  const swipeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: swipeX.value }] }));
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-12, 12])
+    .onUpdate((event) => { swipeX.value = event.translationX; })
+    .onEnd((event) => {
+      if (Math.abs(event.translationX) >= 72 || Math.abs(event.velocityX) >= 550) {
+        const direction = event.translationX < 0 ? -1 : 1;
+        swipeX.value = withTiming(direction * Math.max(width + 48, 520), { duration: 140, easing: ReanimatedEasing.out(ReanimatedEasing.cubic) }, (finished) => {
+          if (finished) runOnJS(removeAfterSwipe)();
+        });
+      } else {
+        swipeX.value = withTiming(0, { duration: 200, easing: ReanimatedEasing.bezier(0.22, 1, 0.36, 1) });
+      }
+    });
+
+  return <GestureDetector gesture={swipeGesture}><Reanimated.View style={[styles.notificationAnimated, swipeStyle]}><Animated.View style={{ opacity: motion, transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${notification.title}. ${notification.message}. 자세히 보기`} onPress={() => dismiss(notification.onPress)} style={({ pressed }) => [styles.notificationCard, pressed && styles.notificationPressed]}>
+        <View style={styles.notificationIcon}><Ionicons name={visual.icon} size={21} color={colors.white}/><View style={styles.notificationUnread}/></View>
+        <View style={styles.notificationCopy}>
+          <View style={styles.notificationMeta}><Text style={styles.notificationLabel}>{visual.label}</Text><Text style={styles.notificationTime}>방금</Text></View>
+          <Text numberOfLines={1} style={styles.notificationTitle}>{notification.title}</Text>
+          <Text numberOfLines={3} style={styles.notificationMessage}>{notification.message}</Text>
+        </View>
+        <Pressable accessibilityLabel="알림 닫기" hitSlop={8} onPress={(event) => { event.stopPropagation(); dismiss(); }} style={styles.notificationClose}><Ionicons name="close" size={15} color={colors.ink500}/></Pressable>
+      </Pressable>
+    </Animated.View></Reanimated.View></GestureDetector>;
+}
+
+function MetricBlurCurtain({ motion, title, accent = false }: { motion: Animated.Value; title: string; accent?: boolean }) {
+  return <Animated.View pointerEvents="none" style={[styles.reportMetricBlurLayer, {
+    opacity: motion.interpolate({ inputRange: [0, 0.2, 0.82, 1], outputRange: [1, 1, 0.48, 0] }),
+    transform: [{ translateY: motion.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0, 18] }) }, { scale: motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) }],
+  }]}>
+    <BlurView intensity={accent ? 30 : 22} style={[styles.reportMetricBlur, accent && styles.reportMetricAccentBlur]} tint={accent ? 'dark' : 'light'}>
+      <View style={styles.reportMetricBlurPrompt}><Text style={[styles.reportMetricBlurTitle, accent && styles.reportMetricBlurTitleAccent]}>{title}</Text><View style={styles.reportMetricBlurAction}><Ionicons name="eye-outline" size={16} color={accent ? colors.white : colors.ink700}/><Text style={[styles.reportMetricBlurPromptText, accent && styles.reportMetricBlurPromptTextAccent]}>눌러서 확인</Text></View></View>
+    </BlurView>
+    {REPORT_PARTICLES.map((particle, index) => {
+      const start = 0.08 + (index % 8) * 0.035;
+      return <Animated.View key={`${particle.left}-${particle.top}`} style={[styles.reportParticle, accent && styles.reportParticleAccent, {
+        left: particle.left,
+        top: particle.top,
+        width: particle.size,
+        height: particle.size,
+        borderRadius: particle.size / 2,
+        opacity: motion.interpolate({ inputRange: [0, start, Math.min(0.72, start + 0.16), 0.78, 1], outputRange: [0, 0, 0.95, 0.7, 0] }),
+        transform: [{ translateX: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.drift] }) }, { translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, particle.fall] }) }, { scale: motion.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0.55, 1, 0.35] }) }],
+      }]}/>;
+    })}
   </Animated.View>;
 }
 
+function ReportLeafFall({ motion, height }: { motion: Animated.Value; height: number }) {
+  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.reportLeafField}>
+    {REPORT_LEAVES.map((leaf, index) => {
+      const span = leaf.end - leaf.start;
+      const timeline = [leaf.start, leaf.start + span * 0.2, leaf.start + span * 0.4, leaf.start + span * 0.6, leaf.start + span * 0.8, leaf.end];
+      return <Animated.View key={`${leaf.left}-${index}`} style={[styles.reportFallingLeaf, {
+        left: leaf.left,
+        opacity: motion.interpolate({ inputRange: [leaf.start, leaf.start + 0.035, leaf.end - 0.06, leaf.end], outputRange: [0, 0.96, 0.88, 0], extrapolate: 'clamp' }),
+        transform: [
+          { translateY: motion.interpolate({ inputRange: [leaf.start, leaf.end], outputRange: [-56, height + 60], extrapolate: 'clamp' }) },
+          { translateX: motion.interpolate({ inputRange: timeline, outputRange: [0, leaf.sway, leaf.sway * -0.72, leaf.sway * 0.84, leaf.sway * -0.48, leaf.drift], extrapolate: 'clamp' }) },
+          { rotate: motion.interpolate({ inputRange: timeline, outputRange: ['0deg', `${leaf.rotation * 0.18}deg`, `${leaf.rotation * 0.37}deg`, `${leaf.rotation * 0.6}deg`, `${leaf.rotation * 0.82}deg`, `${leaf.rotation}deg`], extrapolate: 'clamp' }) },
+        ],
+      }]}><Ionicons name="leaf" size={leaf.size} color={leaf.color}/></Animated.View>;
+    })}
+  </View>;
+}
+
 function DishReportModal({ report, insets, onClose }: { report?: AppDishReportRequest; insets: { top: number; bottom: number }; onClose: () => void }) {
+  const { height } = useWindowDimensions();
   const entrance = useRef(new Animated.Value(0)).current;
-  const pointEmphasis = useRef(new Animated.Value(0)).current;
+  const leafFall = useRef(new Animated.Value(0)).current;
+  const leafFallLoop = useRef<Animated.CompositeAnimation | undefined>(undefined);
+  const entranceStarted = useRef(false);
+  const entranceFallback = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const savedAmountReveal = useRef(new Animated.Value(0)).current;
+  const earnedPointsReveal = useRef(new Animated.Value(0)).current;
+  const [savedAmountVisible, setSavedAmountVisible] = useState(false);
+  const [earnedPointsVisible, setEarnedPointsVisible] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => subscription.remove();
+  }, []);
+
+  const startEntrance = useCallback(() => {
+    if (!report || entranceStarted.current) return;
+    entranceStarted.current = true;
+    if (entranceFallback.current) clearTimeout(entranceFallback.current);
+    if (reduceMotion) {
+      leafFallLoop.current?.stop();
+      entrance.setValue(1);
+      leafFall.setValue(1);
+      return;
+    }
+    leafFallLoop.current?.stop();
+    entrance.stopAnimation();
+    leafFall.stopAnimation();
+    entrance.setValue(0);
+    leafFall.setValue(0);
+    Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start();
+    leafFallLoop.current = Animated.loop(Animated.timing(leafFall, { toValue: 1, duration: 7200, easing: Easing.linear, isInteraction: false, useNativeDriver: true }));
+    leafFallLoop.current.start();
+  }, [entrance, leafFall, reduceMotion, report]);
 
   useEffect(() => {
     if (!report) return;
-    entrance.setValue(0);
-    pointEmphasis.setValue(0);
-    Animated.sequence([
-      Animated.timing(entrance, { toValue: 1, duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1), useNativeDriver: true }),
-      Animated.spring(pointEmphasis, { toValue: 1, damping: 12, stiffness: 170, mass: 0.7, useNativeDriver: true }),
-    ]).start();
-  }, [entrance, pointEmphasis, report]);
+    setSavedAmountVisible(false);
+    setEarnedPointsVisible(false);
+    savedAmountReveal.setValue(0);
+    earnedPointsReveal.setValue(0);
+    entranceStarted.current = false;
+    leafFallLoop.current?.stop();
+    entrance.stopAnimation();
+    leafFall.stopAnimation();
+    entrance.setValue(reduceMotion ? 1 : 0);
+    leafFall.setValue(reduceMotion ? 1 : 0);
+    entranceFallback.current = setTimeout(startEntrance, 120);
+    return () => {
+      if (entranceFallback.current) clearTimeout(entranceFallback.current);
+      leafFallLoop.current?.stop();
+    };
+  }, [earnedPointsReveal, entrance, leafFall, reduceMotion, report, savedAmountReveal, startEntrance]);
+
+  const revealMetric = (motion: Animated.Value, setVisible: (visible: boolean) => void) => {
+    if (reduceMotion) {
+      motion.setValue(1);
+      setVisible(true);
+      return;
+    }
+    motion.stopAnimation();
+    Animated.timing(motion, { toValue: 1, duration: 800, easing: Easing.bezier(0.22, 1, 0.36, 1), isInteraction: false, useNativeDriver: true }).start(({ finished }) => {
+      if (finished) setVisible(true);
+    });
+  };
 
   const navigate = (path: '/grades' | '/points') => {
     onClose();
     requestAnimationFrame(() => router.push(path));
   };
 
-  return <Modal animationType="fade" onRequestClose={onClose} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
+  return <Modal animationType="none" onRequestClose={onClose} onShow={startEntrance} presentationStyle="overFullScreen" transparent visible={Boolean(report)}>
     <View style={[styles.reportRoot, { paddingTop: Math.max(24, insets.top), paddingBottom: Math.max(24, insets.bottom) }]}>
-      <Animated.View accessibilityRole="alert" accessibilityViewIsModal style={[styles.reportCard, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }] }]}>
+      <ReportLeafFall height={height} motion={leafFall}/>
+      <Animated.View renderToHardwareTextureAndroid style={[styles.reportCardStage, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }]}>
+        <Animated.View pointerEvents="none" style={[styles.reportDepthBack, { opacity: entrance.interpolate({ inputRange: [0, 1], outputRange: [0, 0.42] }), transform: [{ translateY: 11 }, { scale: 0.96 }] }]}/>
+        <Animated.View pointerEvents="none" style={[styles.reportDepthMiddle, { opacity: entrance.interpolate({ inputRange: [0, 1], outputRange: [0, 0.62] }), transform: [{ translateY: 6 }, { scale: 0.98 }] }]}/>
+        <View accessibilityRole="alert" accessibilityViewIsModal style={styles.reportCard}>
         <View style={styles.reportHeader}>
-          <View style={styles.reportMark}><Ionicons name="checkmark-circle-outline" size={25} color={colors.white}/></View>
+          <View style={styles.reportMark}><Ionicons name="leaf-outline" size={22} color={colors.white}/></View>
           <View style={styles.reportHeaderCopy}><Text style={styles.reportEyebrow}>픽업 완료 리포트</Text><Text style={styles.reportTitle}>오늘도 한 끼를 구조했어요</Text></View>
           <Pressable accessibilityLabel="리포트 닫기" hitSlop={8} onPress={onClose} style={styles.reportClose}><Ionicons name="close" size={17} color={colors.ink500}/></Pressable>
         </View>
         <View style={styles.reportPurchase}><View><Text style={styles.reportLabel}>구매 정보</Text><Text style={styles.reportPurchaseTitle}>픽업 완료 · 구매 반영 완료</Text></View><Ionicons name="receipt-outline" size={21} color={colors.green700}/></View>
         <Pressable accessibilityRole="button" onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportLevel, pressed && styles.reportPressed]}><View><Text style={styles.reportLabel}>현재 등급</Text><Text style={styles.reportLevelValue}>{report?.level ? `Lv.${report.level} · ${report.grade}` : '등급 확인 중'}</Text>{report?.remainToNextLevel !== undefined ? <Text style={styles.reportLevelHint}>{report.remainToNextLevel > 0 ? `다음 등급까지 픽업 ${report.remainToNextLevel}회` : '현재 최고 등급이에요'}</Text> : null}</View><Ionicons name="chevron-forward" size={19} color={colors.green700}/></Pressable>
         <View style={styles.reportMetrics}>
-          <View style={styles.reportMetric}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text></View>
-          <Animated.View style={[styles.reportMetricAnimated, { transform: [{ scale: pointEmphasis.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] }]}><Pressable accessibilityRole="button" onPress={() => navigate('/points')} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>포인트 내역 보기</Text></Pressable></Animated.View>
+          <Pressable accessibilityRole="button" accessibilityLabel={savedAmountVisible ? `누적 절약 금액 ${report?.savedAmount?.toLocaleString() ?? '확인 불가'}원` : '누적 절약 금액, 눌러서 확인'} onPress={() => !savedAmountVisible && revealMetric(savedAmountReveal, setSavedAmountVisible)} style={({ pressed }) => [styles.reportMetric, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricLabel}>누적 절약 금액</Text><Text style={styles.reportMetricValue}>{report?.savedAmount === undefined ? '—' : `${report.savedAmount.toLocaleString()}원`}</Text><Text style={styles.reportMetricReveal}>{savedAmountVisible ? '공개됨' : '금액 확인 완료'}</Text>{!savedAmountVisible ? <MetricBlurCurtain motion={savedAmountReveal} title="누적 절약 금액"/> : null}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={earnedPointsVisible ? `지금 적립된 포인트 ${report?.earnedPoints?.toLocaleString() ?? '확인 불가'}포인트` : '지금 적립된 포인트, 눌러서 확인'} onPress={() => !earnedPointsVisible && revealMetric(earnedPointsReveal, setEarnedPointsVisible)} style={({ pressed }) => [styles.reportMetric, styles.reportMetricAccent, pressed && styles.reportMetricPressed]}><Text style={styles.reportMetricAccentLabel}>지금 적립된 포인트</Text><Text style={styles.reportMetricAccentValue}>{report?.earnedPoints === undefined ? '—' : `+${report.earnedPoints.toLocaleString()}P`}</Text><Text style={styles.reportMetricLink}>{earnedPointsVisible ? '공개됨' : '포인트 확인 완료'}</Text>{!earnedPointsVisible ? <MetricBlurCurtain accent motion={earnedPointsReveal} title="이번에 적립된 포인트"/> : null}</Pressable>
         </View>
         <View style={styles.reportTotal}><Text style={styles.reportLabel}>총 구매 횟수</Text><Text style={styles.reportTotalValue}>{report?.purchaseCount === undefined ? '—' : `${report.purchaseCount.toLocaleString()}회`}</Text></View>
         <View style={styles.reportActions}><Pressable onPress={onClose} style={({ pressed }) => [styles.reportLater, pressed && styles.pressed]}><Text style={styles.reportLaterText}>닫기</Text></Pressable><Pressable onPress={() => navigate('/grades')} style={({ pressed }) => [styles.reportPrimary, pressed && styles.pressed]}><Text style={styles.reportPrimaryText}>내 등급 확인하기</Text></Pressable></View>
+        </View>
       </Animated.View>
     </View>
   </Modal>;
@@ -181,20 +323,25 @@ const styles = StyleSheet.create({
   loadingRoot: { ...StyleSheet.absoluteFillObject, zIndex: 2000, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(247,248,246,0.82)' },
   loadingCard: { width: 148, minHeight: 104, alignItems: 'center', justifyContent: 'center' },
   notificationLayer: { position: 'absolute', left: 12, right: 12, zIndex: 1000, alignItems: 'center', gap: 8 },
-  notificationAnimated: { width: '100%', maxWidth: 440 },
-  notificationCard: { width: '100%', minHeight: 104, paddingLeft: 14, paddingRight: 46, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.sheet },
-  notificationIcon: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.green50 },
-  notificationUnread: { position: 'absolute', right: 5, top: 5, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.green500, borderWidth: 2, borderColor: colors.white },
+  notificationAnimated: { width: '100%', maxWidth: 440, borderRadius: radius.input, ...shadow.notification },
+  notificationCard: { width: '100%', minHeight: 96, paddingLeft: 12, paddingRight: 46, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong },
+  notificationIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, backgroundColor: colors.green900 },
+  notificationUnread: { position: 'absolute', right: 4, top: 4, width: 7, height: 7, borderRadius: 4, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.green900 },
   notificationCopy: { flex: 1, minWidth: 0 },
   notificationMeta: { marginBottom: 3, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  notificationLabel: { color: colors.green700, fontFamily: fonts.body, fontSize: 11, lineHeight: 15, fontWeight: '800' },
+  notificationLabel: { color: colors.green900, fontFamily: fonts.body, fontSize: 11, lineHeight: 15, fontWeight: '800' },
   notificationTime: { color: colors.ink400, fontFamily: fonts.body, fontSize: 10, lineHeight: 14 },
   notificationTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 15, lineHeight: 20, fontWeight: '800', letterSpacing: -0.25 },
   notificationMessage: { marginTop: 3, color: colors.ink700, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
-  notificationClose: { position: 'absolute', top: 10, right: 10, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.canvas },
+  notificationClose: { position: 'absolute', top: 9, right: 9, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.white },
   notificationPressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
   reportRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(15,20,17,0.58)' },
-  reportCard: { width: '100%', maxWidth: 410, padding: 18, borderRadius: radius.sheet, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
+  reportLeafField: { ...StyleSheet.absoluteFillObject, zIndex: 1, overflow: 'hidden' },
+  reportFallingLeaf: { position: 'absolute', top: 0 },
+  reportCardStage: { width: '100%', maxWidth: 410, position: 'relative', zIndex: 2 },
+  reportDepthBack: { ...StyleSheet.absoluteFillObject, borderRadius: radius.sheet, backgroundColor: colors.green700 },
+  reportDepthMiddle: { ...StyleSheet.absoluteFillObject, borderRadius: radius.sheet, backgroundColor: colors.ink700 },
+  reportCard: { width: '100%', padding: 18, borderRadius: radius.sheet, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lineStrong, ...shadow.float },
   reportHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   reportMark: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.green700 },
   reportHeaderCopy: { flex: 1, minWidth: 0 },
@@ -209,20 +356,31 @@ const styles = StyleSheet.create({
   reportLevelHint: { marginTop: 4, color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '700' },
   reportPressed: { backgroundColor: colors.green50, borderColor: colors.green300 },
   reportMetrics: { marginTop: 8, flexDirection: 'row', gap: 8 },
-  reportMetricAnimated: { flex: 1 },
-  reportMetric: { minHeight: 112, flex: 1, padding: 14, justifyContent: 'space-between', borderRadius: radius.input, backgroundColor: colors.canvas },
+  reportMetric: { minHeight: 112, flex: 1, padding: 14, justifyContent: 'space-between', overflow: 'hidden', borderRadius: radius.input, backgroundColor: colors.canvas },
   reportMetricAccent: { backgroundColor: colors.green700 },
   reportMetricLabel: { color: colors.ink500, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   reportMetricValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 19, fontWeight: '900', letterSpacing: -0.5 },
   reportMetricAccentLabel: { color: colors.green100, fontFamily: fonts.body, fontSize: 10, fontWeight: '800' },
   reportMetricAccentValue: { color: colors.white, fontFamily: fonts.body, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   reportMetricLink: { color: colors.green100, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
+  reportMetricReveal: { color: colors.ink500, fontFamily: fonts.body, fontSize: 9, fontWeight: '800' },
+  reportMetricBlurLayer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', borderRadius: radius.input },
+  reportMetricBlur: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(247,248,246,0.48)' },
+  reportMetricAccentBlur: { backgroundColor: 'rgba(0,93,45,0.44)' },
+  reportMetricBlurPrompt: { alignItems: 'center', gap: 8 },
+  reportMetricBlurTitle: { color: colors.ink900, fontFamily: fonts.body, fontSize: 11, fontWeight: '900', textAlign: 'center' },
+  reportMetricBlurTitleAccent: { color: colors.white },
+  reportMetricBlurAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  reportMetricBlurPromptText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 10, fontWeight: '900' },
+  reportMetricBlurPromptTextAccent: { color: colors.white },
+  reportParticle: { position: 'absolute', backgroundColor: 'rgba(77,83,79,0.7)' },
+  reportParticleAccent: { backgroundColor: 'rgba(221,249,233,0.9)' },
   reportMetricPressed: { opacity: 0.88 },
   reportTotal: { minHeight: 62, marginTop: 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.input, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   reportTotalValue: { color: colors.ink900, fontFamily: fonts.body, fontSize: 17, fontWeight: '900' },
   reportActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
   reportLater: { minHeight: 50, flex: 0.7, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.white },
   reportLaterText: { color: colors.ink700, fontFamily: fonts.body, fontSize: 13, fontWeight: '800' },
-  reportPrimary: { minHeight: 50, flex: 1.3, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green500 },
+  reportPrimary: { minHeight: 50, flex: 1.3, alignItems: 'center', justifyContent: 'center', borderRadius: radius.input, backgroundColor: colors.green700 },
   reportPrimaryText: { color: colors.white, fontFamily: fonts.body, fontSize: 13, fontWeight: '900' },
 });

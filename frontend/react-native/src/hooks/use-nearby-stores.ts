@@ -5,12 +5,13 @@ import { getNearbyStores } from '@/lib/stores';
 import type { Store } from '@/types/store';
 import type { MapBounds } from '@/components/map-canvas.types';
 import { distanceKm, isWithinBounds, radiusForBounds } from '@/lib/map-viewport';
+import type { StoreAvailabilityMode } from '@/providers/store-availability-provider';
 
 // 위치 권한·GPS·최근 위치가 모두 없을 때 앱과 웹이 공유하는 기준점입니다.
 const defaultLocation = { latitude: 37.485026405, longitude: 127.016271761 };
 type Coordinate = typeof defaultLocation;
 
-export function useNearbyStores(radiusKm = 5) {
+export function useNearbyStores(radiusKm = 5, pickupFilter: StoreAvailabilityMode = 'NOW', reloadOnFilterChange = true) {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -23,6 +24,8 @@ export function useNearbyStores(radiusKm = 5) {
   const requestIdRef = useRef(0);
   const requestControllerRef = useRef<AbortController | undefined>(undefined);
   const highAccuracyAppliedRef = useRef(false);
+  const pickupFilterRef = useRef(pickupFilter);
+  const previousPickupFilterRef = useRef(pickupFilter);
   const loadStoresRef = useRef<(target: Coordinate, silent?: boolean, bounds?: MapBounds) => Promise<void>>(async () => undefined);
 
   const loadStores = useCallback(async (searchLocation: Coordinate, silent = false, bounds?: MapBounds) => {
@@ -34,7 +37,7 @@ export function useNearbyStores(radiusKm = 5) {
     if (!silent) setError(false);
     try {
       const queryRadius = radiusForBounds(searchLocation, bounds, radiusKm);
-      const nearby = await getNearbyStores(searchLocation.latitude, searchLocation.longitude, queryRadius, 80, controller.signal);
+      const nearby = await getNearbyStores(searchLocation.latitude, searchLocation.longitude, queryRadius, 80, pickupFilterRef.current, controller.signal);
       if (requestId !== requestIdRef.current) return;
       lastStoreLocationRef.current = searchLocation;
       setStores(nearby
@@ -50,8 +53,25 @@ export function useNearbyStores(radiusKm = 5) {
 
   loadStoresRef.current = loadStores;
   const reload = useCallback(async (target?: Coordinate, silent = false, bounds?: MapBounds) => loadStores(target ?? locationRef.current, silent, bounds), [loadStores]);
+  const refreshLocation = useCallback(async () => {
+    const permission = await Location.getForegroundPermissionsAsync().catch(() => null);
+    if (!permission?.granted) return locationRef.current;
+    const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).catch(() => null);
+    if (!current) return locationRef.current;
+    const next = { latitude: current.coords.latitude, longitude: current.coords.longitude };
+    locationRef.current = next;
+    setLocation(next);
+    setLocationResolved(true);
+    return next;
+  }, []);
 
   useEffect(() => { void loadStores(locationRef.current); }, [loadStores]);
+  useEffect(() => {
+    pickupFilterRef.current = pickupFilter;
+    if (previousPickupFilterRef.current === pickupFilter) return;
+    previousPickupFilterRef.current = pickupFilter;
+    if (reloadOnFilterChange) void loadStores(locationRef.current);
+  }, [loadStores, pickupFilter, reloadOnFilterChange]);
   useEffect(() => {
     let cancelled = false;
     const updateLocation = (next: Coordinate, refreshStores: boolean) => {
@@ -110,5 +130,5 @@ export function useNearbyStores(radiusKm = 5) {
     };
   }, [locationGranted]);
 
-  return { stores, loading, error, reload, location, locationResolved, heading };
+  return { stores, loading, error, reload, refreshLocation, location, locationResolved, heading };
 }

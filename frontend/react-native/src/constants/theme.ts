@@ -13,8 +13,8 @@ export const colors = {
   green50: '#F0FFF6',
   green100: '#DDF9E9',
   green200: '#B4F0CC',
-  green300: '#03C75A',
-  green500: '#03C75A',
+  green300: '#008F42',
+  green500: '#008F42',
   green700: '#008F42',
   green900: '#005D2D',
   blue50: '#EEF5F8',
@@ -30,8 +30,8 @@ export const colors = {
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
 export const radius = { control: 10, input: 12, card: 16, sheet: 22, navigation: 26, pill: 999 } as const;
 export const fonts = {
-  body: Platform.select({ ios: 'Apple SD Gothic Neo', android: 'sans-serif', default: 'system-ui' }),
-  fallback: Platform.select({ ios: 'Apple SD Gothic Neo', android: 'sans-serif', default: 'system-ui' }),
+  body: Platform.select({ ios: 'Apple SD Gothic Neo', android: 'sans-serif', default: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif' }),
+  fallback: Platform.select({ ios: 'Apple SD Gothic Neo', android: 'sans-serif', default: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif' }),
 } as const;
 
 export const typography = {
@@ -48,6 +48,7 @@ export const motion = { fast: 120, base: 200, screen: 280, emphasis: 400 } as co
 export const shadow = {
   card: { shadowColor: '#151A16', shadowOpacity: 0.04, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   control: { shadowColor: '#111512', shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  notification: { shadowColor: '#005D2D', shadowOpacity: 0.09, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 7 },
   nav: { shadowColor: '#111512', shadowOpacity: 0.11, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   sheet: { shadowColor: '#111512', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 9 },
   float: { shadowColor: '#111512', shadowOpacity: 0.15, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 8 },
