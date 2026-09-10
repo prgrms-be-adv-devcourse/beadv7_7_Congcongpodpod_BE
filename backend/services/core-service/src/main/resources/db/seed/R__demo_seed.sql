@@ -1600,7 +1600,14 @@ INSERT INTO public.deposit_history (
     member_id, order_id, payment_id, type, amount, balance_after, created_at
 )
 SELECT
-    member_id, NULL, member_id, 'CHARGE', charge_amount, charge_amount,
+    member_id,
+    NULL,
+    -- Payment seed creates IDs 1..300. Other opening balances are synthetic and
+    -- must not reserve payment IDs that will be assigned to real payments.
+    CASE WHEN member_id <= 300 THEN member_id ELSE NULL END,
+    'CHARGE',
+    charge_amount,
+    charge_amount,
     current_timestamp - interval '9 years'
 FROM demo_member_charge;
 
